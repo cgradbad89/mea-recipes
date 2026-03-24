@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #0F0D0A;
+    color: #F5F0E8;
+  }
+
+  ::selection {
+    background: #E8A838;
+    color: #0F0D0A;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #1A1612;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2E2820;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #E8A838;
+  }
+}
+
+@layer components {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #1A1612 25%,
+      #2E2820 50%,
+      #1A1612 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s infinite;
+  }
+
+  .recipe-card {
+    @apply bg-card border border-border rounded-2xl overflow-hidden transition-all duration-300;
+  }
+
+  .recipe-card:hover {
+    @apply border-amber/30;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(232, 168, 56, 0.08);
+  }
+
+  .btn-primary {
+    @apply bg-amber text-ink font-body font-semibold px-5 py-2.5 rounded-xl text-sm
+           transition-all duration-200 hover:bg-amber-glow active:scale-95;
+  }
+
+  .btn-ghost {
+    @apply border border-border text-muted font-body text-sm px-4 py-2 rounded-xl
+           transition-all duration-200 hover:border-amber/40 hover:text-cream;
+  }
+
+  .tag {
+    @apply text-xs font-body font-medium px-2.5 py-1 rounded-lg bg-surface border border-border text-muted;
+  }
+
+  .tag-amber {
+    @apply text-xs font-body font-medium px-2.5 py-1 rounded-lg bg-amber/10 border border-amber/20 text-amber;
+  }
+
+  .input-field {
+    @apply w-full bg-surface border border-border rounded-xl px-4 py-3 text-cream text-sm
+           placeholder:text-faint font-body outline-none
+           focus:border-amber/50 focus:ring-1 focus:ring-amber/20 transition-all duration-200;
+  }
+
+  .nav-link {
+    @apply text-sm font-body font-medium text-muted transition-colors duration-200 hover:text-cream;
+  }
+
+  .nav-link-active {
+    @apply text-sm font-body font-medium text-amber;
+  }
+}
+
+/* Cuisine badge colors */
+.cuisine-mexican { background: rgba(239, 68, 68, 0.12); color: #f87171; border-color: rgba(239, 68, 68, 0.2); }
+.cuisine-asian { background: rgba(234, 179, 8, 0.12); color: #facc15; border-color: rgba(234, 179, 8, 0.2); }
+.cuisine-american { background: rgba(59, 130, 246, 0.12); color: #93c5fd; border-color: rgba(59, 130, 246, 0.2); }
+.cuisine-mediterranean { background: rgba(20, 184, 166, 0.12); color: #5eead4; border-color: rgba(20, 184, 166, 0.2); }
+.cuisine-italian { background: rgba(132, 204, 22, 0.12); color: #a3e635; border-color: rgba(132, 204, 22, 0.2); }
+.cuisine-indian { background: rgba(249, 115, 22, 0.12); color: #fb923c; border-color: rgba(249, 115, 22, 0.2); }
+.cuisine-middle-eastern { background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.2); }
+.cuisine-greek { background: rgba(14, 165, 233, 0.12); color: #38bdf8; border-color: rgba(14, 165, 233, 0.2); }
+.cuisine-default { background: rgba(248, 240, 232, 0.06); color: #a89880; border-color: rgba(248, 240, 232, 0.1); }
