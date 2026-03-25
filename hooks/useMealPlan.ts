@@ -25,38 +25,29 @@ export function useMealPlan() {
     } catch {}
   }, [])
 
-  const savePlan = useCallback((next: WeekPlan) => {
-    setPlan(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    } catch {}
+  const addToDay = useCallback((dateKey: string, slot: MealSlot, recipe: Recipe) => {
+    setPlan(prev => {
+      const next = { ...prev, [dateKey]: { ...prev[dateKey], [slot]: recipe } }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
+      return next
+    })
   }, [])
 
-  const addToDay = useCallback((dateKey: string, slot: MealSlot, recipe: Recipe) => {
-    savePlan(prev => {
-      const next = { ...prev }
-      next[dateKey] = { ...next[dateKey], [slot]: recipe }
-      return next
-    })
-  }, [savePlan])
-
   const removeFromDay = useCallback((dateKey: string, slot: MealSlot) => {
-    savePlan(prev => {
-      const next = { ...prev }
-      if (next[dateKey]) {
-        const day = { ...next[dateKey] }
-        delete day[slot]
-        next[dateKey] = day
-      }
+    setPlan(prev => {
+      const day = { ...prev[dateKey] }
+      delete day[slot]
+      const next = { ...prev, [dateKey]: day }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
       return next
     })
-  }, [savePlan])
+  }, [])
 
   const clearPlan = useCallback(() => {
-    savePlan({})
-  }, [savePlan])
+    setPlan({})
+    try { localStorage.removeItem(STORAGE_KEY) } catch {}
+  }, [])
 
-  // Gather all planned recipes for grocery list
   const getAllPlannedRecipes = useCallback((): Recipe[] => {
     const recipes: Recipe[] = []
     Object.values(plan).forEach(day => {
