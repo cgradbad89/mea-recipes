@@ -47,7 +47,8 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
   const [tab, setTab] = useState<Tab>('url')
   const [url, setUrl] = useState('')
   const [pasteText, setPasteText] = useState('')
-  const [status, setStatus] = useState<'idle' | 'fetching' | 'preview' | 'saving' | 'done' | 'error'>('idle')
+  const [status, setStatus] = useState<'idle' | 'fetching' | 'preview' | 'done' | 'error'>('idle')
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   // Parsed preview fields
@@ -100,7 +101,7 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
 
   const handleSave = async () => {
     if (!title.trim()) { setError('Title is required'); return }
-    setStatus('saving')
+    setSaving(true)
     try {
       await saveRecipe({
         recipeID: slugify(title),
@@ -121,6 +122,8 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
     } catch (e: any) {
       setError(e.message || 'Failed to save')
       setStatus('error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -176,10 +179,10 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
                 <button onClick={() => setStatus('idle')} className="btn-ghost flex-1">Back</button>
                 <button
                   onClick={handleSave}
-                  disabled={status === 'saving'}
+                  disabled={saving}
                   className="btn-primary flex-1 flex items-center justify-center gap-2"
                 >
-                  {status === 'saving' ? <Loader2 size={14} className="animate-spin" /> : null}
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : null}
                   Save Recipe
                 </button>
               </div>
