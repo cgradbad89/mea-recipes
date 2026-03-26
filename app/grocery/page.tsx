@@ -65,7 +65,7 @@ export default function GroceryPage() {
     if (!user) { setLoading(false); return }
     const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
     const unsub = onSnapshot(ref, snap => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as GroceryItem))
+      const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as GroceryItem))
       setItems(data)
       setLoading(false)
     })
