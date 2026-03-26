@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan,
   markRecipeCooked, addRecipeIngredientsToGrocery, getAllWeekPlans,
-  type WeekPlan
+  moveRecipeToWeek, saveRecipeMeta, getRecipeMeta,
+  type WeekPlan, type RecipeMeta
 } from '@/lib/userdata'
 import { getAllRecipes, parseRecipeContent } from '@/lib/recipes'
 import type { Recipe } from '@/types/recipe'
@@ -37,6 +38,105 @@ function addWeeks(weekID: string, delta: number): string {
   return weekIDFromDate(d)
 }
 
+// Half-star interactive rating component (same pattern as recipes/[id]/page.tsx)
+function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
+  const [hover, setHover] = useState(0)
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>, star: number) => {
+    if (!onChange) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    setHover(x < rect.width / 2 ? star - 0.5 : star)
+  }
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>, star: number) => {
+    if (!onChange) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const newRating = x < rect.width / 2 ? star - 0.5 : star
+    onChange(newRating === value ? 0 : newRating)
+  }
+
+  const display = hover || value
+
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map(star => {
+        const full = display >= star
+        const half = !full && display >= star - 0.5
+        return (
+          <button
+            key={star}
+            onMouseMove={e => handleMouseMove(e, star)}
+            onMouseLeave={() => setHover(0)}
+            onClick={e => handleClick(e, star)}
+            disabled={!onChange}
+            className="relative w-6 h-6 transition-transform hover:scale-110"
+          >
+            <svg viewBox="0 0 24 24" className="w-6 h-6 text-faint/30 absolute inset-0" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            {full && (
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber absolute inset-0" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            )}
+            {half && (
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber absolute inset-0" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77V2z"/>
+              </svg>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// Inline modal shown after marking a recipe cooked (if no existing rating)
+function CookRatingModal({
+  recipeName,
+  onSave,
+  onSkip,
+}: {
+  recipeName: string
+  onSave: (rating: number, note: string) => void
+  onSkip: () => void
+}) {
+  const [rating, setRating] = useState(0)
+  const [note, setNote] = useState('')
+
+  return (
+    <div className="bg-card border border-amber/20 rounded-xl p-4 mt-2 animate-fade-in">
+      <p className="text-cream text-sm font-body font-medium mb-3">
+        How was <span className="text-amber">{recipeName}</span>?
+      </p>
+      <div className="mb-3">
+        <StarRating value={rating} onChange={setRating} />
+      </div>
+      <textarea
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder="Any notes? (optional)"
+        rows={2}
+        className="input-field resize-none text-sm mb-3"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={() => onSave(rating, note)}
+          disabled={rating === 0}
+          className="btn-primary text-xs px-3 py-1.5 disabled:opacity-40"
+        >
+          Save
+        </button>
+        <button onClick={onSkip} className="btn-ghost text-xs px-3 py-1.5">
+          Skip
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function PlanPage() {
   const { user, signIn } = useAuth()
   const [weekID, setWeekID] = useState(() => weekIDFromDate(new Date()))
@@ -44,6 +144,10 @@ export default function PlanPage() {
   const [recipes, setRecipes] = useState<Record<string, Recipe>>({})
   const [loadingRecipes, setLoadingRecipes] = useState(true)
   const [addingToGrocery, setAddingToGrocery] = useState<string | null>(null)
+  const [moveOpenFor, setMoveOpenFor] = useState<string | null>(null)
+  const [movingRecipe, setMovingRecipe] = useState<string | null>(null)
+  const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
+  const [metas, setMetas] = useState<Record<string, RecipeMeta>>({})
 
   // Load all recipes for lookup
   useEffect(() => {
@@ -62,19 +166,64 @@ export default function PlanPage() {
     return unsub
   }, [user, weekID])
 
+  // Load metas for planned recipes (to check existing ratings)
+  useEffect(() => {
+    if (!user || !plan) return
+    const ids = plan.plannedRecipeIDs || []
+    ids.forEach(id => {
+      if (metas[id] !== undefined) return
+      getRecipeMeta(user.uid, id).then(m => {
+        setMetas(prev => ({ ...prev, [id]: m || {} }))
+      })
+    })
+  }, [user, plan])
+
   const plannedIDs = plan?.plannedRecipeIDs || []
   const cookedIDs = new Set(plan?.cookedRecipeIDs || [])
   const uncookedPlanned = plannedIDs.filter(id => !cookedIDs.has(id))
   const cooked = plannedIDs.filter(id => cookedIDs.has(id))
 
+  // Surrounding weeks for move dropdown (2 before, 2 after)
+  const surroundingWeeks = [-2, -1, 1, 2].map(delta => ({
+    weekID: addWeeks(weekID, delta),
+    label: formatWeekLabel(addWeeks(weekID, delta)),
+  }))
+
   const handleMarkCooked = async (recipeID: string, isCooked: boolean) => {
     if (!user) return
+    // On check (not uncheck), show rating prompt if no existing rating
+    if (isCooked && !metas[recipeID]?.rating) {
+      await markRecipeCooked(user.uid, weekID, recipeID, true)
+      setRatingPromptFor(recipeID)
+      return
+    }
     await markRecipeCooked(user.uid, weekID, recipeID, isCooked)
+  }
+
+  const handleRatingSave = async (recipeID: string, rating: number, note: string) => {
+    if (!user) return
+    const data: Partial<RecipeMeta> = { rating }
+    if (note.trim()) data.note = note
+    await saveRecipeMeta(user.uid, recipeID, data)
+    setMetas(prev => ({ ...prev, [recipeID]: { ...prev[recipeID], ...data } }))
+    setRatingPromptFor(null)
+  }
+
+  const handleRatingSkip = () => {
+    setRatingPromptFor(null)
   }
 
   const handleRemove = async (recipeID: string) => {
     if (!user) return
     await removeRecipeFromWeekPlan(user.uid, weekID, recipeID)
+  }
+
+  const handleMoveToWeek = async (recipeID: string, targetWeekID: string) => {
+    if (!user) return
+    setMovingRecipe(recipeID)
+    await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID)
+    setMoveOpenFor(null)
+    setMovingRecipe(null)
   }
 
   const handleAddToGrocery = async (recipeID: string) => {
@@ -152,45 +301,82 @@ export default function PlanPage() {
                   const recipe = recipes[id]
                   if (!recipe) return null
                   return (
-                    <div key={id} className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3">
-                      {recipe.imageURL && (
-                        <img src={recipe.imageURL} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0"
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    <div key={id}>
+                      <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3">
+                        {recipe.imageURL && (
+                          <img src={recipe.imageURL} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/recipes/${id}`}>
+                            <p className="text-cream text-sm font-body font-medium truncate hover:text-amber transition-colors">
+                              {recipe.title}
+                            </p>
+                          </Link>
+                          <p className="text-faint text-xs font-body capitalize">{recipe.cuisine}</p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Move to week */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setMoveOpenFor(moveOpenFor === id ? null : id)}
+                              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
+                              title="Move to another week"
+                            >
+                              {movingRecipe === id
+                                ? <Loader2 size={13} className="animate-spin" />
+                                : <ArrowRightLeft size={13} />
+                              }
+                            </button>
+                            {moveOpenFor === id && (
+                              <div className="absolute right-0 top-9 z-10 bg-card border border-border rounded-xl shadow-lg py-1 w-48 animate-fade-in">
+                                <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Move to week</p>
+                                {surroundingWeeks.map(w => (
+                                  <button
+                                    key={w.weekID}
+                                    onClick={() => handleMoveToWeek(id, w.weekID)}
+                                    className="w-full text-left px-3 py-2 text-sm font-body text-muted hover:text-cream hover:bg-surface transition-colors"
+                                  >
+                                    {w.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleAddToGrocery(id)}
+                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
+                            title="Add ingredients to grocery list"
+                          >
+                            {addingToGrocery === id
+                              ? <Loader2 size={13} className="animate-spin" />
+                              : <ShoppingCart size={13} />
+                            }
+                          </button>
+                          <button
+                            onClick={() => handleMarkCooked(id, true)}
+                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-green-400 hover:border-green-400/30 transition-all"
+                            title="Mark as cooked"
+                          >
+                            <Check size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleRemove(id)}
+                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
+                            title="Remove from plan"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Rating prompt after marking cooked */}
+                      {ratingPromptFor === id && (
+                        <CookRatingModal
+                          recipeName={recipe.title}
+                          onSave={(r, n) => handleRatingSave(id, r, n)}
+                          onSkip={handleRatingSkip}
+                        />
                       )}
-                      <div className="flex-1 min-w-0">
-                        <Link href={`/recipes/${id}`}>
-                          <p className="text-cream text-sm font-body font-medium truncate hover:text-amber transition-colors">
-                            {recipe.title}
-                          </p>
-                        </Link>
-                        <p className="text-faint text-xs font-body capitalize">{recipe.cuisine}</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => handleAddToGrocery(id)}
-                          className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
-                          title="Add ingredients to grocery list"
-                        >
-                          {addingToGrocery === id
-                            ? <Loader2 size={13} className="animate-spin" />
-                            : <ShoppingCart size={13} />
-                          }
-                        </button>
-                        <button
-                          onClick={() => handleMarkCooked(id, true)}
-                          className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-green-400 hover:border-green-400/30 transition-all"
-                          title="Mark as cooked"
-                        >
-                          <Check size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleRemove(id)}
-                          className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
-                          title="Remove from plan"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
                     </div>
                   )
                 })}
@@ -210,23 +396,32 @@ export default function PlanPage() {
                   const recipe = recipes[id]
                   if (!recipe) return null
                   return (
-                    <div key={id} className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3 opacity-60">
-                      <div className="w-12 h-12 rounded-lg bg-card flex items-center justify-center shrink-0">
-                        <Check size={16} className="text-green-400" />
+                    <div key={id}>
+                      <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3 opacity-60">
+                        <div className="w-12 h-12 rounded-lg bg-card flex items-center justify-center shrink-0">
+                          <Check size={16} className="text-green-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/recipes/${id}`}>
+                            <p className="text-muted text-sm font-body font-medium truncate line-through">
+                              {recipe.title}
+                            </p>
+                          </Link>
+                        </div>
+                        <button
+                          onClick={() => handleMarkCooked(id, false)}
+                          className="text-faint text-xs font-body hover:text-muted transition-colors px-2"
+                        >
+                          Undo
+                        </button>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <Link href={`/recipes/${id}`}>
-                          <p className="text-muted text-sm font-body font-medium truncate line-through">
-                            {recipe.title}
-                          </p>
-                        </Link>
-                      </div>
-                      <button
-                        onClick={() => handleMarkCooked(id, false)}
-                        className="text-faint text-xs font-body hover:text-muted transition-colors px-2"
-                      >
-                        Undo
-                      </button>
+                      {ratingPromptFor === id && (
+                        <CookRatingModal
+                          recipeName={recipe.title}
+                          onSave={(r, n) => handleRatingSave(id, r, n)}
+                          onSkip={handleRatingSkip}
+                        />
+                      )}
                     </div>
                   )
                 })}

@@ -148,6 +148,11 @@ export async function removeRecipeFromWeekPlan(uid: string, weekID: string, reci
   })
 }
 
+export async function moveRecipeToWeek(uid: string, fromWeekID: string, toWeekID: string, recipeID: string): Promise<void> {
+  await removeRecipeFromWeekPlan(uid, fromWeekID, recipeID)
+  await addRecipeToWeekPlan(uid, toWeekID, recipeID)
+}
+
 export async function markRecipeCooked(uid: string, weekID: string, recipeID: string, cooked: boolean): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
   const snap = await getDoc(ref)

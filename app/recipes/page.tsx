@@ -4,11 +4,41 @@ import { useState, useEffect, useMemo } from 'react'
 import { getAllRecipes } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
+import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
 import type { Recipe } from '@/types/recipe'
 
-type SortOption = 'default' | 'rating' | 'mine' | 'az'
+type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
+type FilterOption = 'none' | 'under30' | 'cookedRecently'
+
+/** Parse a time string like "30 min", "1h 30min", "PT1H30M" into minutes. Returns Infinity if unparseable. */
+function parseMinutes(s?: string): number {
+  if (!s || !s.trim()) return Infinity
+  const t = s.trim()
+
+  // ISO 8601 duration: PT30M, PT1H30M, PT1H
+  const iso = t.match(/^PT(?:(\d+)H)?(?:(\d+)M)?$/i)
+  if (iso) {
+    const h = parseInt(iso[1] || '0', 10)
+    const m = parseInt(iso[2] || '0', 10)
+    return h * 60 + m
+  }
+
+  // "1 hr 30 min", "1h 30min", "1 hour 30 minutes", "1h30min"
+  const compound = t.match(/(\d+)\s*(?:hr|hour|h)\s*(?:(\d+)\s*(?:min(?:ute)?s?)?)?/i)
+  if (compound) {
+    const h = parseInt(compound[1], 10)
+    const m = parseInt(compound[2] || '0', 10)
+    return h * 60 + m
+  }
+
+  // "30 min", "30 minutes", "30min"
+  const mins = t.match(/^(\d+)\s*(?:min(?:ute)?s?)$/i)
+  if (mins) return parseInt(mins[1], 10)
+
+  return Infinity
+}
 
 function SkeletonCard() {
   return (
@@ -33,10 +63,30 @@ export default function RecipesPage() {
   const [minRating, setMinRating] = useState(0)
   const [source, setSource] = useState<SourceFilter>('all')
   const [sort, setSort] = useState<SortOption>('default')
+  const [filter, setFilter] = useState<FilterOption>('none')
+  const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
+  const [loadingCooked, setLoadingCooked] = useState(false)
 
   useEffect(() => {
     getAllRecipes().then(r => { setRecipes(r); setLoading(false) })
   }, [])
+
+  // Lazy load cooked recently IDs when that filter is selected
+  useEffect(() => {
+    if (filter !== 'cookedRecently' || !user || cookedRecentlyIDs !== null) return
+    setLoadingCooked(true)
+    getAllWeekPlans(user.uid).then(plans => {
+      const fourWeeksAgo = new Date()
+      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
+      const cutoff = fourWeeksAgo.toISOString().split('T')[0]
+      const ids = new Set<string>()
+      plans
+        .filter(p => p.weekStartISO >= cutoff)
+        .forEach(p => p.cookedRecipeIDs.forEach(id => ids.add(id)))
+      setCookedRecentlyIDs(ids)
+      setLoadingCooked(false)
+    })
+  }, [filter, user, cookedRecentlyIDs])
 
   const filtered = useMemo(() => {
     const f = recipes.filter(r => {
@@ -51,6 +101,18 @@ export default function RecipesPage() {
       const matchSource = source === 'all' ||
         (source === 'mine' && r.addedBy === user?.uid) ||
         (source === 'others' && r.addedBy !== user?.uid)
+
+      // Extra filters
+      if (filter === 'under30') {
+        const meta = metas[r.id]
+        const prepTime = meta?.overrides?.prepTime || (r as any).prepTime || ''
+        const cookTime = meta?.overrides?.cookTime || (r as any).cookTime || ''
+        if (parseMinutes(prepTime) + parseMinutes(cookTime) >= 30) return false
+      }
+      if (filter === 'cookedRecently' && cookedRecentlyIDs) {
+        if (!cookedRecentlyIDs.has(r.id)) return false
+      }
+
       return matchSearch && matchCuisine && matchCategory && matchRating && matchSource
     })
 
@@ -66,15 +128,32 @@ export default function RecipesPage() {
       })
     } else if (sort === 'az') {
       sorted.sort((a, b) => a.title.localeCompare(b.title))
+    } else if (sort === 'recent') {
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+      sorted.sort((a, b) => {
+        const aDate = new Date(a.created).getTime()
+        const bDate = new Date(b.created).getTime()
+        const aRecent = aDate >= thirtyDaysAgo ? 1 : 0
+        const bRecent = bDate >= thirtyDaysAgo ? 1 : 0
+        if (aRecent !== bRecent) return bRecent - aRecent
+        return bDate - aDate
+      })
     }
     return sorted
-  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort])
+  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, cookedRecentlyIDs])
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: 'default', label: 'Default' },
     { value: 'rating', label: 'Top rated' },
     { value: 'mine', label: 'Mine first' },
     { value: 'az', label: 'A → Z' },
+    { value: 'recent', label: 'Added recently' },
+  ]
+
+  const FILTER_OPTIONS: { value: FilterOption; label: string; requiresAuth?: boolean }[] = [
+    { value: 'none', label: 'All' },
+    { value: 'under30', label: 'Under 30 min' },
+    { value: 'cookedRecently', label: 'Cooked recently', requiresAuth: true },
   ]
 
   return (
@@ -96,8 +175,8 @@ export default function RecipesPage() {
         />
       </div>
 
-      {/* Sort buttons */}
-      <div className="flex items-center gap-2 mb-6">
+      {/* Sort & filter buttons */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Sort</span>
         {SORT_OPTIONS.map(opt => (
           <button
@@ -110,6 +189,25 @@ export default function RecipesPage() {
             }`}
           >
             {opt.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Filter</span>
+        {FILTER_OPTIONS
+          .filter(opt => !opt.requiresAuth || !!user)
+          .map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setFilter(opt.value)}
+            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border ${
+              filter === opt.value
+                ? 'bg-amber/10 text-amber border-amber/30'
+                : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
+            }`}
+          >
+            {opt.label}
+            {opt.value === 'cookedRecently' && loadingCooked && filter === 'cookedRecently' ? '…' : ''}
           </button>
         ))}
       </div>
