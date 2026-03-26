@@ -236,6 +236,33 @@ export async function clearAllGroceryItems(uid: string): Promise<void> {
   await batch.commit()
 }
 
+// ─── Rebuild grocery from plan ───────────────────────────────────────────────
+export async function rebuildGroceryFromPlan(
+  uid: string,
+  plannedRecipeIDs: string[],
+  getRecipeById: (id: string) => Promise<Recipe | null>,
+  parseContent: (content: string) => { ingredients: string[]; instructions: string[]; description: string },
+): Promise<void> {
+  // Step 1: Delete non-manual, non-legacy items
+  const snap = await getDocs(groceryPath(uid))
+  const batch = writeBatch(db)
+  snap.docs.forEach(d => {
+    const data = d.data() as GroceryItem
+    if (!data.isManual && !d.id.includes('/')) {
+      batch.delete(d.ref)
+    }
+  })
+  await batch.commit()
+
+  // Step 2: Re-add ingredients from each planned recipe
+  for (const recipeID of plannedRecipeIDs) {
+    const recipe = await getRecipeById(recipeID)
+    if (!recipe) continue
+    const { ingredients } = parseContent(recipe.content)
+    await addRecipeIngredientsToGrocery(uid, recipeID, ingredients)
+  }
+}
+
 // ─── Add recipe ingredients to grocery ───────────────────────────────────────
 export async function addRecipeIngredientsToGrocery(
   uid: string,

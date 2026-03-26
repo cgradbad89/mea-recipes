@@ -1,16 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan,
   markRecipeCooked, addRecipeIngredientsToGrocery, getAllWeekPlans,
-  moveRecipeToWeek, saveRecipeMeta, getRecipeMeta,
+  moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
   type WeekPlan, type RecipeMeta
 } from '@/lib/userdata'
-import { getAllRecipes, parseRecipeContent } from '@/lib/recipes'
+import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
 import type { Recipe } from '@/types/recipe'
 
 function getWeekDates(weekID: string): string[] {
@@ -148,6 +148,9 @@ export default function PlanPage() {
   const [movingRecipe, setMovingRecipe] = useState<string | null>(null)
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
   const [metas, setMetas] = useState<Record<string, RecipeMeta>>({})
+  const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
+  const [rebuilding, setRebuilding] = useState(false)
+  const [rebuildDone, setRebuildDone] = useState(false)
 
   // Load all recipes for lookup
   useEffect(() => {
@@ -236,6 +239,16 @@ export default function PlanPage() {
     setAddingToGrocery(null)
   }
 
+  const handleRebuildGrocery = async () => {
+    if (!user || !plan) return
+    setRebuilding(true)
+    setShowRebuildConfirm(false)
+    await rebuildGroceryFromPlan(user.uid, plan.plannedRecipeIDs || [], getRecipeById, parseRecipeContent)
+    setRebuilding(false)
+    setRebuildDone(true)
+    setTimeout(() => setRebuildDone(false), 2000)
+  }
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 p-6">
@@ -254,7 +267,7 @@ export default function PlanPage() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       {/* Header + week picker */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-4xl text-cream font-light">Meal Plan</h1>
         <div className="flex items-center gap-2">
           <button
@@ -274,6 +287,32 @@ export default function PlanPage() {
           </button>
         </div>
       </div>
+
+      {/* Rebuild grocery button */}
+      {plannedIDs.length > 0 && (
+        <div className="mb-8">
+          {showRebuildConfirm ? (
+            <div className="bg-surface border border-amber/20 rounded-xl p-4 animate-fade-in">
+              <p className="text-cream text-sm font-body mb-3">
+                This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={handleRebuildGrocery} className="btn-primary text-xs px-3 py-1.5">Rebuild</button>
+                <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
+              disabled={rebuilding}
+              className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
+            >
+              {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
+              {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
+            </button>
+          )}
+        </div>
+      )}
 
       {loadingRecipes ? (
         <div className="flex justify-center py-16">

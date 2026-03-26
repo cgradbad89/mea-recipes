@@ -7,7 +7,9 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
-import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus } from 'lucide-react'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw } from 'lucide-react'
+import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan } from '@/lib/userdata'
+import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 
 interface GroceryItem {
   id: string
@@ -60,6 +62,9 @@ export default function GroceryPage() {
   const [newItemQty, setNewItemQty] = useState('')
   const [newItemCategory, setNewItemCategory] = useState<GroceryCategory>('Other')
   const [addingItem, setAddingItem] = useState(false)
+  const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
+  const [rebuilding, setRebuilding] = useState(false)
+  const [rebuildDone, setRebuildDone] = useState(false)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -221,6 +226,19 @@ export default function GroceryPage() {
     })
   }
 
+  const handleRebuildGrocery = async () => {
+    if (!user) return
+    setRebuilding(true)
+    setShowRebuildConfirm(false)
+    const currentWeekID = weekIDFromDate(new Date())
+    const plan = await getWeekPlan(user.uid, currentWeekID)
+    const recipeIDs = plan?.plannedRecipeIDs || []
+    await rebuildGroceryFromPlan(user.uid, recipeIDs, getRecipeById, parseRecipeContent)
+    setRebuilding(false)
+    setRebuildDone(true)
+    setTimeout(() => setRebuildDone(false), 2000)
+  }
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-6">
@@ -262,6 +280,28 @@ export default function GroceryPage() {
           )}
         </div>
       </div>
+
+      {/* Rebuild grocery from plan */}
+      {showRebuildConfirm ? (
+        <div className="bg-surface border border-amber/20 rounded-xl p-4 mb-6 animate-fade-in">
+          <p className="text-cream text-sm font-body mb-3">
+            This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
+          </p>
+          <div className="flex gap-2">
+            <button onClick={handleRebuildGrocery} className="btn-primary text-xs px-3 py-1.5">Rebuild</button>
+            <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
+          disabled={rebuilding}
+          className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors mb-6"
+        >
+          {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
+          {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
+        </button>
+      )}
 
       {/* AI Cleanup button */}
       {items.length > 0 && !cleanupChanges && (

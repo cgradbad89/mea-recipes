@@ -10,7 +10,8 @@ import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
 import type { Recipe } from '@/types/recipe'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
-type FilterOption = 'none' | 'under30' | 'cookedRecently'
+type TimeFilter = 0 | 30 | 45 | 60
+type FilterOption = 'none' | 'cookedRecently'
 
 /** Parse a time string like "30 min", "1h 30min", "PT1H30M" into minutes. Returns Infinity if unparseable. */
 function parseMinutes(s?: string): number {
@@ -64,6 +65,8 @@ export default function RecipesPage() {
   const [source, setSource] = useState<SourceFilter>('all')
   const [sort, setSort] = useState<SortOption>('default')
   const [filter, setFilter] = useState<FilterOption>('none')
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(0)
+  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
 
@@ -103,11 +106,11 @@ export default function RecipesPage() {
         (source === 'others' && r.addedBy !== user?.uid)
 
       // Extra filters
-      if (filter === 'under30') {
+      if (timeFilter > 0) {
         const meta = metas[r.id]
         const prepTime = meta?.overrides?.prepTime || (r as any).prepTime || ''
         const cookTime = meta?.overrides?.cookTime || (r as any).cookTime || ''
-        if (parseMinutes(prepTime) + parseMinutes(cookTime) >= 30) return false
+        if (parseMinutes(prepTime) + parseMinutes(cookTime) >= timeFilter) return false
       }
       if (filter === 'cookedRecently' && cookedRecentlyIDs) {
         if (!cookedRecentlyIDs.has(r.id)) return false
@@ -140,7 +143,7 @@ export default function RecipesPage() {
       })
     }
     return sorted
-  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, cookedRecentlyIDs])
+  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs])
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: 'default', label: 'Default' },
@@ -150,9 +153,15 @@ export default function RecipesPage() {
     { value: 'recent', label: 'Added recently' },
   ]
 
+  const TIME_OPTIONS: { value: TimeFilter; label: string }[] = [
+    { value: 0, label: 'Any time' },
+    { value: 30, label: 'Under 30 min' },
+    { value: 45, label: 'Under 45 min' },
+    { value: 60, label: 'Under 1 hour' },
+  ]
+
   const FILTER_OPTIONS: { value: FilterOption; label: string; requiresAuth?: boolean }[] = [
     { value: 'none', label: 'All' },
-    { value: 'under30', label: 'Under 30 min' },
     { value: 'cookedRecently', label: 'Cooked recently', requiresAuth: true },
   ]
 
@@ -191,15 +200,44 @@ export default function RecipesPage() {
             {opt.label}
           </button>
         ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Filter</span>
-        {FILTER_OPTIONS
-          .filter(opt => !opt.requiresAuth || !!user)
+
+        {/* Time filter dropdown */}
+        <div className="relative ml-1">
+          <button
+            onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
+            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border flex items-center gap-1 ${
+              timeFilter > 0
+                ? 'bg-amber/10 text-amber border-amber/30'
+                : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
+            }`}
+          >
+            {TIME_OPTIONS.find(o => o.value === timeFilter)?.label}
+            <svg width="10" height="10" viewBox="0 0 10 10" className="opacity-60"><path d="M2 4l3 3 3-3" stroke="currentColor" fill="none" strokeWidth="1.5" /></svg>
+          </button>
+          {timeDropdownOpen && (
+            <div className="absolute left-0 top-9 z-10 bg-card border border-border rounded-xl shadow-lg py-1 w-40 animate-fade-in">
+              {TIME_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setTimeFilter(opt.value); setTimeDropdownOpen(false) }}
+                  className={`w-full text-left px-3 py-2 text-xs font-body transition-colors ${
+                    timeFilter === opt.value ? 'text-amber bg-amber/5' : 'text-muted hover:text-cream hover:bg-surface'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Cooked recently filter */}
+        {user && FILTER_OPTIONS
+          .filter(opt => opt.value !== 'none' && (!opt.requiresAuth || !!user))
           .map(opt => (
           <button
             key={opt.value}
-            onClick={() => setFilter(opt.value)}
+            onClick={() => setFilter(filter === opt.value ? 'none' : opt.value)}
             className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border ${
               filter === opt.value
                 ? 'bg-amber/10 text-amber border-amber/30'
