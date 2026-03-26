@@ -12,7 +12,7 @@ import {
   DocumentData,
   onSnapshot,
   Unsubscribe,
-  writeBatch,, deleteField } from 'firebase/firestore'
+  writeBatch, deleteField } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
 
