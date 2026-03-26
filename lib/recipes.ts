@@ -31,6 +31,7 @@ function docToRecipe(id: string, data: DocumentData): Recipe {
     hasImage: data.hasImage || 'false',
     created: data.created || '',
     modified: data.modified || '',
+    addedBy: data.addedBy || undefined,
   }
 }
 

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { getAllRecipes } from '@/lib/recipes'
+import { collection, getDocs, writeBatch, doc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { getAllWeekPlans } from '@/lib/userdata'
@@ -69,6 +71,9 @@ export default function RecipesPage() {
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
+  const [taggingAll, setTaggingAll] = useState(false)
+  const [tagProgress, setTagProgress] = useState('')
+  const [tagDone, setTagDone] = useState(false)
 
   useEffect(() => {
     getAllRecipes().then(r => { setRecipes(r); setLoading(false) })
@@ -144,6 +149,34 @@ export default function RecipesPage() {
     }
     return sorted
   }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs])
+
+  const handleTagAllAsMine = async () => {
+    if (!user) return
+    setTaggingAll(true)
+    try {
+      const snap = await getDocs(collection(db, 'recipes'))
+      const docs = snap.docs
+      const total = docs.length
+      // writeBatch max 500 operations
+      for (let i = 0; i < total; i += 500) {
+        const batch = writeBatch(db)
+        const chunk = docs.slice(i, i + 500)
+        chunk.forEach(d => {
+          batch.update(doc(db, 'recipes', d.id), { addedBy: user.uid })
+        })
+        await batch.commit()
+        setTagProgress(`Updating ${Math.min(i + 500, total)}/${total} recipes...`)
+      }
+      setTagDone(true)
+      // Refresh recipes to pick up addedBy
+      const refreshed = await getAllRecipes()
+      setRecipes(refreshed)
+    } catch (e) {
+      console.error('Tag all error:', e)
+    } finally {
+      setTaggingAll(false)
+    }
+  }
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: 'default', label: 'Default' },
@@ -249,6 +282,22 @@ export default function RecipesPage() {
           </button>
         ))}
       </div>
+
+      {/* One-time bulk tag button */}
+      {user && !tagDone && (
+        <div className="mb-4">
+          <button
+            onClick={handleTagAllAsMine}
+            disabled={taggingAll}
+            className="text-xs font-body text-faint/50 hover:text-faint transition-colors"
+          >
+            {taggingAll ? tagProgress : 'Fix: Tag all as mine'}
+          </button>
+        </div>
+      )}
+      {tagDone && (
+        <p className="text-xs font-body text-green-400 mb-4">Done! All recipes tagged.</p>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

@@ -54,6 +54,7 @@ export default function GroceryPage() {
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null)
+  const [pickerFlipped, setPickerFlipped] = useState(false)
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupChanges, setCleanupChanges] = useState<CleanupChange[] | null>(null)
   const [applyingCleanup, setApplyingCleanup] = useState(false)
@@ -508,7 +509,15 @@ export default function GroceryPage() {
                       {/* Category picker trigger */}
                       <div className="relative shrink-0">
                         <button
-                          onClick={() => setCategoryPickerFor(categoryPickerFor === item.id ? null : item.id)}
+                          onClick={(e) => {
+                            if (categoryPickerFor === item.id) {
+                              setCategoryPickerFor(null)
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect()
+                              setPickerFlipped(rect.top > window.innerHeight / 2)
+                              setCategoryPickerFor(item.id)
+                            }
+                          }}
                           className="text-faint hover:text-muted transition-colors text-xs font-body flex items-center gap-1"
                           title="Change category"
                         >
@@ -517,7 +526,7 @@ export default function GroceryPage() {
 
                         {/* Category picker dropdown */}
                         {categoryPickerFor === item.id && (
-                          <div className="absolute right-0 top-6 z-20 bg-surface border border-border rounded-xl shadow-lg w-52 overflow-hidden">
+                          <div className={`absolute right-0 z-20 bg-surface border border-border rounded-xl shadow-lg w-52 overflow-hidden ${pickerFlipped ? 'bottom-6' : 'top-6'}`}>
                             <p className="text-faint text-xs font-body px-3 py-2 border-b border-border uppercase tracking-widest">Category</p>
                             {MANUAL_CATEGORIES.map(cat => (
                               <button
