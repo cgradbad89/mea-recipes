@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Heart, ExternalLink } from 'lucide-react'
+import { Heart, Star } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import type { Recipe } from '@/types/recipe'
+import type { RecipeMeta } from '@/lib/userdata'
 
 function getCuisineClass(cuisine: string): string {
   const c = cuisine.toLowerCase().replace(/\s+/g, '-')
@@ -36,10 +37,11 @@ function getCategoryIcon(category: string): string {
 
 interface RecipeCardProps {
   recipe: Recipe
+  meta?: RecipeMeta
   compact?: boolean
 }
 
-export default function RecipeCard({ recipe, compact = false }: RecipeCardProps) {
+export default function RecipeCard({ recipe, meta, compact = false }: RecipeCardProps) {
   const { isFavorite, toggle } = useFavorites()
   const fav = isFavorite(recipe.id)
 
@@ -59,15 +61,11 @@ export default function RecipeCard({ recipe, compact = false }: RecipeCardProps)
             alt={recipe.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
-            onError={e => {
-              (e.target as HTMLImageElement).style.display = 'none'
-            }}
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-card">
-            <span className="text-4xl opacity-30">
-              {getCategoryIcon(recipe.category)}
-            </span>
+            <span className="text-4xl opacity-30">{getCategoryIcon(recipe.category)}</span>
           </div>
         )}
 
@@ -75,13 +73,19 @@ export default function RecipeCard({ recipe, compact = false }: RecipeCardProps)
         <button
           onClick={handleFav}
           className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-            fav
-              ? 'bg-amber text-ink'
-              : 'bg-ink/60 text-muted hover:bg-ink/80 hover:text-cream'
+            fav ? 'bg-amber text-ink' : 'bg-ink/60 text-muted hover:bg-ink/80 hover:text-cream'
           }`}
         >
           <Heart size={14} fill={fav ? 'currentColor' : 'none'} />
         </button>
+
+        {/* Rating badge */}
+        {meta?.rating && meta.rating > 0 && (
+          <div className="absolute top-3 left-3 flex items-center gap-1 bg-ink/70 backdrop-blur-sm rounded-lg px-2 py-1">
+            <Star size={10} className="text-amber fill-amber" />
+            <span className="text-amber text-xs font-body font-semibold">{meta.rating}</span>
+          </div>
+        )}
 
         {/* Cuisine badge */}
         {recipe.cuisine && (

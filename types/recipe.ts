@@ -12,6 +12,14 @@ export interface Recipe {
   hasImage: string
   created: string
   modified: string
+  addedBy?: string  // uid of user who added this recipe via web
+}
+
+export interface RecipeOverrides {
+  title?: string
+  cuisine?: string
+  category?: string
+  content?: string
 }
 
 export type Category =
@@ -23,15 +31,3 @@ export type Category =
   | 'Seafood'
   | 'Beef & Pork'
   | 'Breakfast, Snacks & Sides'
-
-export interface MealPlanDay {
-  date: string // ISO date string
-  breakfast?: Recipe
-  lunch?: Recipe
-  dinner?: Recipe
-}
-
-export interface MealPlan {
-  weekStart: string // ISO date string (Monday)
-  days: MealPlanDay[]
-}

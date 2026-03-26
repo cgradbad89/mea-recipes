@@ -60,9 +60,14 @@ export async function getRecipesByCuisine(cuisine: string): Promise<Recipe[]> {
   return snap.docs.map(d => docToRecipe(d.id, d.data())).filter(r => r.title)
 }
 
-export async function saveRecipe(recipe: Omit<Recipe, 'id'>): Promise<string> {
+export async function saveRecipe(recipe: Omit<Recipe, 'id'>, addedByUid?: string): Promise<string> {
   const id = slugify(recipe.title)
-  await setDoc(doc(db, COLLECTION, id), { ...recipe, id, recipeID: id })
+  await setDoc(doc(db, COLLECTION, id), {
+    ...recipe,
+    id,
+    recipeID: id,
+    ...(addedByUid ? { addedBy: addedByUid } : {}),
+  })
   return id
 }
 

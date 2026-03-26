@@ -51,6 +51,12 @@ export interface RecipeMeta {
   note?: string
   rating?: number
   updatedAt?: unknown
+  overrides?: {
+    title?: string
+    cuisine?: string
+    category?: string
+    content?: string
+  }
 }
 
 export function metaPath(uid: string) {
