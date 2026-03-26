@@ -218,23 +218,23 @@ export default function QueuePage() {
 
   useEffect(() => { loadQueue() }, [loadQueue])
 
-  // Auto-ingest from bookmarklet
+  // Auto-ingest from bookmarklet — reads ?ingest=URL param
   useEffect(() => {
-    if (!user) return
-    const pending = localStorage.getItem('mea-bm-pending')
-    if (!pending) return
-    localStorage.removeItem('mea-bm-pending')
-    const bm = JSON.parse(pending)
-    if (!bm?.text) return
+    if (!user || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const ingestUrl = params.get('ingest')
+    if (!ingestUrl) return
+    // Clear the param from URL without reload
+    window.history.replaceState({}, '', '/queue')
     setBmIngesting(true)
     fetch('/api/ai-ingest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: bm.url, text: bm.text }),
+      body: JSON.stringify({ url: ingestUrl }),
     }).then(r => r.json()).then(async data => {
-      if (data.error || !data.title) return
+      if (data.error) { console.error('Ingest error:', data.error); return }
       await addToQueue(user.uid, {
-        title: data.title,
+        title: data.title || 'Untitled Recipe',
         cuisine: data.cuisine || '',
         category: data.category || '',
         imageURL: data.imageURL || '',
@@ -244,7 +244,7 @@ export default function QueuePage() {
         cookTime: data.cookTime || '',
         ingredients: data.ingredients || [],
         instructions: data.instructions || [],
-        sourceURL: bm.url || '',
+        sourceURL: ingestUrl,
       })
       loadQueue()
     }).catch(console.error).finally(() => setBmIngesting(false))
@@ -300,7 +300,7 @@ export default function QueuePage() {
           </ol>
         </div>
         <a
-          href={`javascript:(function(){var d=document,t=d.title,u=window.location.href;var txt=Array.from(d.querySelectorAll('h1,h2,p,li,span')).map(function(el){return el.innerText}).join(' ').slice(0,12000);localStorage.setItem('mea-bm-pending',JSON.stringify({url:u,title:t,text:txt}));window.open('https://mea-recipes.vercel.app/queue?bm=1','_blank','width=520,height=750');})();`}
+          href={`javascript:(function(){var u=encodeURIComponent(window.location.href);window.open('https://mea-recipes.vercel.app/queue?ingest='+u,'_blank','width=520,height=750');})();`}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber text-ink font-body font-semibold text-sm rounded-xl hover:bg-amber/90 transition-colors cursor-grab active:cursor-grabbing"
           onClick={e => e.preventDefault()}
           draggable
