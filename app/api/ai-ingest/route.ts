@@ -26,7 +26,36 @@ Rules:
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, html, text } = await req.json()
+    const { url, html, text, generate } = await req.json()
+
+    // Generate mode — create a full recipe from a dish name
+    if (generate && !html && !text && !url) {
+      const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.` }],
+        }),
+      })
+      if (!genResponse.ok) return NextResponse.json({ error: 'AI generation failed' }, { status: 500 })
+      const genData = await genResponse.json()
+      const genText = genData.content?.[0]?.text || ''
+      let genParsed: any
+      try { genParsed = JSON.parse(genText.trim()) }
+      catch {
+        const m = genText.match(/\{[\s\S]+\}/)
+        if (m) { try { genParsed = JSON.parse(m[0]) } catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) } }
+        else return NextResponse.json({ error: 'Could not parse response' }, { status: 500 })
+      }
+      return NextResponse.json({ ...genParsed, title: genParsed.title || generate, sourceURL: '' })
+    }
 
     if (!html && !text && !url) {
       return NextResponse.json({ error: 'No content provided' }, { status: 400 })

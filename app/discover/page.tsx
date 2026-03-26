@@ -12,6 +12,7 @@ import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Sea
 import type { Recipe } from '@/types/recipe'
 
 const CACHE_KEY = 'mea-recommendations-cache'
+const NEW_CACHE_KEY = 'mea-new-suggestions-cache'
 const CACHE_TTL = 24 * 60 * 60 * 1000
 
 interface Recommendation {
@@ -146,6 +147,19 @@ export default function DiscoverPage() {
     } catch {}
   }, [])
 
+  // Load new suggestions cache
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(NEW_CACHE_KEY)
+      if (cached) {
+        const entry = JSON.parse(cached)
+        if (Date.now() - entry.timestamp < CACHE_TTL) {
+          setNewSuggestions(entry.data)
+        }
+      }
+    } catch {}
+  }, [])
+
   const cookCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     weeks.forEach(w => {
@@ -215,7 +229,9 @@ export default function DiscoverPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed')
-      setNewSuggestions(Array.isArray(data) ? data : [])
+      const newData = Array.isArray(data) ? data : []
+      setNewSuggestions(newData)
+      localStorage.setItem(NEW_CACHE_KEY, JSON.stringify({ data: newData, timestamp: Date.now() }))
     } catch (e: any) {
       setErrorNew(e.message || 'Something went wrong')
     } finally {
@@ -230,7 +246,7 @@ export default function DiscoverPage() {
       const res = await fetch('/api/ai-ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: suggestion.title + ' recipe\n\n' + suggestion.description }),
+        body: JSON.stringify({ generate: suggestion.title }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed')
@@ -382,7 +398,7 @@ export default function DiscoverPage() {
               </div>
             ))}
             <button
-              onClick={() => { setNewSuggestions([]); handleGetNewSuggestions() }}
+              onClick={() => { setNewSuggestions([]); localStorage.removeItem(NEW_CACHE_KEY); handleGetNewSuggestions() }}
               disabled={loadingNew}
               className="btn-ghost flex items-center gap-2 text-xs mt-2"
             >
