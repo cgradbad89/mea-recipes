@@ -7,7 +7,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
-import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus } from 'lucide-react'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus } from 'lucide-react'
 
 interface GroceryItem {
   id: string
@@ -90,6 +90,11 @@ export default function GroceryPage() {
     if (!user) return
     const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
     await updateDoc(ref, { isChecked: !item.isChecked })
+  }
+
+  const deleteItem = async (item: GroceryItem) => {
+    if (!user || item.id.includes('/')) return
+    await deleteDoc(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
   }
 
   const setManualCategory = async (itemId: string, category: GroceryCategory | null) => {
@@ -449,6 +454,16 @@ export default function GroceryPage() {
                           <span className="text-amber/60 text-xs font-body">manually categorized</span>
                         )}
                       </div>
+
+                      {/* Delete button */}
+                      {!item.id.includes('/') && (
+                        <button
+                          onClick={() => deleteItem(item)}
+                          className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
+                        >
+                          <Minus size={12} />
+                        </button>
+                      )}
 
                       {/* Category picker trigger */}
                       <div className="relative shrink-0">
