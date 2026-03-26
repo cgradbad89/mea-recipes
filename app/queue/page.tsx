@@ -1,8 +1,9 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/AuthContext'
-import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, QueuedRecipe } from '@/lib/queue'
+import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, addToQueue, QueuedRecipe } from '@/lib/queue'
 import { saveRecipe } from '@/lib/recipes'
 import { slugify } from '@/lib/utils'
 import {
@@ -205,6 +206,7 @@ export default function QueuePage() {
   const { user } = useAuth()
   const [items, setItems] = useState<QueuedRecipe[]>([])
   const [loading, setLoading] = useState(true)
+  const [bmIngesting, setBmIngesting] = useState(false)
 
   const loadQueue = useCallback(async () => {
     if (!user) return
@@ -215,6 +217,38 @@ export default function QueuePage() {
   }, [user])
 
   useEffect(() => { loadQueue() }, [loadQueue])
+
+  // Auto-ingest from bookmarklet
+  useEffect(() => {
+    if (!user) return
+    const pending = localStorage.getItem('mea-bm-pending')
+    if (!pending) return
+    localStorage.removeItem('mea-bm-pending')
+    const bm = JSON.parse(pending)
+    if (!bm?.text) return
+    setBmIngesting(true)
+    fetch('/api/ai-ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: bm.url, text: bm.text }),
+    }).then(r => r.json()).then(async data => {
+      if (data.error || !data.title) return
+      await addToQueue(user.uid, {
+        title: data.title,
+        cuisine: data.cuisine || '',
+        category: data.category || '',
+        imageURL: data.imageURL || '',
+        description: data.description || '',
+        servings: data.servings || '',
+        prepTime: data.prepTime || '',
+        cookTime: data.cookTime || '',
+        ingredients: data.ingredients || [],
+        instructions: data.instructions || [],
+        sourceURL: bm.url || '',
+      })
+      loadQueue()
+    }).catch(console.error).finally(() => setBmIngesting(false))
+  }, [user, loadQueue])
 
   const handleDiscard = async (id: string) => {
     if (!user) return
@@ -242,6 +276,38 @@ export default function QueuePage() {
           <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Recipe Queue</h1>
           <p className="text-faint text-sm font-body">Review AI-parsed recipes before adding to your collection</p>
         </div>
+      </div>
+
+      {bmIngesting && (
+        <div className="flex items-center gap-3 mb-6 p-4 bg-amber/5 border border-amber/20 rounded-2xl">
+          <Loader2 size={16} className="animate-spin text-amber" />
+          <p className="text-amber text-sm font-body">Parsing recipe from bookmarklet...</p>
+        </div>
+      )}
+
+      {/* Bookmarklet setup */}
+      <div id="bookmarklet" className="mb-8 bg-surface border border-border rounded-2xl p-5">
+        <h2 className="font-display text-xl text-cream font-light mb-1">Browser Bookmarklet</h2>
+        <p className="text-faint text-xs font-body mb-4">
+          Save recipes from any site — including NYT Cooking and other paywalled sites you're already logged into.
+        </p>
+        <div className="bg-card rounded-xl p-4 mb-4">
+          <p className="text-cream text-sm font-body font-medium mb-2">How to set up:</p>
+          <ol className="space-y-1.5 text-faint text-xs font-body">
+            <li>1. Show your browser bookmarks bar (⌘+Shift+B on Mac)</li>
+            <li>2. Drag the button below to your bookmarks bar</li>
+            <li>3. On any recipe page, click the bookmarklet → recipe goes to your queue</li>
+          </ol>
+        </div>
+        <a
+          href={`javascript:(function(){var d=document,t=d.title,u=window.location.href;var txt=Array.from(d.querySelectorAll('h1,h2,p,li,span')).map(function(el){return el.innerText}).join(' ').slice(0,12000);localStorage.setItem('mea-bm-pending',JSON.stringify({url:u,title:t,text:txt}));window.open('https://mea-recipes.vercel.app/queue?bm=1','_blank','width=520,height=750');})();`}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber text-ink font-body font-semibold text-sm rounded-xl hover:bg-amber/90 transition-colors cursor-grab active:cursor-grabbing"
+          onClick={e => e.preventDefault()}
+          draggable
+        >
+          🍽️ Save to MEA
+        </a>
+        <p className="text-faint text-xs font-body mt-3">← Drag this to your bookmarks bar</p>
       </div>
 
       {loading ? (
