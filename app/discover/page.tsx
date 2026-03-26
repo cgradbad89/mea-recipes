@@ -372,6 +372,74 @@ export default function DiscoverPage() {
               {loading ? 'Getting new suggestions...' : 'Get new suggestions'}
             </button>
           </div>
+
+          {/* Discover new recipes outside collection */}
+          <div className="mt-16 pt-10 border-t border-border">
+            <div className="mb-4">
+              <h2 className="font-display text-2xl text-cream font-light flex items-center gap-2">
+                <Wand2 size={20} className="text-amber" />
+                Discover New Recipes
+              </h2>
+              <p className="text-faint text-xs font-body mt-1">
+                Recipes outside your collection — add any to your queue to import
+              </p>
+            </div>
+            {newSuggestions.length === 0 ? (
+              <div>
+                {errorNew && <p className="text-red-400 text-sm font-body mb-3">{errorNew}</p>}
+                <button
+                  onClick={handleGetNewSuggestions}
+                  disabled={loadingNew}
+                  className="btn-ghost flex items-center gap-2 border border-border hover:border-amber/30"
+                >
+                  {loadingNew ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                  {loadingNew ? 'Finding recipes...' : 'Suggest new recipes to try'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {errorNew && <p className="text-red-400 text-sm font-body">{errorNew}</p>}
+                {newSuggestions.map((suggestion: any) => (
+                  <div key={suggestion.title} className="flex gap-4 items-start p-4 bg-card rounded-2xl border border-border">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-body font-medium text-cream text-sm">{suggestion.title}</h3>
+                        <span className="text-faint text-xs font-body capitalize shrink-0">{suggestion.cuisine}</span>
+                      </div>
+                      <p className="text-faint text-xs font-body leading-relaxed mb-3">{suggestion.description}</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleAddNewToQueue(suggestion)}
+                          disabled={addingToQueue === suggestion.title}
+                          className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-lg bg-amber/10 text-amber border border-amber/20 hover:bg-amber/20 transition-colors"
+                        >
+                          {addingToQueue === suggestion.title ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                          Add to queue
+                        </button>
+                        
+                          href={"https://www.google.com/search?q=" + encodeURIComponent(suggestion.searchQuery || suggestion.title + ' recipe')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-lg border border-border text-faint hover:text-cream transition-colors"
+                        >
+                          <Search size={11} />
+                          Find recipe
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  onClick={() => { setNewSuggestions([]); handleGetNewSuggestions() }}
+                  disabled={loadingNew}
+                  className="btn-ghost flex items-center gap-2 text-xs mt-2"
+                >
+                  {loadingNew ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                  Suggest different recipes
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
