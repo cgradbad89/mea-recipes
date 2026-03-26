@@ -1,182 +1,413 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Trash2, Plus, Check, ShoppingCart, Loader2, X } from 'lucide-react'
-import { useAuth } from '@/lib/AuthContext'
+import { useState, useEffect, useMemo } from 'react'
 import {
-  subscribeGroceryItems, toggleGroceryItem, deleteGroceryItem,
-  clearCheckedGroceryItems, clearAllGroceryItems, addGroceryItem,
-  type GroceryItem
-} from '@/lib/userdata'
+  collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/lib/AuthContext'
+import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck } from 'lucide-react'
+
+interface GroceryItem {
+  id: string
+  name: string
+  quantity?: string
+  unit?: string
+  isChecked?: boolean
+  manualSection?: GroceryCategory
+  isManual?: boolean
+  sourceRecipeIDs?: string[]
+}
+
+interface CleanupChange {
+  originalIndex: number
+  name: string
+  quantity: string
+  unit: string
+  category: GroceryCategory
+  action: 'keep' | 'merge' | 'normalize' | 'remove'
+  mergedWith: number[]
+}
+
+const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
+  'Produce': '🥦',
+  'Meat & Seafood': '🥩',
+  'Dairy & Eggs': '🧀',
+  'Bakery & Bread': '🍞',
+  'Canned / Jarred / Sauces': '🥫',
+  'Beverages': '🧃',
+  'Staples': '🧂',
+  'Other': '🛒',
+}
+
+function getCategory(item: GroceryItem): GroceryCategory {
+  if (item.manualSection) return item.manualSection
+  return categorizeIngredient(item.name)
+}
 
 export default function GroceryPage() {
-  const { user, signIn } = useAuth()
+  const { user } = useAuth()
   const [items, setItems] = useState<GroceryItem[]>([])
-  const [newItem, setNewItem] = useState('')
   const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null)
+  const [cleanupLoading, setCleanupLoading] = useState(false)
+  const [cleanupChanges, setCleanupChanges] = useState<CleanupChange[] | null>(null)
+  const [applyingCleanup, setApplyingCleanup] = useState(false)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
-    const unsub = subscribeGroceryItems(user.uid, list => {
-      setItems(list)
+    const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
+    const unsub = onSnapshot(ref, snap => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as GroceryItem))
+      setItems(data)
       setLoading(false)
     })
     return unsub
   }, [user])
 
-  const handleAdd = async () => {
-    if (!user || !newItem.trim()) return
-    setAdding(true)
-    await addGroceryItem(user.uid, {
-      name: newItem.trim(),
-      quantity: '',
-      unit: '',
-      isChecked: false,
-      isManual: true,
-      sourceRecipeIDs: [],
+  const grouped = useMemo(() => {
+    const groups: Record<string, GroceryItem[]> = {}
+    GROCERY_CATEGORIES.forEach(cat => { groups[cat] = [] })
+    items.forEach(item => {
+      const cat = getCategory(item)
+      if (!groups[cat]) groups[cat] = []
+      groups[cat].push(item)
     })
-    setNewItem('')
-    setAdding(false)
-  }
+    return groups
+  }, [items])
 
-  const handleToggle = async (item: GroceryItem) => {
+  const uncheckedCount = items.filter(i => !i.isChecked).length
+  const checkedCount = items.filter(i => i.isChecked).length
+
+  const toggleItem = async (item: GroceryItem) => {
     if (!user) return
-    await toggleGroceryItem(user.uid, item.id, !item.isChecked)
+    const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
+    await updateDoc(ref, { isChecked: !item.isChecked })
   }
 
-  const handleDelete = async (id: string) => {
+  const setManualCategory = async (itemId: string, category: GroceryCategory | null) => {
     if (!user) return
-    await deleteGroceryItem(user.uid, id)
+    const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', itemId)
+    await updateDoc(ref, { manualSection: category || null })
+    setCategoryPickerFor(null)
   }
 
-  const unchecked = items.filter(i => !i.isChecked)
-  const checked = items.filter(i => i.isChecked)
+  const clearChecked = async () => {
+    if (!user) return
+    const batch = writeBatch(db)
+    items.filter(i => i.isChecked).forEach(i => {
+      batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', i.id))
+    })
+    await batch.commit()
+  }
+
+  const clearAll = async () => {
+    if (!user) return
+    const batch = writeBatch(db)
+    items.forEach(i => {
+      batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', i.id))
+    })
+    await batch.commit()
+  }
+
+  const handleAICleanup = async () => {
+    if (!user || !items.length) return
+    setCleanupLoading(true)
+    try {
+      const res = await fetch('/api/grocery-cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: items.map((item, i) => ({ ...item, _index: i })) }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setCleanupChanges(Array.isArray(data) ? data : [])
+    } catch (e: any) {
+      console.error('Cleanup error:', e)
+    } finally {
+      setCleanupLoading(false)
+    }
+  }
+
+  const applyCleanup = async () => {
+    if (!user || !cleanupChanges) return
+    setApplyingCleanup(true)
+    try {
+      const batch = writeBatch(db)
+      const toDelete = new Set<number>()
+
+      cleanupChanges.forEach(change => {
+        if (change.action === 'remove') {
+          toDelete.add(change.originalIndex)
+          return
+        }
+        if (change.action === 'merge' && change.mergedWith?.length) {
+          change.mergedWith.forEach(i => toDelete.add(i))
+        }
+        const item = items[change.originalIndex]
+        if (!item) return
+        const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
+        batch.update(ref, {
+          name: change.name,
+          quantity: change.quantity || '',
+          unit: change.unit || '',
+          manualSection: change.category,
+        })
+      })
+
+      // Delete removed/merged items
+      toDelete.forEach(i => {
+        const item = items[i]
+        if (item) {
+          batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+        }
+      })
+
+      await batch.commit()
+      setCleanupChanges(null)
+    } catch (e) {
+      console.error('Apply cleanup error:', e)
+    } finally {
+      setApplyingCleanup(false)
+    }
+  }
+
+  const toggleCollapse = (cat: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      next.has(cat) ? next.delete(cat) : next.add(cat)
+      return next
+    })
+  }
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 p-6">
-        <div className="w-16 h-16 rounded-full bg-amber/10 flex items-center justify-center">
-          <ShoppingCart size={28} className="text-amber" />
-        </div>
-        <h2 className="font-display text-3xl text-cream font-light">Grocery List</h2>
-        <p className="text-muted text-sm font-body text-center max-w-xs">
-          Sign in to manage your grocery list and sync it across all your devices.
-        </p>
-        <button onClick={signIn} className="btn-primary">Sign in with Google</button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-6">
+        <ShoppingCart size={48} className="text-faint" />
+        <p className="font-display text-3xl text-faint font-light">Sign in to view your grocery list</p>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="animate-spin text-amber" size={28} />
       </div>
     )
   }
 
   return (
-    <div className="max-w-xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-6 max-w-2xl mx-auto">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="font-display text-4xl text-cream font-light">Grocery</h1>
-          <p className="text-faint text-xs font-body mt-0.5">
-            {unchecked.length} item{unchecked.length !== 1 ? 's' : ''} remaining
+          <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Grocery</h1>
+          <p className="text-faint text-sm font-body">
+            {uncheckedCount} item{uncheckedCount !== 1 ? 's' : ''} remaining
+            {checkedCount > 0 && ` · ${checkedCount} checked`}
           </p>
         </div>
-        {items.length > 0 && (
-          <div className="flex gap-2">
-            {checked.length > 0 && (
-              <button
-                onClick={() => clearCheckedGroceryItems(user.uid)}
-                className="btn-ghost text-xs"
-              >
-                Clear checked
-              </button>
-            )}
-            <button
-              onClick={() => clearAllGroceryItems(user.uid)}
-              className="btn-ghost text-xs text-faint"
-            >
-              Clear all
+        <div className="flex gap-2">
+          {checkedCount > 0 && (
+            <button onClick={clearChecked} className="btn-ghost flex items-center gap-1.5 text-xs">
+              <CheckCheck size={13} />Clear checked
+            </button>
+          )}
+          {items.length > 0 && (
+            <button onClick={clearAll} className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400">
+              <Trash2 size={13} />Clear all
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* AI Cleanup button */}
+      {items.length > 0 && !cleanupChanges && (
+        <button
+          onClick={handleAICleanup}
+          disabled={cleanupLoading}
+          className="w-full mb-6 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber/20 bg-amber/5 text-amber text-sm font-body hover:bg-amber/10 transition-colors"
+        >
+          {cleanupLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          {cleanupLoading ? 'AI is reviewing your list...' : 'AI Clean Up List'}
+        </button>
+      )}
+
+      {/* Cleanup diff view */}
+      {cleanupChanges && (
+        <div className="mb-6 bg-surface border border-amber/20 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <div>
+              <p className="text-cream text-sm font-body font-medium">AI Suggestions</p>
+              <p className="text-faint text-xs font-body mt-0.5">
+                {cleanupChanges.filter(c => c.action === 'remove').length} to remove ·{' '}
+                {cleanupChanges.filter(c => c.action === 'merge').length} to merge ·{' '}
+                {cleanupChanges.filter(c => c.action === 'normalize').length} to rename
+              </p>
+            </div>
+            <button onClick={() => setCleanupChanges(null)} className="text-faint hover:text-cream">
+              <X size={16} />
             </button>
           </div>
-        )}
-      </div>
-
-      {/* Add item */}
-      <div className="flex gap-2 mb-8">
-        <input
-          type="text"
-          value={newItem}
-          onChange={e => setNewItem(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="Add an item..."
-          className="input-field flex-1"
-        />
-        <button
-          onClick={handleAdd}
-          disabled={!newItem.trim() || adding}
-          className="btn-primary px-4 flex items-center gap-1"
-        >
-          {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={16} />}
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="animate-spin text-amber" size={24} />
-        </div>
-      ) : items.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="font-display text-2xl text-faint font-light mb-2">List is empty</p>
-          <p className="text-faint text-sm font-body">Add items manually or from your meal plan</p>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {/* Unchecked items */}
-          {unchecked.map(item => (
-            <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface group transition-colors">
-              <button
-                onClick={() => handleToggle(item)}
-                className="w-5 h-5 rounded border-2 border-border hover:border-amber/50 flex items-center justify-center transition-all shrink-0"
-              >
-              </button>
-              <div className="flex-1 min-w-0">
-                <span className="text-cream text-sm font-body">{item.name}</span>
-                {item.sourceRecipeIDs?.length > 0 && (
-                  <span className="text-faint text-xs font-body ml-2">
-                    from {item.sourceRecipeIDs.length} recipe{item.sourceRecipeIDs.length > 1 ? 's' : ''}
+          <div className="max-h-72 overflow-y-auto divide-y divide-border">
+            {cleanupChanges.map((change, i) => {
+              const original = items[change.originalIndex]
+              const isChanged = change.action !== 'keep'
+              return (
+                <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${change.action === 'remove' ? 'opacity-50' : ''}`}>
+                  <span className={`text-xs font-body px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                    change.action === 'remove' ? 'bg-red-500/10 text-red-400' :
+                    change.action === 'merge' ? 'bg-violet-500/10 text-violet-400' :
+                    change.action === 'normalize' ? 'bg-amber/10 text-amber' :
+                    'bg-card text-faint'
+                  }`}>
+                    {change.action}
                   </span>
-                )}
-              </div>
-              <button
-                onClick={() => handleDelete(item.id)}
-                className="opacity-0 group-hover:opacity-100 text-faint hover:text-red-400 transition-all"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
-
-          {/* Divider */}
-          {checked.length > 0 && unchecked.length > 0 && (
-            <div className="border-t border-border my-3" />
-          )}
-
-          {/* Checked items */}
-          {checked.map(item => (
-            <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface group transition-colors opacity-50">
-              <button
-                onClick={() => handleToggle(item)}
-                className="w-5 h-5 rounded border-2 border-amber/40 bg-amber/10 flex items-center justify-center shrink-0"
-              >
-                <Check size={11} className="text-amber" />
-              </button>
-              <span className="flex-1 text-muted text-sm font-body line-through">{item.name}</span>
-              <button
-                onClick={() => handleDelete(item.id)}
-                className="opacity-0 group-hover:opacity-100 text-faint hover:text-red-400 transition-all"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ))}
+                  <div className="flex-1 min-w-0">
+                    {isChanged && original && (
+                      <p className="text-faint text-xs font-body line-through truncate">{original.name}</p>
+                    )}
+                    {change.action !== 'remove' && (
+                      <p className="text-cream text-xs font-body truncate">{change.name}</p>
+                    )}
+                  </div>
+                  {change.action !== 'remove' && (
+                    <span className="text-faint text-xs font-body shrink-0">{change.category}</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div className="px-4 py-3 border-t border-border flex gap-2">
+            <button onClick={() => setCleanupChanges(null)} className="btn-ghost text-xs flex-1">Discard</button>
+            <button
+              onClick={applyCleanup}
+              disabled={applyingCleanup}
+              className="btn-primary text-xs flex-1 flex items-center justify-center gap-1.5"
+            >
+              {applyingCleanup ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Apply changes
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Empty state */}
+      {items.length === 0 && (
+        <div className="text-center py-20 border border-border rounded-2xl">
+          <ShoppingCart size={40} className="text-faint mx-auto mb-4" />
+          <p className="font-display text-2xl text-faint font-light mb-2">List is empty</p>
+          <p className="text-faint text-sm font-body">Add recipes to your meal plan to populate your grocery list</p>
+        </div>
+      )}
+
+      {/* Grouped items */}
+      <div className="space-y-4">
+        {GROCERY_CATEGORIES.map(category => {
+          const catItems = grouped[category] || []
+          if (!catItems.length) return null
+          const isCollapsed = collapsed.has(category)
+          const checkedInCat = catItems.filter(i => i.isChecked).length
+
+          return (
+            <div key={category} className="bg-surface border border-border rounded-2xl overflow-hidden">
+              {/* Category header */}
+              <button
+                onClick={() => toggleCollapse(category)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-card/50 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base">{CATEGORY_EMOJI[category]}</span>
+                  <span className="font-body font-medium text-cream text-sm">{category}</span>
+                  <span className="text-faint text-xs font-body">
+                    {checkedInCat > 0 ? `${checkedInCat}/${catItems.length}` : catItems.length}
+                  </span>
+                </div>
+                {isCollapsed ? <ChevronDown size={14} className="text-faint" /> : <ChevronUp size={14} className="text-faint" />}
+              </button>
+
+              {/* Items */}
+              {!isCollapsed && (
+                <div className="divide-y divide-border/50">
+                  {catItems.map(item => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${item.isChecked ? 'opacity-50' : ''}`}
+                    >
+                      {/* Checkbox */}
+                      <button
+                        onClick={() => toggleItem(item)}
+                        className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+                          item.isChecked
+                            ? 'bg-amber border-amber'
+                            : 'border-border hover:border-amber/50'
+                        }`}
+                      >
+                        {item.isChecked && <Check size={11} className="text-ink" />}
+                      </button>
+
+                      {/* Name */}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-body ${item.isChecked ? 'line-through text-faint' : 'text-cream'}`}>
+                          {item.quantity && item.unit
+                            ? `${item.quantity} ${item.unit} ${item.name}`
+                            : item.quantity
+                            ? `${item.quantity} ${item.name}`
+                            : item.name}
+                        </p>
+                        {item.manualSection && (
+                          <span className="text-amber/60 text-xs font-body">manually categorized</span>
+                        )}
+                      </div>
+
+                      {/* Category picker trigger */}
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => setCategoryPickerFor(categoryPickerFor === item.id ? null : item.id)}
+                          className="text-faint hover:text-muted transition-colors text-xs font-body flex items-center gap-1"
+                          title="Change category"
+                        >
+                          <span>{CATEGORY_EMOJI[getCategory(item)]}</span>
+                        </button>
+
+                        {/* Category picker dropdown */}
+                        {categoryPickerFor === item.id && (
+                          <div className="absolute right-0 top-6 z-20 bg-surface border border-border rounded-xl shadow-lg w-52 overflow-hidden">
+                            <p className="text-faint text-xs font-body px-3 py-2 border-b border-border uppercase tracking-widest">Category</p>
+                            {MANUAL_CATEGORIES.map(cat => (
+                              <button
+                                key={cat}
+                                onClick={() => setManualCategory(item.id, cat)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-body hover:bg-card transition-colors ${
+                                  getCategory(item) === cat ? 'text-amber' : 'text-muted'
+                                }`}
+                              >
+                                <span>{CATEGORY_EMOJI[cat]}</span>
+                                {cat}
+                              </button>
+                            ))}
+                            {item.manualSection && (
+                              <button
+                                onClick={() => setManualCategory(item.id, null)}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-body text-faint hover:text-red-400 hover:bg-card transition-colors border-t border-border"
+                              >
+                                <X size={11} /> Reset to auto
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
