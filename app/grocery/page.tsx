@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch
+  collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
@@ -55,6 +55,11 @@ export default function GroceryPage() {
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupChanges, setCleanupChanges] = useState<CleanupChange[] | null>(null)
   const [applyingCleanup, setApplyingCleanup] = useState(false)
+  const [showAddItem, setShowAddItem] = useState(false)
+  const [newItemName, setNewItemName] = useState('')
+  const [newItemQty, setNewItemQty] = useState('')
+  const [newItemCategory, setNewItemCategory] = useState<GroceryCategory>('Other')
+  const [addingItem, setAddingItem] = useState(false)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -174,6 +179,33 @@ export default function GroceryPage() {
     }
   }
 
+  const handleAddItem = async () => {
+    if (!user || !newItemName.trim()) return
+    setAddingItem(true)
+    try {
+      const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
+      await addDoc(ref, {
+        name: newItemName.trim(),
+        quantity: newItemQty.trim(),
+        unit: '',
+        isChecked: false,
+        isManual: true,
+        manualSection: newItemCategory,
+        sourceRecipeIDs: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+      setNewItemName('')
+      setNewItemQty('')
+      setNewItemCategory('Other')
+      setShowAddItem(false)
+    } catch (e) {
+      console.error('Add item error:', e)
+    } finally {
+      setAddingItem(false)
+    }
+  }
+
   const toggleCollapse = (cat: string) => {
     setCollapsed(prev => {
       const next = new Set(prev)
@@ -235,6 +267,59 @@ export default function GroceryPage() {
           {cleanupLoading ? 'AI is reviewing your list...' : 'AI Clean Up List'}
         </button>
       )}
+
+      {/* Add Item button + form */}
+      <div className="mb-4">
+        {showAddItem ? (
+          <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
+            <p className="text-faint text-xs font-body uppercase tracking-widest">Add Item</p>
+            <div className="flex gap-2">
+              <input
+                value={newItemQty}
+                onChange={e => setNewItemQty(e.target.value)}
+                placeholder="Qty"
+                className="input-field w-20 shrink-0"
+              />
+              <input
+                value={newItemName}
+                onChange={e => setNewItemName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddItem()}
+                placeholder="Item name"
+                className="input-field flex-1"
+                autoFocus
+              />
+            </div>
+            <select
+              value={newItemCategory}
+              onChange={e => setNewItemCategory(e.target.value as GroceryCategory)}
+              className="input-field w-full"
+            >
+              {MANUAL_CATEGORIES.map(c => (
+                <option key={c} value={c}>{CATEGORY_EMOJI[c]} {c}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button onClick={() => setShowAddItem(false)} className="btn-ghost flex-1 text-xs">Cancel</button>
+              <button
+                onClick={handleAddItem}
+                disabled={addingItem || !newItemName.trim()}
+                className="btn-primary flex-1 text-xs flex items-center justify-center gap-1.5"
+              >
+                {addingItem ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                Add to list
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAddItem(true)}
+            className="flex items-center gap-2 text-sm font-body text-faint hover:text-cream transition-colors"
+          >
+            <Plus size={15} className="text-amber" />
+            Add item manually
+          </button>
+        )}
+      </div>
 
       {/* Cleanup diff view */}
       {cleanupChanges && (
