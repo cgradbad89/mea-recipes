@@ -254,10 +254,10 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
                 <button onClick={onClose} className="btn-ghost">Cancel</button>
                 <button
                   onClick={handleSaveToQueue}
-                  disabled={status === 'saving' as string}
+                  disabled={saving as string}
                   className="btn-primary flex-1 flex items-center justify-center gap-2"
                 >
-                  {status === 'saving' ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   Add to review queue
                 </button>
               </div>
