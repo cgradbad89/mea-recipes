@@ -147,7 +147,7 @@ export default function GroceryPage() {
           change.mergedWith.forEach(i => toDelete.add(i))
         }
         const item = items[change.originalIndex]
-        if (!item) return
+        if (!item || item.id.includes('/')) return
         const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
         batch.update(ref, {
           name: change.name,
@@ -160,7 +160,7 @@ export default function GroceryPage() {
       // Delete removed/merged items
       toDelete.forEach(i => {
         const item = items[i]
-        if (item) {
+        if (item && !item.id.includes('/')) {
           batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
         }
       })
