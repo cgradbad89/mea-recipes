@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UtensilsCrossed, Calendar, ShoppingCart, Heart, Plus, Clock, BarChart2, Inbox } from 'lucide-react'
+import { UtensilsCrossed, Calendar, ShoppingCart, Heart, Plus, Clock, BarChart2, Inbox, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import AddRecipeModal from './AddRecipeModal'
 import AuthButton from './AuthButton'
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/history', label: 'History', icon: Clock },
   { href: '/insights', label: 'Insights', icon: BarChart2 },
   { href: '/queue', label: 'Queue', icon: Inbox },
+  { href: '/discover', label: 'Discover', icon: Sparkles },
 ]
 
 export default function Navigation() {
