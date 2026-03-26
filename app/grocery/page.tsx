@@ -184,7 +184,9 @@ export default function GroceryPage() {
     setAddingItem(true)
     try {
       const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
+      const newId = Date.now().toString()
       await addDoc(ref, {
+        id: newId,
         name: newItemName.trim(),
         quantity: newItemQty.trim(),
         unit: '',
