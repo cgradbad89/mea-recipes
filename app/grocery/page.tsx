@@ -7,7 +7,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
-import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck } from 'lucide-react'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus } from 'lucide-react'
 
 interface GroceryItem {
   id: string
