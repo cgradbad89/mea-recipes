@@ -11,7 +11,7 @@ import { deleteDoc,
   limit,
   DocumentData,
 } from 'firebase/firestore'
-import { deleteDoc, db } from './firebase'
+import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
 
 const COLLECTION = 'recipes'
