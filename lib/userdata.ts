@@ -69,11 +69,11 @@ export async function getRecipeMeta(uid: string, recipeID: string): Promise<Reci
 }
 
 export async function saveRecipeMeta(uid: string, recipeID: string, meta: Partial<RecipeMeta>): Promise<void> {
-  await setDoc(doc(metaPath(uid), recipeID), {
-    ...meta,
-    recipeID,
-    updatedAt: serverTimestamp(),
-  }, { merge: true })
+  const data: any = { ...meta, recipeID, updatedAt: serverTimestamp() }
+  if (data.overrides === undefined || data.overrides === null) {
+    data.overrides = deleteField()
+  }
+  await setDoc(doc(metaPath(uid), recipeID), data, { merge: true })
 }
 
 // ─── Week Plans ───────────────────────────────────────────────────────────────
