@@ -1,4 +1,4 @@
-import {
+import { deleteDoc,
   collection,
   doc,
   getDocs,
@@ -11,7 +11,7 @@ import {
   limit,
   DocumentData,
 } from 'firebase/firestore'
-import { db } from './firebase'
+import { deleteDoc, db } from './firebase'
 import type { Recipe } from '@/types/recipe'
 
 const COLLECTION = 'recipes'
@@ -121,4 +121,8 @@ export function parseRecipeContent(content: string): {
   const description = descLines[0] || ''
 
   return { sourceURL, ingredients, instructions, description }
+}
+
+export async function deleteRecipe(id: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTION, id))
 }

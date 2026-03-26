@@ -55,6 +55,9 @@ export interface RecipeMeta {
     cuisine?: string
     category?: string
     content?: string
+    imageURL?: string
+    prepTime?: string
+    cookTime?: string
   }
 }
 
