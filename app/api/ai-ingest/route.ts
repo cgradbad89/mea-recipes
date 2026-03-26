@@ -26,7 +26,7 @@ Rules:
 
 export async function POST(req: NextRequest) {
   try {
-    const { url, html, text, generate } = await req.json()
+    const { url, html, text, generate, imageURL: providedImage, prepTime: providedPrep, cookTime: providedCook } = await req.json()
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
@@ -143,6 +143,10 @@ export async function POST(req: NextRequest) {
       ...parsed,
       title: parsed.title || fetchedTitle || 'Untitled Recipe',
       sourceURL: url || '',
+      // Prefer client-provided values (from bookmarklet) over parsed ones
+      imageURL: providedImage || parsed.imageURL || '',
+      prepTime: providedPrep || parsed.prepTime || '',
+      cookTime: providedCook || parsed.cookTime || '',
     })
 
   } catch (err: any) {

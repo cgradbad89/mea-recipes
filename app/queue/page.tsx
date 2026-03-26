@@ -227,10 +227,13 @@ export default function QueuePage() {
     // Clear the param from URL without reload
     window.history.replaceState({}, '', '/queue')
     setBmIngesting(true)
+    const bmImage = params.get('img') || ''
+    const bmPrep = params.get('prep') || ''
+    const bmCook = params.get('cook') || ''
     fetch('/api/ai-ingest', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: ingestUrl }),
+      body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook }),
     }).then(r => r.json()).then(async data => {
       if (data.error) { console.error('Ingest error:', data.error); return }
       await addToQueue(user.uid, {
@@ -300,7 +303,32 @@ export default function QueuePage() {
           </ol>
         </div>
         <a
-          href={`javascript:(function(){var u=encodeURIComponent(window.location.href);window.open('https://mea-recipes.vercel.app/queue?ingest='+u,'_blank','width=520,height=750');})();`}
+          href={`javascript:(function(){
+  var u=window.location.href;
+  var img='';var prep='';var cook='';
+  // Try JSON-LD structured data first
+  var scripts=document.querySelectorAll('script[type="application/ld+json"]');
+  for(var i=0;i<scripts.length;i++){
+    try{
+      var d=JSON.parse(scripts[i].textContent);
+      if(d['@graph'])d=d['@graph'].find(function(x){return x['@type']==='Recipe'})||d['@graph'][0];
+      if(d['@type']==='Recipe'){
+        img=typeof d.image==='string'?d.image:(d.image&&d.image.url)||'';
+        prep=d.prepTime||'';cook=d.cookTime||'';
+        break;
+      }
+    }catch(e){}
+  }
+  // Fallback: grab largest image on page
+  if(!img){
+    var imgs=Array.from(document.images).filter(function(i){return i.naturalWidth>400&&i.naturalHeight>300});
+    if(imgs.length)img=imgs[0].src;
+  }
+  // Convert ISO 8601 duration to readable (PT30M -> 30 min)
+  function dur(s){if(!s)return '';var m=s.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);if(!m)return s;var h=m[1]?m[1]+'h ':'';var mn=m[2]?m[2]+' min':'';return (h+mn).trim();}
+  var params=new URLSearchParams({ingest:u,img:img,prep:dur(prep),cook:dur(cook)});
+  window.open('https://mea-recipes.vercel.app/queue?'+params.toString(),'_blank','width=520,height=750');
+})();`}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber text-ink font-body font-semibold text-sm rounded-xl hover:bg-amber/90 transition-colors cursor-grab active:cursor-grabbing"
           onClick={e => e.preventDefault()}
           draggable

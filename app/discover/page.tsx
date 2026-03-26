@@ -243,10 +243,11 @@ export default function DiscoverPage() {
     if (!user) return
     setAddingToQueue(suggestion.title)
     try {
+      // Generate full recipe + try to find an image via search
       const res = await fetch('/api/ai-ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ generate: suggestion.title }),
+        body: JSON.stringify({ generate: suggestion.title + ' ' + suggestion.cuisine + ' recipe' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed')
