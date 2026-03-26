@@ -7,7 +7,7 @@ import { useCookingHistory } from '@/hooks/useCookingHistory'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { useFavorites } from '@/hooks/useFavorites'
 import { getAllRecipes } from '@/lib/recipes'
-import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock } from 'lucide-react'
+import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, ExternalLink } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
 
 const CACHE_KEY = 'mea-recommendations-cache'
@@ -134,6 +134,10 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [newSuggestions, setNewSuggestions] = useState<any[]>([])
+  const [loadingNew, setLoadingNew] = useState(false)
+  const [errorNew, setErrorNew] = useState('')
+  const [addingToQueue, setAddingToQueue] = useState<string | null>(null)
 
   useEffect(() => {
     getAllRecipes().then(setRecipes)
@@ -203,6 +207,73 @@ export default function DiscoverPage() {
     localStorage.removeItem(CACHE_KEY)
     setRecs(null)
     setLastUpdated(null)
+  }
+
+  const handleGetNewSuggestions = async () => {
+    if (!user || !recipes.length) return
+    setLoadingNew(true)
+    setErrorNew('')
+    try {
+      // Build taste profile
+      const cuisineCounts: Record<string, number> = {}
+      const categoryCounts: Record<string, number> = {}
+      Object.entries(cookCounts).forEach(([id, count]) => {
+        const r = recipes.find(r => r.id === id)
+        if (r?.cuisine) cuisineCounts[r.cuisine] = (cuisineCounts[r.cuisine] || 0) + count
+        if (r?.category) categoryCounts[r.category] = (categoryCounts[r.category] || 0) + count
+      })
+      const topCuisines = Object.entries(cuisineCounts).sort(([,a],[,b]) => b-a).slice(0,4).map(([c]) => c)
+      const topCategories = Object.entries(categoryCounts).sort(([,a],[,b]) => b-a).slice(0,3).map(([c]) => c)
+      const recentTitles = Object.entries(cookCounts)
+        .sort(([,a],[,b]) => b-a).slice(0,8)
+        .map(([id]) => recipes.find(r => r.id === id)?.title).filter(Boolean)
+
+      const res = await fetch('/api/new-recipe-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topCuisines, topCategories, recentTitles }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setNewSuggestions(Array.isArray(data) ? data : [])
+    } catch (e: any) {
+      setErrorNew(e.message || 'Something went wrong')
+    } finally {
+      setLoadingNew(false)
+    }
+  }
+
+  const handleAddNewToQueue = async (suggestion: any) => {
+    if (!user) return
+    setAddingToQueue(suggestion.title)
+    try {
+      const res = await fetch('/api/ai-ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: suggestion.title + ' recipe\n\n' + suggestion.description }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      const { addToQueue } = await import('@/lib/queue')
+      await addToQueue(user.uid, {
+        title: data.title || suggestion.title,
+        cuisine: data.cuisine || suggestion.cuisine,
+        category: data.category || suggestion.category,
+        imageURL: data.imageURL || '',
+        description: suggestion.description,
+        servings: data.servings || '',
+        prepTime: data.prepTime || '',
+        cookTime: data.cookTime || '',
+        ingredients: data.ingredients || [],
+        instructions: data.instructions || [],
+        sourceURL: '',
+      })
+      setNewSuggestions(prev => prev.filter(s => s.title !== suggestion.title))
+    } catch (e: any) {
+      setErrorNew(e.message)
+    } finally {
+      setAddingToQueue(null)
+    }
   }
 
   if (!user) {
