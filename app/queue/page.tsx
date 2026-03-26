@@ -202,6 +202,33 @@ function QueueCard({
   )
 }
 
+
+function BookmarkletCopy() {
+  const [copied, setCopied] = useState(false)
+  const code = 'javascript:(function(){var u=window.location.href,img=\'\',prep=\'\',cook=\'\';var sc=document.querySelectorAll(\'script[type="application/ld+json"]\');for(var i=0;i<sc.length;i++){try{var d=JSON.parse(sc[i].textContent);if(d[\'@graph\'])d=d[\'@graph\'].find(function(x){return x[\'@type\']===\'Recipe\'})||d[\'@graph\'][0];if(d[\'@type\']===\'Recipe\'){img=typeof d.image===\'string\'?d.image:d.image&&d.image.url||\'\';prep=d.prepTime||\'\';cook=d.cookTime||\'\';break;}}catch(e){}}if(!img){var imgs=Array.from(document.images).filter(function(el){return el.naturalWidth>400&&el.naturalHeight>300});if(imgs.length)img=imgs[0].src;}function dur(s){if(!s)return\'\';var m=s.match(/PT(?:(\\d+)H)?(?:(\\d+)M)?/);if(!m)return s;return((m[1]?m[1]+\'h \':\'\')+( m[2]?m[2]+\' min\':\'\')).trim();}var p=new URLSearchParams({ingest:u,img:img,prep:dur(prep),cook:dur(cook)});window.open(\'https://mea-recipes.vercel.app/queue?\'+p.toString(),\'_blank\',\'width=520,height=750\');})();'
+  const copy = () => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <div className="space-y-2">
+      <div className="bg-ink/60 rounded-xl p-3 overflow-x-auto">
+        <code className="text-amber/80 text-xs font-mono whitespace-nowrap">
+          {code.substring(0, 80)}...
+        </code>
+      </div>
+      <button
+        onClick={copy}
+        className="btn-primary flex items-center gap-2 text-xs"
+      >
+        {copied ? '✓ Copied!' : 'Copy bookmarklet code'}
+      </button>
+    </div>
+  )
+}
+
 export default function QueuePage() {
   const { user } = useAuth()
   const [items, setItems] = useState<QueuedRecipe[]>([])
@@ -295,47 +322,16 @@ export default function QueuePage() {
           Save recipes from any site — including NYT Cooking and other paywalled sites you're already logged into.
         </p>
         <div className="bg-card rounded-xl p-4 mb-4">
-          <p className="text-cream text-sm font-body font-medium mb-2">How to set up:</p>
+          <p className="text-cream text-sm font-body font-medium mb-2">Setup instructions:</p>
           <ol className="space-y-1.5 text-faint text-xs font-body">
             <li>1. Show your browser bookmarks bar (⌘+Shift+B on Mac)</li>
-            <li>2. Drag the button below to your bookmarks bar</li>
-            <li>3. On any recipe page, click the bookmarklet → recipe goes to your queue</li>
+            <li>2. Right-click the bookmarks bar → "Add page" or "Add bookmark"</li>
+            <li>3. Set the name to "🍽️ Save to MEA"</li>
+            <li>4. Paste the code below as the URL/address</li>
+            <li>5. On any recipe page, click it — recipe goes to your queue!</li>
           </ol>
         </div>
-        <a
-          href={`javascript:(function(){
-  var u=window.location.href;
-  var img='';var prep='';var cook='';
-  // Try JSON-LD structured data first
-  var scripts=document.querySelectorAll('script[type="application/ld+json"]');
-  for(var i=0;i<scripts.length;i++){
-    try{
-      var d=JSON.parse(scripts[i].textContent);
-      if(d['@graph'])d=d['@graph'].find(function(x){return x['@type']==='Recipe'})||d['@graph'][0];
-      if(d['@type']==='Recipe'){
-        img=typeof d.image==='string'?d.image:(d.image&&d.image.url)||'';
-        prep=d.prepTime||'';cook=d.cookTime||'';
-        break;
-      }
-    }catch(e){}
-  }
-  // Fallback: grab largest image on page
-  if(!img){
-    var imgs=Array.from(document.images).filter(function(i){return i.naturalWidth>400&&i.naturalHeight>300});
-    if(imgs.length)img=imgs[0].src;
-  }
-  // Convert ISO 8601 duration to readable (PT30M -> 30 min)
-  function dur(s){if(!s)return '';var m=s.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);if(!m)return s;var h=m[1]?m[1]+'h ':'';var mn=m[2]?m[2]+' min':'';return (h+mn).trim();}
-  var params=new URLSearchParams({ingest:u,img:img,prep:dur(prep),cook:dur(cook)});
-  window.open('https://mea-recipes.vercel.app/queue?'+params.toString(),'_blank','width=520,height=750');
-})();`}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber text-ink font-body font-semibold text-sm rounded-xl hover:bg-amber/90 transition-colors cursor-grab active:cursor-grabbing"
-          onClick={e => e.preventDefault()}
-          draggable
-        >
-          🍽️ Save to MEA
-        </a>
-        <p className="text-faint text-xs font-body mt-3">← Drag this to your bookmarks bar</p>
+        <BookmarkletCopy />
       </div>
 
       {loading ? (
