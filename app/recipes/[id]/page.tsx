@@ -152,7 +152,7 @@ export default function RecipeDetailPage() {
   const { ingredients, instructions, description } = parseRecipeContent(displayRecipe.content)
   const fav = isFavorite(displayRecipe.id)
   const hasOverrides = meta?.overrides && Object.keys(meta.overrides).length > 0
-  const canDelete = !!user && recipe?.addedBy === user.uid
+  const canDelete = !!user
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
