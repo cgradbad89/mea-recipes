@@ -28,13 +28,18 @@ export async function POST(req: NextRequest) {
   try {
     const { url, html, text, generate } = await req.json()
 
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
+    }
+
     // Generate mode — create a full recipe from a dish name
     if (generate && !html && !text && !url) {
       const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey!,
+          'x-api-key': apiKey,
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
@@ -61,12 +66,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No content provided' }, { status: 400 })
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
-    }
-
-    // If URL provided but no HTML, fetch the page server-side
     let content = html || text || ''
     let fetchedTitle = ''
 
@@ -81,10 +80,8 @@ export async function POST(req: NextRequest) {
         })
         if (res.ok) {
           const rawHtml = await res.text()
-          // Extract title for fallback
           const titleMatch = rawHtml.match(/<title[^>]*>([^<]+)<\/title>/i)
           fetchedTitle = titleMatch ? titleMatch[1].replace(' - ', ' | ').split(' | ')[0].trim() : ''
-          // Strip scripts/styles to reduce tokens, keep meaningful content
           content = rawHtml
             .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
             .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -109,7 +106,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey!,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -133,7 +130,6 @@ export async function POST(req: NextRequest) {
     try {
       parsed = JSON.parse(rawText.trim())
     } catch {
-      // Try to extract JSON from response
       const jsonMatch = rawText.match(/\{[\s\S]+\}/)
       if (jsonMatch) {
         try { parsed = JSON.parse(jsonMatch[0]) }
