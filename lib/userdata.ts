@@ -183,6 +183,11 @@ export interface GroceryItem {
   updatedAt?: unknown
 }
 
+/**
+ * Grocery items are fully isolated per user via the Firestore path
+ * users/{uid}/pantry/root/groceryItems. Each user only reads and writes
+ * their own items. No sharing occurs between users.
+ */
 export function groceryPath(uid: string) {
   return collection(db, 'users', uid, 'pantry', 'root', 'groceryItems')
 }
