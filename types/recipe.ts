@@ -13,6 +13,8 @@ export interface Recipe {
   created: string
   modified: string
   addedBy?: string  // uid of user who added this recipe via web
+  prepTime?: string
+  cookTime?: string
 }
 
 export interface RecipeOverrides {
