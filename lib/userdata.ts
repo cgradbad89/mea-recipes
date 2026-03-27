@@ -166,6 +166,9 @@ export async function markRecipeCooked(uid: string, weekID: string, recipeID: st
 
 // ─── Grocery Items ────────────────────────────────────────────────────────────
 // users/{uid}/pantry/root/groceryItems/{docId}
+// Isolation: grocery data is per-user — all reads/writes are scoped to the
+// authenticated user's uid passed from useAuth(). Each user only ever
+// reads/writes their own subcollection path.
 
 export interface GroceryItem {
   id: string
