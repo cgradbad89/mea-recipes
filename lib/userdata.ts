@@ -164,6 +164,47 @@ export async function markRecipeCooked(uid: string, weekID: string, recipeID: st
   await setDoc(ref, { ...plan, cookedRecipeIDs: cookedIDs, updatedAt: serverTimestamp() })
 }
 
+// ─── Shared Week Plans ───────────────────────────────────────────────────────
+// sharedWeekPlans/{weekID}/users/{uid}
+
+export interface SharedPlanEntry {
+  uid: string
+  displayName: string
+  photoURL: string
+  plannedRecipeIDs: string[]
+  updatedAt?: unknown
+}
+
+export async function publishSharedPlan(
+  uid: string,
+  displayName: string,
+  photoURL: string,
+  weekID: string,
+  plannedRecipeIDs: string[]
+): Promise<void> {
+  await setDoc(
+    doc(db, 'sharedWeekPlans', weekID, 'users', uid),
+    { uid, displayName, photoURL, plannedRecipeIDs, updatedAt: serverTimestamp() }
+  )
+}
+
+export function subscribeSharedWeekPlans(
+  weekID: string,
+  currentUid: string,
+  cb: (plans: SharedPlanEntry[]) => void
+): Unsubscribe {
+  return onSnapshot(
+    collection(db, 'sharedWeekPlans', weekID, 'users'),
+    snap => {
+      cb(
+        snap.docs
+          .map(d => d.data() as SharedPlanEntry)
+          .filter(p => p.uid !== currentUid)
+      )
+    }
+  )
+}
+
 // ─── Grocery Items ────────────────────────────────────────────────────────────
 // users/{uid}/pantry/root/groceryItems/{docId}
 // Isolation: grocery data is per-user — all reads/writes are scoped to the

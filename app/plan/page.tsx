@@ -8,7 +8,8 @@ import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan,
   markRecipeCooked, addRecipeIngredientsToGrocery, getAllWeekPlans,
   moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
-  type WeekPlan, type RecipeMeta
+  publishSharedPlan, subscribeSharedWeekPlans, addRecipeToWeekPlan,
+  type WeekPlan, type RecipeMeta, type SharedPlanEntry
 } from '@/lib/userdata'
 import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
 import type { Recipe } from '@/types/recipe'
@@ -151,6 +152,8 @@ export default function PlanPage() {
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [rebuildDone, setRebuildDone] = useState(false)
+  const [friendPlans, setFriendPlans] = useState<SharedPlanEntry[]>([])
+  const [addedFriendRecipe, setAddedFriendRecipe] = useState<string | null>(null)
 
   // Load all recipes for lookup
   useEffect(() => {
@@ -180,6 +183,28 @@ export default function PlanPage() {
       })
     })
   }, [user, plan])
+
+  // Publish shared plan whenever local plan changes
+  useEffect(() => {
+    if (!user || !plan) return
+    const displayName = user.displayName || user.email || 'Anonymous'
+    const photoURL = user.photoURL || ''
+    publishSharedPlan(user.uid, displayName, photoURL, weekID, plan.plannedRecipeIDs || [])
+  }, [user, plan, weekID])
+
+  // Subscribe to friends' shared plans
+  useEffect(() => {
+    if (!user) return
+    const unsub = subscribeSharedWeekPlans(weekID, user.uid, setFriendPlans)
+    return unsub
+  }, [user, weekID])
+
+  const handleAddFriendRecipe = async (recipeID: string) => {
+    if (!user) return
+    await addRecipeToWeekPlan(user.uid, weekID, recipeID)
+    setAddedFriendRecipe(recipeID)
+    setTimeout(() => setAddedFriendRecipe(null), 1500)
+  }
 
   const plannedIDs = plan?.plannedRecipeIDs || []
   const cookedIDs = new Set(plan?.cookedRecipeIDs || [])
@@ -464,6 +489,87 @@ export default function PlanPage() {
                     </div>
                   )
                 })}
+              </div>
+            </section>
+          )}
+
+          {/* Friends' plans section */}
+          {friendPlans.filter(fp => fp.plannedRecipeIDs.length > 0).length > 0 && (
+            <section className="mt-10">
+              <h2 className="font-display text-xl text-cream font-light mb-4">
+                Everyone&apos;s plan this week
+              </h2>
+              <div className="space-y-6">
+                {friendPlans
+                  .filter(fp => fp.plannedRecipeIDs.length > 0)
+                  .map(fp => (
+                    <div key={fp.uid}>
+                      {/* Friend header */}
+                      <div className="flex items-center gap-2 mb-3">
+                        {fp.photoURL ? (
+                          <img
+                            src={fp.photoURL}
+                            alt=""
+                            className="w-7 h-7 rounded-full object-cover"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        ) : (
+                          <div className="w-7 h-7 rounded-full bg-amber/20 flex items-center justify-center">
+                            <span className="text-amber text-xs font-body font-bold">
+                              {(fp.displayName || '?')[0].toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-cream text-sm font-body font-medium">
+                          {fp.displayName}
+                        </span>
+                      </div>
+                      {/* Friend's recipes */}
+                      <div className="space-y-2">
+                        {fp.plannedRecipeIDs.map(rid => {
+                          const recipe = recipes[rid]
+                          if (!recipe) return null
+                          return (
+                            <div
+                              key={rid}
+                              className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3"
+                            >
+                              {recipe.imageURL ? (
+                                <img
+                                  src={recipe.imageURL}
+                                  alt=""
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0"
+                                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-card shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-cream text-sm font-body font-medium truncate">
+                                  {recipe.title}
+                                </p>
+                                <p className="text-faint text-xs font-body capitalize">{recipe.cuisine}</p>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Link
+                                  href={`/recipes/${rid}`}
+                                  className="px-2.5 py-1 rounded-lg border border-border text-faint text-xs font-body hover:text-amber hover:border-amber/30 transition-all"
+                                >
+                                  View
+                                </Link>
+                                <button
+                                  onClick={() => handleAddFriendRecipe(rid)}
+                                  className="px-2.5 py-1 rounded-lg border border-border text-faint text-xs font-body hover:text-amber hover:border-amber/30 transition-all"
+                                >
+                                  {addedFriendRecipe === rid ? 'Added!' : 'Add to my plan'}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
               </div>
             </section>
           )}
