@@ -14,6 +14,24 @@ import RecipeEditModal from '@/components/RecipeEditModal'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 
+function formatWeekLabel(weekID: string): string {
+  const start = new Date(weekID + 'T12:00:00')
+  const end = new Date(weekID + 'T12:00:00')
+  end.setDate(end.getDate() + 6)
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${fmt(start)} – ${fmt(end)}`
+}
+
+function getWeekOptions(): { weekID: string; label: string }[] {
+  const now = new Date()
+  return [0, 1, 2, 3, 4].map(offset => {
+    const d = new Date(now)
+    d.setDate(d.getDate() + offset * 7)
+    const wid = weekIDFromDate(d)
+    return { weekID: wid, label: formatWeekLabel(wid) }
+  })
+}
+
 // Half-star interactive rating component
 function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
   const [hover, setHover] = useState(0)
@@ -82,7 +100,10 @@ export default function RecipeDetailPage() {
   const [note, setNote] = useState('')
   const [rating, setRating] = useState(0)
   const [savingNote, setSavingNote] = useState(false)
-  const [addedToPlan, setAddedToPlan] = useState(false)
+  const [showPlanPicker, setShowPlanPicker] = useState(false)
+  const [selectedWeek, setSelectedWeek] = useState('')
+  const [addingToPlan, setAddingToPlan] = useState(false)
+  const [planAddedLabel, setPlanAddedLabel] = useState('')
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -117,12 +138,20 @@ export default function RecipeDetailPage() {
     setSavingNote(false)
   }
 
-  const handleAddToPlan = async () => {
-    if (!user || !recipe) return
-    const weekID = weekIDFromDate(new Date())
-    await addRecipeToWeekPlan(user.uid, weekID, recipe.id)
-    setAddedToPlan(true)
-    setTimeout(() => setAddedToPlan(false), 2000)
+  const handleOpenPlanPicker = () => {
+    const weeks = getWeekOptions()
+    setSelectedWeek(weeks[1]?.weekID || weeks[0].weekID) // default to next week
+    setShowPlanPicker(true)
+    setPlanAddedLabel('')
+  }
+
+  const handleConfirmAddToPlan = async () => {
+    if (!user || !recipe || !selectedWeek) return
+    setAddingToPlan(true)
+    await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id)
+    setAddingToPlan(false)
+    setPlanAddedLabel(formatWeekLabel(selectedWeek))
+    setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)
   }
 
   const handleDelete = async () => {
@@ -226,14 +255,62 @@ export default function RecipeDetailPage() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex gap-3 mb-8">
+      <div className="flex gap-3 mb-8 relative">
         {user && (
-          <button onClick={handleAddToPlan}
-            className={`btn-primary flex items-center gap-2 ${addedToPlan ? 'bg-green-600' : ''}`}
-          >
-            <Calendar size={15} />
-            {addedToPlan ? 'Added!' : 'Add to Plan'}
-          </button>
+          <div className="relative">
+            <button onClick={handleOpenPlanPicker}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Calendar size={15} />
+              Add to Plan
+            </button>
+
+            {showPlanPicker && (
+              <div className="absolute left-0 top-12 z-20 bg-surface border border-border rounded-xl shadow-lg w-64 animate-fade-in">
+                {planAddedLabel ? (
+                  <div className="p-4 text-center">
+                    <p className="text-green-400 text-sm font-body font-medium">
+                      Added to {planAddedLabel}!
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-cream text-sm font-body font-medium px-4 pt-3 pb-2">Add to meal plan</p>
+                    <div className="px-2 pb-2">
+                      {getWeekOptions().map((w, i) => (
+                        <button
+                          key={w.weekID}
+                          onClick={() => setSelectedWeek(w.weekID)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm font-body transition-colors flex items-center gap-2 ${
+                            selectedWeek === w.weekID
+                              ? 'bg-amber/10 text-amber'
+                              : 'text-faint hover:text-cream hover:bg-card'
+                          }`}
+                        >
+                          <span className={`w-3 h-3 rounded-full border-2 shrink-0 ${
+                            selectedWeek === w.weekID ? 'border-amber bg-amber' : 'border-faint/30'
+                          }`} />
+                          {w.label}
+                          {i === 0 && <span className="text-faint/40 text-xs ml-auto">this week</span>}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 px-4 pb-3">
+                      <button onClick={() => setShowPlanPicker(false)} className="btn-ghost text-xs flex-1">Cancel</button>
+                      <button
+                        onClick={handleConfirmAddToPlan}
+                        disabled={addingToPlan}
+                        className="btn-primary text-xs flex-1 flex items-center justify-center gap-1.5"
+                      >
+                        {addingToPlan ? <Loader2 size={12} className="animate-spin" /> : null}
+                        Add
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         )}
         {displayRecipe.sourceURL && (
           <a href={displayRecipe.sourceURL} target="_blank" rel="noopener noreferrer" className="btn-ghost flex items-center gap-2">
