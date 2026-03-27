@@ -93,9 +93,12 @@ export function parseRecipeContent(content: string): {
 
   const sourceURL = lines.find(l => l.startsWith('http')) || ''
 
-  // Find INGREDIENTS section
-  const ingStart = lines.findIndex(l => /^INGREDIENTS$/i.test(l))
-  const instStart = lines.findIndex(l => /^INSTRUCTIONS$/i.test(l))
+  // Find INGREDIENTS section (case-insensitive)
+  const ingKeywords = /^(INGREDIENTS|WHAT YOU NEED|YOU WILL NEED|SHOPPING LIST)$/i
+  const instKeywords = /^(INSTRUCTIONS|PREPARATION|DIRECTIONS|METHOD|STEPS|HOW TO MAKE)$/i
+
+  const ingStart  = lines.findIndex(l => ingKeywords.test(l))
+  const instStart = lines.findIndex(l => instKeywords.test(l))
 
   let ingredients: string[] = []
   let instructions: string[] = []
@@ -118,7 +121,9 @@ export function parseRecipeContent(content: string): {
 
   const descLines = lines.filter(
     l => !l.startsWith('http') &&
-    !l.match(/^(INGREDIENTS|INSTRUCTIONS|Step|Yield|Total|Prep|Cook)/i) &&
+    !ingKeywords.test(l) &&
+    !instKeywords.test(l) &&
+    !l.match(/^(Step|Yield|Total|Prep|Cook)/i) &&
     l.length > 20
   )
   const description = descLines[0] || ''
