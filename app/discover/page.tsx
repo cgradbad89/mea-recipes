@@ -13,7 +13,6 @@ import type { Recipe } from '@/types/recipe'
 
 const CACHE_KEY = 'mea-recommendations-cache'
 const NEW_CACHE_KEY = 'mea-new-suggestions-cache'
-const CACHE_TTL = 24 * 60 * 60 * 1000
 
 interface Recommendation {
   title: string
@@ -139,10 +138,8 @@ export default function DiscoverPage() {
       const cached = localStorage.getItem(CACHE_KEY)
       if (cached) {
         const entry: CacheEntry = JSON.parse(cached)
-        if (Date.now() - entry.timestamp < CACHE_TTL) {
-          setRecs(entry.data)
-          setLastUpdated(new Date(entry.timestamp))
-        }
+        setRecs(entry.data)
+        setLastUpdated(new Date(entry.timestamp))
       }
     } catch {}
   }, [])
@@ -153,9 +150,7 @@ export default function DiscoverPage() {
       const cached = localStorage.getItem(NEW_CACHE_KEY)
       if (cached) {
         const entry = JSON.parse(cached)
-        if (Date.now() - entry.timestamp < CACHE_TTL) {
-          setNewSuggestions(entry.data)
-        }
+        setNewSuggestions(entry.data)
       }
     } catch {}
   }, [])
