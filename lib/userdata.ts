@@ -15,6 +15,7 @@ import {
   writeBatch, deleteField } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
+import type { GroceryCategory } from './groceryCategories'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
 // users/{uid}/recipes/root/favorites/{recipeID}
@@ -283,6 +284,57 @@ export async function clearAllGroceryItems(uid: string): Promise<void> {
   const batch = writeBatch(db)
   snap.docs.forEach(d => batch.delete(d.ref))
   await batch.commit()
+}
+
+// ─── Saved Grocery Items ─────────────────────────────────────────────────────
+// users/{uid}/pantry/root/savedGroceryItems/{itemId}
+
+export interface SavedGroceryItem {
+  id: string
+  name: string
+  defaultCategory: GroceryCategory
+  timesUsed: number
+  lastUsed: unknown
+}
+
+export function savedGroceryItemsPath(uid: string) {
+  return collection(db, 'users', uid, 'pantry', 'root', 'savedGroceryItems')
+}
+
+export async function getSavedGroceryItems(uid: string): Promise<SavedGroceryItem[]> {
+  const snap = await getDocs(savedGroceryItemsPath(uid))
+  return snap.docs.map(d => d.data() as SavedGroceryItem)
+    .sort((a, b) => b.timesUsed - a.timesUsed)
+}
+
+export async function upsertSavedGroceryItem(
+  uid: string,
+  name: string,
+  category: GroceryCategory
+): Promise<void> {
+  const id = sanitizeDocId(name.toLowerCase())
+  const ref = doc(savedGroceryItemsPath(uid), id)
+  const existing = await getDoc(ref)
+  if (existing.exists()) {
+    const data = existing.data() as SavedGroceryItem
+    await updateDoc(ref, {
+      timesUsed: data.timesUsed + 1,
+      lastUsed: serverTimestamp(),
+      defaultCategory: category,
+    })
+  } else {
+    await setDoc(ref, {
+      id,
+      name: name.trim(),
+      defaultCategory: category,
+      timesUsed: 1,
+      lastUsed: serverTimestamp(),
+    })
+  }
+}
+
+export async function deleteSavedGroceryItem(uid: string, itemId: string): Promise<void> {
+  await deleteDoc(doc(savedGroceryItemsPath(uid), itemId))
 }
 
 // ─── Rebuild grocery from plan ───────────────────────────────────────────────
