@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw } from 'lucide-react'
-import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan } from '@/lib/userdata'
+import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 
 interface GroceryItem {
@@ -66,6 +66,9 @@ export default function GroceryPage() {
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [rebuildDone, setRebuildDone] = useState(false)
+  const [lastCleaned, setLastCleaned] = useState<Date | null>(null)
+  const [savedItems, setSavedItems] = useState<SavedGroceryItem[]>([])
+  const [showAutocomplete, setShowAutocomplete] = useState(false)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -76,6 +79,16 @@ export default function GroceryPage() {
       setLoading(false)
     })
     return unsub
+  }, [user])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('mea-grocery-last-cleaned')
+    if (stored) setLastCleaned(new Date(parseInt(stored)))
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    getSavedGroceryItems(user.uid).then(setSavedItems)
   }, [user])
 
   const grouped = useMemo(() => {
@@ -183,6 +196,8 @@ export default function GroceryPage() {
       })
 
       await batch.commit()
+      localStorage.setItem('mea-grocery-last-cleaned', Date.now().toString())
+      setLastCleaned(new Date())
       setCleanupChanges(null)
     } catch (e) {
       console.error('Apply cleanup error:', e)
@@ -209,6 +224,8 @@ export default function GroceryPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+      await upsertSavedGroceryItem(user.uid, newItemName.trim(), newItemCategory)
+      getSavedGroceryItems(user.uid).then(setSavedItems)
       setNewItemName('')
       setNewItemQty('')
       setNewItemCategory('Other')
@@ -307,14 +324,21 @@ export default function GroceryPage() {
 
       {/* AI Cleanup button */}
       {items.length > 0 && !cleanupChanges && (
-        <button
-          onClick={handleAICleanup}
-          disabled={cleanupLoading}
-          className="w-full mb-6 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber/20 bg-amber/5 text-amber text-sm font-body hover:bg-amber/10 transition-colors"
-        >
-          {cleanupLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-          {cleanupLoading ? 'AI is reviewing your list...' : 'AI Clean Up List'}
-        </button>
+        <div className="mb-6 space-y-1">
+          <button
+            onClick={handleAICleanup}
+            disabled={cleanupLoading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber/20 bg-amber/5 text-amber text-sm font-body hover:bg-amber/10 transition-colors"
+          >
+            {cleanupLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {cleanupLoading ? 'AI is reviewing your list...' : 'AI Clean Up List'}
+          </button>
+          {lastCleaned && (
+            <p className="text-faint text-xs font-body">
+              Last cleaned {lastCleaned.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {lastCleaned.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
       )}
 
       {/* Add Item button + form */}
@@ -329,14 +353,46 @@ export default function GroceryPage() {
                 placeholder="Qty"
                 className="input-field w-20 shrink-0"
               />
-              <input
-                value={newItemName}
-                onChange={e => setNewItemName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddItem()}
-                placeholder="Item name"
-                className="input-field flex-1"
-                autoFocus
-              />
+              <div className="relative flex-1">
+                <input
+                  value={newItemName}
+                  onChange={e => {
+                    setNewItemName(e.target.value)
+                    setShowAutocomplete(e.target.value.length > 0)
+                  }}
+                  onKeyDown={e => e.key === 'Enter' && handleAddItem()}
+                  onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
+                  onFocus={() => newItemName.length > 0 && setShowAutocomplete(true)}
+                  placeholder="Item name"
+                  className="input-field w-full"
+                  autoFocus
+                />
+                {showAutocomplete && newItemName.length > 0 && (() => {
+                  const matches = savedItems
+                    .filter(s => s.name.toLowerCase().includes(newItemName.toLowerCase()))
+                    .slice(0, 5)
+                  if (!matches.length) return null
+                  return (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-surface border border-border rounded-xl shadow-lg overflow-hidden">
+                      {matches.map(s => (
+                        <button
+                          key={s.id}
+                          onMouseDown={e => {
+                            e.preventDefault()
+                            setNewItemName(s.name)
+                            setNewItemCategory(s.defaultCategory)
+                            setShowAutocomplete(false)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm font-body text-cream hover:bg-card transition-colors"
+                        >
+                          <span>{CATEGORY_EMOJI[s.defaultCategory]}</span>
+                          <span className="truncate">{s.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </div>
             </div>
             <select
               value={newItemCategory}
@@ -358,6 +414,56 @@ export default function GroceryPage() {
                 Add to list
               </button>
             </div>
+
+            {/* Previously added saved items */}
+            {savedItems.length > 0 && (
+              <div>
+                <p className="text-faint text-xs font-body uppercase tracking-widest mb-2">Previously added</p>
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {savedItems.map(s => (
+                    <div key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-card/50 transition-colors">
+                      <span className="text-cream text-sm font-body flex-1 truncate">{s.name}</span>
+                      <span className="text-sm shrink-0">{CATEGORY_EMOJI[s.defaultCategory]}</span>
+                      <button
+                        onClick={async () => {
+                          if (!user) return
+                          const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
+                          await addDoc(ref, {
+                            id: Date.now().toString(),
+                            name: s.name,
+                            quantity: '',
+                            unit: '',
+                            isChecked: false,
+                            isManual: true,
+                            manualSection: s.defaultCategory,
+                            sourceRecipeIDs: [],
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp(),
+                          })
+                          await upsertSavedGroceryItem(user.uid, s.name, s.defaultCategory)
+                          getSavedGroceryItems(user.uid).then(setSavedItems)
+                        }}
+                        className="text-amber hover:text-amber/80 transition-colors shrink-0 p-1"
+                        title="Add to list"
+                      >
+                        <Plus size={14} />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!user) return
+                          await deleteSavedGroceryItem(user.uid, s.id)
+                          setSavedItems(prev => prev.filter(i => i.id !== s.id))
+                        }}
+                        className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
+                        title="Remove from saved"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <button
@@ -492,9 +598,6 @@ export default function GroceryPage() {
                             ? `${item.quantity} ${item.name}`
                             : item.name}
                         </p>
-                        {item.manualSection && (
-                          <span className="text-amber/60 text-xs font-body">manually categorized</span>
-                        )}
                       </div>
 
                       {/* Delete button */}
