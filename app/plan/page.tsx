@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
+import { getDocs, collection } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan,
@@ -100,6 +102,8 @@ export default function PlanPage() {
   const [rebuildDone, setRebuildDone] = useState(false)
   const [friendPlans, setFriendPlans] = useState<SharedPlanEntry[]>([])
   const [addedFriendRecipe, setAddedFriendRecipe] = useState<string | null>(null)
+  const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
+  const [bulkAddResult, setBulkAddResult] = useState<string | null>(null)
 
   // Load all recipes for lookup
   useEffect(() => {
@@ -220,6 +224,38 @@ export default function PlanPage() {
     setTimeout(() => setRebuildDone(false), 2000)
   }
 
+  const handleBulkAddToGrocery = async () => {
+    if (!user) return
+    setBulkAddingGrocery(true)
+    setBulkAddResult(null)
+    try {
+      const grocerySnap = await getDocs(collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems'))
+      const alreadyAdded = new Set<string>()
+      grocerySnap.docs.forEach(d => {
+        const data = d.data()
+        if (data.sourceRecipeIDs && Array.isArray(data.sourceRecipeIDs)) {
+          data.sourceRecipeIDs.forEach((rid: string) => alreadyAdded.add(rid))
+        }
+      })
+      let addedCount = 0
+      for (const recipeID of uncookedPlanned) {
+        if (alreadyAdded.has(recipeID)) continue
+        const recipe = recipes[recipeID]
+        if (!recipe) continue
+        const { ingredients } = parseRecipeContent(recipe.content)
+        await addRecipeIngredientsToGrocery(user.uid, recipeID, ingredients)
+        addedCount++
+      }
+      setBulkAddResult(addedCount > 0 ? `Done! ${addedCount} added` : 'Already up to date')
+      setTimeout(() => setBulkAddResult(null), 2000)
+    } catch (e) {
+      console.error('Bulk add to grocery error:', e)
+      setBulkAddResult(null)
+    } finally {
+      setBulkAddingGrocery(false)
+    }
+  }
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 p-6">
@@ -293,12 +329,24 @@ export default function PlanPage() {
         <>
           {/* Planned section */}
           <section className="mb-8">
-            <h2 className="font-display text-xl text-cream font-light mb-4">
-              Planned
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl text-cream font-light">
+                Planned
+                {uncookedPlanned.length > 0 && (
+                  <span className="ml-2 text-faint text-sm font-body">{uncookedPlanned.length}</span>
+                )}
+              </h2>
               {uncookedPlanned.length > 0 && (
-                <span className="ml-2 text-faint text-sm font-body">{uncookedPlanned.length}</span>
+                <button
+                  onClick={handleBulkAddToGrocery}
+                  disabled={bulkAddingGrocery}
+                  className="btn-ghost flex items-center gap-1.5 text-xs"
+                >
+                  {bulkAddingGrocery ? <Loader2 size={13} className="animate-spin" /> : <ShoppingCart size={13} />}
+                  {bulkAddResult || (bulkAddingGrocery ? 'Adding...' : 'Add all to grocery')}
+                </button>
               )}
-            </h2>
+            </div>
 
             {uncookedPlanned.length === 0 ? (
               <div className="bg-surface border border-border rounded-2xl p-6 text-center">

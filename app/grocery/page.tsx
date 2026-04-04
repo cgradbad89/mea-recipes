@@ -7,7 +7,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
-import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw } from 'lucide-react'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag } from 'lucide-react'
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 
@@ -107,6 +107,9 @@ export default function GroceryPage() {
       const cat = getCategory(item)
       if (!groups[cat]) groups[cat] = []
       groups[cat].push(item)
+    })
+    Object.keys(groups).forEach(cat => {
+      groups[cat].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
     })
     return groups
   }, [items])
@@ -661,7 +664,7 @@ export default function GroceryPage() {
                           className="text-faint hover:text-muted transition-colors text-xs font-body flex items-center gap-1"
                           title="Change category"
                         >
-                          <span>{CATEGORY_EMOJI[getCategory(item)]}</span>
+                          <Tag size={11} />
                         </button>
 
                         {/* Category picker dropdown */}
