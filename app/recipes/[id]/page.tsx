@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
@@ -11,6 +11,7 @@ import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } fr
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/lib/AuthContext'
 import RecipeEditModal from '@/components/RecipeEditModal'
+import StarRating from '@/components/StarRating'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 
@@ -32,62 +33,6 @@ function getWeekOptions(): { weekID: string; label: string }[] {
   })
 }
 
-// Half-star interactive rating component
-function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
-  const [hover, setHover] = useState(0)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>, star: number) => {
-    if (!onChange) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    setHover(x < rect.width / 2 ? star - 0.5 : star)
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>, star: number) => {
-    if (!onChange) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const newRating = x < rect.width / 2 ? star - 0.5 : star
-    onChange(newRating === value ? 0 : newRating)
-  }
-
-  const display = hover || value
-
-  return (
-    <div ref={containerRef} className="flex gap-1">
-      {[1, 2, 3, 4, 5].map(star => {
-        const full = display >= star
-        const half = !full && display >= star - 0.5
-        return (
-          <button
-            key={star}
-            onMouseMove={e => handleMouseMove(e, star)}
-            onMouseLeave={() => setHover(0)}
-            onClick={e => handleClick(e, star)}
-            disabled={!onChange}
-            className="relative w-6 h-6 transition-transform hover:scale-110"
-          >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-faint/30 absolute inset-0" fill="currentColor">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-            {full && (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber absolute inset-0" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            )}
-            {half && (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber absolute inset-0" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77V2z"/>
-              </svg>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -107,6 +52,9 @@ export default function RecipeDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -134,8 +82,17 @@ export default function RecipeDetailPage() {
   const handleSaveNote = async () => {
     if (!user || !id) return
     setSavingNote(true)
-    await saveRecipeMeta(user.uid, id, { note, rating })
-    setSavingNote(false)
+    setSaveError('')
+    setSaveSuccess(false)
+    try {
+      await saveRecipeMeta(user.uid, id, { note, rating })
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    } catch (e: any) {
+      setSaveError(e?.message || 'Failed to save notes')
+    } finally {
+      setSavingNote(false)
+    }
   }
 
   const handleOpenPlanPicker = () => {
@@ -157,8 +114,15 @@ export default function RecipeDetailPage() {
   const handleDelete = async () => {
     if (!user || !recipe) return
     setDeleting(true)
-    await deleteRecipe(recipe.id)
-    router.push('/recipes')
+    setDeleteError('')
+    try {
+      await deleteRecipe(recipe.id)
+      router.push('/recipes')
+    } catch (e: any) {
+      setDeleteError(e?.message || 'Failed to delete recipe')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (loading) {
@@ -228,6 +192,7 @@ export default function RecipeDetailPage() {
                 {deleting ? <Loader2 size={12} className="animate-spin" /> : 'Yes'}
               </button>
               <button onClick={() => setConfirmDelete(false)} className="text-faint text-xs font-body hover:text-cream">No</button>
+              {deleteError && <span className="text-red-400 text-xs font-body">{deleteError}</span>}
             </div>
           )}
           <button onClick={() => toggle(displayRecipe.id)}
@@ -382,6 +347,8 @@ export default function RecipeDetailPage() {
             {savingNote ? <Loader2 size={14} className="animate-spin" /> : null}
             Save Notes
           </button>
+          {saveSuccess && <p className="text-green-400 text-xs font-body mt-2">Saved!</p>}
+          {saveError && <p className="text-red-400 text-xs font-body mt-2">{saveError}</p>}
         </section>
       )}
 

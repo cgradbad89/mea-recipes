@@ -37,12 +37,21 @@ function docToRecipe(id: string, data: DocumentData): Recipe {
   }
 }
 
+let _recipesCache: Recipe[] | null = null
+
 export async function getAllRecipes(): Promise<Recipe[]> {
+  if (_recipesCache) return _recipesCache
   const snap = await getDocs(collection(db, COLLECTION))
-  return snap.docs
+  const results = snap.docs
     .map(d => docToRecipe(d.id, d.data()))
     .filter(r => r.title)
     .sort((a, b) => a.title.localeCompare(b.title))
+  _recipesCache = results
+  return _recipesCache
+}
+
+export function invalidateRecipeCache(): void {
+  _recipesCache = null
 }
 
 export async function getRecipeById(id: string): Promise<Recipe | null> {
@@ -71,6 +80,7 @@ export async function saveRecipe(recipe: Omit<Recipe, 'id'>, addedByUid?: string
     recipeID: id,
     ...(addedByUid ? { addedBy: addedByUid } : {}),
   })
+  invalidateRecipeCache()
   return id
 }
 
@@ -133,4 +143,5 @@ export function parseRecipeContent(content: string): {
 
 export async function deleteRecipe(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id))
+  invalidateRecipeCache()
 }

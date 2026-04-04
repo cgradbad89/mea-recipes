@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch, addDoc, serverTimestamp
+  collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch, setDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
@@ -69,6 +69,13 @@ export default function GroceryPage() {
   const [lastCleaned, setLastCleaned] = useState<Date | null>(null)
   const [savedItems, setSavedItems] = useState<SavedGroceryItem[]>([])
   const [showAutocomplete, setShowAutocomplete] = useState(false)
+  const [confirmClearAll, setConfirmClearAll] = useState(false)
+
+  useEffect(() => {
+    if (!confirmClearAll) return
+    const timer = setTimeout(() => setConfirmClearAll(false), 5000)
+    return () => clearTimeout(timer)
+  }, [confirmClearAll])
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -214,9 +221,10 @@ export default function GroceryPage() {
     const trimmedName = newItemName.trim()
     const category = newItemCategory
     try {
-      const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
-      const newId = Date.now().toString()
-      await addDoc(ref, {
+      const sanitizeId = (s: string) => s.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 80)
+      const newId = sanitizeId(trimmedName.toLowerCase()) + '-' + Date.now()
+      const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', newId)
+      await setDoc(ref, {
         id: newId,
         name: trimmedName,
         quantity: newItemQty.trim(),
@@ -299,10 +307,19 @@ export default function GroceryPage() {
               <CheckCheck size={13} />Clear checked
             </button>
           )}
-          {items.length > 0 && (
-            <button onClick={clearAll} className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400">
+          {items.length > 0 && !confirmClearAll && (
+            <button onClick={() => setConfirmClearAll(true)} className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400">
               <Trash2 size={13} />Clear all
             </button>
+          )}
+          {confirmClearAll && (
+            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+              <span className="text-red-400 text-xs font-body">Are you sure? This cannot be undone.</span>
+              <button onClick={() => { clearAll(); setConfirmClearAll(false) }} className="text-red-400 text-xs font-body font-semibold hover:text-red-300">
+                Yes, clear all
+              </button>
+              <button onClick={() => setConfirmClearAll(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
+            </div>
           )}
         </div>
       </div>
@@ -435,9 +452,11 @@ export default function GroceryPage() {
                         onClick={async () => {
                           if (!user) return
                           try {
-                            const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
-                            await addDoc(ref, {
-                              id: Date.now().toString(),
+                            const sanitizeId = (str: string) => str.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 80)
+                            const quickId = sanitizeId(s.name.toLowerCase()) + '-' + Date.now()
+                            const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', quickId)
+                            await setDoc(ref, {
+                              id: quickId,
                               name: s.name,
                               quantity: '',
                               unit: '',

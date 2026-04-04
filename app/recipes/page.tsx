@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import Fuse from 'fuse.js'
 import { getAllRecipes } from '@/lib/recipes'
 import { collection, getDocs, writeBatch, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -96,12 +97,23 @@ export default function RecipesPage() {
     })
   }, [filter, user, cookedRecentlyIDs])
 
+  const fuse = useMemo(() => new Fuse(recipes, {
+    keys: [
+      { name: 'title', weight: 0.5 },
+      { name: 'cuisine', weight: 0.2 },
+      { name: 'category', weight: 0.15 },
+      { name: 'content', weight: 0.15 },
+    ],
+    threshold: 0.35,
+    includeScore: true,
+  }), [recipes])
+
   const filtered = useMemo(() => {
-    const f = recipes.filter(r => {
-      const matchSearch = !search ||
-        r.title.toLowerCase().includes(search.toLowerCase()) ||
-        r.cuisine.toLowerCase().includes(search.toLowerCase()) ||
-        r.category.toLowerCase().includes(search.toLowerCase())
+    const baseList = search.length >= 2
+      ? fuse.search(search).map(r => r.item)
+      : recipes
+
+    const f = baseList.filter(r => {
       const matchCuisine = cuisine === 'All' || r.cuisine.toLowerCase() === cuisine.toLowerCase()
       const matchCategory = category === 'All' || r.category === category
       const recipeRating = metas[r.id]?.rating || 0
@@ -121,7 +133,7 @@ export default function RecipesPage() {
         if (!cookedRecentlyIDs.has(r.id)) return false
       }
 
-      return matchSearch && matchCuisine && matchCategory && matchRating && matchSource
+      return matchCuisine && matchCategory && matchRating && matchSource
     })
 
     // Sort
@@ -148,7 +160,7 @@ export default function RecipesPage() {
       })
     }
     return sorted
-  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs])
+  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, fuse])
 
   const handleTagAllAsMine = async () => {
     if (!user) return

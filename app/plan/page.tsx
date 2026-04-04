@@ -12,6 +12,7 @@ import {
   type WeekPlan, type RecipeMeta, type SharedPlanEntry
 } from '@/lib/userdata'
 import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
+import StarRating from '@/components/StarRating'
 import type { Recipe } from '@/types/recipe'
 
 function getWeekDates(weekID: string): string[] {
@@ -37,61 +38,6 @@ function addWeeks(weekID: string, delta: number): string {
   const d = new Date(weekID + 'T12:00:00')
   d.setDate(d.getDate() + delta * 7)
   return weekIDFromDate(d)
-}
-
-// Half-star interactive rating component (same pattern as recipes/[id]/page.tsx)
-function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
-  const [hover, setHover] = useState(0)
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>, star: number) => {
-    if (!onChange) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    setHover(x < rect.width / 2 ? star - 0.5 : star)
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>, star: number) => {
-    if (!onChange) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const newRating = x < rect.width / 2 ? star - 0.5 : star
-    onChange(newRating === value ? 0 : newRating)
-  }
-
-  const display = hover || value
-
-  return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map(star => {
-        const full = display >= star
-        const half = !full && display >= star - 0.5
-        return (
-          <button
-            key={star}
-            onMouseMove={e => handleMouseMove(e, star)}
-            onMouseLeave={() => setHover(0)}
-            onClick={e => handleClick(e, star)}
-            disabled={!onChange}
-            className="relative w-6 h-6 transition-transform hover:scale-110"
-          >
-            <svg viewBox="0 0 24 24" className="w-6 h-6 text-faint/30 absolute inset-0" fill="currentColor">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-            {full && (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber absolute inset-0" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-              </svg>
-            )}
-            {half && (
-              <svg viewBox="0 0 24 24" className="w-6 h-6 text-amber absolute inset-0" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77V2z"/>
-              </svg>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
 }
 
 // Inline modal shown after marking a recipe cooked (if no existing rating)

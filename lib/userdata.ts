@@ -12,7 +12,11 @@ import {
   DocumentData,
   onSnapshot,
   Unsubscribe,
-  writeBatch, deleteField } from 'firebase/firestore'
+  writeBatch,
+  deleteField,
+  arrayUnion,
+  arrayRemove,
+  runTransaction } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
 import type { GroceryCategory } from './groceryCategories'
@@ -123,15 +127,17 @@ export async function getAllWeekPlans(uid: string): Promise<WeekPlan[]> {
 export async function addRecipeToWeekPlan(uid: string, weekID: string, recipeID: string): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
   const snap = await getDoc(ref)
-  const existing = snap.exists() ? (snap.data() as WeekPlan) : null
-  const planned = existing?.plannedRecipeIDs || []
-  const cooked = existing?.cookedRecipeIDs || []
-  if (!planned.includes(recipeID)) {
+  if (!snap.exists()) {
     await setDoc(ref, {
       weekID,
       weekStartISO: weekID,
-      plannedRecipeIDs: [...planned, recipeID],
-      cookedRecipeIDs: cooked,
+      plannedRecipeIDs: [recipeID],
+      cookedRecipeIDs: [],
+      updatedAt: serverTimestamp(),
+    })
+  } else {
+    await updateDoc(ref, {
+      plannedRecipeIDs: arrayUnion(recipeID),
       updatedAt: serverTimestamp(),
     })
   }
@@ -139,19 +145,24 @@ export async function addRecipeToWeekPlan(uid: string, weekID: string, recipeID:
 
 export async function removeRecipeFromWeekPlan(uid: string, weekID: string, recipeID: string): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return
-  const plan = snap.data() as WeekPlan
-  await setDoc(ref, {
-    ...plan,
-    plannedRecipeIDs: plan.plannedRecipeIDs.filter(id => id !== recipeID),
+  await updateDoc(ref, {
+    plannedRecipeIDs: arrayRemove(recipeID),
     updatedAt: serverTimestamp(),
   })
 }
 
 export async function moveRecipeToWeek(uid: string, fromWeekID: string, toWeekID: string, recipeID: string): Promise<void> {
-  await removeRecipeFromWeekPlan(uid, fromWeekID, recipeID)
-  await addRecipeToWeekPlan(uid, toWeekID, recipeID)
+  const fromRef = doc(weekPlansPath(uid), fromWeekID)
+  const toRef = doc(weekPlansPath(uid), toWeekID)
+  await runTransaction(db, async tx => {
+    const toSnap = await tx.get(toRef)
+    tx.update(fromRef, { plannedRecipeIDs: arrayRemove(recipeID), updatedAt: serverTimestamp() })
+    if (!toSnap.exists()) {
+      tx.set(toRef, { weekID: toWeekID, weekStartISO: toWeekID, plannedRecipeIDs: [recipeID], cookedRecipeIDs: [], updatedAt: serverTimestamp() })
+    } else {
+      tx.update(toRef, { plannedRecipeIDs: arrayUnion(recipeID), updatedAt: serverTimestamp() })
+    }
+  })
 }
 
 export async function markRecipeCooked(uid: string, weekID: string, recipeID: string, cooked: boolean): Promise<void> {

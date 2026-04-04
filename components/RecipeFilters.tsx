@@ -66,7 +66,7 @@ export default function RecipeFilters({
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
           <input
             type="text"
-            placeholder="Search recipes..."
+            placeholder="Search recipes, ingredients..."
             value={search}
             onChange={e => onSearchChange(e.target.value)}
             className="input-field pl-10"
