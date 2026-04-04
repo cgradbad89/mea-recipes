@@ -176,9 +176,10 @@ export default function DiscoverPage() {
     setLoading(true)
     setError('')
     try {
+      const token = await user.getIdToken()
       const res = await fetch('/api/recommendations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           recipes: recipes.map(r => ({ id: r.id, title: r.title, cuisine: r.cuisine, category: r.category })),
           cookCounts,
@@ -217,9 +218,10 @@ export default function DiscoverPage() {
         .sort(([, a], [, b]) => b - a).slice(0, 8)
         .map(([id]) => recipes.find(r => r.id === id)?.title).filter(Boolean)
 
+      const token = await user.getIdToken()
       const res = await fetch('/api/new-recipe-suggestions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ topCuisines, topCategories, recentTitles }),
       })
       const data = await res.json()
@@ -239,9 +241,10 @@ export default function DiscoverPage() {
     setAddingToQueue(suggestion.title)
     try {
       // Generate full recipe + try to find an image via search
+      const token = await user.getIdToken()
       const res = await fetch('/api/ai-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ generate: suggestion.title + ' ' + suggestion.cuisine + ' recipe' }),
       })
       const data = await res.json()
