@@ -221,7 +221,7 @@ function BookmarkletCopy() {
       </div>
       <button
         onClick={copy}
-        className="btn-primary flex items-center gap-2 text-xs"
+        className="btn-primary flex items-center gap-2 text-xs w-full sm:w-auto justify-center"
       >
         {copied ? '✓ Copied!' : 'Copy bookmarklet code'}
       </button>

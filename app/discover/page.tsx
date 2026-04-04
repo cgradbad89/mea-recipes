@@ -374,7 +374,7 @@ export default function DiscoverPage() {
                     <span className="text-faint text-xs font-body capitalize shrink-0">{suggestion.cuisine}</span>
                   </div>
                   <p className="text-faint text-xs font-body leading-relaxed mb-3">{suggestion.description}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={() => handleAddNewToQueue(suggestion)}
                       disabled={addingToQueue === suggestion.title}

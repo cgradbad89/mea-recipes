@@ -164,8 +164,8 @@ export default function RecipeDetailPage() {
         </div>
       )}
 
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <h1 className="font-display text-4xl md:text-5xl text-cream font-light leading-tight">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <h1 className="font-display text-3xl md:text-5xl text-cream font-light leading-tight min-w-0 flex-1">
           {displayRecipe.title}
         </h1>
         <div className="flex items-center gap-2 shrink-0">
@@ -231,7 +231,7 @@ export default function RecipeDetailPage() {
             </button>
 
             {showPlanPicker && (
-              <div className="absolute left-0 top-12 z-20 bg-surface border border-border rounded-xl shadow-lg w-64 animate-fade-in">
+              <div className="absolute left-0 top-12 z-20 bg-surface border border-border rounded-xl shadow-lg w-64 max-w-[calc(100vw-2rem)] animate-fade-in">
                 {planAddedLabel ? (
                   <div className="p-4 text-center">
                     <p className="text-green-400 text-sm font-body font-medium">

@@ -80,9 +80,10 @@
   }
 
   .input-field {
-    @apply w-full bg-surface border border-border rounded-xl px-4 py-3 text-cream text-sm
+    @apply w-full bg-surface border border-border rounded-xl px-4 py-3 text-cream text-base
            placeholder:text-faint font-body outline-none
            focus:border-amber/50 focus:ring-1 focus:ring-amber/20 transition-all duration-200;
+    /* text-base (16px) prevents iOS auto-zoom on input focus */
   }
 
   .nav-link {
@@ -92,6 +93,29 @@
   .nav-link-active {
     @apply text-sm font-body font-medium text-amber;
   }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in { animation: fade-in 0.2s ease-out; }
+.animate-slide-up { animation: slide-up 0.25s ease-out; }
+
+/* Smooth touch scrolling for horizontal scroll containers */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Cuisine badge colors */

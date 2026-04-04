@@ -401,7 +401,7 @@ export default function PlanPage() {
                               }
                             </button>
                             {moveOpenFor === id && (
-                              <div className="absolute right-0 top-9 z-10 bg-card border border-border rounded-xl shadow-lg py-1 w-48 animate-fade-in">
+                              <div className="absolute right-0 top-9 z-10 bg-card border border-border rounded-xl shadow-lg py-1 w-48 max-w-[calc(100vw-2rem)] animate-fade-in">
                                 <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Move to week</p>
                                 {surroundingWeeks.map(w => (
                                   <button

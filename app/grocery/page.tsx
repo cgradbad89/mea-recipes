@@ -689,7 +689,7 @@ export default function GroceryPage() {
 
                         {/* Category picker dropdown */}
                         {categoryPickerFor === item.id && (
-                          <div className={`absolute right-0 z-20 bg-surface border border-border rounded-xl shadow-lg w-52 overflow-hidden ${pickerFlipped ? 'bottom-6' : 'top-6'}`}>
+                          <div className={`absolute right-0 z-20 bg-surface border border-border rounded-xl shadow-lg w-52 max-w-[calc(100vw-2rem)] overflow-hidden ${pickerFlipped ? 'bottom-6' : 'top-6'}`}>
                             <p className="text-faint text-xs font-body px-3 py-2 border-b border-border uppercase tracking-widest">Category</p>
                             {MANUAL_CATEGORIES.map(cat => (
                               <button

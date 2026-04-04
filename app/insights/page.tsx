@@ -177,7 +177,7 @@ export default function InsightsPage() {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
         {[
           { label: 'Total cooked', value: totalCooked, icon: ChefHat },
           { label: 'Avg rating', value: avgRating || '—', icon: Star },
@@ -193,7 +193,7 @@ export default function InsightsPage() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Cuisine breakdown */}
         <div className="bg-surface border border-border rounded-2xl p-5">
           <h2 className="font-display text-xl text-cream font-light mb-5">Cuisine breakdown</h2>
@@ -305,7 +305,7 @@ export default function InsightsPage() {
         <div className="bg-surface border border-border rounded-2xl p-5">
           <h2 className="font-display text-xl text-cream font-light mb-1">Haven't made in a while</h2>
           <p className="text-faint text-xs font-body mb-5">Highly rated recipes you haven't cooked recently</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {underutilized.map(({ recipe, rating }) => (
               <a key={recipe.id} href={`/recipes/${recipe.id}`} className="group flex gap-3 items-center">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-card shrink-0">

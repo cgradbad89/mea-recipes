@@ -79,28 +79,28 @@ export default function Navigation() {
       </nav>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-2 py-2">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-xl transition-all ${
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] rounded-xl transition-all ${
                 active ? 'text-amber' : 'text-faint'
               }`}
             >
-              <Icon size={18} />
-              <span className="text-[10px] font-body">{label}</span>
+              <Icon size={20} />
+              <span className="text-[9px] font-body leading-none">{label}</span>
             </Link>
           )
         })}
         <button
           onClick={() => setShowAdd(true)}
-          className="flex-1 flex flex-col items-center gap-1 py-1.5 text-faint hover:text-cream transition-colors"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] text-faint hover:text-cream transition-colors"
         >
-          <Plus size={18} />
-          <span className="text-[10px] font-body">Add</span>
+          <Plus size={20} />
+          <span className="text-[9px] font-body leading-none">Add</span>
         </button>
       </nav>
 

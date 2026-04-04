@@ -78,7 +78,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-ink/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto animate-slide-up">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
             <h2 className="font-display text-2xl text-cream font-light">Edit Recipe</h2>

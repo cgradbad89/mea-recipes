@@ -230,13 +230,13 @@ export default function RecipesPage() {
       </div>
 
       {/* Sort & filter buttons */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
         <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Sort</span>
         {SORT_OPTIONS.map(opt => (
           <button
             key={opt.value}
             onClick={() => setSort(opt.value)}
-            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border ${
+            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
               sort === opt.value
                 ? 'bg-amber/10 text-amber border-amber/30'
                 : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
