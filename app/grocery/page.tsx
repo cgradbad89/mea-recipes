@@ -48,6 +48,24 @@ function getCategory(item: GroceryItem): GroceryCategory {
   return categorizeIngredient(item.name)
 }
 
+const MEASUREMENT_WORDS = /^(cup|cups|tbsp|tsp|tablespoon|tablespoons|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|g|gram|grams|kg|ml|liter|liters|can|cans|clove|cloves|bunch|package|packages|pkg|slice|slices|piece|pieces|head|heads|stalk|stalks)\b/i
+const PREP_WORDS = /^(grated|chopped|minced|diced|sliced|crushed|peeled|halved|quartered|roughly|finely|thinly|coarsely|freshly|ground|dried|frozen|cooked|raw|whole|large|medium|small|extra)\b/i
+
+function extractIngredientName(name: string): string {
+  let s = name.trim()
+  // Remove leading quantities and fractions: "1", "1/2", "1-2", unicode fractions
+  s = s.replace(/^[\d\s.,/\-\u00BC-\u00BE\u2150-\u215E]+/, '')
+  // Remove measurement words
+  s = s.replace(MEASUREMENT_WORDS, '')
+  // Remove prep words (may repeat)
+  let prev = ''
+  while (prev !== s) {
+    prev = s
+    s = s.trim().replace(PREP_WORDS, '')
+  }
+  return s.trim() || name.trim()
+}
+
 export default function GroceryPage() {
   const { user } = useAuth()
   const [items, setItems] = useState<GroceryItem[]>([])
@@ -109,7 +127,9 @@ export default function GroceryPage() {
       groups[cat].push(item)
     })
     Object.keys(groups).forEach(cat => {
-      groups[cat].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+      groups[cat].sort((a, b) =>
+        extractIngredientName(a.name).toLowerCase().localeCompare(extractIngredientName(b.name).toLowerCase())
+      )
     })
     return groups
   }, [items])

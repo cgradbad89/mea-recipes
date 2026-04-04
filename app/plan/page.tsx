@@ -207,11 +207,22 @@ export default function PlanPage() {
   const handleAddToGrocery = async (recipeID: string) => {
     if (!user) return
     const recipe = recipes[recipeID]
-    if (!recipe) return
+    if (!recipe) {
+      console.warn('Recipe not found for ID:', recipeID)
+      return
+    }
     setAddingToGrocery(recipeID)
-    const { ingredients } = parseRecipeContent(recipe.content)
-    await addRecipeIngredientsToGrocery(user.uid, recipeID, ingredients)
-    setAddingToGrocery(null)
+    try {
+      const { ingredients } = parseRecipeContent(recipe.content)
+      if (!ingredients.length) {
+        console.warn('No ingredients parsed for recipe:', recipe.title)
+      }
+      await addRecipeIngredientsToGrocery(user.uid, recipeID, ingredients)
+    } catch (e) {
+      console.error('Failed to add ingredients to grocery:', e)
+    } finally {
+      setAddingToGrocery(null)
+    }
   }
 
   const handleRebuildGrocery = async () => {
