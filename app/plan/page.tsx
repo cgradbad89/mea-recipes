@@ -102,6 +102,7 @@ export default function PlanPage() {
   const [rebuildDone, setRebuildDone] = useState(false)
   const [friendPlans, setFriendPlans] = useState<SharedPlanEntry[]>([])
   const [addedFriendRecipe, setAddedFriendRecipe] = useState<string | null>(null)
+  const [addedToGrocery, setAddedToGrocery] = useState<string | null>(null)
   const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
   const [bulkAddResult, setBulkAddResult] = useState<string | null>(null)
 
@@ -218,6 +219,8 @@ export default function PlanPage() {
         console.warn('No ingredients parsed for recipe:', recipe.title)
       }
       await addRecipeIngredientsToGrocery(user.uid, recipeID, ingredients)
+      setAddedToGrocery(recipeID)
+      setTimeout(() => setAddedToGrocery(null), 2000)
     } catch (e) {
       console.error('Failed to add ingredients to grocery:', e)
     } finally {
@@ -414,11 +417,18 @@ export default function PlanPage() {
                           </div>
                           <button
                             onClick={() => handleAddToGrocery(id)}
-                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
+                            disabled={addingToGrocery === id || addedToGrocery === id}
+                            className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${
+                              addedToGrocery === id
+                                ? 'border-green-400/30 text-green-400 bg-green-400/10'
+                                : 'border-border text-faint hover:text-amber hover:border-amber/30'
+                            }`}
                             title="Add ingredients to grocery list"
                           >
                             {addingToGrocery === id
                               ? <Loader2 size={13} className="animate-spin" />
+                              : addedToGrocery === id
+                              ? <Check size={13} />
                               : <ShoppingCart size={13} />
                             }
                           </button>
