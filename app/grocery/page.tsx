@@ -88,7 +88,9 @@ export default function GroceryPage() {
 
   useEffect(() => {
     if (!user) return
-    getSavedGroceryItems(user.uid).then(setSavedItems)
+    getSavedGroceryItems(user.uid).then(setSavedItems).catch(e => {
+      console.error('Failed to load saved grocery items:', e)
+    })
   }, [user])
 
   const grouped = useMemo(() => {
@@ -209,23 +211,23 @@ export default function GroceryPage() {
   const handleAddItem = async () => {
     if (!user || !newItemName.trim()) return
     setAddingItem(true)
+    const trimmedName = newItemName.trim()
+    const category = newItemCategory
     try {
       const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
       const newId = Date.now().toString()
       await addDoc(ref, {
         id: newId,
-        name: newItemName.trim(),
+        name: trimmedName,
         quantity: newItemQty.trim(),
         unit: '',
         isChecked: false,
         isManual: true,
-        manualSection: newItemCategory,
+        manualSection: category,
         sourceRecipeIDs: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
-      await upsertSavedGroceryItem(user.uid, newItemName.trim(), newItemCategory)
-      getSavedGroceryItems(user.uid).then(setSavedItems)
       setNewItemName('')
       setNewItemQty('')
       setNewItemCategory('Other')
@@ -235,6 +237,11 @@ export default function GroceryPage() {
     } finally {
       setAddingItem(false)
     }
+    // Save to savedGroceryItems in the background — must not block form flow
+    upsertSavedGroceryItem(user.uid, trimmedName, category)
+      .then(() => getSavedGroceryItems(user.uid))
+      .then(setSavedItems)
+      .catch(e => console.error('Failed to save grocery item to saved list:', e))
   }
 
   const toggleCollapse = (cat: string) => {
@@ -427,21 +434,27 @@ export default function GroceryPage() {
                       <button
                         onClick={async () => {
                           if (!user) return
-                          const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
-                          await addDoc(ref, {
-                            id: Date.now().toString(),
-                            name: s.name,
-                            quantity: '',
-                            unit: '',
-                            isChecked: false,
-                            isManual: true,
-                            manualSection: s.defaultCategory,
-                            sourceRecipeIDs: [],
-                            createdAt: serverTimestamp(),
-                            updatedAt: serverTimestamp(),
-                          })
-                          await upsertSavedGroceryItem(user.uid, s.name, s.defaultCategory)
-                          getSavedGroceryItems(user.uid).then(setSavedItems)
+                          try {
+                            const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
+                            await addDoc(ref, {
+                              id: Date.now().toString(),
+                              name: s.name,
+                              quantity: '',
+                              unit: '',
+                              isChecked: false,
+                              isManual: true,
+                              manualSection: s.defaultCategory,
+                              sourceRecipeIDs: [],
+                              createdAt: serverTimestamp(),
+                              updatedAt: serverTimestamp(),
+                            })
+                          } catch (e) {
+                            console.error('Quick-add error:', e)
+                          }
+                          upsertSavedGroceryItem(user.uid, s.name, s.defaultCategory)
+                            .then(() => getSavedGroceryItems(user.uid))
+                            .then(setSavedItems)
+                            .catch(e => console.error('Failed to update saved item:', e))
                         }}
                         className="text-amber hover:text-amber/80 transition-colors shrink-0 p-1"
                         title="Add to list"
@@ -451,8 +464,12 @@ export default function GroceryPage() {
                       <button
                         onClick={async () => {
                           if (!user) return
-                          await deleteSavedGroceryItem(user.uid, s.id)
-                          setSavedItems(prev => prev.filter(i => i.id !== s.id))
+                          try {
+                            await deleteSavedGroceryItem(user.uid, s.id)
+                            setSavedItems(prev => prev.filter(i => i.id !== s.id))
+                          } catch (e) {
+                            console.error('Failed to delete saved item:', e)
+                          }
                         }}
                         className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
                         title="Remove from saved"
