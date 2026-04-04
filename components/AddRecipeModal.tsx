@@ -45,9 +45,10 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
     setStatus('fetching')
     setError('')
     try {
+      const token = await user?.getIdToken()
       const res = await fetch('/api/ai-ingest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body),
       })
       const data = await res.json()

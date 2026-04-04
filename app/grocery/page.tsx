@@ -132,9 +132,10 @@ export default function GroceryPage() {
     if (!user || !items.length) return
     setCleanupLoading(true)
     try {
+      const token = await user.getIdToken()
       const res = await fetch('/api/grocery-cleanup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ items: items.map((item, i) => ({ ...item, _index: i })) }),
       })
       const data = await res.json()

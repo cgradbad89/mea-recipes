@@ -257,11 +257,12 @@ export default function QueuePage() {
     const bmImage = params.get('img') || ''
     const bmPrep = params.get('prep') || ''
     const bmCook = params.get('cook') || ''
-    fetch('/api/ai-ingest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook }),
-    }).then(r => r.json()).then(async data => {
+    user.getIdToken().then(token => {
+      fetch('/api/ai-ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook }),
+      }).then(r => r.json()).then(async data => {
       if (data.error) { console.error('Ingest error:', data.error); return }
       await addToQueue(user.uid, {
         title: data.title || 'Untitled Recipe',
@@ -278,6 +279,7 @@ export default function QueuePage() {
       })
       loadQueue()
     }).catch(console.error).finally(() => setBmIngesting(false))
+    })
   }, [user, loadQueue])
 
   const handleDiscard = async (id: string) => {

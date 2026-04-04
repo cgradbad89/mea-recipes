@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAuthToken } from '@/lib/firebaseAdmin'
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given HTML or text content from a webpage or pasted text, extract the recipe and return ONLY a valid JSON object with no markdown, no backticks, no explanation.
 
@@ -26,6 +27,9 @@ Rules:
 
 export async function POST(req: NextRequest) {
   try {
+    const uid = await verifyAuthToken(req)
+    if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { url, html, text, generate, imageURL: providedImage, prepTime: providedPrep, cookTime: providedCook } = await req.json()
 
     const apiKey = process.env.ANTHROPIC_API_KEY

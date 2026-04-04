@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAuthToken } from '@/lib/firebaseAdmin'
 
 const CATEGORIES = [
   'Produce', 'Meat & Seafood', 'Dairy & Eggs', 'Bakery & Bread',
@@ -7,6 +8,9 @@ const CATEGORIES = [
 
 export async function POST(req: NextRequest) {
   try {
+    const uid = await verifyAuthToken(req)
+    if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { items } = await req.json()
 
     const apiKey = process.env.ANTHROPIC_API_KEY
