@@ -354,6 +354,7 @@ export async function rebuildGroceryFromPlan(
   plannedRecipeIDs: string[],
   getRecipeById: (id: string) => Promise<Recipe | null>,
   parseContent: (content: string) => { ingredients: string[]; instructions: string[]; description: string },
+  metas?: Record<string, { overrides?: { content?: string } }>,
 ): Promise<void> {
   // Step 1: Delete non-manual, non-legacy items
   const snap = await getDocs(groceryPath(uid))
@@ -370,7 +371,8 @@ export async function rebuildGroceryFromPlan(
   for (const recipeID of plannedRecipeIDs) {
     const recipe = await getRecipeById(recipeID)
     if (!recipe) continue
-    const { ingredients } = parseContent(recipe.content)
+    const effectiveContent = metas?.[recipeID]?.overrides?.content || recipe.content
+    const { ingredients } = parseContent(effectiveContent)
     await addRecipeIngredientsToGrocery(uid, recipeID, ingredients)
   }
 }

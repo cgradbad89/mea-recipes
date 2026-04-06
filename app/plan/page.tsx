@@ -214,7 +214,8 @@ export default function PlanPage() {
     }
     setAddingToGrocery(recipeID)
     try {
-      const { ingredients } = parseRecipeContent(recipe.content)
+      const effectiveContent = metas[recipeID]?.overrides?.content || recipe.content
+      const { ingredients } = parseRecipeContent(effectiveContent)
       if (!ingredients.length) {
         console.warn('No ingredients parsed for recipe:', recipe.title)
       }
@@ -232,7 +233,7 @@ export default function PlanPage() {
     if (!user || !plan) return
     setRebuilding(true)
     setShowRebuildConfirm(false)
-    await rebuildGroceryFromPlan(user.uid, plan.plannedRecipeIDs || [], getRecipeById, parseRecipeContent)
+    await rebuildGroceryFromPlan(user.uid, plan.plannedRecipeIDs || [], getRecipeById, parseRecipeContent, metas)
     setRebuilding(false)
     setRebuildDone(true)
     setTimeout(() => setRebuildDone(false), 2000)
@@ -256,7 +257,8 @@ export default function PlanPage() {
         if (alreadyAdded.has(recipeID)) continue
         const recipe = recipes[recipeID]
         if (!recipe) continue
-        const { ingredients } = parseRecipeContent(recipe.content)
+        const effectiveContent = metas[recipeID]?.overrides?.content || recipe.content
+        const { ingredients } = parseRecipeContent(effectiveContent)
         await addRecipeIngredientsToGrocery(user.uid, recipeID, ingredients)
         addedCount++
       }
