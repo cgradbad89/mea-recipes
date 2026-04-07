@@ -55,6 +55,7 @@ export default function RecipeDetailPage() {
   const [deleteError, setDeleteError] = useState('')
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [showUnsavedBanner, setShowUnsavedBanner] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -67,6 +68,20 @@ export default function RecipeDetailPage() {
       if (m) { setMeta(m); setNote(m.note || ''); setRating(m.rating || 0) }
     })
   }, [user, id])
+
+  // Warn on tab close if notes are unsaved
+  const notesDirty = note !== (meta?.note || '') || rating !== (meta?.rating || 0)
+  useEffect(() => {
+    if (!notesDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [notesDirty])
+
+  const handleBack = () => {
+    if (notesDirty) { setShowUnsavedBanner(true); return }
+    router.back()
+  }
 
   const displayRecipe = recipe ? {
     ...recipe,
@@ -149,7 +164,16 @@ export default function RecipeDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      <button onClick={() => router.back()}
+      {showUnsavedBanner && (
+        <div className="bg-amber/10 border border-amber/20 rounded-xl p-3 mb-4 flex items-center justify-between gap-3 animate-fade-in">
+          <p className="text-amber text-xs font-body">You have unsaved notes. Save before leaving?</p>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={async () => { await handleSaveNote(); router.back() }} className="text-xs font-body text-amber font-semibold">Save now</button>
+            <button onClick={() => { setShowUnsavedBanner(false); router.back() }} className="text-xs font-body text-faint hover:text-cream">Leave anyway</button>
+          </div>
+        </div>
+      )}
+      <button onClick={handleBack}
         className="flex items-center gap-2 text-faint hover:text-cream transition-colors mb-6 text-sm font-body"
       >
         <ArrowLeft size={16} /> Back

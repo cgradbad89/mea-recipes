@@ -105,6 +105,14 @@ export default function PlanPage() {
   const [addedToGrocery, setAddedToGrocery] = useState<string | null>(null)
   const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
   const [bulkAddResult, setBulkAddResult] = useState<string | null>(null)
+  const [confirmRemoveFor, setConfirmRemoveFor] = useState<string | null>(null)
+
+  // Auto-clear remove confirm after 3 seconds
+  useEffect(() => {
+    if (!confirmRemoveFor) return
+    const timer = setTimeout(() => setConfirmRemoveFor(null), 3000)
+    return () => clearTimeout(timer)
+  }, [confirmRemoveFor])
 
   // Load all recipes for lookup
   useEffect(() => {
@@ -441,13 +449,32 @@ export default function PlanPage() {
                           >
                             <Check size={13} />
                           </button>
-                          <button
-                            onClick={() => handleRemove(id)}
-                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
-                            title="Remove from plan"
-                          >
-                            <X size={13} />
-                          </button>
+                          {confirmRemoveFor === id ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-red-400 text-[10px] font-body">Remove?</span>
+                              <button
+                                onClick={() => { handleRemove(id); setConfirmRemoveFor(null) }}
+                                className="w-7 h-7 rounded-lg border border-red-400/30 flex items-center justify-center text-red-400 bg-red-400/10 transition-all"
+                                title="Confirm remove"
+                              >
+                                <X size={11} />
+                              </button>
+                              <button
+                                onClick={() => setConfirmRemoveFor(null)}
+                                className="text-faint text-[10px] font-body hover:text-cream"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmRemoveFor(id)}
+                              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
+                              title="Remove from plan"
+                            >
+                              <X size={13} />
+                            </button>
+                          )}
                         </div>
                       </div>
                       {/* Rating prompt after marking cooked */}

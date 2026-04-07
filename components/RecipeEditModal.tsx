@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Save, RotateCcw, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Save, RotateCcw, Loader2, Check } from 'lucide-react'
 import { saveRecipeMeta } from '@/lib/userdata'
 import { useAuth } from '@/lib/AuthContext'
 import type { Recipe } from '@/types/recipe'
@@ -32,7 +32,29 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
   const [prepTime, setPrepTime] = useState(overrides.prepTime || (recipe as any).prepTime || '')
   const [cookTime, setCookTime] = useState(overrides.cookTime || (recipe as any).cookTime || '')
   const [saving, setSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [showDiscardWarning, setShowDiscardWarning] = useState(false)
+
+  // Initial values for dirty check
+  const initTitle = overrides.title || recipe.title
+  const initCuisine = overrides.cuisine || recipe.cuisine
+  const initCategory = overrides.category || recipe.category
+  const initContent = overrides.content || recipe.content
+  const initImageURL = overrides.imageURL || recipe.imageURL || ''
+  const initPrepTime = overrides.prepTime || (recipe as any).prepTime || ''
+  const initCookTime = overrides.cookTime || (recipe as any).cookTime || ''
+
+  const isDirty = title !== initTitle || cuisine !== initCuisine || category !== initCategory ||
+    content !== initContent || imageURL !== initImageURL || prepTime !== initPrepTime || cookTime !== initCookTime
+
+  // Auto-reset confirmReset after 3 seconds
+  useEffect(() => {
+    if (!confirmReset) return
+    const timer = setTimeout(() => setConfirmReset(false), 3000)
+    return () => clearTimeout(timer)
+  }, [confirmReset])
 
   const handleSave = async () => {
     if (!user) return
@@ -53,13 +75,20 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
     }
     await saveRecipeMeta(user.uid, recipe.id, updatedMeta)
     setSaving(false)
+    setSaveSuccess(true)
     onSaved(updatedMeta)
-    onClose()
+    setTimeout(() => onClose(), 1500)
+  }
+
+  const handleResetClick = () => {
+    if (!confirmReset) { setConfirmReset(true); return }
+    handleReset()
   }
 
   const handleReset = async () => {
     if (!user) return
     setResetting(true)
+    setConfirmReset(false)
     const updatedMeta: RecipeMeta = { ...meta, overrides: undefined }
     await saveRecipeMeta(user.uid, recipe.id, updatedMeta)
     setTitle(recipe.title)
@@ -71,6 +100,11 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
     setCookTime((recipe as any).cookTime || '')
     setResetting(false)
     onSaved(updatedMeta)
+    onClose()
+  }
+
+  const handleClose = () => {
+    if (isDirty) { setShowDiscardWarning(true); return }
     onClose()
   }
 
@@ -86,7 +120,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
               Changes are personal — the shared recipe stays the same for other users
             </p>
           </div>
-          <button onClick={onClose} className="text-faint hover:text-cream transition-colors">
+          <button onClick={handleClose} className="text-faint hover:text-cream transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -142,19 +176,30 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
             <textarea value={content} onChange={e => setContent(e.target.value)} rows={12} className="input-field resize-none text-xs leading-relaxed" />
           </div>
 
+          {/* Unsaved changes warning */}
+          {showDiscardWarning && (
+            <div className="bg-amber/10 border border-amber/20 rounded-xl p-3 flex items-center justify-between gap-3 animate-fade-in">
+              <p className="text-amber text-xs font-body">You have unsaved changes. Discard them?</p>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => setShowDiscardWarning(false)} className="text-xs font-body text-cream hover:text-amber">Keep editing</button>
+                <button onClick={onClose} className="text-xs font-body text-red-400 font-semibold hover:text-red-300">Discard</button>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             {hasOverrides && (
-              <button onClick={handleReset} disabled={resetting} className="btn-ghost flex items-center gap-2 text-faint">
+              <button onClick={handleResetClick} disabled={resetting} className={`btn-ghost flex items-center gap-2 ${confirmReset ? 'text-red-400 border-red-400/30' : 'text-faint'}`}>
                 {resetting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-                Reset to original
+                {confirmReset ? 'Click again to reset' : 'Reset to original'}
               </button>
             )}
             <div className="flex-1" />
-            <button onClick={onClose} className="btn-ghost">Cancel</button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              Save changes
+            <button onClick={handleClose} className="btn-ghost">Cancel</button>
+            <button onClick={handleSave} disabled={saving || saveSuccess} className={`btn-primary flex items-center gap-2 ${saveSuccess ? 'bg-green-500 hover:bg-green-500' : ''}`}>
+              {saving ? <Loader2 size={14} className="animate-spin" /> : saveSuccess ? <Check size={14} /> : <Save size={14} />}
+              {saveSuccess ? 'Saved!' : 'Save changes'}
             </button>
           </div>
         </div>

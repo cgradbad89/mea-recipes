@@ -26,6 +26,8 @@ function QueueCard({
   onDiscard: (id: string) => void
 }) {
   const [editing, setEditing] = useState(false)
+  const [confirmPublish, setConfirmPublish] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [title, setTitle] = useState(item.title)
   const [cuisine, setCuisine] = useState(item.cuisine)
   const [category, setCategory] = useState(item.category)
@@ -179,22 +181,38 @@ function QueueCard({
 
         {/* Actions */}
         {!editing && (
-          <div className="flex gap-2 pt-2 border-t border-border">
-            <button
-              onClick={() => onDiscard(item.id!)}
-              className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400"
-            >
-              <Trash2 size={12} />Discard
-            </button>
-            <div className="flex-1" />
-            <button
-              onClick={handlePublish}
-              disabled={publishing}
-              className="btn-primary flex items-center gap-1.5 text-xs"
-            >
-              {publishing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-              Publish to collection
-            </button>
+          <div className="pt-2 border-t border-border space-y-2">
+            {confirmDiscard && (
+              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 animate-fade-in">
+                <span className="text-red-400 text-xs font-body">Discard this recipe?</span>
+                <button onClick={() => onDiscard(item.id!)} className="text-red-400 text-xs font-body font-semibold hover:text-red-300">Yes</button>
+                <button onClick={() => setConfirmDiscard(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
+              </div>
+            )}
+            {confirmPublish && (
+              <div className="flex items-center gap-2 bg-amber/10 border border-amber/20 rounded-lg px-3 py-2 animate-fade-in">
+                <span className="text-amber text-xs font-body">Publish to your recipes?</span>
+                <button onClick={() => { setConfirmPublish(false); handlePublish() }} className="text-amber text-xs font-body font-semibold hover:text-amber-glow">Yes</button>
+                <button onClick={() => setConfirmPublish(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmDiscard(true)}
+                className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400"
+              >
+                <Trash2 size={12} />Discard
+              </button>
+              <div className="flex-1" />
+              <button
+                onClick={() => setConfirmPublish(true)}
+                disabled={publishing}
+                className="btn-primary flex items-center gap-1.5 text-xs"
+              >
+                {publishing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                Publish to collection
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -234,6 +252,7 @@ export default function QueuePage() {
   const [items, setItems] = useState<QueuedRecipe[]>([])
   const [loading, setLoading] = useState(true)
   const [bmIngesting, setBmIngesting] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   const loadQueue = useCallback(async () => {
     if (!user) return
@@ -286,10 +305,14 @@ export default function QueuePage() {
     if (!user) return
     await deleteFromQueue(user.uid, id)
     setItems(prev => prev.filter(i => i.id !== id))
+    setToast('Removed from queue')
+    setTimeout(() => setToast(null), 2000)
   }
 
   const handlePublish = (id: string) => {
     setItems(prev => prev.filter(i => i.id !== id))
+    setToast('Published to your recipes!')
+    setTimeout(() => setToast(null), 2000)
   }
 
   if (!user) {
@@ -303,6 +326,11 @@ export default function QueuePage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {toast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-surface border border-amber/30 text-amber text-sm font-body px-4 py-2 rounded-xl shadow-lg animate-fade-in">
+          {toast}
+        </div>
+      )}
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Recipe Queue</h1>
