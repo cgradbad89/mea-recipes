@@ -37,8 +37,6 @@ export default function HubBanner() {
           <a
             key={item.label}
             href={item.href}
-            target="_blank"
-            rel="noopener noreferrer"
             className="px-3 py-1 rounded text-sm font-medium text-zinc-400 hover:text-white transition-colors"
           >
             {item.label}
