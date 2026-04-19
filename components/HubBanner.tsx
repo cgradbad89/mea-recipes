@@ -1,21 +1,47 @@
-"use client";
+'use client';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/AuthContext';
 
-interface HubBannerProps {
-  href?: string;
-  position?: "top" | "bottom";
-}
+const ADMIN_EMAIL = 'folstromjohn@gmail.com';
 
-export default function HubBanner({
-  href = "https://my-hub-drab.vercel.app",
-  position = "bottom",
-}: HubBannerProps) {
-  const posClass = position === "top" ? "top-0" : "bottom-0";
+const NAV_ITEMS = [
+  { label: 'Hub',      href: 'https://my-hub-drab.vercel.app/' },
+  { label: 'Budget',   href: 'https://budget-web-rose.vercel.app' },
+  { label: 'Recipes',  href: '/', internal: true },
+  { label: 'DC Catz',  href: 'https://dc-catz.vercel.app' },
+  { label: 'Training', href: 'https://training-web-rho.vercel.app' },
+];
+
+export default function HubBanner() {
+  const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!mounted || !user || user.email !== ADMIN_EMAIL) return null;
+
   return (
-    <a
-      href={href}
-      className={`fixed ${posClass} left-0 right-0 z-50 flex items-center justify-center gap-1.5 bg-zinc-900/90 px-4 py-2 text-sm font-medium text-zinc-300 backdrop-blur-sm transition-colors hover:text-white`}
-    >
-      <span aria-hidden="true">&larr;</span> My Apps
-    </a>
+    <nav className="w-full flex items-center gap-1 px-4 py-2 bg-zinc-900 border-b border-zinc-800 z-50">
+      {NAV_ITEMS.map((item) =>
+        item.internal ? (
+          <span
+            key={item.label}
+            className="px-3 py-1 rounded text-sm font-medium bg-zinc-700 text-white"
+          >
+            {item.label}
+          </span>
+        ) : (
+          <a
+            key={item.label}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1 rounded text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+          >
+            {item.label}
+          </a>
+        )
+      )}
+    </nav>
   );
 }

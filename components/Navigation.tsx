@@ -6,7 +6,6 @@ import { UtensilsCrossed, Calendar, ShoppingCart, Heart, Plus, Clock, BarChart2,
 import { useState } from 'react'
 import AddRecipeModal from './AddRecipeModal'
 import AuthButton from './AuthButton'
-import HubBanner from './HubBanner'
 
 const NAV_ITEMS = [
   { href: '/recipes', label: 'Recipes', icon: UtensilsCrossed },
@@ -67,15 +66,6 @@ export default function Navigation() {
         <div className="border-t border-border pt-4">
           <AuthButton />
         </div>
-
-        {/* Hub link */}
-        <a
-          href="https://my-hub-drab.vercel.app"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:text-cream hover:bg-card transition-all duration-200 group mt-2"
-        >
-          <span className="text-faint group-hover:text-muted text-sm leading-none">←</span>
-          <span className="text-sm font-body font-medium">My Apps</span>
-        </a>
       </nav>
 
       {/* Mobile bottom nav */}
