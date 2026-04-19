@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import { useCookingHistory } from '@/hooks/useCookingHistory'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { useFavorites } from '@/hooks/useFavorites'
-import { getAllRecipes } from '@/lib/recipes'
-import { addToQueue } from '@/lib/queue'
-import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus } from 'lucide-react'
+import { getAllRecipes, saveRecipe, invalidateRecipeCache } from '@/lib/recipes'
+import { addToQueue, buildRecipeContent } from '@/lib/queue'
+import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
 
 const CACHE_KEY = 'mea-recommendations-cache'
@@ -128,6 +128,13 @@ export default function DiscoverPage() {
   const [loadingNew, setLoadingNew] = useState(false)
   const [errorNew, setErrorNew] = useState('')
   const [addingToQueue, setAddingToQueue] = useState<string | null>(null)
+  const [generateQuery, setGenerateQuery] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [generatedRecipe, setGeneratedRecipe] = useState<any | null>(null)
+  const [generateError, setGenerateError] = useState('')
+  const [savingGenerated, setSavingGenerated] = useState(false)
+  const [savedGenerated, setSavedGenerated] = useState(false)
+  const generateTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     getAllRecipes().then(setRecipes)
@@ -270,6 +277,82 @@ export default function DiscoverPage() {
     }
   }
 
+  const handleGenerateRecipe = async () => {
+    if (!user) return
+    const q = generateQuery.trim()
+    if (!q) { setGenerateError('Please describe the recipe you want'); return }
+    setGenerating(true)
+    setGenerateError('')
+    setGeneratedRecipe(null)
+    setSavedGenerated(false)
+    try {
+      const token = await user.getIdToken()
+      const res = await fetch('/api/ai-ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ generate: q }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to generate recipe')
+      setGeneratedRecipe(data)
+    } catch (e: any) {
+      setGenerateError(e?.message || 'Failed to generate recipe')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const handleSaveGenerated = async () => {
+    if (!user || !generatedRecipe) return
+    setSavingGenerated(true)
+    setGenerateError('')
+    try {
+      const content = buildRecipeContent({
+        title: generatedRecipe.title || '',
+        cuisine: generatedRecipe.cuisine || '',
+        category: generatedRecipe.category || '',
+        imageURL: generatedRecipe.imageURL || '',
+        description: generatedRecipe.description || '',
+        servings: generatedRecipe.servings || '',
+        prepTime: generatedRecipe.prepTime || '',
+        cookTime: generatedRecipe.cookTime || '',
+        ingredients: generatedRecipe.ingredients || [],
+        instructions: generatedRecipe.instructions || [],
+        sourceURL: '',
+        status: 'pending',
+      })
+      await saveRecipe({
+        recipeID: '',
+        title: (generatedRecipe.title || 'Untitled Recipe').trim(),
+        content,
+        category: generatedRecipe.category || '',
+        cuisine: (generatedRecipe.cuisine || '').toLowerCase(),
+        imageURL: generatedRecipe.imageURL || '',
+        sourceURL: '',
+        sourceFile: '',
+        labels: 'Recipes',
+        hasImage: generatedRecipe.imageURL ? 'true' : 'false',
+        created: new Date().toString(),
+        modified: new Date().toString(),
+        prepTime: generatedRecipe.prepTime || '',
+        cookTime: generatedRecipe.cookTime || '',
+      }, user.uid)
+      invalidateRecipeCache()
+      setSavedGenerated(true)
+    } catch (e: any) {
+      setGenerateError(e?.message || 'Failed to save recipe')
+    } finally {
+      setSavingGenerated(false)
+    }
+  }
+
+  const handleGenerateAnother = () => {
+    setGeneratedRecipe(null)
+    setGenerateError('')
+    setSavedGenerated(false)
+    setTimeout(() => generateTextareaRef.current?.focus(), 50)
+  }
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 p-6">
@@ -404,6 +487,126 @@ export default function DiscoverPage() {
               {loadingNew ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               Suggest different recipes
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Generate a Recipe ── */}
+      <div className="mt-12 pt-10 border-t border-border">
+        <div className="mb-4">
+          <h2 className="font-display text-2xl text-cream font-light flex items-center gap-2">
+            <Wand2 size={20} className="text-amber" />
+            Generate a Recipe
+          </h2>
+          <p className="text-faint text-xs font-body mt-1">
+            Describe exactly what you want and Claude will create a recipe for you.
+          </p>
+        </div>
+
+        {!generatedRecipe ? (
+          <div className="space-y-3">
+            <textarea
+              ref={generateTextareaRef}
+              value={generateQuery}
+              onChange={e => setGenerateQuery(e.target.value)}
+              placeholder="e.g. a classic vegetable stir fry, a spicy Mexican vegetarian soup, a quick weeknight chicken pasta..."
+              rows={3}
+              className="input-field resize-none"
+              disabled={generating}
+            />
+            {generateError && <p className="text-red-400 text-sm font-body">{generateError}</p>}
+            <button
+              onClick={handleGenerateRecipe}
+              disabled={generating}
+              className="btn-primary flex items-center gap-2"
+            >
+              {generating ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+              {generating ? 'Generating...' : 'Generate Recipe'}
+            </button>
+          </div>
+        ) : (
+          <div className="bg-surface border border-border rounded-2xl p-5 space-y-4 animate-fade-in">
+            <div>
+              <h3 className="font-display text-3xl text-cream font-light leading-tight mb-2">{generatedRecipe.title}</h3>
+              <div className="flex flex-wrap gap-2">
+                {generatedRecipe.cuisine && <span className="tag-amber capitalize">{generatedRecipe.cuisine}</span>}
+                {generatedRecipe.category && <span className="tag">{generatedRecipe.category}</span>}
+                {generatedRecipe.prepTime && (
+                  <span className="tag flex items-center gap-1"><Clock size={10} /> Prep {generatedRecipe.prepTime}</span>
+                )}
+                {generatedRecipe.cookTime && (
+                  <span className="tag flex items-center gap-1"><Clock size={10} /> Cook {generatedRecipe.cookTime}</span>
+                )}
+              </div>
+            </div>
+
+            {generatedRecipe.description && (
+              <p className="text-muted font-body text-sm leading-relaxed border-l-2 border-amber/30 pl-4 italic">
+                {generatedRecipe.description}
+              </p>
+            )}
+
+            {generatedRecipe.ingredients?.length > 0 && (
+              <div>
+                <p className="text-faint text-xs font-body uppercase tracking-widest mb-2">
+                  Ingredients ({generatedRecipe.ingredients.length})
+                </p>
+                <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-2">
+                  {generatedRecipe.ingredients.map((ing: string, i: number) => (
+                    <li key={i} className="text-muted text-sm font-body flex items-start gap-2">
+                      <span className="w-1 h-1 rounded-full bg-amber mt-2 shrink-0" />
+                      {ing}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {generatedRecipe.instructions?.length > 0 && (
+              <div>
+                <p className="text-faint text-xs font-body uppercase tracking-widest mb-2">
+                  Instructions ({generatedRecipe.instructions.length} steps)
+                </p>
+                <ol className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                  {generatedRecipe.instructions.map((step: string, i: number) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="font-display text-xl text-amber/60 font-light leading-none mt-0.5 w-5 shrink-0">{i + 1}</span>
+                      <p className="text-sm font-body text-muted leading-relaxed">{step}</p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {generateError && <p className="text-red-400 text-sm font-body">{generateError}</p>}
+
+            {savedGenerated ? (
+              <div className="flex items-center gap-3 pt-2 border-t border-border">
+                <Check size={16} className="text-green-400" />
+                <span className="text-green-400 text-sm font-body">Saved!</span>
+                <Link href="/recipes" className="text-amber text-sm font-body hover:underline">
+                  View in Recipes →
+                </Link>
+                <div className="flex-1" />
+                <button onClick={handleGenerateAnother} className="btn-ghost text-xs">
+                  Generate Another
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 pt-2 border-t border-border">
+                <button
+                  onClick={handleSaveGenerated}
+                  disabled={savingGenerated}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  {savingGenerated ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Save to My Recipes
+                </button>
+                <button onClick={handleGenerateAnother} className="btn-ghost">
+                  Generate Another
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
