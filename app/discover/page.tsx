@@ -319,6 +319,7 @@ export default function DiscoverPage() {
         ingredients: generatedRecipe.ingredients || [],
         instructions: generatedRecipe.instructions || [],
         sourceURL: '',
+        status: 'pending',
       })
       await saveRecipe({
         recipeID: '',
