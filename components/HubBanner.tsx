@@ -23,7 +23,7 @@ export default function HubBanner() {
   if (!mounted || !user || user.email !== ADMIN_EMAIL) return null;
 
   return (
-    <nav className="w-full flex items-center gap-1 px-4 py-2 bg-zinc-900 border-b border-zinc-800 z-50">
+    <nav className="w-full flex items-center gap-1 px-4 md:pl-[15rem] py-2 bg-zinc-900 border-b border-zinc-800 z-50 overflow-x-auto">
       {NAV_ITEMS.map((item) =>
         item.internal ? (
           <Link
