@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 
 const ADMIN_EMAIL = 'folstromjohn@gmail.com';
@@ -7,6 +8,7 @@ const ADMIN_EMAIL = 'folstromjohn@gmail.com';
 const NAV_ITEMS = [
   { label: 'Hub',      href: 'https://my-hub-drab.vercel.app/' },
   { label: 'Budget',   href: 'https://budget-web-rose.vercel.app' },
+  { label: 'Oracle',   href: 'https://oracle-web-pied.vercel.app' },
   { label: 'Recipes',  href: '/', internal: true },
   { label: 'DC Catz',  href: 'https://dc-catz.vercel.app' },
   { label: 'Training', href: 'https://training-web-rho.vercel.app' },
@@ -24,12 +26,13 @@ export default function HubBanner() {
     <nav className="w-full flex items-center gap-1 px-4 py-2 bg-zinc-900 border-b border-zinc-800 z-50">
       {NAV_ITEMS.map((item) =>
         item.internal ? (
-          <span
+          <Link
             key={item.label}
+            href={item.href}
             className="px-3 py-1 rounded text-sm font-medium bg-zinc-700 text-white"
           >
             {item.label}
-          </span>
+          </Link>
         ) : (
           <a
             key={item.label}
