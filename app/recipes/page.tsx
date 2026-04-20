@@ -166,7 +166,7 @@ export default function RecipesPage() {
   ]
 
   const TIME_OPTIONS: { value: TimeFilter; label: string }[] = [
-    { value: 0, label: 'Any time' },
+    { value: 0, label: 'Any cook time' },
     { value: 30, label: 'Under 30 min' },
     { value: 45, label: 'Under 45 min' },
     { value: 60, label: 'Under 1 hour' },
@@ -197,24 +197,26 @@ export default function RecipesPage() {
       </div>
 
       {/* Sort & filter buttons */}
-      <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
-        <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Sort</span>
-        {SORT_OPTIONS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setSort(opt.value)}
-            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
-              sort === opt.value
-                ? 'bg-amber/10 text-amber border-amber/30'
-                : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1 min-w-0">
+          <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Sort</span>
+          {SORT_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setSort(opt.value)}
+              className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
+                sort === opt.value
+                  ? 'bg-amber/10 text-amber border-amber/30'
+                  : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         {/* Time filter dropdown */}
-        <div className="relative ml-1">
+        <div className="relative ml-1 shrink-0">
           <button
             onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
             className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border flex items-center gap-1 ${
@@ -223,11 +225,11 @@ export default function RecipesPage() {
                 : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
             }`}
           >
-            {TIME_OPTIONS.find(o => o.value === timeFilter)?.label}
+            {timeFilter === 0 ? 'Cook time' : TIME_OPTIONS.find(o => o.value === timeFilter)?.label}
             <svg width="10" height="10" viewBox="0 0 10 10" className="opacity-60"><path d="M2 4l3 3 3-3" stroke="currentColor" fill="none" strokeWidth="1.5" /></svg>
           </button>
           {timeDropdownOpen && (
-            <div className="absolute left-0 top-9 z-10 bg-card border border-border rounded-xl shadow-lg py-1 w-40 animate-fade-in">
+            <div className="absolute left-0 top-9 z-50 bg-card border border-border rounded-xl shadow-lg py-1 w-40 animate-fade-in">
               {TIME_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
@@ -250,7 +252,7 @@ export default function RecipesPage() {
           <button
             key={opt.value}
             onClick={() => setFilter(filter === opt.value ? 'none' : opt.value)}
-            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border ${
+            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
               filter === opt.value
                 ? 'bg-amber/10 text-amber border-amber/30'
                 : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
