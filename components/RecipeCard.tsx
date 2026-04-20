@@ -66,6 +66,7 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe, meta, compact = false }: RecipeCardProps) {
   const { isFavorite, toggle } = useFavorites()
   const fav = isFavorite(recipe.id)
+  const displayImageURL = meta?.overrides?.imageURL || recipe.imageURL
 
   const handleFav = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -76,8 +77,8 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   return (
     <Link href={`/recipes/${recipe.id}`} className="recipe-card group block">
       <div className="relative aspect-[4/3] overflow-hidden bg-card">
-        {recipe.imageURL ? (
-          <img src={recipe.imageURL} alt={recipe.title}
+        {displayImageURL ? (
+          <img src={displayImageURL} alt={recipe.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
