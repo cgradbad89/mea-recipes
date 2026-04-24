@@ -54,22 +54,47 @@ function SkeletonCard() {
   )
 }
 
+function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any) => v): T {
+  try {
+    if (typeof window === 'undefined') return fallback
+    const v = window.localStorage.getItem(key)
+    if (v === null) return fallback
+    return parser(v)
+  } catch {
+    return fallback
+  }
+}
+
 export default function RecipesPage() {
   const { user } = useAuth()
   const metas = useRecipeMetas()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [cuisine, setCuisine] = useState('All')
-  const [category, setCategory] = useState('All')
-  const [minRating, setMinRating] = useState(0)
-  const [source, setSource] = useState<SourceFilter>('all')
-  const [sort, setSort] = useState<SortOption>('default')
-  const [filter, setFilter] = useState<FilterOption>('none')
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>(0)
+  const [search, setSearch] = useState(() => readLS('mea_recipes_search', ''))
+  const [cuisine, setCuisine] = useState(() => readLS('mea_recipes_cuisine', 'All'))
+  const [category, setCategory] = useState(() => readLS('mea_recipes_category', 'All'))
+  const [minRating, setMinRating] = useState(() => readLS<number>('mea_recipes_minRating', 0, v => parseInt(v, 10) || 0))
+  const [source, setSource] = useState<SourceFilter>(() => readLS<SourceFilter>('mea_recipes_source', 'all', v => (v as SourceFilter)))
+  const [sort, setSort] = useState<SortOption>(() => readLS<SortOption>('mea_recipes_sort', 'default', v => (v as SortOption)))
+  const [filter, setFilter] = useState<FilterOption>(() => readLS<FilterOption>('mea_recipes_filter', 'none', v => (v as FilterOption)))
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>(() => readLS<TimeFilter>('mea_recipes_timeFilter', 0, v => (parseInt(v, 10) || 0) as TimeFilter))
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('mea_recipes_search', search)
+      localStorage.setItem('mea_recipes_cuisine', cuisine)
+      localStorage.setItem('mea_recipes_category', category)
+      localStorage.setItem('mea_recipes_minRating', String(minRating))
+      localStorage.setItem('mea_recipes_source', source)
+      localStorage.setItem('mea_recipes_sort', sort)
+      localStorage.setItem('mea_recipes_filter', filter)
+      localStorage.setItem('mea_recipes_timeFilter', String(timeFilter))
+    } catch {}
+  }, [search, cuisine, category, minRating, source, sort, filter, timeFilter])
 
   useEffect(() => {
     getAllRecipes().then(r => { setRecipes(r); setLoading(false) })

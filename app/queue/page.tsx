@@ -26,7 +26,6 @@ function QueueCard({
   onDiscard: (id: string) => void
 }) {
   const [editing, setEditing] = useState(false)
-  const [confirmPublish, setConfirmPublish] = useState(false)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [title, setTitle] = useState(item.title)
   const [cuisine, setCuisine] = useState(item.cuisine)
@@ -189,13 +188,6 @@ function QueueCard({
                 <button onClick={() => setConfirmDiscard(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
               </div>
             )}
-            {confirmPublish && (
-              <div className="flex items-center gap-2 bg-amber/10 border border-amber/20 rounded-lg px-3 py-2 animate-fade-in">
-                <span className="text-amber text-xs font-body">Publish to your recipes?</span>
-                <button onClick={() => { setConfirmPublish(false); handlePublish() }} className="text-amber text-xs font-body font-semibold hover:text-amber-glow">Yes</button>
-                <button onClick={() => setConfirmPublish(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
-              </div>
-            )}
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmDiscard(true)}
@@ -205,12 +197,16 @@ function QueueCard({
               </button>
               <div className="flex-1" />
               <button
-                onClick={() => setConfirmPublish(true)}
+                onClick={handlePublish}
                 disabled={publishing}
-                className="btn-primary flex items-center gap-1.5 text-xs"
+                className={`flex items-center gap-1.5 text-xs font-body font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 ${
+                  publishing
+                    ? 'bg-green-600 text-white'
+                    : 'bg-amber text-ink hover:bg-amber-glow active:scale-95'
+                }`}
               >
                 {publishing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                Publish to collection
+                {publishing ? 'Adding...' : 'Publish to collection'}
               </button>
             </div>
           </div>
