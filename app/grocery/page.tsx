@@ -7,7 +7,7 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
-import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag } from 'lucide-react'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil } from 'lucide-react'
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 
@@ -88,6 +88,33 @@ export default function GroceryPage() {
   const [savedItems, setSavedItems] = useState<SavedGroceryItem[]>([])
   const [showAutocomplete, setShowAutocomplete] = useState(false)
   const [confirmClearAll, setConfirmClearAll] = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemName, setEditingItemName] = useState('')
+
+  const startEditItem = (item: GroceryItem) => {
+    setEditingItemId(item.id)
+    setEditingItemName(item.name)
+  }
+
+  const saveEditItem = async () => {
+    if (!user || !editingItemId) return
+    const newName = editingItemName.trim()
+    if (!newName) { setEditingItemId(null); return }
+    try {
+      const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', editingItemId)
+      await updateDoc(ref, { name: newName, updatedAt: serverTimestamp() })
+    } catch (e) {
+      console.error('Failed to save item name:', e)
+    } finally {
+      setEditingItemId(null)
+      setEditingItemName('')
+    }
+  }
+
+  const cancelEditItem = () => {
+    setEditingItemId(null)
+    setEditingItemName('')
+  }
 
   useEffect(() => {
     if (!confirmClearAll) return
@@ -648,19 +675,59 @@ export default function GroceryPage() {
                         {item.isChecked && <Check size={11} className="text-ink" />}
                       </button>
 
-                      {/* Name */}
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-body ${item.isChecked ? 'line-through text-faint' : 'text-cream'}`}>
-                          {item.quantity && item.unit
-                            ? `${item.quantity} ${item.unit} ${item.name}`
-                            : item.quantity
-                            ? `${item.quantity} ${item.name}`
-                            : item.name}
-                        </p>
-                      </div>
+                      {/* Name (edit mode or display mode) */}
+                      {editingItemId === item.id ? (
+                        <div className="flex-1 flex items-center gap-2 min-w-0">
+                          <input
+                            value={editingItemName}
+                            onChange={e => setEditingItemName(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveEditItem()
+                              else if (e.key === 'Escape') cancelEditItem()
+                            }}
+                            autoFocus
+                            className="flex-1 min-w-0 bg-card border border-amber/30 rounded-lg px-2 py-1 text-sm font-body text-cream outline-none focus:border-amber/60"
+                          />
+                          <button
+                            onClick={saveEditItem}
+                            className="text-green-400 hover:text-green-300 transition-colors shrink-0 p-1"
+                            title="Save"
+                          >
+                            <Check size={12} />
+                          </button>
+                          <button
+                            onClick={cancelEditItem}
+                            className="text-faint hover:text-cream transition-colors shrink-0 p-1"
+                            title="Cancel"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-body ${item.isChecked ? 'line-through text-faint' : 'text-cream'}`}>
+                            {item.quantity && item.unit
+                              ? `${item.quantity} ${item.unit} ${item.name}`
+                              : item.quantity
+                              ? `${item.quantity} ${item.name}`
+                              : item.name}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Edit button */}
+                      {editingItemId !== item.id && !item.id.includes('/') && (
+                        <button
+                          onClick={() => startEditItem(item)}
+                          className="text-faint hover:text-amber transition-colors shrink-0 p-1"
+                          title="Edit name"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                      )}
 
                       {/* Delete button */}
-                      {!item.id.includes('/') && (
+                      {editingItemId !== item.id && !item.id.includes('/') && (
                         <button
                           onClick={() => deleteItem(item)}
                           className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
