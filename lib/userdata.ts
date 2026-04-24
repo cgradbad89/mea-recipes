@@ -70,8 +70,12 @@ export function metaPath(uid: string) {
   return collection(db, 'users', uid, 'recipes', 'root', 'meta')
 }
 
+function sanitizeMetaID(recipeID: string): string {
+  return recipeID.replace(/\//g, '_').replace(/\s+/g, '-')
+}
+
 export async function getRecipeMeta(uid: string, recipeID: string): Promise<RecipeMeta | null> {
-  const snap = await getDoc(doc(metaPath(uid), recipeID))
+  const snap = await getDoc(doc(metaPath(uid), sanitizeMetaID(recipeID)))
   if (!snap.exists()) return null
   return snap.data() as RecipeMeta
 }
@@ -81,7 +85,7 @@ export async function saveRecipeMeta(uid: string, recipeID: string, meta: Partia
   if (data.overrides === undefined || data.overrides === null) {
     data.overrides = deleteField()
   }
-  await setDoc(doc(metaPath(uid), recipeID), data, { merge: true })
+  await setDoc(doc(metaPath(uid), sanitizeMetaID(recipeID)), data, { merge: true })
 }
 
 // ─── Week Plans ───────────────────────────────────────────────────────────────
