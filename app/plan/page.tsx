@@ -7,7 +7,7 @@ import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import {
-  subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan,
+  subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan, getWeekPlan,
   markRecipeCooked, addRecipeIngredientsToGrocery, getAllWeekPlans,
   moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
   publishSharedPlan, subscribeSharedWeekPlans, addRecipeToWeekPlan,
@@ -106,6 +106,55 @@ export default function PlanPage() {
   const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
   const [bulkAddResult, setBulkAddResult] = useState<string | null>(null)
   const [confirmRemoveFor, setConfirmRemoveFor] = useState<string | null>(null)
+  const defaultCheckedRef = useRef(false)
+
+  // First-mount: restore last-viewed week from sessionStorage OR auto-default to next week if current is empty
+  useEffect(() => {
+    if (!user || defaultCheckedRef.current) return
+    defaultCheckedRef.current = true
+
+    let remembered: string | null = null
+    try {
+      remembered = sessionStorage.getItem('mea_plan_last_week')
+    } catch {}
+
+    if (remembered) {
+      setWeekID(remembered)
+      return
+    }
+
+    let cancelled = false
+    const decide = async () => {
+      const currentWeekID = weekIDFromDate(new Date())
+      const nextDate = new Date()
+      nextDate.setDate(nextDate.getDate() + 7)
+      const nextWeekID = weekIDFromDate(nextDate)
+      try {
+        const [cur, nxt] = await Promise.all([
+          getWeekPlan(user.uid, currentWeekID),
+          getWeekPlan(user.uid, nextWeekID),
+        ])
+        if (cancelled) return
+        const curHas = (cur?.plannedRecipeIDs || []).length > 0
+        const nxtHas = (nxt?.plannedRecipeIDs || []).length > 0
+        if (!curHas && nxtHas) {
+          setWeekID(nextWeekID)
+        }
+      } catch (err) {
+        console.error('Default week check failed:', err)
+      }
+    }
+    decide()
+    return () => { cancelled = true }
+  }, [user])
+
+  // Persist active week to sessionStorage
+  useEffect(() => {
+    if (!weekID) return
+    try {
+      sessionStorage.setItem('mea_plan_last_week', weekID)
+    } catch {}
+  }, [weekID])
 
   // Auto-clear remove confirm after 3 seconds
   useEffect(() => {

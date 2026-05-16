@@ -90,30 +90,40 @@ export default function GroceryPage() {
   const [confirmClearAll, setConfirmClearAll] = useState(false)
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemName, setEditingItemName] = useState('')
+  const [editingItemQuantity, setEditingItemQuantity] = useState('')
+  const [editingItemUnit, setEditingItemUnit] = useState('')
 
   const startEditItem = (item: GroceryItem) => {
     setEditingItemId(item.id)
     setEditingItemName(item.name)
+    setEditingItemQuantity(item.quantity || '')
+    setEditingItemUnit(item.unit || '')
   }
 
   const saveEditItem = async () => {
     if (!user || !editingItemId) return
     const newName = editingItemName.trim()
-    if (!newName) { setEditingItemId(null); return }
+    if (!newName) { cancelEditItem(); return }
     try {
       const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', editingItemId)
-      await updateDoc(ref, { name: newName, updatedAt: serverTimestamp() })
+      await updateDoc(ref, {
+        name: newName,
+        quantity: editingItemQuantity.trim(),
+        unit: editingItemUnit.trim(),
+        updatedAt: serverTimestamp(),
+      })
     } catch (e) {
-      console.error('Failed to save item name:', e)
+      console.error('Failed to save item:', e)
     } finally {
-      setEditingItemId(null)
-      setEditingItemName('')
+      cancelEditItem()
     }
   }
 
   const cancelEditItem = () => {
     setEditingItemId(null)
     setEditingItemName('')
+    setEditingItemQuantity('')
+    setEditingItemUnit('')
   }
 
   useEffect(() => {
@@ -677,7 +687,27 @@ export default function GroceryPage() {
 
                       {/* Name (edit mode or display mode) */}
                       {editingItemId === item.id ? (
-                        <div className="flex-1 flex items-center gap-2 min-w-0">
+                        <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                          <input
+                            value={editingItemQuantity}
+                            onChange={e => setEditingItemQuantity(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveEditItem()
+                              else if (e.key === 'Escape') cancelEditItem()
+                            }}
+                            placeholder="qty"
+                            className="w-12 shrink-0 bg-card border border-amber/30 rounded-lg px-1.5 py-1 text-sm font-body text-cream outline-none focus:border-amber/60"
+                          />
+                          <input
+                            value={editingItemUnit}
+                            onChange={e => setEditingItemUnit(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveEditItem()
+                              else if (e.key === 'Escape') cancelEditItem()
+                            }}
+                            placeholder="unit"
+                            className="w-16 shrink-0 bg-card border border-amber/30 rounded-lg px-1.5 py-1 text-sm font-body text-cream outline-none focus:border-amber/60"
+                          />
                           <input
                             value={editingItemName}
                             onChange={e => setEditingItemName(e.target.value)}
@@ -685,6 +715,7 @@ export default function GroceryPage() {
                               if (e.key === 'Enter') saveEditItem()
                               else if (e.key === 'Escape') cancelEditItem()
                             }}
+                            placeholder="name"
                             autoFocus
                             className="flex-1 min-w-0 bg-card border border-amber/30 rounded-lg px-2 py-1 text-sm font-body text-cream outline-none focus:border-amber/60"
                           />
