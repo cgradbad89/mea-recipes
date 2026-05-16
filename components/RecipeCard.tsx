@@ -130,7 +130,7 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   }
 
   return (
-    <Link href={`/recipes/${recipe.id}`} className="recipe-card group block">
+    <Link href={`/recipes/${recipe.id}`} className="recipe-card group block relative">
       <div className="relative aspect-[4/3] overflow-hidden bg-card">
         {displayImageURL ? (
           <img src={displayImageURL} alt={recipe.title}
@@ -143,60 +143,6 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
             <span className="text-4xl opacity-30">{getCategoryIcon(recipe.category)}</span>
           </div>
         )}
-        <div className="absolute top-3 right-3" ref={popoverRef}>
-          <button
-            onClick={handleOpenPicker}
-            title={user ? 'Add to plan' : 'Sign in to add to plan'}
-            disabled={!user}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-              added
-                ? 'bg-green-500 text-white'
-                : 'bg-ink/60 text-muted hover:bg-amber hover:text-ink'
-            } ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {added ? <Check size={14} /> : <CalendarPlus size={14} />}
-          </button>
-
-          {showPlanPicker && (
-            <div
-              onClick={e => { e.preventDefault(); e.stopPropagation() }}
-              className="absolute top-10 right-0 z-50 bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-cream text-xs font-body font-medium">Add to plan</p>
-                <button
-                  onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false) }}
-                  className="text-faint hover:text-cream"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-              <div className="space-y-1 mb-2">
-                {getWeekOptions().map(w => (
-                  <button
-                    key={w.weekID}
-                    onClick={e => { e.preventDefault(); e.stopPropagation(); setSelectedWeek(w.weekID) }}
-                    className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-body transition-colors ${
-                      selectedWeek === w.weekID
-                        ? 'bg-amber/10 text-amber'
-                        : 'text-faint hover:text-cream hover:bg-card'
-                    }`}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={handleConfirm}
-                disabled={adding || added}
-                className="w-full bg-amber text-ink font-body font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-amber-glow transition-colors flex items-center justify-center gap-1.5"
-              >
-                {adding ? <Loader2 size={11} className="animate-spin" /> : added ? <Check size={11} /> : <CalendarPlus size={11} />}
-                {added ? 'Added!' : 'Add to Plan'}
-              </button>
-            </div>
-          )}
-        </div>
         {meta?.rating && meta.rating > 0 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 bg-ink/70 backdrop-blur-sm rounded-lg px-2 py-1">
             <HalfStarDisplay rating={meta.rating} />
@@ -205,6 +151,62 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
         {recipe.cuisine && (
           <div className={`absolute bottom-3 left-3 text-xs font-body font-medium px-2 py-0.5 rounded-md border ${getCuisineClass(recipe.cuisine)}`}>
             {recipe.cuisine}
+          </div>
+        )}
+      </div>
+
+      {/* Add-to-Plan button + popover — outside overflow-hidden image wrapper so popover isn't clipped */}
+      <div className="absolute top-3 right-3 z-10" ref={popoverRef}>
+        <button
+          onClick={handleOpenPicker}
+          title={user ? 'Add to plan' : 'Sign in to add to plan'}
+          disabled={!user}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+            added
+              ? 'bg-green-500 text-white'
+              : 'bg-ink/60 text-muted hover:bg-amber hover:text-ink'
+          } ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {added ? <Check size={14} /> : <CalendarPlus size={14} />}
+        </button>
+
+        {showPlanPicker && (
+          <div
+            onClick={e => { e.preventDefault(); e.stopPropagation() }}
+            className="absolute top-10 right-0 z-50 bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-cream text-xs font-body font-medium">Add to plan</p>
+              <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false) }}
+                className="text-faint hover:text-cream"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <div className="space-y-1 mb-2">
+              {getWeekOptions().map(w => (
+                <button
+                  key={w.weekID}
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); setSelectedWeek(w.weekID) }}
+                  className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-body transition-colors ${
+                    selectedWeek === w.weekID
+                      ? 'bg-amber/10 text-amber'
+                      : 'text-faint hover:text-cream hover:bg-card'
+                  }`}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleConfirm}
+              disabled={adding || added}
+              className="w-full bg-amber text-ink font-body font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-amber-glow transition-colors flex items-center justify-center gap-1.5"
+            >
+              {adding ? <Loader2 size={11} className="animate-spin" /> : added ? <Check size={11} /> : <CalendarPlus size={11} />}
+              {added ? 'Added!' : 'Add to Plan'}
+            </button>
           </div>
         )}
       </div>
