@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Fuse from 'fuse.js'
-import { getAllRecipes } from '@/lib/recipes'
+import { getAllRecipes, getTotalTime } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { getAllWeekPlans } from '@/lib/userdata'
@@ -147,7 +147,8 @@ export default function RecipesPage() {
         const meta = metas[r.id]
         const prepTime = meta?.overrides?.prepTime || (r as any).prepTime || ''
         const cookTime = meta?.overrides?.cookTime || (r as any).cookTime || ''
-        if (parseMinutes(prepTime) + parseMinutes(cookTime) >= timeFilter) return false
+        const total = getTotalTime(prepTime, cookTime).minutes
+        if (total === 0 || total >= timeFilter) return false
       }
       if (filter === 'cookedRecently' && cookedRecentlyIDs) {
         if (!cookedRecentlyIDs.has(r.id)) return false
@@ -191,10 +192,10 @@ export default function RecipesPage() {
   ]
 
   const TIME_OPTIONS: { value: TimeFilter; label: string }[] = [
-    { value: 0, label: 'Any cook time' },
-    { value: 30, label: 'Under 30 min' },
-    { value: 45, label: 'Under 45 min' },
-    { value: 60, label: 'Under 1 hour' },
+    { value: 0, label: 'Any total time' },
+    { value: 30, label: 'Total under 30 min' },
+    { value: 45, label: 'Total under 45 min' },
+    { value: 60, label: 'Total under 1 hour' },
   ]
 
   const FILTER_OPTIONS: { value: FilterOption; label: string; requiresAuth?: boolean }[] = [
@@ -250,7 +251,7 @@ export default function RecipesPage() {
                 : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
             }`}
           >
-            {timeFilter === 0 ? 'Cook time' : TIME_OPTIONS.find(o => o.value === timeFilter)?.label}
+            {timeFilter === 0 ? 'Total time' : TIME_OPTIONS.find(o => o.value === timeFilter)?.label}
             <svg width="10" height="10" viewBox="0 0 10 10" className="opacity-60"><path d="M2 4l3 3 3-3" stroke="currentColor" fill="none" strokeWidth="1.5" /></svg>
           </button>
           {timeDropdownOpen && (

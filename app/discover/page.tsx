@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext'
 import { useCookingHistory } from '@/hooks/useCookingHistory'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { useFavorites } from '@/hooks/useFavorites'
-import { getAllRecipes, saveRecipe, invalidateRecipeCache } from '@/lib/recipes'
+import { getAllRecipes, saveRecipe, invalidateRecipeCache, getTotalTime } from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
 import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
@@ -894,6 +894,12 @@ export default function DiscoverPage() {
                 {generatedRecipe.cookTime && (
                   <span className="tag flex items-center gap-1"><Clock size={10} /> Cook {generatedRecipe.cookTime}</span>
                 )}
+                {(() => {
+                  const total = getTotalTime(generatedRecipe.prepTime, generatedRecipe.cookTime)
+                  return total.minutes > 0 ? (
+                    <span className="tag-amber flex items-center gap-1"><Clock size={10} /> Total {total.display}</span>
+                  ) : null
+                })()}
               </div>
             </div>
 
