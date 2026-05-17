@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import { useCookingHistory } from '@/hooks/useCookingHistory'
+import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { getAllRecipes } from '@/lib/recipes'
 import { useState, useEffect } from 'react'
 import { Flame, ChefHat, TrendingUp, Calendar, Loader2 } from 'lucide-react'
@@ -40,6 +41,7 @@ function generateHeatmapWeeks(): string[] {
 export default function HistoryPage() {
   const { user } = useAuth()
   const { weeks, loading } = useCookingHistory()
+  const metas = useRecipeMetas()
   const [recipes, setRecipes] = useState<Record<string, Recipe>>({})
 
   useEffect(() => {
@@ -201,18 +203,15 @@ export default function HistoryPage() {
                       href={`/recipes/${recipe.id}`}
                       className="group flex flex-col gap-1.5"
                     >
-                      <div className="aspect-square rounded-xl overflow-hidden bg-card">
-                        {recipe.imageURL ? (
+                      <div className="aspect-square rounded-xl overflow-hidden bg-card relative flex items-center justify-center">
+                        <span className="text-2xl opacity-30 absolute">🍽️</span>
+                        {(metas[recipe.id]?.overrides?.imageURL || recipe.imageURL) && (
                           <img
-                            src={recipe.imageURL}
+                            src={metas[recipe.id]?.overrides?.imageURL || recipe.imageURL}
                             alt={recipe.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={e => { (e.target as HTMLImageElement).parentElement!.className = 'aspect-square rounded-xl bg-card flex items-center justify-center' }}
+                            className="relative w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-2xl opacity-30">🍽️</span>
-                          </div>
                         )}
                       </div>
                       <p className="text-faint text-xs font-body line-clamp-2 group-hover:text-cream transition-colors">
