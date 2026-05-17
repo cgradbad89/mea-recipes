@@ -346,6 +346,33 @@ export default function PlanPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
+      {/* Remove from plan confirmation modal */}
+      {confirmRemoveFor && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 backdrop-blur-sm p-6"
+          onClick={() => setConfirmRemoveFor(null)}
+        >
+          <div
+            className="bg-surface border border-border rounded-2xl p-6 max-w-sm w-full animate-fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="font-display text-2xl text-cream font-light mb-2">Remove from plan?</h3>
+            <p className="text-faint text-sm font-body mb-5">
+              This will remove &quot;{recipes[confirmRemoveFor]?.title || 'this recipe'}&quot; from your week plan.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setConfirmRemoveFor(null)} className="btn-ghost text-sm">Cancel</button>
+              <button
+                onClick={() => { handleRemove(confirmRemoveFor); setConfirmRemoveFor(null) }}
+                className="btn-primary text-sm bg-red-500 hover:bg-red-600"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header + week picker */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-4xl text-cream font-light">Meal Plan</h1>
@@ -434,8 +461,8 @@ export default function PlanPage() {
                   return (
                     <div key={id}>
                       <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3">
-                        {recipe.imageURL && (
-                          <img src={recipe.imageURL} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0"
+                        {(metas[id]?.overrides?.imageURL || recipe.imageURL) && (
+                          <img src={metas[id]?.overrides?.imageURL || recipe.imageURL} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0"
                             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
                         )}
                         <div className="flex-1 min-w-0">
@@ -498,32 +525,13 @@ export default function PlanPage() {
                           >
                             <Check size={13} />
                           </button>
-                          {confirmRemoveFor === id ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-red-400 text-[10px] font-body">Remove?</span>
-                              <button
-                                onClick={() => { handleRemove(id); setConfirmRemoveFor(null) }}
-                                className="w-7 h-7 rounded-lg border border-red-400/30 flex items-center justify-center text-red-400 bg-red-400/10 transition-all"
-                                title="Confirm remove"
-                              >
-                                <X size={11} />
-                              </button>
-                              <button
-                                onClick={() => setConfirmRemoveFor(null)}
-                                className="text-faint text-[10px] font-body hover:text-cream"
-                              >
-                                No
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmRemoveFor(id)}
-                              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
-                              title="Remove from plan"
-                            >
-                              <X size={13} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => setConfirmRemoveFor(id)}
+                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
+                            title="Remove from plan"
+                          >
+                            <X size={13} />
+                          </button>
                         </div>
                       </div>
                       {/* Rating prompt after marking cooked */}
@@ -627,9 +635,9 @@ export default function PlanPage() {
                               key={rid}
                               className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3"
                             >
-                              {recipe.imageURL ? (
+                              {(metas[rid]?.overrides?.imageURL || recipe.imageURL) ? (
                                 <img
-                                  src={recipe.imageURL}
+                                  src={metas[rid]?.overrides?.imageURL || recipe.imageURL}
                                   alt=""
                                   className="w-10 h-10 rounded-lg object-cover shrink-0"
                                   onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { CalendarPlus, Check, X, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
@@ -87,18 +88,34 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   const [selectedWeek, setSelectedWeek] = useState('')
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
-  // Close on outside click
+  // Close on outside click — exclude the button itself
   useEffect(() => {
     if (!showPlanPicker) return
     const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (buttonRef.current && buttonRef.current.contains(target)) return
+      if (popoverRef.current && !popoverRef.current.contains(target)) {
         setShowPlanPicker(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [showPlanPicker])
+
+  // Close on scroll/resize while open
+  useEffect(() => {
+    if (!showPlanPicker) return
+    const close = () => setShowPlanPicker(false)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
   }, [showPlanPicker])
 
   const handleOpenPicker = (e: React.MouseEvent) => {
@@ -107,6 +124,12 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
     if (!user) return
     const weeks = getWeekOptions()
     setSelectedWeek(weeks[1]?.weekID || weeks[0].weekID)
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (rect) {
+      // w-48 = 192px. Clamp left so popover stays in viewport on small screens
+      const left = Math.max(8, Math.min(window.innerWidth - 200, rect.right - 192))
+      setPopoverPos({ top: rect.bottom + 8, left })
+    }
     setShowPlanPicker(true)
   }
 
@@ -155,9 +178,10 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
         )}
       </div>
 
-      {/* Add-to-Plan button + popover — outside overflow-hidden image wrapper so popover isn't clipped */}
-      <div className="absolute top-3 right-3 z-10" ref={popoverRef}>
+      {/* Add-to-Plan button — popover renders via portal below */}
+      <div className="absolute top-3 right-3 z-10">
         <button
+          ref={buttonRef}
           onClick={handleOpenPicker}
           title={user ? 'Add to plan' : 'Sign in to add to plan'}
           disabled={!user}
@@ -169,47 +193,50 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
         >
           {added ? <Check size={14} /> : <CalendarPlus size={14} />}
         </button>
+      </div>
 
-        {showPlanPicker && (
-          <div
-            onClick={e => { e.preventDefault(); e.stopPropagation() }}
-            className="absolute top-10 right-0 z-50 bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-cream text-xs font-body font-medium">Add to plan</p>
-              <button
-                onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false) }}
-                className="text-faint hover:text-cream"
-              >
-                <X size={12} />
-              </button>
-            </div>
-            <div className="space-y-1 mb-2">
-              {getWeekOptions().map(w => (
-                <button
-                  key={w.weekID}
-                  onClick={e => { e.preventDefault(); e.stopPropagation(); setSelectedWeek(w.weekID) }}
-                  className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-body transition-colors ${
-                    selectedWeek === w.weekID
-                      ? 'bg-amber/10 text-amber'
-                      : 'text-faint hover:text-cream hover:bg-card'
-                  }`}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
+      {typeof window !== 'undefined' && showPlanPicker && popoverPos && createPortal(
+        <div
+          ref={popoverRef}
+          onClick={e => { e.preventDefault(); e.stopPropagation() }}
+          style={{ position: 'fixed', top: popoverPos.top, left: popoverPos.left }}
+          className="z-[100] bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-cream text-xs font-body font-medium">Add to plan</p>
             <button
-              onClick={handleConfirm}
-              disabled={adding || added}
-              className="w-full bg-amber text-ink font-body font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-amber-glow transition-colors flex items-center justify-center gap-1.5"
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false) }}
+              className="text-faint hover:text-cream"
             >
-              {adding ? <Loader2 size={11} className="animate-spin" /> : added ? <Check size={11} /> : <CalendarPlus size={11} />}
-              {added ? 'Added!' : 'Add to Plan'}
+              <X size={12} />
             </button>
           </div>
-        )}
-      </div>
+          <div className="space-y-1 mb-2">
+            {getWeekOptions().map(w => (
+              <button
+                key={w.weekID}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); setSelectedWeek(w.weekID) }}
+                className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-body transition-colors ${
+                  selectedWeek === w.weekID
+                    ? 'bg-amber/10 text-amber'
+                    : 'text-faint hover:text-cream hover:bg-card'
+                }`}
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={handleConfirm}
+            disabled={adding || added}
+            className="w-full bg-amber text-ink font-body font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-amber-glow transition-colors flex items-center justify-center gap-1.5"
+          >
+            {adding ? <Loader2 size={11} className="animate-spin" /> : added ? <Check size={11} /> : <CalendarPlus size={11} />}
+            {added ? 'Added!' : 'Add to Plan'}
+          </button>
+        </div>,
+        document.body
+      )}
       <div className="p-4">
         <h3 className="font-display text-lg text-cream leading-tight mb-1 line-clamp-2 group-hover:text-amber transition-colors duration-200">
           {recipe.title}

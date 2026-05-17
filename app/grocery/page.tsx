@@ -75,6 +75,7 @@ export default function GroceryPage() {
   const [pickerFlipped, setPickerFlipped] = useState(false)
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupChanges, setCleanupChanges] = useState<CleanupChange[] | null>(null)
+  const [rejectedChanges, setRejectedChanges] = useState<Set<number>>(new Set())
   const [applyingCleanup, setApplyingCleanup] = useState(false)
   const [showAddItem, setShowAddItem] = useState(false)
   const [newItemName, setNewItemName] = useState('')
@@ -234,10 +235,11 @@ export default function GroceryPage() {
     if (!user || !cleanupChanges) return
     setApplyingCleanup(true)
     try {
+      const acceptedChanges = cleanupChanges.filter((_, i) => !rejectedChanges.has(i))
       const batch = writeBatch(db)
       const toDelete = new Set<number>()
 
-      cleanupChanges.forEach(change => {
+      acceptedChanges.forEach(change => {
         if (change.action === 'remove') {
           toDelete.add(change.originalIndex)
           return
@@ -268,6 +270,7 @@ export default function GroceryPage() {
       localStorage.setItem('mea-grocery-last-cleaned', Date.now().toString())
       setLastCleaned(new Date())
       setCleanupChanges(null)
+      setRejectedChanges(new Set())
     } catch (e) {
       console.error('Apply cleanup error:', e)
     } finally {
@@ -579,12 +582,10 @@ export default function GroceryPage() {
             <div>
               <p className="text-cream text-sm font-body font-medium">AI Suggestions</p>
               <p className="text-faint text-xs font-body mt-0.5">
-                {cleanupChanges.filter(c => c.action === 'remove').length} to remove ·{' '}
-                {cleanupChanges.filter(c => c.action === 'merge').length} to merge ·{' '}
-                {cleanupChanges.filter(c => c.action === 'normalize').length} to rename
+                {cleanupChanges.length - rejectedChanges.size} of {cleanupChanges.length} changes will apply
               </p>
             </div>
-            <button onClick={() => setCleanupChanges(null)} className="text-faint hover:text-cream">
+            <button onClick={() => { setCleanupChanges(null); setRejectedChanges(new Set()) }} className="text-faint hover:text-cream">
               <X size={16} />
             </button>
           </div>
@@ -592,8 +593,9 @@ export default function GroceryPage() {
             {cleanupChanges.map((change, i) => {
               const original = items[change.originalIndex]
               const isChanged = change.action !== 'keep'
+              const isRejected = rejectedChanges.has(i)
               return (
-                <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${change.action === 'remove' ? 'opacity-50' : ''}`}>
+                <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${isRejected ? 'opacity-40 line-through' : change.action === 'remove' ? 'opacity-50' : ''}`}>
                   <span className={`text-xs font-body px-1.5 py-0.5 rounded font-medium shrink-0 ${
                     change.action === 'remove' ? 'bg-red-500/10 text-red-400' :
                     change.action === 'merge' ? 'bg-violet-500/10 text-violet-400' :
@@ -613,15 +615,31 @@ export default function GroceryPage() {
                   {change.action !== 'remove' && (
                     <span className="text-faint text-xs font-body shrink-0">{change.category}</span>
                   )}
+                  <button
+                    onClick={() => {
+                      setRejectedChanges(prev => {
+                        const next = new Set(prev)
+                        if (next.has(i)) next.delete(i)
+                        else next.add(i)
+                        return next
+                      })
+                    }}
+                    className={`shrink-0 p-1 rounded transition-colors ${
+                      isRejected ? 'text-amber hover:text-amber-glow' : 'text-faint hover:text-red-400'
+                    }`}
+                    title={isRejected ? 'Restore this change' : 'Reject this change'}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               )
             })}
           </div>
           <div className="px-4 py-3 border-t border-border flex gap-2">
-            <button onClick={() => setCleanupChanges(null)} className="btn-ghost text-xs flex-1">Discard</button>
+            <button onClick={() => { setCleanupChanges(null); setRejectedChanges(new Set()) }} className="btn-ghost text-xs flex-1">Discard</button>
             <button
               onClick={applyCleanup}
-              disabled={applyingCleanup}
+              disabled={applyingCleanup || rejectedChanges.size === cleanupChanges.length}
               className="btn-primary text-xs flex-1 flex items-center justify-center gap-1.5"
             >
               {applyingCleanup ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
