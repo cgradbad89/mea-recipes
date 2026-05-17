@@ -8,7 +8,9 @@ import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { useFavorites } from '@/hooks/useFavorites'
 import { getAllRecipes, saveRecipe, invalidateRecipeCache } from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
-import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check } from 'lucide-react'
+import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan } from '@/lib/userdata'
+import RecipeCard from '@/components/RecipeCard'
+import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check, CalendarPlus, ListChecks } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
 
 const CACHE_KEY = 'mea-recommendations-cache'
@@ -136,9 +138,196 @@ export default function DiscoverPage() {
   const [savedGenerated, setSavedGenerated] = useState(false)
   const generateTextareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Plan-completion suggestions state
+  const [planWeek, setPlanWeek] = useState<string>(() => weekIDFromDate(new Date()))
+  const [planMode, setPlanMode] = useState<'existing' | 'new' | 'both'>('both')
+  const [planSuggesting, setPlanSuggesting] = useState(false)
+  const [planSuggestions, setPlanSuggestions] = useState<{
+    existing: { recipe: Recipe; reason: string }[]
+    new: { title: string; cuisine: string; category: string; reason: string }[]
+  }>({ existing: [], new: [] })
+  const [planError, setPlanError] = useState('')
+  const [planCurrentRecipes, setPlanCurrentRecipes] = useState<Recipe[]>([])
+  const [planSuggestionsCache, setPlanSuggestionsCache] = useState<Record<string, typeof planSuggestions>>({})
+  const [planAddingRecipeId, setPlanAddingRecipeId] = useState<string | null>(null)
+  const [planAddedRecipeIds, setPlanAddedRecipeIds] = useState<Set<string>>(new Set())
+  const [planGeneratingFor, setPlanGeneratingFor] = useState<string | null>(null)
+  const [planGeneratedRecipes, setPlanGeneratedRecipes] = useState<Record<string, any>>({})
+  const [planSavingFor, setPlanSavingFor] = useState<string | null>(null)
+  const [planSavedFor, setPlanSavedFor] = useState<Set<string>>(new Set())
+
   useEffect(() => {
     getAllRecipes().then(setRecipes)
   }, [])
+
+  // Load currently planned recipes for the selected week
+  useEffect(() => {
+    if (!user || !planWeek || !recipes.length) { setPlanCurrentRecipes([]); return }
+    let cancelled = false
+    getWeekPlan(user.uid, planWeek).then(plan => {
+      if (cancelled) return
+      const ids = plan?.plannedRecipeIDs || []
+      const list = ids.map(id => recipes.find(r => r.id === id)).filter(Boolean) as Recipe[]
+      setPlanCurrentRecipes(list)
+    }).catch(() => {
+      if (!cancelled) setPlanCurrentRecipes([])
+    })
+    return () => { cancelled = true }
+  }, [user, planWeek, recipes])
+
+  // Restore cached suggestions when changing weeks/mode
+  useEffect(() => {
+    const cacheKey = `${planWeek}-${planMode}`
+    const cached = planSuggestionsCache[cacheKey]
+    if (cached) setPlanSuggestions(cached)
+    else setPlanSuggestions({ existing: [], new: [] })
+    setPlanError('')
+  }, [planWeek, planMode, planSuggestionsCache])
+
+  const planWeekOptions = (() => {
+    const now = new Date()
+    return [0, 1, 2, 3, 4].map(offset => {
+      const d = new Date(now)
+      d.setDate(d.getDate() + offset * 7)
+      const wid = weekIDFromDate(d)
+      const short = new Date(wid + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const label = offset === 0 ? `This week (${short})` : offset === 1 ? `Next week (${short})` : short
+      return { weekID: wid, label }
+    })
+  })()
+
+  const handlePlanSuggest = async () => {
+    if (!user) return
+    if (planCurrentRecipes.length === 0) {
+      setPlanError('Add recipes to your plan first')
+      return
+    }
+    setPlanSuggesting(true)
+    setPlanError('')
+    try {
+      const token = await user.getIdToken()
+      const res = await fetch('/api/plan-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          weekID: planWeek,
+          mode: planMode,
+          plannedRecipes: planCurrentRecipes.map(r => ({
+            title: r.title,
+            category: r.category,
+            cuisine: r.cuisine,
+            ingredients: r.content,
+          })),
+          existingRecipeTitles: recipes.map(r => r.title),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to get suggestions')
+
+      // Map existing back to Recipe objects by case-insensitive title
+      const titleMap = new Map<string, Recipe>()
+      recipes.forEach(r => titleMap.set(r.title.toLowerCase(), r))
+      const existingMatched = (data.existing || [])
+        .map((s: any) => {
+          const recipe = titleMap.get((s.title || '').toLowerCase())
+          return recipe ? { recipe, reason: s.reason || '' } : null
+        })
+        .filter(Boolean) as { recipe: Recipe; reason: string }[]
+
+      const next = { existing: existingMatched, new: data.new || [] }
+      setPlanSuggestions(next)
+      setPlanSuggestionsCache(prev => ({ ...prev, [`${planWeek}-${planMode}`]: next }))
+    } catch (e: any) {
+      setPlanError(e?.message || 'Failed to get suggestions')
+    } finally {
+      setPlanSuggesting(false)
+    }
+  }
+
+  const handlePlanAddToWeek = async (recipeID: string) => {
+    if (!user) return
+    setPlanAddingRecipeId(recipeID)
+    try {
+      await addRecipeToWeekPlan(user.uid, planWeek, recipeID)
+      setPlanAddedRecipeIds(prev => new Set(prev).add(recipeID))
+      setTimeout(() => {
+        setPlanAddedRecipeIds(prev => {
+          const next = new Set(prev)
+          next.delete(recipeID)
+          return next
+        })
+      }, 2000)
+    } catch (e) {
+      console.error('Add to plan failed:', e)
+    } finally {
+      setPlanAddingRecipeId(null)
+    }
+  }
+
+  const handlePlanGenerateNew = async (suggestion: { title: string; cuisine: string; category: string }) => {
+    if (!user) return
+    setPlanGeneratingFor(suggestion.title)
+    try {
+      const token = await user.getIdToken()
+      const res = await fetch('/api/ai-ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ generate: `${suggestion.title} (${suggestion.cuisine})` }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to generate')
+      setPlanGeneratedRecipes(prev => ({ ...prev, [suggestion.title]: data }))
+    } catch (e) {
+      console.error('Generate failed:', e)
+    } finally {
+      setPlanGeneratingFor(null)
+    }
+  }
+
+  const handlePlanSaveNew = async (suggestion: { title: string; cuisine: string; category: string }) => {
+    if (!user) return
+    const gen = planGeneratedRecipes[suggestion.title]
+    if (!gen) return
+    setPlanSavingFor(suggestion.title)
+    try {
+      const content = buildRecipeContent({
+        title: gen.title || suggestion.title,
+        cuisine: gen.cuisine || suggestion.cuisine || '',
+        category: gen.category || suggestion.category || '',
+        imageURL: gen.imageURL || '',
+        description: gen.description || '',
+        servings: gen.servings || '',
+        prepTime: gen.prepTime || '',
+        cookTime: gen.cookTime || '',
+        ingredients: gen.ingredients || [],
+        instructions: gen.instructions || [],
+        sourceURL: '',
+        status: 'pending',
+      })
+      await saveRecipe({
+        recipeID: '',
+        title: (gen.title || suggestion.title).trim(),
+        content,
+        category: gen.category || suggestion.category || '',
+        cuisine: (gen.cuisine || suggestion.cuisine || '').toLowerCase(),
+        imageURL: gen.imageURL || '',
+        sourceURL: '',
+        sourceFile: '',
+        labels: 'Recipes',
+        hasImage: gen.imageURL ? 'true' : 'false',
+        created: new Date().toString(),
+        modified: new Date().toString(),
+        prepTime: gen.prepTime || '',
+        cookTime: gen.cookTime || '',
+      }, user.uid)
+      invalidateRecipeCache()
+      setPlanSavedFor(prev => new Set(prev).add(suggestion.title))
+    } catch (e) {
+      console.error('Save failed:', e)
+    } finally {
+      setPlanSavingFor(null)
+    }
+  }
 
   useEffect(() => {
     try {
@@ -488,6 +677,174 @@ export default function DiscoverPage() {
               Suggest different recipes
             </button>
           </div>
+        )}
+      </div>
+
+      {/* ── Complete your week plan ── */}
+      <div className="mt-12 pt-10 border-t border-border">
+        <div className="mb-4">
+          <h2 className="font-display text-2xl text-cream font-light flex items-center gap-2">
+            <ListChecks size={20} className="text-amber" />
+            Complete your week plan
+          </h2>
+          <p className="text-faint text-xs font-body mt-1">
+            Claude analyzes your current plan and suggests recipes that complement it.
+          </p>
+        </div>
+
+        {!user ? (
+          <p className="text-faint text-sm font-body">Sign in to use AI plan suggestions.</p>
+        ) : (
+          <>
+            {/* Controls */}
+            <div className="space-y-3 mb-4">
+              <div className="flex flex-col md:flex-row gap-3 md:items-center">
+                <select
+                  value={planWeek}
+                  onChange={e => setPlanWeek(e.target.value)}
+                  className="input-field md:w-56"
+                >
+                  {planWeekOptions.map(w => (
+                    <option key={w.weekID} value={w.weekID}>{w.label}</option>
+                  ))}
+                </select>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { v: 'existing', label: 'From my recipes' },
+                    { v: 'new', label: 'New recipes' },
+                    { v: 'both', label: 'Both' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.v}
+                      onClick={() => setPlanMode(opt.v)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border ${
+                        planMode === opt.v
+                          ? 'bg-amber text-ink border-amber'
+                          : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Currently planned banner */}
+              <div className="text-xs font-body text-faint">
+                {planCurrentRecipes.length > 0 ? (
+                  <>Currently planned: <span className="text-muted">{planCurrentRecipes.map(r => r.title).join(', ')}</span></>
+                ) : (
+                  'No recipes planned for this week'
+                )}
+              </div>
+
+              {planError && <p className="text-red-400 text-sm font-body">{planError}</p>}
+
+              <button
+                onClick={handlePlanSuggest}
+                disabled={planSuggesting || planCurrentRecipes.length === 0}
+                className="btn-primary flex items-center gap-2"
+              >
+                {planSuggesting ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+                {planSuggesting ? 'Suggesting...' : 'Suggest recipes'}
+              </button>
+            </div>
+
+            {/* Existing matches */}
+            {(planMode === 'existing' || planMode === 'both') && planSuggestions.existing.length > 0 && (
+              <div className="mt-8">
+                <h3 className="font-display text-xl text-cream font-light mb-3">From your collection</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {planSuggestions.existing.map(({ recipe, reason }) => (
+                    <div key={recipe.id} className="space-y-2">
+                      <RecipeCard recipe={recipe} meta={metas[recipe.id]} />
+                      {reason && <p className="text-faint text-xs font-body italic px-1">&ldquo;{reason}&rdquo;</p>}
+                      <button
+                        onClick={() => handlePlanAddToWeek(recipe.id)}
+                        disabled={planAddingRecipeId === recipe.id || planAddedRecipeIds.has(recipe.id)}
+                        className={`w-full flex items-center justify-center gap-2 text-xs font-body font-semibold px-3 py-2 rounded-lg transition-all ${
+                          planAddedRecipeIds.has(recipe.id)
+                            ? 'bg-green-500/10 text-green-400 border border-green-400/30'
+                            : 'bg-amber/10 text-amber border border-amber/20 hover:bg-amber/20'
+                        }`}
+                      >
+                        {planAddingRecipeId === recipe.id
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : planAddedRecipeIds.has(recipe.id)
+                          ? <Check size={12} />
+                          : <CalendarPlus size={12} />}
+                        {planAddedRecipeIds.has(recipe.id) ? 'Added!' : 'Add to plan'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New ideas */}
+            {(planMode === 'new' || planMode === 'both') && planSuggestions.new.length > 0 && (
+              <div className="mt-8">
+                <h3 className="font-display text-xl text-cream font-light mb-3">New recipe ideas</h3>
+                <div className="space-y-3">
+                  {planSuggestions.new.map(s => {
+                    const gen = planGeneratedRecipes[s.title]
+                    const generating = planGeneratingFor === s.title
+                    const saving = planSavingFor === s.title
+                    const saved = planSavedFor.has(s.title)
+                    return (
+                      <div key={s.title} className="bg-card border border-border rounded-2xl p-4">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <h4 className="font-body font-medium text-cream text-sm">{s.title}</h4>
+                          <div className="flex gap-1 shrink-0">
+                            {s.cuisine && <span className="tag-amber capitalize text-[10px]">{s.cuisine}</span>}
+                          </div>
+                        </div>
+                        {s.category && <p className="text-faint text-xs font-body mb-1">{s.category}</p>}
+                        {s.reason && <p className="text-muted text-xs font-body italic mb-3">&ldquo;{s.reason}&rdquo;</p>}
+                        {gen && (gen.ingredients?.length > 0 || gen.instructions?.length > 0) && (
+                          <div className="mb-3 text-xs font-body text-faint">
+                            {gen.ingredients?.length || 0} ingredients · {gen.instructions?.length || 0} steps
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {!gen && (
+                            <button
+                              onClick={() => handlePlanGenerateNew(s)}
+                              disabled={generating}
+                              className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-lg bg-amber/10 text-amber border border-amber/20 hover:bg-amber/20 transition-colors"
+                            >
+                              {generating ? <Loader2 size={11} className="animate-spin" /> : <Wand2 size={11} />}
+                              {generating ? 'Generating...' : 'Generate full recipe'}
+                            </button>
+                          )}
+                          {gen && !saved && (
+                            <button
+                              onClick={() => handlePlanSaveNew(s)}
+                              disabled={saving}
+                              className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-lg bg-amber text-ink font-semibold hover:bg-amber-glow transition-colors"
+                            >
+                              {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+                              {saving ? 'Saving...' : 'Save to my recipes'}
+                            </button>
+                          )}
+                          {saved && (
+                            <span className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 border border-green-400/30">
+                              <Check size={11} /> Saved!
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Empty state after suggesting */}
+            {!planSuggesting && planSuggestions.existing.length === 0 && planSuggestions.new.length === 0 && planCurrentRecipes.length > 0 && (
+              <p className="text-faint text-xs font-body mt-4">Click &ldquo;Suggest recipes&rdquo; to get ideas.</p>
+            )}
+          </>
         )}
       </div>
 
