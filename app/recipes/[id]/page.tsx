@@ -6,7 +6,7 @@ import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
   BookOpen, Calendar, Loader2, Pencil, Trash2, Clock
 } from 'lucide-react'
-import { getRecipeById, parseRecipeContent, deleteRecipe } from '@/lib/recipes'
+import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime } from '@/lib/recipes'
 import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/lib/AuthContext'
@@ -239,6 +239,12 @@ export default function RecipeDetailPage() {
         {displayRecipe.cookTime && (
           <span className="tag flex items-center gap-1"><Clock size={10} /> Cook {displayRecipe.cookTime}</span>
         )}
+        {(() => {
+          const total = getTotalTime(displayRecipe.prepTime, displayRecipe.cookTime)
+          return total.minutes > 0 ? (
+            <span className="tag-amber flex items-center gap-1"><Clock size={10} /> Total {total.display}</span>
+          ) : null
+        })()}
         {hasOverrides && <span className="text-xs px-2.5 py-1 rounded-lg bg-amber/5 border border-amber/10 text-amber/60 font-body">edited</span>}
         {meta?.rating ? <StarRating value={meta.rating} /> : null}
       </div>

@@ -145,3 +145,54 @@ export async function deleteRecipe(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id))
   invalidateRecipeCache()
 }
+
+// ─── Time parsing helpers ───────────────────────────────────────────────────
+// Parse a free-form time string (e.g. "30 min", "1 hr 15 min", "PT30M", "1h30m")
+// into minutes (integer). Returns 0 on any failure.
+export function parseTimeToMinutes(input: string | undefined | null): number {
+  if (!input) return 0
+  const s = input.toLowerCase().trim()
+  if (!s) return 0
+
+  // ISO 8601 duration (PT30M, PT1H15M)
+  const iso = s.match(/^pt(?:(\d+)h)?(?:(\d+)m)?$/i)
+  if (iso) {
+    const h = parseInt(iso[1] || '0', 10)
+    const m = parseInt(iso[2] || '0', 10)
+    return h * 60 + m
+  }
+
+  let total = 0
+  const hourMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)\b/)
+  if (hourMatch) total += parseFloat(hourMatch[1]) * 60
+
+  const minMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?|m)\b/)
+  if (minMatch) total += parseFloat(minMatch[1])
+
+  if (total === 0) {
+    const bare = s.match(/^(\d+(?:\.\d+)?)$/)
+    if (bare) total = parseFloat(bare[1])
+  }
+
+  const rounded = Math.round(total)
+  return Number.isFinite(rounded) ? rounded : 0
+}
+
+export function formatMinutes(mins: number): string {
+  if (!mins || mins <= 0) return ''
+  if (mins < 60) return `${mins} min`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  if (m === 0) return `${h} hr`
+  return `${h} hr ${m} min`
+}
+
+export function getTotalTime(
+  prepTime: string | undefined,
+  cookTime: string | undefined,
+): { minutes: number; display: string } {
+  const prep = parseTimeToMinutes(prepTime)
+  const cook = parseTimeToMinutes(cookTime)
+  const total = prep + cook
+  return { minutes: total, display: formatMinutes(total) }
+}
