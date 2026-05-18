@@ -187,6 +187,57 @@ export function formatMinutes(mins: number): string {
   return `${h} hr ${m} min`
 }
 
+// ─── Ingredient sub-header detection ────────────────────────────────────────
+const INGREDIENT_HEADER_KEYWORDS = new Set([
+  'sauce', 'sauces', 'garnish', 'garnishes', 'marinade', 'dressing',
+  'topping', 'toppings', 'filling', 'glaze', 'rub', 'spice mix',
+  'spice blend', 'seasoning', 'seasoning blend', 'to serve',
+  'to garnish', 'for serving', 'serving', 'dough', 'batter',
+  'crust', 'assembly',
+])
+
+function cleanHeaderText(s: string): string {
+  return s
+    .replace(/^\*+|\*+$/g, '')
+    .replace(/:$/, '')
+    .trim()
+}
+
+export function detectIngredientHeader(line: string): { isHeader: boolean; text: string } {
+  if (!line) return { isHeader: false, text: line }
+  const trimmed = line.trim()
+  if (!trimmed) return { isHeader: false, text: line }
+
+  // Rule 1: Line ends with colon (and is short — no quantity-style content)
+  if (trimmed.endsWith(':')) {
+    const withoutColon = trimmed.slice(0, -1).trim()
+    if (!/\d/.test(withoutColon) && withoutColon.length < 60) {
+      return { isHeader: true, text: cleanHeaderText(withoutColon) }
+    }
+  }
+
+  // Rule 2: Full line is markdown bold (** or *)
+  const boldMatch = trimmed.match(/^(\*\*|\*)(.+?)\1$/)
+  if (boldMatch) {
+    return { isHeader: true, text: cleanHeaderText(boldMatch[2]) }
+  }
+
+  // Rule 3: Matches keyword list after normalization
+  const normalized = trimmed
+    .replace(/^\*+|\*+$/g, '')
+    .replace(/:$/, '')
+    .replace(/^for the\s+/i, '')
+    .replace(/^for\s+/i, '')
+    .trim()
+    .toLowerCase()
+
+  if (INGREDIENT_HEADER_KEYWORDS.has(normalized)) {
+    return { isHeader: true, text: cleanHeaderText(trimmed) }
+  }
+
+  return { isHeader: false, text: line }
+}
+
 export function getTotalTime(
   prepTime: string | undefined,
   cookTime: string | undefined,
