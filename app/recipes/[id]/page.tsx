@@ -6,7 +6,7 @@ import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
   BookOpen, Calendar, Loader2, Pencil, Trash2, Clock
 } from 'lucide-react'
-import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime } from '@/lib/recipes'
+import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader } from '@/lib/recipes'
 import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/lib/AuthContext'
@@ -326,12 +326,24 @@ export default function RecipeDetailPage() {
             <ChefHat size={20} className="text-amber" /> Ingredients
           </h2>
           <ul className="space-y-2">
-            {ingredients.map((ing, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm font-body text-muted">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber mt-2 shrink-0" />
-                {ing}
-              </li>
-            ))}
+            {ingredients.map((ing, i) => {
+              const header = detectIngredientHeader(ing)
+              if (header.isHeader) {
+                return (
+                  <li key={i} className="list-none -ml-5 pt-3 first:pt-0">
+                    <h4 className="font-display text-lg text-cream font-medium tracking-wide">
+                      {header.text}
+                    </h4>
+                  </li>
+                )
+              }
+              return (
+                <li key={i} className="flex items-start gap-3 text-sm font-body text-muted">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber mt-2 shrink-0" />
+                  {ing}
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
