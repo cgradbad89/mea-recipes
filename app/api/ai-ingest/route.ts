@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
+import { getComplementaryIngredients } from '@/lib/flavorPairings'
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given HTML or text content from a webpage or pasted text, extract the recipe and return ONLY a valid JSON object with no markdown, no backticks, no explanation.
 
@@ -39,6 +40,12 @@ export async function POST(req: NextRequest) {
 
     // Generate mode — create a full recipe from a dish name
     if (generate && !html && !text && !url) {
+      const seeds = [generate, ...generate.split(/[\s,]+/)]
+      const complementary = getComplementaryIngredients(seeds, 12)
+      const flavorGuidance = complementary.length > 0
+        ? `\n\nFLAVOR PAIRING GUIDANCE (from FlavorGraph, a food-science ingredient pairing model):\nWhen choosing ingredients, favor these scientifically complementary ingredients where they fit the dish naturally: ${complementary.join(', ')}.\nDo not force them in — use only those that genuinely suit the recipe.`
+        : ''
+
       const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -50,7 +57,7 @@ export async function POST(req: NextRequest) {
           model: 'claude-sonnet-4-20250514',
           max_tokens: 2000,
           system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.` }],
+          messages: [{ role: 'user', content: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.${flavorGuidance}` }],
         }),
       })
       if (!genResponse.ok) return NextResponse.json({ error: 'AI generation failed' }, { status: 500 })

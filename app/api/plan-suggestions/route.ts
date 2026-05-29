@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
+import { getComplementaryIngredients } from '@/lib/flavorPairings'
 
 interface PlannedRecipeIn {
   title: string
@@ -43,6 +44,18 @@ export async function POST(req: NextRequest) {
     if (wantExisting) sections.push(`- "existing": up to 3 recipes from this list of TITLES IN THEIR COLLECTION that complement the plan. Use EXACT titles from the list.`)
     if (wantNew) sections.push(`- "new": up to 3 brand-new recipe ideas NOT in their collection that complement the plan.`)
 
+    const seeds: string[] = []
+    for (const r of plannedRecipes) {
+      if (r.title) seeds.push(r.title)
+      if (r.ingredients) {
+        r.ingredients.split('\n').forEach(line => seeds.push(line))
+      }
+    }
+    const complementary = getComplementaryIngredients(seeds, 15)
+    const flavorGuidance = complementary.length > 0
+      ? `\n\nFLAVOR PAIRING GUIDANCE (FlavorGraph food-science model):\nThe user's planned recipes work well with these complementary ingredients:\n${complementary.join(', ')}.\nPrefer suggesting recipes that use some of these ingredients to create cohesive flavor pairings across the week and reduce grocery waste through shared ingredients.`
+      : ''
+
     const prompt = `You are a personal chef advisor helping someone round out their week's meal plan.
 
 CURRENTLY PLANNED FOR THE WEEK:
@@ -65,7 +78,7 @@ Output rules:
 ${sections.join('\n')}
 ${!wantExisting ? '- "existing" MUST be an empty array.\n' : ''}${!wantNew ? '- "new" MUST be an empty array.\n' : ''}- For "existing", only use EXACT titles from the provided collection list.
 - Keep reasons short and concrete.
-- Return ONLY the JSON.`
+- Return ONLY the JSON.${flavorGuidance}`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
