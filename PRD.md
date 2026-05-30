@@ -41,8 +41,8 @@ week plans can be viewed via the `sharedWeekPlans` collection.
 | Firebase project ID | `malignant-metro` (from `lib/firebase.ts`) |
 | Firebase auth domain | `malignant-metro.firebaseapp.com` |
 | Firebase storage bucket | `malignant-metro.firebasestorage.app` |
-| Vercel project ID | _Not present in repo — no `vercel.json` projectId / no `.vercel/` dir_ |
-| Vercel team ID | _Not present in repo_ |
+| Vercel project ID | `prj_f5PLUXXwIhiMMddPJAa8mR2GxpbT` |
+| Vercel team ID | `folstromjohn-1883s-projects` |
 | Production URL | mea-recipes.vercel.app |
 
 `vercel.json` only contains framework/build/dev/install command config — no project or team ID.

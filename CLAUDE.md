@@ -39,7 +39,8 @@ Anything deferred or not completed: [description or "none"]
 ## Key Constraints
 - GitHub repo: github.com/cgradbad89/mea-recipes
 - Firebase project: `malignant-metro` (web config hardcoded in `lib/firebase.ts`)
-- Vercel project/team ID: not stored in repo
+- Vercel project ID: `prj_f5PLUXXwIhiMMddPJAa8mR2GxpbT`
+- Vercel team ID: `folstromjohn-1883s-projects`
 - Production URL: mea-recipes.vercel.app
 - Admin email: `folstromjohn@gmail.com` (only user with access; HubBanner gate)
 - No `firestore.rules` file exists in the repo. Do not modify Firestore rules without
