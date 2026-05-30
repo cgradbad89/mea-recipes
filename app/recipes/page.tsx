@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Fuse from 'fuse.js'
 import { getAllRecipes, getTotalTime } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
@@ -66,7 +66,7 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
 }
 
 export default function RecipesPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const metas = useRecipeMetas()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,6 +81,7 @@ export default function RecipesPage() {
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
+  const defaultSourceApplied = useRef(false)
 
   // Persist filters to localStorage
   useEffect(() => {
@@ -95,6 +96,25 @@ export default function RecipesPage() {
       localStorage.setItem('mea_recipes_timeFilter', String(timeFilter))
     } catch {}
   }, [search, cuisine, category, minRating, source, sort, filter, timeFilter])
+
+  // Default the "Added by me" source filter on initial load for signed-in users.
+  // Applies once per browser session (survives client-side navigation between routes)
+  // so that if the user manually changes/clears it, the choice sticks for the session.
+  // Logged-out users are never defaulted — they see all recipes.
+  useEffect(() => {
+    if (authLoading || defaultSourceApplied.current) return
+    defaultSourceApplied.current = true
+    if (!user) return
+    try {
+      const KEY = 'mea_recipes_default_mine_applied'
+      if (sessionStorage.getItem(KEY)) return
+      sessionStorage.setItem(KEY, '1')
+      setSource('mine')
+    } catch {
+      // sessionStorage unavailable (e.g. private mode): still apply the default once per mount
+      setSource('mine')
+    }
+  }, [authLoading, user])
 
   useEffect(() => {
     getAllRecipes().then(r => { setRecipes(r); setLoading(false) })
