@@ -11,6 +11,7 @@ import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } fr
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/lib/AuthContext'
 import RecipeEditModal from '@/components/RecipeEditModal'
+import CookingMode from '@/components/CookingMode'
 import StarRating from '@/components/StarRating'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
@@ -56,6 +57,7 @@ export default function RecipeDetailPage() {
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showUnsavedBanner, setShowUnsavedBanner] = useState(false)
+  const [showCookingMode, setShowCookingMode] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -307,6 +309,11 @@ export default function RecipeDetailPage() {
             )}
           </div>
         )}
+        {(ingredients.length > 0 || instructions.length > 0) && (
+          <button onClick={() => setShowCookingMode(true)} className="btn-primary flex items-center gap-2">
+            <ChefHat size={15} /> Cooking Mode
+          </button>
+        )}
         {displayRecipe.sourceURL && (
           <a href={displayRecipe.sourceURL} target="_blank" rel="noopener noreferrer" className="btn-ghost flex items-center gap-2">
             <ExternalLink size={14} /> Source
@@ -392,6 +399,16 @@ export default function RecipeDetailPage() {
           {saveSuccess && <p className="text-green-400 text-xs font-body mt-2">Saved!</p>}
           {saveError && <p className="text-red-400 text-xs font-body mt-2">{saveError}</p>}
         </section>
+      )}
+
+      {showCookingMode && (
+        <CookingMode
+          title={displayRecipe.title}
+          ingredients={ingredients}
+          instructions={instructions}
+          sourceURL={displayRecipe.sourceURL}
+          onClose={() => setShowCookingMode(false)}
+        />
       )}
 
       {showEdit && recipe && (

@@ -58,7 +58,7 @@ wrapped in a per-route `layout.tsx`.
 |---|---|---|---|
 | Home (redirect) | `/` (`app/page.tsx`) | Done | Redirects to `/recipes`; no landing page |
 | Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence |
-| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit |
+| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, full-screen Cooking Mode (`components/CookingMode.tsx`) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), cooked tracking, AI plan suggestions, shared plans |
@@ -230,6 +230,12 @@ publish the current user's week and subscribe to other users' entries for the sa
 - **Category label drift.** The AI prompt and some UI use unpunctuated category names (e.g.
   "Pasta Noodles & Rice"), while `types/recipe.ts` `Category` uses comma forms
   ("Pasta, Noodles & Rice"). Normalize when comparing.
+- **Cooking Mode wake lock is best-effort.** `components/CookingMode.tsx` uses the Screen Wake
+  Lock API (`navigator.wakeLock.request('screen')`), re-acquiring on `visibilitychange`. Browsers
+  without the API (notably iOS Safari historically) silently no-op — the screen may still sleep.
+  The takeover is `fixed inset-0 z-[100]`, sharing the same layer as the Add-to-Plan popover; it
+  covers the `z-50` HubBanner. Its checked-ingredient / current-step state is in-memory only and
+  resets on each launch (no persistence).
 
 ---
 
