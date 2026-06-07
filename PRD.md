@@ -63,7 +63,7 @@ wrapped in a per-route `layout.tsx`.
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), cooked tracking, AI plan suggestions, shared plans |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
-| Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated |
+| Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
 | Insights | `/insights` (`app/insights/page.tsx`) | Done | Analytics: cooked totals, avg rating, cuisine breakdown, CSV export |
 
@@ -159,6 +159,9 @@ publish the current user's week and subscribe to other users' entries for the sa
 2. **Filter persistence** — `app/recipes/page.tsx` writes filter state to `localStorage` keys:
    `mea_recipes_search`, `mea_recipes_cuisine`, `mea_recipes_category`, `mea_recipes_minRating`,
    `mea_recipes_source`, `mea_recipes_sort`, `mea_recipes_filter`, `mea_recipes_timeFilter`.
+   `app/favorites/page.tsx` mirrors the same controls with parallel `mea_favorites_*` keys so
+   the two pages persist independently. Favorites does **not** apply the default "Added by me"
+   source filter.
 3. **Default "Added by me" filter** — on first mount, if no remembered choice exists in
    `sessionStorage` (`mea_recipes_default_mine_applied`) **and** the user is signed in, the
    source filter defaults to `mine` once per session.
