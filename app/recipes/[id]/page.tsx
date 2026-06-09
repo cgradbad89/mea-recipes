@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
-  BookOpen, Calendar, Loader2, Pencil, Trash2, Clock
+  BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader } from '@/lib/recipes'
 import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
@@ -58,6 +58,10 @@ export default function RecipeDetailPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showUnsavedBanner, setShowUnsavedBanner] = useState(false)
   const [showCookingMode, setShowCookingMode] = useState(false)
+  const [assistantMessages, setAssistantMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
+  const [assistantInput, setAssistantInput] = useState('')
+  const [assistantLoading, setAssistantLoading] = useState(false)
+  const [assistantError, setAssistantError] = useState('')
 
   useEffect(() => {
     if (!id) return
@@ -163,6 +167,46 @@ export default function RecipeDetailPage() {
   const fav = isFavorite(displayRecipe.id)
   const hasOverrides = meta?.overrides && Object.keys(meta.overrides).length > 0
   const canDelete = !!user
+
+  const sendAssistantMessage = async (content: string) => {
+    const trimmed = content.trim()
+    if (!trimmed || assistantLoading) return
+    const nextMessages = [...assistantMessages, { role: 'user' as const, content: trimmed }]
+    setAssistantMessages(nextMessages)
+    setAssistantInput('')
+    setAssistantLoading(true)
+    setAssistantError('')
+    try {
+      const res = await fetch('/api/recipe-assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipe: {
+            title: displayRecipe.title,
+            ingredients,
+            instructions,
+            cuisine: displayRecipe.cuisine,
+            category: displayRecipe.category,
+          },
+          messages: nextMessages,
+        }),
+      })
+      if (!res.ok) throw new Error('Request failed')
+      const data = await res.json()
+      setAssistantMessages([...nextMessages, { role: 'assistant' as const, content: data.reply || '' }])
+    } catch {
+      setAssistantError("Couldn't get a response, please try again.")
+    } finally {
+      setAssistantLoading(false)
+    }
+  }
+
+  const assistantChips = [
+    "I'm missing an ingredient",
+    'Make it healthier',
+    'Make it vegetarian',
+    'Scale the servings',
+  ]
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -379,6 +423,79 @@ export default function RecipeDetailPage() {
           </pre>
         </section>
       )}
+
+      <section className="bg-surface border border-border rounded-2xl p-5 mb-8">
+        <h2 className="font-display text-2xl text-cream font-light mb-1 flex items-center gap-2">
+          <Sparkles size={20} className="text-amber" /> Recipe Assistant
+        </h2>
+        <p className="text-faint text-sm font-body mb-4">
+          Missing an ingredient or want to switch it up? Ask for suggestions.
+        </p>
+
+        {/* Quick-action chips */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {assistantChips.map(chip => (
+            <button
+              key={chip}
+              onClick={() => sendAssistantMessage(chip)}
+              disabled={assistantLoading}
+              className="text-xs font-body px-3 py-1.5 rounded-lg bg-amber/5 border border-amber/20 text-amber hover:bg-amber/10 transition-colors disabled:opacity-50"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+
+        {/* Conversation thread */}
+        {assistantMessages.length > 0 && (
+          <div className="flex flex-col gap-3 mb-4">
+            {assistantMessages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm font-body whitespace-pre-wrap leading-relaxed ${
+                    m.role === 'user'
+                      ? 'bg-amber text-ink'
+                      : 'bg-card border border-border text-muted'
+                  }`}
+                >
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {assistantLoading && (
+              <div className="flex justify-start">
+                <div className="bg-card border border-border rounded-xl px-3.5 py-2.5">
+                  <Loader2 size={16} className="animate-spin text-amber" />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {assistantError && (
+          <p className="text-red-400 text-xs font-body mb-3">{assistantError}</p>
+        )}
+
+        {/* Free-text input */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={assistantInput}
+            onChange={e => setAssistantInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendAssistantMessage(assistantInput) } }}
+            placeholder="Ask about substitutions, scaling, dietary swaps..."
+            className="input-field flex-1"
+          />
+          <button
+            onClick={() => sendAssistantMessage(assistantInput)}
+            disabled={assistantLoading || !assistantInput.trim()}
+            className="btn-primary flex items-center justify-center px-4 disabled:opacity-50"
+            aria-label="Send"
+          >
+            {assistantLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          </button>
+        </div>
+      </section>
 
       {user && (
         <section className="bg-surface border border-border rounded-2xl p-5">
