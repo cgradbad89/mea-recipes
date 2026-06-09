@@ -171,15 +171,20 @@ export default function RecipeDetailPage() {
   const sendAssistantMessage = async (content: string) => {
     const trimmed = content.trim()
     if (!trimmed || assistantLoading) return
+    if (!user) {
+      setAssistantError("Couldn't get a response, please try again.")
+      return
+    }
     const nextMessages = [...assistantMessages, { role: 'user' as const, content: trimmed }]
     setAssistantMessages(nextMessages)
     setAssistantInput('')
     setAssistantLoading(true)
     setAssistantError('')
     try {
+      const token = await user.getIdToken()
       const res = await fetch('/api/recipe-assistant', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
           recipe: {
             title: displayRecipe.title,

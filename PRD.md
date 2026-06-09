@@ -77,7 +77,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from taste profile |
 | `/api/plan-suggestions` | POST | Bearer token (required) | AI suggests recipes to complete a week plan (FlavorGraph-informed) |
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
-| `/api/recipe-assistant` | POST | None | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Anthropic. |
+| `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Anthropic. |
 
 ---
 
@@ -133,11 +133,9 @@ publish the current user's week and subscribe to other users' entries for the sa
 1. **Single admin user / HubBanner gating.** `components/HubBanner.tsx` renders the cross-app
    MEA hub navigation **only** when `user.email === 'folstromjohn@gmail.com'`
    (`ADMIN_EMAIL` constant). This is the one hard admin-email check in the app.
-2. **Auth required for all writes & AI.** Every API route except `/api/fetch-recipe` and
-   `/api/recipe-assistant` calls `verifyAuthToken` (Firebase Admin `verifyIdToken`) and returns
-   401 without a valid Bearer token. Client Firestore writes always pass `user.uid` from
-   `useAuth()`. (`/api/recipe-assistant` is stateless, persists nothing, and is unauthenticated
-   by design — it only relays recipe context already visible on the page to Anthropic.)
+2. **Auth required for all writes & AI.** Every API route except `/api/fetch-recipe` calls
+   `verifyAuthToken` (Firebase Admin `verifyIdToken`) and returns 401 without a valid Bearer
+   token. Client Firestore writes always pass `user.uid` from `useAuth()`.
 3. **Access enforcement is NOT email-restricted at the data layer.** The Firestore rules
    (documented in `README.md`, not committed as `firestore.rules`) allow **any** authenticated
    user to read `recipes` and read/write their own `users/{uid}/**`. Single-user access is a
