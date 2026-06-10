@@ -272,7 +272,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
 | Commit Firestore rules to repo | Medium | Backlog | Rules only live in README + console; no `firestore.rules` under version control |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
-| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail nutrition display + editable servings with per-serving recompute) **Done**; backfill + Surfaces 2–5 pending |
+| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail nutrition display + editable servings with per-serving recompute) **Done**; backfill **Done** (202/205 recipes; 3 manual-queue rows lack calorie data); Surfaces 2–5 pending |
 
 ---
 
