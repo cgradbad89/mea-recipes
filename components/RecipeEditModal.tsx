@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { X, Save, RotateCcw, Loader2, Check } from 'lucide-react'
 import { saveRecipeMeta } from '@/lib/userdata'
+import { updateRecipeServings } from '@/lib/recipes'
+import { NUTRIENTS, formatNutrient, perServingFromTotal, servingSizeLabel } from '@/lib/nutrition'
 import { useAuth } from '@/lib/AuthContext'
-import type { Recipe } from '@/types/recipe'
+import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 
 const CATEGORIES = [
@@ -18,11 +20,28 @@ interface Props {
   meta: RecipeMeta | null
   onClose: () => void
   onSaved: (updatedMeta: RecipeMeta) => void
+  onNutritionSaved?: (nutrition: RecipeNutrition) => void
 }
 
-export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Props) {
+export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutritionSaved }: Props) {
   const { user } = useAuth()
   const overrides = meta?.overrides || {}
+
+  // ─── Nutrition / servings ────────────────────────────────────────────────
+  const nutrition = recipe.nutrition
+  const hasNutrition = !!nutrition
+  const hasTotal = !!nutrition?.total
+  const initServings = nutrition?.servings
+  const [servingsInput, setServingsInput] = useState(
+    initServings != null ? String(initServings) : '',
+  )
+  const parsedServings = Number(servingsInput)
+  const servingsValid = servingsInput.trim() !== '' && Number.isFinite(parsedServings) && parsedServings > 0
+  const servingsChanged = servingsValid && parsedServings !== initServings
+  // Live per-serving preview, recomputed from the durable whole-recipe total.
+  const previewPerServing = hasTotal && servingsValid
+    ? perServingFromTotal(nutrition!.total, parsedServings)
+    : null
 
   const [title, setTitle] = useState(overrides.title || recipe.title)
   const [cuisine, setCuisine] = useState(overrides.cuisine || recipe.cuisine)
@@ -47,7 +66,8 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
   const initCookTime = overrides.cookTime || (recipe as any).cookTime || ''
 
   const isDirty = title !== initTitle || cuisine !== initCuisine || category !== initCategory ||
-    content !== initContent || imageURL !== initImageURL || prepTime !== initPrepTime || cookTime !== initCookTime
+    content !== initContent || imageURL !== initImageURL || prepTime !== initPrepTime ||
+    cookTime !== initCookTime || servingsChanged
 
   // Auto-reset confirmReset after 3 seconds
   useEffect(() => {
@@ -74,6 +94,14 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
       overrides: Object.keys(clean).length > 0 ? clean : undefined,
     }
     await saveRecipeMeta(user.uid, recipe.id, updatedMeta)
+
+    // Persist a servings correction back onto the shared recipe's nutrition object.
+    // Recomputes per-serving from the durable `total`; never touches `total` itself.
+    if (hasNutrition && servingsChanged) {
+      const updatedNutrition = await updateRecipeServings(recipe.id, parsedServings, nutrition!)
+      onNutritionSaved?.(updatedNutrition)
+    }
+
     setSaving(false)
     setSaveSuccess(true)
     onSaved(updatedMeta)
@@ -98,6 +126,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
     setImageURL(recipe.imageURL || '')
     setPrepTime((recipe as any).prepTime || '')
     setCookTime((recipe as any).cookTime || '')
+    setServingsInput(initServings != null ? String(initServings) : '')
     setResetting(false)
     onSaved(updatedMeta)
     onClose()
@@ -167,6 +196,58 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved }: Prop
               <input value={cookTime} onChange={e => setCookTime(e.target.value)} className="input-field" placeholder="e.g. 30 min" />
             </div>
           </div>
+
+          {/* Nutrition — servings (recipe-level, not a personal override) */}
+          {hasNutrition && (
+            <div className="border-t border-border pt-4">
+              <label className="text-faint text-xs font-body uppercase tracking-widest mb-1.5 block">
+                Servings
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={servingsInput}
+                  onChange={e => setServingsInput(e.target.value)}
+                  className="input-field w-32"
+                  placeholder="e.g. 4"
+                />
+                {servingsValid && (
+                  <span className="text-faint text-xs font-body">{servingSizeLabel(parsedServings)}</span>
+                )}
+              </div>
+
+              {!hasTotal && (
+                <p className="text-amber/70 text-xs font-body mt-2">
+                  No whole-recipe total stored — saving updates the servings count, but per-serving
+                  values can&apos;t be recomputed.
+                </p>
+              )}
+
+              {previewPerServing && (
+                <div className="mt-3">
+                  <p className="text-faint text-[11px] font-body uppercase tracking-wide mb-2">
+                    Per-serving preview
+                  </p>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {NUTRIENTS.map(({ key, label, unit }) => (
+                      <div key={key} className="text-center bg-card border border-border rounded-lg py-2">
+                        <p className="font-display text-lg text-cream font-light leading-none">
+                          {formatNutrient(key, previewPerServing[key])}
+                          {unit && <span className="text-xs text-faint ml-0.5">{unit}</span>}
+                        </p>
+                        <p className="text-faint text-[10px] font-body uppercase tracking-wide mt-1">
+                          {label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Content */}
           <div>

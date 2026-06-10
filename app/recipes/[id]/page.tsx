@@ -13,7 +13,8 @@ import { useAuth } from '@/lib/AuthContext'
 import RecipeEditModal from '@/components/RecipeEditModal'
 import CookingMode from '@/components/CookingMode'
 import StarRating from '@/components/StarRating'
-import type { Recipe } from '@/types/recipe'
+import NutritionSection from '@/components/NutritionSection'
+import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 
 function formatWeekLabel(weekID: string): string {
@@ -376,6 +377,8 @@ export default function RecipeDetailPage() {
         </p>
       )}
 
+      <NutritionSection nutrition={recipe?.nutrition} />
+
       {ingredients.length > 0 && (
         <section className="mb-8">
           <h2 className="font-display text-2xl text-cream font-light mb-4 flex items-center gap-2">
@@ -539,6 +542,9 @@ export default function RecipeDetailPage() {
           meta={meta}
           onClose={() => setShowEdit(false)}
           onSaved={updatedMeta => setMeta(updatedMeta)}
+          onNutritionSaved={(nutrition: RecipeNutrition) =>
+            setRecipe(r => (r ? { ...r, nutrition, servings: nutrition.servings ?? r.servings } : r))
+          }
         />
       )}
     </div>

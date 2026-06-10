@@ -89,11 +89,17 @@ All user data is keyed under `users/{uid}/…`. The web app mirrors the iOS app'
 ### `recipes/{id}` — shared recipe catalog (`lib/recipes.ts`)
 Doc ID = slugified title. Fields (see `types/recipe.ts` → `Recipe`):
 `recipeID, title, content, category, cuisine, imageURL, sourceURL, sourceFile, labels,
-hasImage, created, modified, addedBy?, prepTime?, cookTime?`.
+hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutrition?`.
 - `content` is a single freeform string; ingredients/instructions are **parsed at runtime**
   (`parseRecipeContent`), not stored as arrays.
 - `addedBy` = uid of the web user who added it (used by the "Added by me" filter).
 - Read with an in-memory module cache (`_recipesCache`), invalidated on save/delete.
+- `nutrition` (written by the nutrition backfill; see `nutrition-tracker-spec.md`) is an embedded
+  object: per-serving macros `calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g`, plus
+  `serving_size, servings, total{…}, source, confidence, computed_at`. `total` (whole-recipe) is
+  the durable basis; per-serving = `total / servings`. Editing servings re-derives per-serving via
+  `updateRecipeServings` (`lib/recipes.ts`) — a **deep-merge** write that never alters `total`.
+  `docToRecipe` must explicitly pass `nutrition`/`servings` through (it whitelists fields).
 
 ### `users/{uid}/recipes/root/favorites/{recipeID}` — favorites
 Doc per favorited recipe; body `{ updatedAt }`. Existence = favorited.
@@ -231,6 +237,13 @@ publish the current user's week and subscribe to other users' entries for the sa
   above page chrome to avoid the historical z-index overlap.
 - **Recipe doc IDs are slugified titles.** Two recipes with the same title collide on the same
   `recipes/{slug}` document; `saveRecipe` overwrites by slug.
+- **`docToRecipe` whitelists fields.** `lib/recipes.ts` maps an explicit field list — any new
+  recipe-doc field (e.g. `nutrition`, `servings`) is silently dropped on read until added to the
+  mapper. Backfilled data won't reach the UI otherwise.
+- **Nutrition servings edits write the shared recipe doc, not per-user `meta` overrides.** Unlike
+  title/content edits (which are personal overrides), the servings correction in `RecipeEditModal`
+  mutates `recipes/{id}.nutrition` for everyone — servings is a property of the recipe, and
+  `nutrition.total` only lives on the shared doc. Safe given the single-user model.
 - **Category label drift.** The AI prompt and some UI use unpunctuated category names (e.g.
   "Pasta Noodles & Rice"), while `types/recipe.ts` `Category` uses comma forms
   ("Pasta, Noodles & Rice"). Normalize when comparing.
@@ -259,7 +272,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
 | Commit Firestore rules to repo | Medium | Backlog | Rules only live in README + console; no `firestore.rules` under version control |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
-| Nutrition tracker (per-recipe macros + consumption log + insights) | High | Backlog | 5-surface design in `nutrition-tracker-spec.md`; build order & schemas defined there |
+| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail nutrition display + editable servings with per-serving recompute) **Done**; backfill + Surfaces 2–5 pending |
 
 ---
 

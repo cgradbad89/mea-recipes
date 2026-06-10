@@ -12,7 +12,8 @@ import { deleteDoc,
   DocumentData,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Recipe } from '@/types/recipe'
+import type { Recipe, RecipeNutrition } from '@/types/recipe'
+import { perServingFromTotal, servingSizeLabel } from './nutrition'
 
 const COLLECTION = 'recipes'
 
@@ -34,6 +35,9 @@ function docToRecipe(id: string, data: DocumentData): Recipe {
     addedBy: data.addedBy || undefined,
     prepTime: data.prepTime || undefined,
     cookTime: data.cookTime || undefined,
+    servings: typeof data.servings === 'number' ? data.servings : undefined,
+    // nutrition is written by the backfill; pass it through verbatim if present.
+    nutrition: data.nutrition && typeof data.nutrition === 'object' ? data.nutrition : undefined,
   }
 }
 
@@ -82,6 +86,35 @@ export async function saveRecipe(recipe: Omit<Recipe, 'id'>, addedByUid?: string
   })
   invalidateRecipeCache()
   return id
+}
+
+/**
+ * Correct a recipe's servings and re-derive its per-serving nutrition from the
+ * durable whole-recipe `total`. Writes only servings, serving_size, and the
+ * per-serving macro fields back onto the shared recipe doc's `nutrition` map —
+ * `total`, `source`, `confidence`, and `computed_at` are left untouched.
+ *
+ * If `total` is missing, servings + serving_size are persisted but per-serving
+ * values cannot be recomputed (left as-is). Returns the merged nutrition object
+ * for optimistic local state. Uses a deep merge so existing nutrition fields are
+ * preserved.
+ */
+export async function updateRecipeServings(
+  id: string,
+  servings: number,
+  current: RecipeNutrition,
+): Promise<RecipeNutrition> {
+  const perServing = perServingFromTotal(current.total, servings)
+  const patch: Record<string, unknown> = {
+    servings,
+    serving_size: servingSizeLabel(servings),
+  }
+  if (perServing) Object.assign(patch, perServing)
+
+  await setDoc(doc(db, COLLECTION, id), { nutrition: patch }, { merge: true })
+  invalidateRecipeCache()
+
+  return { ...current, ...patch } as RecipeNutrition
 }
 
 function slugify(text: string): string {
