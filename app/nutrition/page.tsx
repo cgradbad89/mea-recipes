@@ -6,7 +6,7 @@
 // available from both tabs. See nutrition-tracker-spec.md, Surface 4 + UI Shell.
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Apple, Plus, Target, Trash2, Pencil, Check, X, ChefHat, Loader2, BarChart2 } from 'lucide-react'
+import { Apple, Plus, Target, Trash2, Pencil, Check, X, ChefHat, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import {
   getTodayEntries, getGoals, deleteLogEntry, updateLogEntryServings,
@@ -15,6 +15,7 @@ import { NUTRIENTS, formatNutrient, sourceLabel } from '@/lib/nutrition'
 import GoalRing, { type RingKind } from '@/components/GoalRing'
 import GoalsModal from '@/components/GoalsModal'
 import LogFoodSheet from '@/components/LogFoodSheet'
+import InsightsTab from '@/components/InsightsTab'
 import type { ConsumptionEntry, NutritionGoals, Meal } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
@@ -137,7 +138,7 @@ export default function NutritionPage() {
           <Loader2 className="animate-spin text-amber" size={28} />
         </div>
       ) : tab === 'insights' ? (
-        <InsightsStub />
+        <InsightsTab userId={user!.uid} goals={goals} />
       ) : (
         <TodayTab
           goalsSet={goalsSet}
@@ -352,20 +353,6 @@ function LogEntryRow({
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-// ── Insights tab (placeholder this session) ─────────────────────────────────
-
-function InsightsStub() {
-  return (
-    <div className="bg-surface border border-border rounded-2xl p-12 text-center">
-      <BarChart2 size={36} className="text-faint mx-auto mb-4" />
-      <p className="font-display text-3xl text-cream font-light mb-2">Insights coming soon</p>
-      <p className="text-faint text-sm font-body max-w-md mx-auto">
-        Weekly, monthly &amp; custom-range trends — totals vs. compounded goals, and which foods drove each nutrient. Logging today builds the data this view will show.
-      </p>
     </div>
   )
 }
