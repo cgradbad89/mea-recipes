@@ -1,4 +1,5 @@
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
+import type { BarcodeLookupResponse } from '@/types/nutrition'
 
 // The six tracked macros, in display order, with formatting rules.
 export const NUTRIENTS: {
@@ -87,7 +88,8 @@ export function sourceLabel(source: string | undefined): string {
   const s = (source || '').toLowerCase()
   if (!s) return 'unknown'
   if (s.startsWith('usda+ai') || s.startsWith('ai')) return 'estimated'
-  if (s.startsWith('usda')) return 'USDA'
+  if (s.startsWith('openfoodfacts') || s.startsWith('off')) return 'Open Food Facts'
+  if (s.startsWith('usda')) return 'USDA'   // also covers usda_branded
   if (s.startsWith('source_site') || s.startsWith('source')) return 'source'
   if (s.startsWith('manual')) return 'manual'
   return s.split('+')[0]
@@ -99,4 +101,24 @@ export function trustBadge(n: RecipeNutrition | undefined): string {
   const provider = sourceLabel(n.source)
   const confidence = n.confidence || 'unknown'
   return `${provider} · ${confidence}`
+}
+
+/**
+ * Client-callable barcode lookup — hits the auth-gated /api/barcode-lookup route
+ * (the lookup itself runs server-side to set OFF's courtesy header and dodge CORS).
+ * Pass a fresh Firebase ID token (`await user.getIdToken()`). Returns the route's
+ * response: a product (with `found: true`) or `{ found: false }`. Throws on
+ * HTTP/network failure so callers can distinguish "not found" from "lookup broke".
+ */
+export async function lookupBarcode(barcode: string, idToken: string): Promise<BarcodeLookupResponse> {
+  const res = await fetch('/api/barcode-lookup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ barcode }),
+  })
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}))
+    throw new Error(d.error || 'Barcode lookup failed')
+  }
+  return res.json()
 }

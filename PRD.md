@@ -80,6 +80,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
 | `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Anthropic. |
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → USDA with match validation → Anthropic AI fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
+| `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g — caller must not treat it as a serving). Server-side fetch sets OFF's courtesy User-Agent. Read-only. Camera UI is a follow-up; a typed-barcode dev panel (`BarcodeTestPanel.tsx`, **temporary**) verifies it now. |
 
 ---
 
@@ -288,6 +289,12 @@ publish the current user's week and subscribe to other users' entries for the sa
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
   parenthesized dataType: ingredient lookups use `SR Legacy,Foundation`; food-name lookups omit
   the param and post-filter results by dataType. Don't "simplify" this back.
+- **Barcode results carry a `basis`; never treat per-100g as a serving.** `/api/barcode-lookup`
+  (`lib/nutritionEngine.ts` `lookupFoodByBarcode`) returns `basis: "per_serving" | "per_100g"`.
+  Open Food Facts frequently provides only per-100g `nutriments`, and USDA branded `foodNutrients`
+  are always per-100g — both come back tagged `per_100g`. The current dev test panel
+  (`BarcodeTestPanel.tsx`) logs the macros as-is at 1 serving; the future camera/log UI must apply
+  the declared serving size before logging, not assume the numbers are already per serving.
 - **No composite Firestore indexes — keep log queries single-field.** `lib/consumptionLog.ts`
   range-filters and orders on the same field (`date`) and does recipe/cook-event filtering
   client-side. A `where(recipe_id)+where(date>=)` query would demand a composite index, which
@@ -320,6 +327,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Commit Firestore rules to repo | Medium | Won't do | Reverted — the `malignant-metro` DB is shared across apps, so rules are managed manually in the Firebase Console only (a deploy from here would overwrite other apps' rules). See **Firestore rules** + Sharp Edges |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
 | Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
+| Barcode-based packaged-food lookup | Medium | Partial | Server-side lookup **Done**: `/api/barcode-lookup` + `lib/nutritionEngine.ts` `lookupFoodByBarcode` (Open Food Facts → USDA branded GTIN → miss), client helper `lookupBarcode` (`lib/nutrition.ts`), returns `basis` per_serving\|per_100g. A temporary typed-barcode dev panel (`BarcodeTestPanel.tsx`, mounted on `/nutrition`) verifies it now. **Next:** camera/scanning UI to feed real barcodes + serving-size math — remove the dev panel then. Reuses `saved_foods`/`consumption_log` — no new collection. |
 | Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window) |
 
 ---

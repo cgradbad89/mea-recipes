@@ -16,6 +16,7 @@ import GoalRing, { type RingKind } from '@/components/GoalRing'
 import GoalsModal from '@/components/GoalsModal'
 import LogFoodSheet from '@/components/LogFoodSheet'
 import InsightsTab from '@/components/InsightsTab'
+import BarcodeTestPanel from '@/components/BarcodeTestPanel'  // ⚠️ TEMPORARY — remove with camera UI
 import type { ConsumptionEntry, NutritionGoals, Meal } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
@@ -156,6 +157,10 @@ export default function NutritionPage() {
 
       {showLogFood && <LogFoodSheet onClose={() => setShowLogFood(false)} onLogged={refresh} />}
       {showGoals && <GoalsModal onClose={() => setShowGoals(false)} onSaved={refresh} />}
+
+      {/* ⚠️ TEMPORARY — dev-only barcode lookup test panel. Remove (with the
+          component + import) when the camera/scanning UI lands next session. */}
+      <BarcodeTestPanel onLogged={refresh} />
     </div>
   )
 }

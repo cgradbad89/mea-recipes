@@ -7,7 +7,10 @@ export type Meal = 'breakfast' | 'lunch' | 'snack' | 'dinner'
 
 export type LogEntryType = 'recipe' | 'quick_food' | 'manual'
 
-export type LogSource = 'recipe' | 'usda' | 'ai_estimate' | 'manual'
+// 'openfoodfacts' / 'usda_branded' are packaged-product sources from the barcode
+// lookup (app/api/barcode-lookup) — a scanned product logs as a quick_food whose
+// source reflects which provider answered. See lib/nutritionEngine lookupFoodByBarcode.
+export type LogSource = 'recipe' | 'usda' | 'ai_estimate' | 'manual' | 'openfoodfacts' | 'usda_branded'
 
 /**
  * One consumed item. Firestore path: users/{uid}/nutrition/root/log/{entryId}
@@ -49,6 +52,27 @@ export interface SavedFood {
   source: 'usda' | 'ai_estimate' | 'manual'
   created_at?: unknown
 }
+
+// ── Barcode lookup (packaged products) ──────────────────────────────────────
+// Server contract for app/api/barcode-lookup. A barcode (UPC/EAN) resolves to a
+// packaged product via Open Food Facts (crowdsourced → never "high" confidence)
+// then USDA's branded dataset. `basis` says whether the macros are per declared
+// serving or per 100 g — the camera/log UI must NOT treat per_100g as a serving.
+export type BarcodeBasis = 'per_serving' | 'per_100g'
+export type BarcodeSource = 'openfoodfacts' | 'usda_branded'
+
+/** A barcode hit (the engine omits `found`; the route adds it). */
+export interface BarcodeProduct {
+  name: string
+  nutrition: NutritionMacros
+  serving_size: string | null      // declared serving label, e.g. "30 g" (null if unknown)
+  source: BarcodeSource
+  confidence: 'medium' | 'low'     // OFF is crowdsourced; USDA branded → medium
+  basis: BarcodeBasis
+}
+
+/** Route response shape: a hit carries `found: true`, a miss is `{ found: false }`. */
+export type BarcodeLookupResponse = (BarcodeProduct & { found: true }) | { found: false }
 
 /** A recent distinct food derived from the log, for quick re-logging. */
 export interface RecentFood {

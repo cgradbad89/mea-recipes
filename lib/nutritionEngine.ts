@@ -21,6 +21,7 @@
 import { getAdminDb } from './firebaseAdmin'
 import { parseRecipeContent } from './recipeContent'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
+import type { BarcodeProduct } from '@/types/nutrition'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -461,6 +462,9 @@ interface UsdaSearchFood {
   dataType: string
   servingSize?: number
   servingSizeUnit?: string
+  gtinUpc?: string          // present on Branded foods — used for barcode matching
+  brandOwner?: string
+  brandName?: string
   foodNutrients?: { nutrientId?: number; nutrientNumber?: string; nutrientName?: string; value?: number }[]
 }
 
@@ -787,4 +791,135 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
     }
   }
   return null
+}
+
+// ─── Public API: barcode lookup (packaged products) ─────────────────────────
+// Cascade: Open Food Facts → USDA branded → miss. Called server-side only
+// (the route handles CORS + the courtesy User-Agent header OFF asks for).
+// Returns the product, or null on a miss (→ route emits { found: false }).
+
+const OFF_PRODUCT = 'https://world.openfoodfacts.org/api/v2/product'
+// OFF asks third parties to identify themselves; an anonymous UA can be throttled.
+const OFF_USER_AGENT = 'MEA-Recipes/1.0 (https://mea-recipes.vercel.app; folstromjohn@gmail.com)'
+
+/** Pull the six macros off an OFF `nutriments` object for a given basis suffix. */
+function offMacros(nutr: Record<string, unknown>, basis: 'serving' | '100g'): NutritionMacros {
+  const num = (key: string): number => {
+    const v = nutr[`${key}_${basis}`]
+    return typeof v === 'number' && Number.isFinite(v) ? v : 0
+  }
+  return {
+    calories: num('energy-kcal'),
+    protein_g: num('proteins'),
+    carbs_g: num('carbohydrates'),
+    fat_g: num('fat'),
+    fiber_g: num('fiber'),
+    sugar_g: num('sugars'),
+  }
+}
+
+/** True when a key exists as a finite number for the basis (0 counts as present). */
+function offHas(nutr: Record<string, unknown>, key: string, basis: 'serving' | '100g'): boolean {
+  const v = nutr[`${key}_${basis}`]
+  return typeof v === 'number' && Number.isFinite(v)
+}
+
+async function lookupOpenFoodFacts(barcode: string): Promise<BarcodeProduct | null> {
+  let data: any
+  try {
+    const res = await fetch(`${OFF_PRODUCT}/${encodeURIComponent(barcode)}.json`, {
+      headers: { 'User-Agent': OFF_USER_AGENT, Accept: 'application/json' },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) return null
+    data = await res.json()
+  } catch {
+    return null   // network/timeout → let the USDA fallback try
+  }
+  const product = data?.product
+  const nutr: Record<string, unknown> | undefined = product?.nutriments
+  if (!product || !nutr) return null
+
+  // Prefer per-serving values when OFF carries them; else fall back to per-100g.
+  // Calories is the gate: no energy on either basis → no usable nutrition.
+  const hasServing = offHas(nutr, 'energy-kcal', 'serving')
+  const has100g = offHas(nutr, 'energy-kcal', '100g')
+  if (!hasServing && !has100g) return null
+  const basis: 'serving' | '100g' = hasServing ? 'serving' : '100g'
+
+  const nutrition = offMacros(nutr, basis)
+  // Completeness → confidence. OFF is crowdsourced, so the ceiling is "medium":
+  // all four core macros present → medium; sparse → low.
+  const core =
+    offHas(nutr, 'energy-kcal', basis) && offHas(nutr, 'proteins', basis) &&
+    offHas(nutr, 'carbohydrates', basis) && offHas(nutr, 'fat', basis)
+  const confidence: 'medium' | 'low' = core ? 'medium' : 'low'
+
+  const name: string =
+    product.product_name || product.product_name_en || product.generic_name ||
+    product.brands || `Product ${barcode}`
+  const servingSize: string | null =
+    typeof product.serving_size === 'string' && product.serving_size.trim()
+      ? product.serving_size.trim() : null
+
+  return {
+    name: String(name).trim(),
+    nutrition: {
+      calories: Math.round(nutrition.calories), protein_g: round1(nutrition.protein_g),
+      carbs_g: round1(nutrition.carbs_g), fat_g: round1(nutrition.fat_g),
+      fiber_g: round1(nutrition.fiber_g), sugar_g: round1(nutrition.sugar_g),
+    },
+    serving_size: servingSize,
+    source: 'openfoodfacts',
+    confidence,
+    basis: basis === 'serving' ? 'per_serving' : 'per_100g',
+  }
+}
+
+/** Strip leading zeros so UPC-12 / EAN-13 representations of the same GTIN match. */
+function normalizeGtin(s: string): string {
+  return s.replace(/\D/g, '').replace(/^0+/, '') || '0'
+}
+
+async function lookupUsdaBranded(barcode: string): Promise<BarcodeProduct | null> {
+  let foods: UsdaSearchFood[]
+  try {
+    foods = await usdaSearch(barcode, ['Branded'], 25)
+  } catch {
+    return null
+  }
+  const target = normalizeGtin(barcode)
+  const match = foods.find(f => f.gtinUpc && normalizeGtin(f.gtinUpc) === target)
+  if (!match) return null
+
+  // Branded foodNutrients are stored per 100 g — report that basis honestly.
+  const macros = macrosFromSearchFood(match)
+  if (!macros || !Number.isFinite(macros.calories)) return null
+
+  const serving = match.servingSize && match.servingSizeUnit
+    ? `${match.servingSize} ${match.servingSizeUnit}`.trim()
+    : null
+
+  return {
+    name: [match.brandName || match.brandOwner, match.description].filter(Boolean).join(' — ') || match.description,
+    nutrition: {
+      calories: Math.round(macros.calories), protein_g: round1(macros.protein_g),
+      carbs_g: round1(macros.carbs_g), fat_g: round1(macros.fat_g),
+      fiber_g: round1(macros.fiber_g), sugar_g: round1(macros.sugar_g),
+    },
+    serving_size: serving,
+    source: 'usda_branded',
+    confidence: 'medium',
+    basis: 'per_100g',
+  }
+}
+
+export async function lookupFoodByBarcode(rawBarcode: string): Promise<BarcodeProduct | null> {
+  const barcode = rawBarcode.replace(/\s+/g, '').trim()
+  if (!barcode) return null
+  // 1) Open Food Facts first (richest packaged-food coverage)…
+  const off = await lookupOpenFoodFacts(barcode)
+  if (off) return off
+  // 2) …then USDA's branded dataset by GTIN.
+  return lookupUsdaBranded(barcode)
 }
