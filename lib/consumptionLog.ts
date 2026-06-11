@@ -16,6 +16,7 @@ import {
   getDocs,
   addDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
   query,
   where,
@@ -120,6 +121,27 @@ export async function getEntriesForRange(userId: string, start: Date, end: Date)
 
 export async function deleteLogEntry(userId: string, entryId: string): Promise<void> {
   await deleteDoc(doc(logPath(userId), entryId))
+}
+
+/**
+ * Correct an entry's servings count and recompute its nutrition snapshot.
+ * The stored snapshot is per-serving × servings_eaten, so we recover the
+ * per-serving basis (snapshot ÷ old servings) and re-scale to the new count.
+ * Editing servings never re-references the source recipe — it stays a snapshot.
+ */
+export async function updateLogEntryServings(
+  userId: string,
+  entry: ConsumptionEntry,
+  newServings: number,
+): Promise<NutritionMacros> {
+  const old = entry.servings_eaten > 0 ? entry.servings_eaten : 1
+  const perServing = scaleMacros(entry.nutrition, 1 / old)
+  const nutrition = scaleMacros(perServing, newServings)
+  await updateDoc(doc(logPath(userId), entry.id), {
+    servings_eaten: newServings,
+    nutrition,
+  })
+  return nutrition
 }
 
 /** Today's cook-event entry for a recipe, if one exists (duplicate prevention). */

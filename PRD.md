@@ -66,6 +66,7 @@ wrapped in a per-route `layout.tsx`.
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
 | Insights | `/insights` (`app/insights/page.tsx`) | Done | Analytics: cooked totals, avg rating, cuisine breakdown, CSV export |
+| Nutrition | `/nutrition` (`app/nutrition/page.tsx`) | Done (Today) | Two tabs: **Today** (six countdown goal rings w/ floor/ceiling colour logic, meal-grouped log w/ inline edit-servings + delete) and **Insights** (stub — Surface 5, later). Header hosts persistent "＋ Log food" (`LogFoodSheet`) + "Goals" (`GoalsModal`). Hand-built SVG rings (`components/GoalRing.tsx`), no charting dep |
 
 ### API Routes (`app/api/`)
 
@@ -306,7 +307,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
 | Commit Firestore rules to repo | Medium | Backlog | Rules only live in README + console; no `firestore.rules` under version control |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
-| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`, temp entry button on Recipes page) **Done**; Surfaces 4–5 (Today view + Insights, Session B) pending |
+| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view (`/nutrition` page shell + Today tab: goal rings, meal-grouped log, edit/delete, Goals modal; `LogFoodSheet` entry point moved off Recipes page into the Nutrition header) **Done**; Surface 5 Insights tab stub pending |
 
 ---
 
