@@ -2,8 +2,9 @@
 
 // Single hand-built SVG goal ring (Today view). No charting dependency — the
 // app has no existing ring/gauge pattern, so this is a plain <circle> arc.
-// Primary number = remaining (counts down toward the goal). Floor/ceiling
-// colour logic per the nutrition spec (Surface 4):
+// Primary number = consumed (the big centre value); remaining is the small
+// secondary, shown in the coloured status line. Floor/ceiling colour logic per
+// the nutrition spec (Surface 4):
 //   - ceilings (calories, carbs, fat, sugar): over the goal → red.
 //   - floors (protein, fiber): behind the day's pace → red; goal met → green.
 
@@ -29,17 +30,18 @@ export default function GoalRing({
 }: Props) {
   const hasGoal = goal > 0 && Number.isFinite(goal)
   const remaining = hasGoal ? goal - consumed : 0
+  const remainingAbs = hasGoal ? formatNutrient(nutrientKey, Math.abs(remaining)) : '—'
 
   let color = COLORS.amber
   let status = ''
   if (hasGoal) {
     if (kind === 'ceiling') {
-      if (consumed > goal) { color = COLORS.red; status = 'over' }
-      else { color = COLORS.amber; status = 'left' }
+      if (consumed > goal) { color = COLORS.red; status = `${remainingAbs}${unit} over` }
+      else { color = COLORS.amber; status = `${remainingAbs}${unit} left` }
     } else {
       if (consumed >= goal) { color = COLORS.green; status = 'goal met' }
-      else if (consumed < goal * elapsedFraction) { color = COLORS.red; status = 'left' }
-      else { color = COLORS.amber; status = 'left' }
+      else if (consumed < goal * elapsedFraction) { color = COLORS.red; status = `${remainingAbs}${unit} to go` }
+      else { color = COLORS.amber; status = `${remainingAbs}${unit} to go` }
     }
   }
 
@@ -49,7 +51,7 @@ export default function GoalRing({
   const circ = 2 * Math.PI * r
   const frac = hasGoal ? Math.min(consumed / goal, 1) : 0
   const offset = circ * (1 - frac)
-  const primary = hasGoal ? formatNutrient(nutrientKey, Math.abs(remaining)) : '—'
+  const primary = hasGoal ? formatNutrient(nutrientKey, consumed) : '—'
 
   return (
     <div className="flex flex-col items-center">

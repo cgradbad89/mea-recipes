@@ -35,6 +35,15 @@ const SLICE_COLORS = ['#E8A838', '#F5C060', '#5eead4', '#93c5fd', '#fb923c', '#c
 const OTHER_COLOR = '#6B5E50'
 const MAX_SLICES = 6
 
+// Overview donut = macro composition by calorie contribution. Only the three
+// energy-bearing macros are slices; kcal-per-gram drives each slice's value.
+// Fiber & sugar are subsets of carbs (not separate calorie sources) so they are
+// list-only context, never slices.
+const MACRO_KCAL: Partial<Record<keyof NutritionMacros, number>> = { protein_g: 4, carbs_g: 4, fat_g: 9 }
+const MACRO_COLORS: Partial<Record<keyof NutritionMacros, string>> = {
+  protein_g: '#E8A838', carbs_g: '#5eead4', fat_g: '#fb923c',
+}
+
 // ─── Date helpers (all local-time, calendar-day based) ───────────────────────
 
 function startOfDay(d: Date): Date { const x = new Date(d); x.setHours(0, 0, 0, 0); return x }
@@ -139,7 +148,9 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   const [kind, setKind] = useState<RangeKind>('week')
   const [customStart, setCustomStart] = useState(isoDate(startOfWeekMonday(now)))
   const [customEnd, setCustomEnd] = useState(isoDate(now))
-  const [selectedNutrient, setSelectedNutrient] = useState<keyof NutritionMacros>('calories')
+  // null = overview (macro composition). A nutrient key = drill-down into the
+  // foods/recipes that contributed it.
+  const [drilled, setDrilled] = useState<keyof NutritionMacros | null>(null)
 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,12 +180,14 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     return t
   }, [entries])
 
-  // Per-food contributions to the selected nutrient, aggregated by name across
-  // every log entry of that food in the range (slices = foods/recipes).
+  // Per-food contributions to the drilled nutrient, aggregated by name across
+  // every log entry of that food in the range (slices = foods/recipes). Empty
+  // in the overview state (no nutrient drilled).
   const contributors = useMemo(() => {
+    if (!drilled) return []
     const map = new Map<string, { name: string; amount: number; source: string }>()
     for (const e of entries) {
-      const amount = e.nutrition?.[selectedNutrient] || 0
+      const amount = e.nutrition?.[drilled] || 0
       if (amount <= 0) continue
       const key = e.name.trim().toLowerCase() || '(unnamed)'
       const cur = map.get(key)
@@ -182,10 +195,24 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
       else map.set(key, { name: e.name.trim() || 'Unnamed', amount, source: e.source })
     }
     return Array.from(map.values()).sort((a, b) => b.amount - a.amount)
-  }, [entries, selectedNutrient])
+  }, [entries, drilled])
 
-  const selectedMeta = NUTRIENTS.find(n => n.key === selectedNutrient)!
-  const selectedTotal = totals[selectedNutrient]
+  // Overview donut: macro composition by calorie contribution (protein·4,
+  // carbs·4, fat·9), each as a share of those calories. Zero-cal macros drop out.
+  const composition = useMemo(() => {
+    const slices = (['protein_g', 'carbs_g', 'fat_g'] as const)
+      .map(key => ({
+        key,
+        name: NUTRIENTS.find(n => n.key === key)!.label,
+        cals: (totals[key] || 0) * (MACRO_KCAL[key] || 0),
+      }))
+      .filter(s => s.cals > 0)
+    const total = slices.reduce((s, d) => s + d.cals, 0)
+    return { slices, total }
+  }, [totals])
+
+  const selectedMeta = drilled ? NUTRIENTS.find(n => n.key === drilled)! : null
+  const selectedTotal = drilled ? totals[drilled] : 0
   const goalsSet = !!goals && NUTRIENTS.some(n => (goals[n.key] || 0) > 0)
   const hasEntries = entries.length > 0
 
@@ -330,94 +357,204 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
             )}
           </section>
 
-          {/* ── Feature 3: nutrient breakdown — donut + contributor table ───── */}
+          {/* ── Feature 3: one donut, two states — macro composition overview
+              that drills into per-nutrient food contributors ──────────────── */}
           <section>
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
-              <h3 className="font-display text-xl text-cream font-light">Top sources</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {NUTRIENTS.map(n => (
+              {drilled ? (
+                <div className="flex items-baseline gap-3">
                   <button
-                    key={n.key}
-                    onClick={() => setSelectedNutrient(n.key)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-body font-medium border transition-all ${
-                      selectedNutrient === n.key
-                        ? 'bg-amber/10 border-amber/30 text-amber'
-                        : 'bg-surface border-border text-muted hover:text-cream hover:border-amber/40'
-                    }`}
+                    onClick={() => setDrilled(null)}
+                    className="text-amber text-sm font-body font-medium hover:text-amber/80 transition-colors shrink-0"
                   >
-                    {n.label}
+                    ← All nutrients
                   </button>
-                ))}
-              </div>
+                  <h3 className="font-display text-xl text-cream font-light">
+                    {selectedMeta!.label} sources
+                  </h3>
+                </div>
+              ) : (
+                <h3 className="font-display text-xl text-cream font-light">Macro composition</h3>
+              )}
+              <span className="text-faint text-xs font-body">
+                {drilled ? 'Foods & recipes that contributed it' : 'Share of calories · tap a slice or row to drill in'}
+              </span>
             </div>
 
-            {selectedTotal <= 0 ? (
-              <EmptyState
-                title={`No ${selectedMeta.label.toLowerCase()} recorded in this range`}
-                body="Try another nutrient, or log foods that contribute it."
-              />
-            ) : (
-              <div className="bg-surface border border-border rounded-2xl p-5 grid md:grid-cols-2 gap-6 items-center">
-                {/* Donut — slices are foods/recipes contributing the nutrient */}
-                <div className="relative" style={{ height: 260 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={donutData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={68}
-                        outerRadius={104}
-                        paddingAngle={1.5}
-                        stroke="none"
-                      >
-                        {donutData.map((d, i) => (
-                          <Cell key={i} fill={d.isOther ? OTHER_COLOR : SLICE_COLORS[i % SLICE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<DonutTooltip nutrientKey={selectedNutrient} unit={selectedMeta.unit} total={selectedTotal} />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="font-display text-3xl text-cream font-light leading-none">
-                      {formatNutrient(selectedNutrient, selectedTotal)}
-                    </span>
-                    <span className="text-faint text-[11px] font-body mt-1">
-                      total {selectedMeta.label.toLowerCase()}{selectedMeta.unit ? ` (${selectedMeta.unit})` : ''}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Ranked contributor table */}
-                <div className="space-y-1">
-                  {contributors.map((c, i) => {
-                    const pct = selectedTotal > 0 ? Math.round((c.amount / selectedTotal) * 100) : 0
-                    const swatch = i < MAX_SLICES ? SLICE_COLORS[i % SLICE_COLORS.length] : OTHER_COLOR
-                    return (
-                      <div key={c.name + i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-card transition-colors">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: swatch }} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-cream text-sm font-body truncate">{c.name}</p>
-                          <span className="tag text-[10px] capitalize mt-0.5 inline-block">{sourceLabel(c.source)}</span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-cream text-sm font-body font-medium leading-none">
-                            {formatNutrient(selectedNutrient, c.amount)}
-                            <span className="text-faint text-[10px] ml-0.5">{selectedMeta.unit}</span>
-                          </p>
-                          <p className="text-faint text-[10px] font-body mt-0.5">{pct}%</p>
-                        </div>
+            <div className="bg-surface border border-border rounded-2xl p-5 grid md:grid-cols-2 gap-6 items-center">
+              {/* Donut — composition (overview) or food contributors (drill) */}
+              <div className="relative" style={{ height: 260 }}>
+                {drilled ? (
+                  selectedTotal <= 0 ? (
+                    <InlineNote text={`No ${selectedMeta!.label.toLowerCase()} logged in this range`} />
+                  ) : (
+                    <>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={donutData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={68}
+                            outerRadius={104}
+                            paddingAngle={1.5}
+                            stroke="none"
+                          >
+                            {donutData.map((d, i) => (
+                              <Cell key={i} fill={d.isOther ? OTHER_COLOR : SLICE_COLORS[i % SLICE_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<DonutTooltip nutrientKey={drilled} unit={selectedMeta!.unit} total={selectedTotal} />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="font-display text-3xl text-cream font-light leading-none">
+                          {formatNutrient(drilled, selectedTotal)}
+                        </span>
+                        <span className="text-faint text-[11px] font-body mt-1">
+                          total {selectedMeta!.label.toLowerCase()}{selectedMeta!.unit ? ` (${selectedMeta!.unit})` : ''}
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
+                    </>
+                  )
+                ) : composition.total <= 0 ? (
+                  <InlineNote text="Not enough macro data to chart composition" />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={composition.slices}
+                          dataKey="cals"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={68}
+                          outerRadius={104}
+                          paddingAngle={1.5}
+                          stroke="none"
+                          cursor="pointer"
+                          onClick={(d: { key?: keyof NutritionMacros; payload?: { key?: keyof NutritionMacros } }) => {
+                            const k = d?.key ?? d?.payload?.key
+                            if (k) setDrilled(k)
+                          }}
+                        >
+                          {composition.slices.map(s => (
+                            <Cell key={s.key} fill={MACRO_COLORS[s.key]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<CompositionTooltip total={composition.total} />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="font-display text-3xl text-cream font-light leading-none">
+                        {formatNutrient('calories', totals.calories)}
+                      </span>
+                      <span className="text-faint text-[11px] font-body mt-1">total calories</span>
+                    </div>
+                  </>
+                )}
               </div>
-            )}
+
+              {/* List — six-nutrient overview, or ranked food contributors */}
+              <div className="space-y-1">
+                {drilled ? (
+                  contributors.length === 0 ? (
+                    <p className="text-faint text-sm font-body text-center py-6">
+                      No {selectedMeta!.label.toLowerCase()} logged in this range.
+                    </p>
+                  ) : (
+                    contributors.map((c, i) => {
+                      const pct = selectedTotal > 0 ? Math.round((c.amount / selectedTotal) * 100) : 0
+                      const swatch = i < MAX_SLICES ? SLICE_COLORS[i % SLICE_COLORS.length] : OTHER_COLOR
+                      return (
+                        <div key={c.name + i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-card transition-colors">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: swatch }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-cream text-sm font-body truncate">{c.name}</p>
+                            <span className="tag text-[10px] capitalize mt-0.5 inline-block">{sourceLabel(c.source)}</span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-cream text-sm font-body font-medium leading-none">
+                              {formatNutrient(drilled, c.amount)}
+                              <span className="text-faint text-[10px] ml-0.5">{selectedMeta!.unit}</span>
+                            </p>
+                            <p className="text-faint text-[10px] font-body mt-0.5">{pct}%</p>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )
+                ) : (
+                  NUTRIENTS.map(n => {
+                    const isMacro = n.key in MACRO_COLORS
+                    const cals = (totals[n.key] || 0) * (MACRO_KCAL[n.key] || 0)
+                    const pct = isMacro && composition.total > 0 ? Math.round((cals / composition.total) * 100) : null
+                    const sub =
+                      n.key === 'calories' ? 'total energy'
+                      : isMacro ? `${pct}% of calories`
+                      : 'subset of carbs'
+                    return (
+                      <button
+                        key={n.key}
+                        onClick={() => setDrilled(n.key)}
+                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-card transition-colors text-left"
+                      >
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ background: isMacro ? MACRO_COLORS[n.key] : OTHER_COLOR }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-cream text-sm font-body truncate">{n.label}</p>
+                          <p className="text-faint text-[10px] font-body mt-0.5">{sub}</p>
+                        </div>
+                        <p className="text-cream text-sm font-body font-medium leading-none shrink-0">
+                          {formatNutrient(n.key, totals[n.key])}
+                          <span className="text-faint text-[10px] ml-0.5">{n.unit}</span>
+                        </p>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+            </div>
           </section>
         </>
       )}
+    </div>
+  )
+}
+
+// ── Composition tooltip (overview: macro share of calories) ─────────────────
+
+function CompositionTooltip({
+  active, payload, total,
+}: {
+  active?: boolean
+  payload?: { name: string; value: number }[]
+  total: number
+}) {
+  if (!active || !payload?.length) return null
+  const { name, value } = payload[0]
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0
+  return (
+    <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg">
+      <p className="text-cream text-xs font-body font-medium">{name}</p>
+      <p className="text-faint text-[11px] font-body mt-0.5">
+        {Math.round(value)} cal · {pct}%
+      </p>
+    </div>
+  )
+}
+
+// ── Inline note shown in place of the donut when a layer has no data ─────────
+
+function InlineNote({ text }: { text: string }) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center text-center px-4">
+      <p className="text-faint text-sm font-body">{text}</p>
     </div>
   )
 }
