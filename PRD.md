@@ -161,10 +161,10 @@ publish the current user's week and subscribe to other users' entries for the sa
    `verifyAuthToken` (Firebase Admin `verifyIdToken`) and returns 401 without a valid Bearer
    token. Client Firestore writes always pass `user.uid` from `useAuth()`.
 3. **Access enforcement is NOT email-restricted at the data layer.** The Firestore rules
-   (documented in `README.md`, not committed as `firestore.rules`) allow **any** authenticated
-   user to read `recipes` and read/write their own `users/{uid}/**`. Single-user access is a
-   product convention + the HubBanner check, not a Firestore-enforced email allowlist.
-   _(See Sharp Edges — no `firestore.rules` file exists in the repo.)_
+   (now version-controlled in `firestore.rules`, reconstructed from code paths — reconcile
+   with the console before deploying) allow **any** authenticated user to read `recipes` and
+   read/write their own `users/{uid}/**`. Single-user access is a product convention + the
+   HubBanner check, not a Firestore-enforced email allowlist.
 4. **Week identity = Monday ISO date.** All meal-plan logic keys weeks by the Monday of the
    week as `YYYY-MM-DD` (`weekIDFromDate` in `lib/userdata.ts`).
 5. **Per-user data isolation.** Grocery, favorites, meta, week plans, saved items, and the
@@ -228,15 +228,27 @@ publish the current user's week and subscribe to other users' entries for the sa
     button to avoid unnecessary API charges.
 14. **Week navigation memory** — Plan page remembers the last-viewed week in `sessionStorage`
     `mea_plan_last_week`; defaults toward the upcoming week when the current is empty.
+15. **Auto-nutrition on publish** — `computeAndStoreNutrition(recipeId, token, timeoutMs)`
+    (`lib/recipes.ts`) runs right after `saveRecipe()` at every recipe-create site (queue
+    publish + Discover direct-save). It POSTs `{type:"recipe",recipeId}` to `/api/nutrition-lookup`,
+    then merges the returned `nutrition` (stamping a fresh `computed_at` Timestamp) onto the doc and
+    sets `nutritionStatus:'computed'`. The call is wrapped in `AbortSignal.timeout` (~20s at publish,
+    45s for the manual retry) and **never throws** — on slowness/error it flags
+    `nutritionStatus:'needs_calc'` and returns null so the recipe still saves. Servings defaulting
+    (→4, `+default_servings`, low confidence, durable `total`) happens inside the engine. The
+    detail-page empty state offers a "Calculate nutrition" retry for flagged/uncomputed recipes.
 
 ---
 
 ## Section 6 — Known Sharp Edges
 
-- **No `firestore.rules` file in the repo.** Rules exist only as a snippet in `README.md` and
-  are managed in the Firebase console. There is therefore **no committed `validRating()` rule**
-  — the "validRating rejecting 0" quirk could not be confirmed or located in code. Treat the
-  documented rules as advisory until the actual console rules are exported into the repo.
+- **`firestore.rules` is a reconstruction, not a console export.** A `firestore.rules` file now
+  exists in the repo (committed with the auto-nutrition-on-publish work) so future collection
+  additions get a matching rule in the same change — but it was rebuilt from the `collection(db,…)`
+  paths in code, **not** exported from the live console. The authoritative ruleset still lives in
+  the Firebase console for `malignant-metro`; paste/diff it over the file before any deploy. The
+  file deliberately includes the `users/{uid}/nutrition/{document=**}` rule added in the console
+  after the earlier silent-write incident. There is still no committed `validRating()` rule.
 - **`ANTHROPIC_API_KEY` is not in local `.env.local`.** All AI routes read
   `process.env.ANTHROPIC_API_KEY`; the local env file only defines the three `FIREBASE_*`
   admin vars. The Anthropic key must be set in Vercel project env vars for AI features to work.
@@ -305,9 +317,10 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | FlavorGraph-informed generation | Medium | Done | `getComplementaryIngredients` seeds Discover + plan-suggestions prompts |
 | Shared week plans (view friends' plans) | Low | Done | `sharedWeekPlans/{weekID}/users/{uid}` |
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
-| Commit Firestore rules to repo | Medium | Backlog | Rules only live in README + console; no `firestore.rules` under version control |
+| Commit Firestore rules to repo | Medium | Done | `firestore.rules` committed (reconstructed from code paths; includes the `users/{uid}/nutrition/{document=**}` rule). Reconcile with console before deploy — see Sharp Edges |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
-| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view (`/nutrition` page shell + Today tab: goal rings, meal-grouped log, edit/delete, Goals modal; `LogFoodSheet` entry point moved off Recipes page into the Nutrition header) **Done**; Surface 5 Insights tab (`components/InsightsTab.tsx`: range selector, compounding/elapsed-day goal attainment, recharts donut + contributor table per nutrient) **Done** — all 5 surfaces complete |
+| Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
+| Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window) |
 
 ---
 

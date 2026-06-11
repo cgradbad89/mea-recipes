@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext'
 import { useCookingHistory } from '@/hooks/useCookingHistory'
 import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { useFavorites } from '@/hooks/useFavorites'
-import { getAllRecipes, saveRecipe, invalidateRecipeCache, getTotalTime } from '@/lib/recipes'
+import { getAllRecipes, saveRecipe, invalidateRecipeCache, getTotalTime, computeAndStoreNutrition } from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
 import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
@@ -135,6 +135,7 @@ export default function DiscoverPage() {
   const [generatedRecipe, setGeneratedRecipe] = useState<any | null>(null)
   const [generateError, setGenerateError] = useState('')
   const [savingGenerated, setSavingGenerated] = useState(false)
+  const [genNutritionPhase, setGenNutritionPhase] = useState(false)
   const [savedGenerated, setSavedGenerated] = useState(false)
   const generateTextareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -154,6 +155,7 @@ export default function DiscoverPage() {
   const [planGeneratingFor, setPlanGeneratingFor] = useState<string | null>(null)
   const [planGeneratedRecipes, setPlanGeneratedRecipes] = useState<Record<string, any>>({})
   const [planSavingFor, setPlanSavingFor] = useState<string | null>(null)
+  const [planNutritionFor, setPlanNutritionFor] = useState<string | null>(null)
   const [planSavedFor, setPlanSavedFor] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -304,7 +306,7 @@ export default function DiscoverPage() {
         sourceURL: '',
         status: 'pending',
       })
-      await saveRecipe({
+      const recipeId = await saveRecipe({
         recipeID: '',
         title: (gen.title || suggestion.title).trim(),
         content,
@@ -321,11 +323,20 @@ export default function DiscoverPage() {
         cookTime: gen.cookTime || '',
       }, user.uid)
       invalidateRecipeCache()
+      // Auto-nutrition — timeout-guarded; never blocks the save.
+      setPlanNutritionFor(suggestion.title)
+      try {
+        const token = await user.getIdToken()
+        await computeAndStoreNutrition(recipeId, token)
+      } catch (e) {
+        console.error('Nutrition step error (recipe saved anyway):', e)
+      }
       setPlanSavedFor(prev => new Set(prev).add(suggestion.title))
     } catch (e) {
       console.error('Save failed:', e)
     } finally {
       setPlanSavingFor(null)
+      setPlanNutritionFor(null)
     }
   }
 
@@ -510,7 +521,7 @@ export default function DiscoverPage() {
         sourceURL: '',
         status: 'pending',
       })
-      await saveRecipe({
+      const recipeId = await saveRecipe({
         recipeID: '',
         title: (generatedRecipe.title || 'Untitled Recipe').trim(),
         content,
@@ -527,6 +538,16 @@ export default function DiscoverPage() {
         cookTime: generatedRecipe.cookTime || '',
       }, user.uid)
       invalidateRecipeCache()
+      // Auto-nutrition — timeout-guarded; never blocks the save.
+      setGenNutritionPhase(true)
+      try {
+        const token = await user.getIdToken()
+        await computeAndStoreNutrition(recipeId, token)
+      } catch (e) {
+        console.error('Nutrition step error (recipe saved anyway):', e)
+      } finally {
+        setGenNutritionPhase(false)
+      }
       setSavedGenerated(true)
     } catch (e: any) {
       setGenerateError(e?.message || 'Failed to save recipe')
@@ -824,7 +845,7 @@ export default function DiscoverPage() {
                               className="flex items-center gap-1.5 text-xs font-body px-3 py-1.5 rounded-lg bg-amber text-ink font-semibold hover:bg-amber-glow transition-colors"
                             >
                               {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-                              {saving ? 'Saving...' : 'Save to my recipes'}
+                              {planNutritionFor === s.title ? 'Nutrition…' : saving ? 'Saving...' : 'Save to my recipes'}
                             </button>
                           )}
                           {saved && (
@@ -963,7 +984,7 @@ export default function DiscoverPage() {
                   className="btn-primary flex items-center gap-2"
                 >
                   {savingGenerated ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  Save to My Recipes
+                  {genNutritionPhase ? 'Calculating nutrition…' : savingGenerated ? 'Saving…' : 'Save to My Recipes'}
                 </button>
                 <button onClick={handleGenerateAnother} className="btn-ghost">
                   Generate Another

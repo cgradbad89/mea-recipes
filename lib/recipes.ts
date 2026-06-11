@@ -38,6 +38,8 @@ function docToRecipe(id: string, data: DocumentData): Recipe {
     servings: typeof data.servings === 'number' ? data.servings : undefined,
     // nutrition is written by the backfill; pass it through verbatim if present.
     nutrition: data.nutrition && typeof data.nutrition === 'object' ? data.nutrition : undefined,
+    nutritionStatus: data.nutritionStatus === 'needs_calc' || data.nutritionStatus === 'computed'
+      ? data.nutritionStatus : undefined,
   }
 }
 
@@ -115,6 +117,66 @@ export async function updateRecipeServings(
   invalidateRecipeCache()
 
   return { ...current, ...patch } as RecipeNutrition
+}
+
+// ─── Auto-nutrition on publish (shared client helper) ────────────────────────
+// The engine lives server-side (lib/nutritionEngine.ts) and must read the recipe
+// doc by id, so a recipe is always written FIRST, then nutrition is computed via
+// the /api/nutrition-lookup route and merged back onto the doc here. Used by the
+// queue publish flow and the Discover "Generate a recipe" save path.
+
+const NUTRITION_TIMEOUT_MS = 20000
+
+/** Persist a computed nutrition object onto the recipe doc (merge). */
+export async function saveRecipeNutrition(id: string, nutrition: RecipeNutrition): Promise<void> {
+  // Stamp computed_at as a real Date → Firestore Timestamp (the API response
+  // serialises it to a string over JSON), matching the backfill's shape.
+  const toStore: RecipeNutrition = { ...nutrition, computed_at: new Date() }
+  await setDoc(doc(db, COLLECTION, id), { nutrition: toStore, nutritionStatus: 'computed' }, { merge: true })
+  invalidateRecipeCache()
+}
+
+/** Flag a recipe as needing manual nutrition calculation (compute failed/timed out). */
+export async function flagNutritionNeedsCalc(id: string): Promise<void> {
+  await setDoc(doc(db, COLLECTION, id), { nutritionStatus: 'needs_calc' }, { merge: true })
+  invalidateRecipeCache()
+}
+
+/**
+ * Compute a recipe's nutrition via the shared engine route and persist it.
+ *
+ * NEVER THROWS and never blocks the caller's publish/save: the network call is
+ * wrapped in a ~20s timeout, and on any slowness/error the recipe is flagged
+ * `needs_calc` (surfacing the manual retry on the detail page) instead of failing.
+ * Returns the stored nutrition on success, or null on failure.
+ *
+ * Servings handling (default-to-4 + `+default_servings` + low confidence, with
+ * the whole-recipe `total` stored as the durable basis) is done inside the engine
+ * — see computeRecipeNutrition in lib/nutritionEngine.ts.
+ */
+export async function computeAndStoreNutrition(
+  recipeId: string,
+  token: string,
+  timeoutMs: number = NUTRITION_TIMEOUT_MS,
+): Promise<RecipeNutrition | null> {
+  try {
+    const res = await fetch('/api/nutrition-lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ type: 'recipe', recipeId }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (!res.ok) throw new Error(`nutrition-lookup ${res.status}`)
+    const data = await res.json()
+    const nutrition = data?.nutrition as RecipeNutrition | undefined
+    if (!nutrition) throw new Error('no nutrition in response')
+    await saveRecipeNutrition(recipeId, nutrition)
+    return nutrition
+  } catch (err) {
+    console.error('Nutrition compute failed; flagging for manual calc:', err)
+    try { await flagNutritionNeedsCalc(recipeId) } catch { /* non-fatal */ }
+    return null
+  }
 }
 
 function slugify(text: string): string {

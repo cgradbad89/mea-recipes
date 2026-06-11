@@ -1,7 +1,13 @@
 # MEA Recipes — Nutrition Tracker Design Spec
 
-**Status:** Draft for review · **Owner:** TacoJuan · **Last updated:** 2026-06-09
+**Status:** Surfaces 1–5 + auto-nutrition-on-publish BUILT · **Owner:** TacoJuan · **Last updated:** 2026-06-11
 **Merge policy:** This is a standalone spec. Merge relevant sections into `PRD.md` (merge, not overwrite).
+
+> **Build status (2026-06-11):** The nutrition tracker is live. The shared lookup
+> engine, Surfaces 1–5, and **auto-nutrition-on-publish** (see new section below)
+> are all built. The Nutrition page is reached via a top-level **Navigation** nav
+> item (not gated behind the HubBanner admin banner). Barcode scanning remains a
+> future build (see Non-Goals / Future Considerations).
 
 ---
 
@@ -61,10 +67,14 @@ nutrition: {
 
 **Critical design note:** `total` (whole-recipe) is the durable basis. Per-serving values are derived as `total / servings`. When the user later corrects `servings` in the UI, per-serving recomputes from `total` — so a defaulted-to-4 recipe corrects cleanly without re-running the backfill.
 
-### `consumption_log` collection (NEW)
+### `consumption_log` collection (NEW) — BUILT
+
+**Actual path:** `users/{uid}/nutrition/root/log/{entryId}` (a subcollection under
+the per-user `nutrition/root` document, not a top-level `consumption_log`). Saved
+foods (quick-food name cache) live alongside at `users/{uid}/nutrition/root/savedFoods/{id}`.
 
 ```
-consumption_log/{entryId}
+users/{uid}/nutrition/root/log/{entryId}
   date:           timestamp   // when it was eaten (date-level granularity for the dashboard)
   meal:           "breakfast" | "lunch" | "snack" | "dinner"   // for Today-view grouping
   type:           "recipe" | "quick_food" | "manual"
@@ -83,10 +93,13 @@ consumption_log/{entryId}
 - **Cook event** (`is_cook_event: true`) — via Cooking Mode completion or plan checkbox. Writes the log entry AND updates the plan / cooked status.
 - **Eat-a-serving** (`is_cook_event: false`) — via Today view, "log a serving of one of my recipes" (leftovers). Writes the log entry ONLY; does not touch the plan or increment cooked count.
 
-### `goals` (single doc, per-user) — NEW
+### `goals` (single doc, per-user) — BUILT
+
+**Actual path:** `users/{uid}/nutrition/root/goals/daily` (a single `daily` doc in
+the `goals` subcollection under `nutrition/root`).
 
 ```
-goals/{userId}
+users/{uid}/nutrition/root/goals/daily
   calories:  number,   // daily target
   protein_g: number,
   carbs_g:   number,
@@ -125,16 +138,18 @@ This is the single engine behind backfill, recipe re-computation, and live quick
 
 ---
 
-## UI Shell: Unified "Nutrition" Page (settled via mockups)
+## UI Shell: Unified "Nutrition" Page (settled via mockups) — ✅ BUILT
 
-Surfaces 4 and 5 are **two tabs of a single Nutrition page**, not separate destinations:
+The Nutrition page is reached via a top-level **Navigation** nav item (it is not
+gated behind the HubBanner admin banner). Surfaces 4 and 5 are **two tabs of a
+single Nutrition page**, not separate destinations:
 - **Today tab** (Surface 4) is the default landing tab — log list + today's goal rings + entry points.
 - **Insights tab** (Surface 5) is the analytical view — ranges, donut, goal attainment.
 - A **persistent "＋ Log food" button lives in the page header**, available from both tabs. It opens the entry sheet (Surface 3) as a modal over whatever tab is active, so logging is always one tap away.
 
 This shell should be built as part of Surface 4 (the first of the two to be built) and host the Insights tab when Surface 5 lands.
 
-## Surface 1 — Recipe Detail + Edit (Nutrition Section)
+## Surface 1 — Recipe Detail + Edit (Nutrition Section) — ✅ BUILT
 
 **Depends on:** backfill data (in progress) + `nutrition` model. **Buildable now in parallel with backfill** (it's display + edit, not lookup).
 
@@ -159,7 +174,56 @@ Lead the Claude Code prompt with reading the actual recipe schema (field names f
 
 ---
 
-## Surface 2 — Cooked Capture (Cooking Mode + Plan Integration)
+## Surface 1b — Auto-Nutrition on Publish — ✅ BUILT
+
+**Depends on:** shared lookup engine + `nutrition` model + Surface 1 empty state.
+
+### What it does
+Newly created recipes land with `nutrition` already populated, so the user never
+sees an empty nutrition section on a fresh recipe. Nutrition is computed at the
+moment a recipe is written to `recipes/{id}`, across all entry paths:
+
+- **Queue publish** (`app/queue/page.tsx` → `QueueCard.handlePublish`) — covers the
+  **booklet/paywalled-scrape** and **URL-provided** paths, which both land in the
+  queue first and are published from there.
+- **Discover direct-save** (`app/discover/page.tsx` → `handleSaveGenerated` and
+  `handlePlanSaveNew`) — covers the **AI-created** path, which saves straight to the
+  collection without passing through the queue.
+
+The flow is: write the recipe doc first (the engine reads it by id), then call the
+shared route `POST /api/nutrition-lookup { type: "recipe", recipeId }`, then merge
+the returned `nutrition` object back onto the doc. Logic is centralized in
+`computeAndStoreNutrition()` (`lib/recipes.ts`), reused by every call site.
+
+### Guarantees
+- **Visible loading state** — the publish/save button shows "Calculating nutrition…"
+  during computation so the action never appears frozen.
+- **Never blocks the save** — computation is wrapped in a ~20s timeout
+  (`AbortSignal.timeout`). On slowness or any error the recipe is published anyway
+  and flagged `nutritionStatus: 'needs_calc'`; nutrition is left empty rather than
+  blocking. `computeAndStoreNutrition` never throws.
+- **Same shape as backfill** — the engine returns the full object (whole-recipe
+  `total`, per-serving macros, `serving_size`, `source`, `confidence`). When servings
+  is unknown it defaults to 4 with `source += '+default_servings'` and
+  `confidence: 'low'`, storing the whole-recipe `total` as the durable basis so a
+  later servings correction re-divides cleanly (handled inside the engine).
+
+### Manual fix-path (Surface 1 empty state)
+A recipe flagged `needs_calc` (or never computed) shows a **"Calculate nutrition"**
+button in the Surface 1 empty state (`components/NutritionSection.tsx`). It re-runs
+the engine on demand (longer 45s window), writes the result, and updates the page in
+place. This is the single fix path for failed/timed-out recipes — no separate
+flagging queue.
+
+### Acceptance criteria
+- [x] Publishing from the queue computes and stores nutrition before the card clears.
+- [x] AI-generated recipes saved from Discover land with nutrition populated.
+- [x] A compute failure/timeout never prevents the recipe from being saved.
+- [x] A failed recipe surfaces a working "Calculate nutrition" retry on its detail page.
+
+---
+
+## Surface 2 — Cooked Capture (Cooking Mode + Plan Integration) — ✅ BUILT
 
 **Depends on:** `consumption_log` model + Surface 1. **⚠️ Requires plan-schema inspection first.**
 
@@ -185,7 +249,7 @@ The Claude Code prompt MUST begin by reading the plan item schema and reporting 
 
 ---
 
-## Surface 3 — Quick / Manual Food Entry
+## Surface 3 — Quick / Manual Food Entry — ✅ BUILT
 
 **Depends on:** shared lookup engine + `consumption_log`.
 
@@ -207,7 +271,7 @@ The Claude Code prompt MUST begin by reading the plan item schema and reporting 
 
 ---
 
-## Surface 4 — Today View
+## Surface 4 — Today View — ✅ BUILT
 
 **Depends on:** `consumption_log` + `goals` + Surface 3.
 
@@ -230,7 +294,7 @@ The Claude Code prompt MUST begin by reading the plan item schema and reporting 
 
 ---
 
-## Surface 5 — Insights Dashboard
+## Surface 5 — Insights Dashboard — ✅ BUILT
 
 **Depends on:** `consumption_log` + `goals` + Surface 4 (needs real logged data to be meaningful — build last).
 

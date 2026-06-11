@@ -1,7 +1,10 @@
 'use client'
 
-import { Flame, ShieldCheck, AlertTriangle } from 'lucide-react'
+import { useState } from 'react'
+import { Flame, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react'
 import type { RecipeNutrition } from '@/types/recipe'
+import { useAuth } from '@/lib/AuthContext'
+import { computeAndStoreNutrition } from '@/lib/recipes'
 import {
   NUTRIENTS,
   formatNutrient,
@@ -12,9 +15,35 @@ import {
 
 interface Props {
   nutrition?: RecipeNutrition
+  recipeId?: string
+  // Called with the freshly-computed nutrition after a manual "Calculate nutrition".
+  onCalculated?: (nutrition: RecipeNutrition) => void
 }
 
-export default function NutritionSection({ nutrition }: Props) {
+export default function NutritionSection({ nutrition, recipeId, onCalculated }: Props) {
+  const { user } = useAuth()
+  const [calculating, setCalculating] = useState(false)
+  const [calcError, setCalcError] = useState('')
+
+  // Manual fix-path for recipes whose auto-nutrition failed/timed out (or were
+  // never computed): re-runs the engine on demand and writes the result.
+  const handleCalculate = async () => {
+    if (!recipeId || !user || calculating) return
+    setCalculating(true)
+    setCalcError('')
+    try {
+      const token = await user.getIdToken()
+      // Give the user-initiated retry a longer window than the publish guard.
+      const result = await computeAndStoreNutrition(recipeId, token, 45000)
+      if (result) onCalculated?.(result)
+      else setCalcError('Could not calculate nutrition — please try again.')
+    } catch {
+      setCalcError('Could not calculate nutrition — please try again.')
+    } finally {
+      setCalculating(false)
+    }
+  }
+
   // Empty state — no nutrition object on the recipe yet.
   if (!nutrition) {
     return (
@@ -23,7 +52,18 @@ export default function NutritionSection({ nutrition }: Props) {
           <Flame size={20} className="text-amber" /> Nutrition
         </h2>
         <div className="bg-surface border border-border rounded-2xl p-5">
-          <p className="text-faint text-sm font-body">No nutrition data yet.</p>
+          <p className="text-faint text-sm font-body mb-4">No nutrition data yet.</p>
+          {recipeId && user && (
+            <button
+              onClick={handleCalculate}
+              disabled={calculating}
+              className="btn-primary inline-flex items-center gap-2 text-xs disabled:opacity-60"
+            >
+              {calculating ? <Loader2 size={13} className="animate-spin" /> : <Flame size={13} />}
+              {calculating ? 'Calculating nutrition…' : 'Calculate nutrition'}
+            </button>
+          )}
+          {calcError && <p className="text-red-400 text-xs font-body mt-3">{calcError}</p>}
         </div>
       </section>
     )

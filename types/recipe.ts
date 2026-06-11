@@ -39,6 +39,9 @@ export interface Recipe {
   cookTime?: string
   servings?: number          // recipe-level servings, if stored top-level on the doc
   nutrition?: RecipeNutrition
+  // Set when auto-nutrition-on-publish failed/timed out: 'needs_calc' surfaces the
+  // manual "Calculate nutrition" retry on the recipe detail page; 'computed' once filled.
+  nutritionStatus?: 'needs_calc' | 'computed'
 }
 
 export interface RecipeOverrides {

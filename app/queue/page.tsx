@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, addToQueue, QueuedRecipe } from '@/lib/queue'
-import { saveRecipe } from '@/lib/recipes'
+import { saveRecipe, computeAndStoreNutrition } from '@/lib/recipes'
 import { slugify } from '@/lib/utils'
 import {
   Loader2, Trash2, Check, ChefHat, ExternalLink,
@@ -33,8 +33,11 @@ function QueueCard({
   const [ingredients, setIngredients] = useState((item.ingredients || []).join('\n'))
   const [instructions, setInstructions] = useState((item.instructions || []).join('\n\n'))
   const [imageURL, setImageURL] = useState(item.imageURL || '')
-  const [publishing, setPublishing] = useState(false)
+  // null = idle, 'saving' = writing recipe doc, 'nutrition' = computing nutrition
+  const [publishStage, setPublishStage] = useState<null | 'saving' | 'nutrition'>(null)
+  const publishing = publishStage !== null
   const [saving, setSaving] = useState(false)
+  const { user } = useAuth()
 
   const handleSaveEdit = async () => {
     setSaving(true)
@@ -51,7 +54,7 @@ function QueueCard({
   }
 
   const handlePublish = async () => {
-    setPublishing(true)
+    setPublishStage('saving')
     try {
       const updatedItem: QueuedRecipe = {
         ...item,
@@ -60,7 +63,7 @@ function QueueCard({
         instructions: instructions.split('\n\n').map(l => l.trim()).filter(Boolean),
       }
       const content = buildRecipeContent(updatedItem)
-      await saveRecipe({
+      const recipeId = await saveRecipe({
         recipeID: slugify(title),
         title: title.trim(),
         content,
@@ -74,11 +77,23 @@ function QueueCard({
         created: new Date().toString(),
         modified: new Date().toString(),
       }, uid)
+      // Auto-nutrition: compute synchronously so the recipe lands populated, but
+      // NEVER block publishing on it — computeAndStoreNutrition is timeout-guarded
+      // and flags the recipe for manual calc on failure instead of throwing.
+      if (user) {
+        setPublishStage('nutrition')
+        try {
+          const token = await user.getIdToken()
+          await computeAndStoreNutrition(recipeId, token)
+        } catch (e) {
+          console.error('Nutrition step error (publishing anyway):', e)
+        }
+      }
       await deleteFromQueue(uid, item.id!)
       onPublish(item.id!)
     } catch (err) {
       console.error('Publish error:', err)
-      setPublishing(false)
+      setPublishStage(null)
     }
   }
 
@@ -206,7 +221,9 @@ function QueueCard({
                 }`}
               >
                 {publishing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                {publishing ? 'Adding...' : 'Publish to collection'}
+                {publishStage === 'nutrition' ? 'Calculating nutrition…'
+                  : publishStage === 'saving' ? 'Adding…'
+                  : 'Publish to collection'}
               </button>
             </div>
           </div>

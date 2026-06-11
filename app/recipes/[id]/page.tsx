@@ -379,7 +379,13 @@ export default function RecipeDetailPage() {
         </p>
       )}
 
-      <NutritionSection nutrition={recipe?.nutrition} />
+      <NutritionSection
+        nutrition={recipe?.nutrition}
+        recipeId={recipe?.id}
+        onCalculated={(nutrition: RecipeNutrition) =>
+          setRecipe(r => (r ? { ...r, nutrition, servings: nutrition.servings ?? r.servings } : r))
+        }
+      />
 
       {ingredients.length > 0 && (
         <section className="mb-8">
