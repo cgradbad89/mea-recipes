@@ -78,6 +78,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/plan-suggestions` | POST | Bearer token (required) | AI suggests recipes to complete a week plan (FlavorGraph-informed) |
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
 | `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Anthropic. |
+| `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → USDA with match validation → Anthropic AI fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
 
 ---
 
@@ -121,6 +122,22 @@ items are keyed `sanitize(recipeID-ingredient)`; manual items keyed `sanitize(na
 ### `users/{uid}/pantry/root/savedGroceryItems/{itemId}` — remembered grocery items (`SavedGroceryItem`)
 Fields: `id, name, defaultCategory, timesUsed, lastUsed`. Frequency-ranked memory of
 manually-added items + their chosen category, for faster re-entry.
+
+### `users/{uid}/nutrition/root/log/{entryId}` — consumption log (`ConsumptionEntry`, `lib/consumptionLog.ts`)
+One doc per consumed item (auto-ID). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, recipe_id|null, name, servings_eaten, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'), created_at, userId`.
+Snapshot semantics: editing a recipe later never rewrites past entries. `is_cook_event: true`
+entries (written only via `logCookEvent` — Cooking Mode finish or plan checkmark) are the only
+ones tied to the plan; leftover/quick logs are `false` and never touch the plan.
+Note: the spec drafted this as a top-level `consumption_log` collection; implementation follows
+the existing `users/{uid}/{area}/root/*` convention instead.
+
+### `users/{uid}/nutrition/root/goals/daily` — daily nutrition goals (`NutritionGoals`)
+Single doc: the six macro targets + `updated_at`. (Spec drafted `goals/{userId}`; same
+convention-following relocation as the log.)
+
+### `users/{uid}/nutrition/root/savedFoods/{foodId}` — starred quick-foods (`SavedFood`)
+Doc ID = sanitized lowercased name. Fields: `id, name, nutrition{6 macros per serving},
+source('usda'|'ai_estimate'|'manual'), created_at`.
 
 ### `users/{uid}/recipeQueue/{id}` — AI parse queue (`QueuedRecipe`, `lib/queue.ts`)
 Staging area for AI-parsed/generated recipes before publishing into `recipes`. Fields:
@@ -253,6 +270,23 @@ publish the current user's week and subscribe to other users' entries for the sa
   The takeover is `fixed inset-0 z-[100]`, sharing the same layer as the Add-to-Plan popover; it
   covers the `z-50` HubBanner. Its checked-ingredient / current-step state is in-memory only and
   resets on each launch (no persistence).
+- **USDA search API rejects parenthesized dataType values.** Sending
+  `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
+  (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
+  parenthesized dataType: ingredient lookups use `SR Legacy,Foundation`; food-name lookups omit
+  the param and post-filter results by dataType. Don't "simplify" this back.
+- **No composite Firestore indexes — keep log queries single-field.** `lib/consumptionLog.ts`
+  range-filters and orders on the same field (`date`) and does recipe/cook-event filtering
+  client-side. A `where(recipe_id)+where(date>=)` query would demand a composite index, which
+  this repo doesn't manage (no firestore.indexes.json).
+- **Firestore rules block non-Google-auth writes — even admin-minted custom tokens.** Writes to
+  `users/{uid}/**` fail PERMISSION_DENIED for custom-token sessions (with or without email
+  claims), so client-SDK smoke tests of user-data writes can't run headless. Verify those flows
+  in the live app; the admin SDK (API routes) bypasses rules as usual.
+- **`.env.local` private key was paste-mangled once.** `FIREBASE_PRIVATE_KEY` had smart quotes
+  (`“…”`) and clipped PEM dashes, making `verifyAuthToken` silently 401 ALL auth-gated routes in
+  local dev (prod unaffected — Vercel env was clean). Fixed 2026-06-11. If local API routes 401
+  with a valid sign-in, check the key formatting first.
 
 ---
 
@@ -272,7 +306,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
 | Commit Firestore rules to repo | Medium | Backlog | Rules only live in README + console; no `firestore.rules` under version control |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
-| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail nutrition display + editable servings with per-serving recompute) **Done**; backfill **Done** (202/205 recipes; 3 manual-queue rows lack calorie data); Surfaces 2–5 pending |
+| Nutrition tracker (per-recipe macros + consumption log + insights) | High | In progress | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`, temp entry button on Recipes page) **Done**; Surfaces 4–5 (Today view + Insights, Session B) pending |
 
 ---
 

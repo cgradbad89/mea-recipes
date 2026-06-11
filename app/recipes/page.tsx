@@ -8,6 +8,7 @@ import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
+import LogFoodSheet from '@/components/LogFoodSheet'
 import type { Recipe } from '@/types/recipe'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
@@ -70,6 +71,9 @@ export default function RecipesPage() {
   const metas = useRecipeMetas()
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [loading, setLoading] = useState(true)
+  // TEMP (Session A): smoke-test entry point for the log-food sheet.
+  // Session B moves this into the Nutrition page header ("＋ Log food").
+  const [showLogFood, setShowLogFood] = useState(false)
   const [search, setSearch] = useState(() => readLS('mea_recipes_search', ''))
   const [cuisine, setCuisine] = useState(() => readLS('mea_recipes_cuisine', 'All'))
   const [category, setCategory] = useState(() => readLS('mea_recipes_category', 'All'))
@@ -225,10 +229,19 @@ export default function RecipesPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Recipes</h1>
-        <p className="text-faint text-sm font-body">Your personal collection</p>
+      <div className="mb-8 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Recipes</h1>
+          <p className="text-faint text-sm font-body">Your personal collection</p>
+        </div>
+        {user && (
+          <button onClick={() => setShowLogFood(true)} className="btn-ghost text-xs shrink-0 mt-2">
+            ＋ Log food
+          </button>
+        )}
       </div>
+
+      {showLogFood && <LogFoodSheet onClose={() => setShowLogFood(false)} />}
 
       <div className="mb-6">
         <RecipeFilters

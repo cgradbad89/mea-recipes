@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader } from '@/lib/recipes'
 import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
+import { logCookEvent } from '@/lib/consumptionLog'
+import { perServingOf } from '@/lib/nutrition'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/lib/AuthContext'
 import RecipeEditModal from '@/components/RecipeEditModal'
@@ -533,6 +535,16 @@ export default function RecipeDetailPage() {
           instructions={instructions}
           sourceURL={displayRecipe.sourceURL}
           onClose={() => setShowCookingMode(false)}
+          onMarkCooked={user ? async (servingsEaten: number) => {
+            // One shared cooked-capture pathway with the plan page checkmark:
+            // updates this week's plan + writes a single is_cook_event log entry.
+            await logCookEvent(user.uid, {
+              recipeId: displayRecipe.id,
+              recipeName: displayRecipe.title,
+              perServing: perServingOf(recipe?.nutrition),
+              servingsEaten,
+            })
+          } : undefined}
         />
       )}
 

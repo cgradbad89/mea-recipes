@@ -43,6 +43,23 @@ export function perServingFromTotal(
   return out
 }
 
+/**
+ * Per-serving macros for a recipe's nutrition object: derived from the durable
+ * whole-recipe `total` when possible, else the stored per-serving fields.
+ */
+export function perServingOf(n: RecipeNutrition | undefined): NutritionMacros | null {
+  if (!n) return null
+  const derived = perServingFromTotal(n.total, n.servings)
+  if (derived) return derived
+  if (typeof n.calories === 'number' && Number.isFinite(n.calories)) {
+    return {
+      calories: n.calories, protein_g: n.protein_g ?? 0, carbs_g: n.carbs_g ?? 0,
+      fat_g: n.fat_g ?? 0, fiber_g: n.fiber_g ?? 0, sugar_g: n.sugar_g ?? 0,
+    }
+  }
+  return null
+}
+
 /** Human-readable serving label, e.g. "1 of 4". */
 export function servingSizeLabel(servings: number | undefined): string {
   if (!servings || !Number.isFinite(servings) || servings <= 0) return ''

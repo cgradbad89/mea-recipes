@@ -14,6 +14,8 @@ import {
   type WeekPlan, type RecipeMeta, type SharedPlanEntry
 } from '@/lib/userdata'
 import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
+import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
+import { perServingOf } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
 import type { Recipe } from '@/types/recipe'
 
@@ -40,6 +42,65 @@ function addWeeks(weekID: string, delta: number): string {
   const d = new Date(weekID + 'T12:00:00')
   d.setDate(d.getDate() + delta * 7)
   return weekIDFromDate(d)
+}
+
+// Inline prompt shown when ticking "cooked": captures servings eaten so the
+// cook event lands in the consumption log (Surface 2). "Just mark cooked"
+// updates the plan without logging.
+function CookServingsModal({
+  recipeName,
+  onConfirm,
+  onSkip,
+}: {
+  recipeName: string
+  onConfirm: (servingsEaten: number) => Promise<void>
+  onSkip: () => Promise<void>
+}) {
+  const [servings, setServings] = useState('1')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const v = parseFloat(servings)
+  const valid = Number.isFinite(v) && v > 0
+
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true)
+    setError('')
+    try { await fn() } catch { setError("Couldn't save — try again."); setBusy(false) }
+  }
+
+  return (
+    <div className="bg-card border border-amber/20 rounded-xl p-4 mt-2 animate-fade-in">
+      <p className="text-cream text-sm font-body font-medium mb-1">
+        Cooked <span className="text-amber">{recipeName}</span> — log it to today?
+      </p>
+      <p className="text-faint text-xs font-body mb-3">Servings you ate:</p>
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="number"
+          min="0.25"
+          step="0.25"
+          inputMode="decimal"
+          value={servings}
+          onChange={e => setServings(e.target.value)}
+          className="input-field w-24 text-sm"
+          autoFocus
+        />
+      </div>
+      {error && <p className="text-red-400 text-xs font-body mb-2">{error}</p>}
+      <div className="flex gap-2">
+        <button
+          onClick={() => valid && run(() => onConfirm(v))}
+          disabled={!valid || busy}
+          className="btn-primary text-xs px-3 py-1.5 disabled:opacity-40"
+        >
+          {busy ? 'Saving…' : 'Log & mark cooked'}
+        </button>
+        <button onClick={() => run(onSkip)} disabled={busy} className="btn-ghost text-xs px-3 py-1.5">
+          Just mark cooked
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // Inline modal shown after marking a recipe cooked (if no existing rating)
@@ -96,6 +157,7 @@ export default function PlanPage() {
   const [moveOpenFor, setMoveOpenFor] = useState<string | null>(null)
   const [movingRecipe, setMovingRecipe] = useState<string | null>(null)
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
+  const [servingsPromptFor, setServingsPromptFor] = useState<string | null>(null)
   const [metas, setMetas] = useState<Record<string, RecipeMeta>>({})
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
@@ -225,15 +287,48 @@ export default function PlanPage() {
     label: formatWeekLabel(addWeeks(weekID, delta)),
   }))
 
+  const maybePromptRating = (recipeID: string) => {
+    if (!metas[recipeID]?.rating) setRatingPromptFor(recipeID)
+  }
+
   const handleMarkCooked = async (recipeID: string, isCooked: boolean) => {
     if (!user) return
-    // On check (not uncheck), show rating prompt if no existing rating
-    if (isCooked && !metas[recipeID]?.rating) {
-      await markRecipeCooked(user.uid, weekID, recipeID, true)
-      setRatingPromptFor(recipeID)
+    if (!isCooked) {
+      // un-tick keeps its original behavior: plan-only, never touches the log
+      await markRecipeCooked(user.uid, weekID, recipeID, false)
       return
     }
-    await markRecipeCooked(user.uid, weekID, recipeID, isCooked)
+    // Tick: if a cook-event was already logged today (e.g. via Cooking Mode),
+    // only update the plan — never create a duplicate log entry.
+    const existing = await getTodayCookEventForRecipe(user.uid, recipeID)
+    if (existing) {
+      await markRecipeCooked(user.uid, weekID, recipeID, true)
+      maybePromptRating(recipeID)
+      return
+    }
+    // Otherwise capture servings eaten first; the write happens on confirm.
+    setServingsPromptFor(recipeID)
+  }
+
+  const handleServingsConfirm = async (recipeID: string, servingsEaten: number) => {
+    if (!user) return
+    // Shared cooked-capture pathway (same as Cooking Mode): plan + one log entry.
+    await logCookEvent(user.uid, {
+      recipeId: recipeID,
+      recipeName: recipes[recipeID]?.title || recipeID,
+      perServing: perServingOf(recipes[recipeID]?.nutrition),
+      servingsEaten,
+      weekID,
+    })
+    setServingsPromptFor(null)
+    maybePromptRating(recipeID)
+  }
+
+  const handleServingsSkip = async (recipeID: string) => {
+    if (!user) return
+    await markRecipeCooked(user.uid, weekID, recipeID, true)
+    setServingsPromptFor(null)
+    maybePromptRating(recipeID)
   }
 
   const handleRatingSave = async (recipeID: string, rating: number, note: string) => {
@@ -534,6 +629,14 @@ export default function PlanPage() {
                           </button>
                         </div>
                       </div>
+                      {/* Servings prompt when ticking cooked (writes log + plan on confirm) */}
+                      {servingsPromptFor === id && (
+                        <CookServingsModal
+                          recipeName={recipe.title}
+                          onConfirm={s => handleServingsConfirm(id, s)}
+                          onSkip={() => handleServingsSkip(id)}
+                        />
+                      )}
                       {/* Rating prompt after marking cooked */}
                       {ratingPromptFor === id && (
                         <CookRatingModal

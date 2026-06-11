@@ -16,6 +16,13 @@ interface CookingModeProps {
   instructions: string[]
   sourceURL?: string
   onClose: () => void
+  /**
+   * Cooked-capture hook (Surface 2): when provided, finishing the cook flow
+   * offers a "Mark as cooked?" step with a servings-eaten input. The parent
+   * owns all Firestore writes (plan + consumption log) — this component stays
+   * presentational.
+   */
+  onMarkCooked?: (servingsEaten: number) => Promise<void>
 }
 
 type Tab = 'ingredients' | 'instructions'
@@ -26,11 +33,32 @@ export default function CookingMode({
   instructions,
   sourceURL,
   onClose,
+  onMarkCooked,
 }: CookingModeProps) {
   const [tab, setTab] = useState<Tab>('ingredients')
   const [checked, setChecked] = useState<Set<number>>(new Set())
   const [currentStep, setCurrentStep] = useState(0)
+  const [showFinish, setShowFinish] = useState(false)
+  const [servingsInput, setServingsInput] = useState('1')
+  const [savingCooked, setSavingCooked] = useState(false)
+  const [cookedError, setCookedError] = useState('')
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null)
+
+  const servingsEaten = parseFloat(servingsInput)
+  const servingsValid = Number.isFinite(servingsEaten) && servingsEaten > 0
+
+  const handleConfirmCooked = async () => {
+    if (!onMarkCooked || !servingsValid || savingCooked) return
+    setSavingCooked(true)
+    setCookedError('')
+    try {
+      await onMarkCooked(servingsEaten)
+      onClose()
+    } catch {
+      setCookedError("Couldn't save — check your connection and try again.")
+      setSavingCooked(false)
+    }
+  }
 
   // ─── Screen Wake Lock ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -92,13 +120,24 @@ export default function CookingMode({
             {title}
           </h1>
         </div>
-        <button
-          onClick={onClose}
-          aria-label="Close cooking mode"
-          className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream hover:border-amber/30 transition-all"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {onMarkCooked && (
+            <button
+              onClick={() => setShowFinish(true)}
+              aria-label="Finish cooking"
+              className="h-11 px-4 rounded-full flex items-center gap-1.5 bg-card border border-border text-faint hover:text-green-400 hover:border-green-400/30 transition-all text-sm font-body"
+            >
+              <Check size={16} /> Finish
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            aria-label="Close cooking mode"
+            className="w-11 h-11 shrink-0 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream hover:border-amber/30 transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </header>
 
       {/* Tabs */}
@@ -230,15 +269,73 @@ export default function CookingMode({
                 </a>
               )}
             </div>
-            <button
-              onClick={goNext}
-              disabled={currentStep === instructions.length - 1}
-              className="flex items-center gap-1.5 btn-primary disabled:opacity-30 disabled:pointer-events-none"
-            >
-              Next <ChevronRight size={16} />
-            </button>
+            {onMarkCooked && currentStep === instructions.length - 1 ? (
+              <button
+                onClick={() => setShowFinish(true)}
+                className="flex items-center gap-1.5 btn-primary"
+              >
+                Finish <Check size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={goNext}
+                disabled={currentStep === instructions.length - 1}
+                className="flex items-center gap-1.5 btn-primary disabled:opacity-30 disabled:pointer-events-none"
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            )}
           </div>
         </footer>
+      )}
+
+      {/* Completion step — "Mark as cooked?" with servings-eaten capture */}
+      {showFinish && onMarkCooked && (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center bg-ink/85 backdrop-blur-sm p-6"
+          onClick={() => !savingCooked && setShowFinish(false)}
+        >
+          <div
+            className="bg-surface border border-border rounded-2xl p-6 max-w-sm w-full animate-fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="font-display text-2xl text-cream font-light mb-1">Mark as cooked?</h3>
+            <p className="text-faint text-sm font-body mb-4">
+              This updates your meal plan and logs it to today&apos;s nutrition.
+            </p>
+            <label className="block mb-4">
+              <span className="text-faint text-xs font-body uppercase tracking-widest">Servings eaten</span>
+              <input
+                type="number"
+                min="0.25"
+                step="0.25"
+                inputMode="decimal"
+                value={servingsInput}
+                onChange={e => setServingsInput(e.target.value)}
+                className="input-field mt-1.5 w-28"
+                autoFocus
+              />
+            </label>
+            {cookedError && <p className="text-red-400 text-xs font-body mb-3">{cookedError}</p>}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={onClose}
+                disabled={savingCooked}
+                className="btn-ghost text-sm"
+              >
+                Skip
+              </button>
+              <button
+                onClick={handleConfirmCooked}
+                disabled={!servingsValid || savingCooked}
+                className="btn-primary text-sm flex items-center gap-1.5 disabled:opacity-40"
+              >
+                {savingCooked && <span className="w-3 h-3 border-2 border-ink/40 border-t-ink rounded-full animate-spin" />}
+                Mark cooked
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
