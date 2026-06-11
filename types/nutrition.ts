@@ -49,7 +49,7 @@ export interface SavedFood {
   id: string
   name: string
   nutrition: NutritionMacros   // per serving
-  source: 'usda' | 'ai_estimate' | 'manual'
+  source: Exclude<LogSource, 'recipe'>   // barcode-scanned favorites keep their packaged-product source
   created_at?: unknown
 }
 

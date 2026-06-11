@@ -1,29 +1,70 @@
 'use client'
 
-// Log-food entry sheet (Surface 3): three modes — USDA search / my recipes /
-// manual macros — plus a recents+favorites quick row. Writes consumption_log
-// entries with is_cook_event: false. NEVER touches the plan or cooked status
-// (cooked capture is Cooking Mode / the plan checkmark — see lib/consumptionLog
-// logCookEvent). Mounted from the Nutrition page header ("＋ Log food").
+// Log-food entry sheet (Surface 3): four modes — USDA search / my recipes /
+// manual macros / barcode scan — plus a recents+favorites quick row. Writes
+// consumption_log entries with is_cook_event: false. NEVER touches the plan or
+// cooked status (cooked capture is Cooking Mode / the plan checkmark — see
+// lib/consumptionLog logCookEvent). Mounted from the Nutrition page header
+// ("＋ Log food").
+//
+// Scan mode decodes EAN/UPC product barcodes from the camera: the native
+// BarcodeDetector API where the browser has it (Chromium, newer Safari),
+// otherwise a lazy-loaded @zxing/browser reader (older iOS Safari, Firefox).
+// A read stops the camera and resolves via lookupBarcode (/api/barcode-lookup).
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { X, Search, Star, Loader2, Check, ChefHat, PencilLine } from 'lucide-react'
+import {
+  X, Search, Star, Loader2, Check, ChefHat, PencilLine, ScanBarcode, CameraOff, SearchX,
+} from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import {
   addLogEntry, saveFavorite, getSavedFoods, getRecents, autoMealForTime, scaleMacros,
 } from '@/lib/consumptionLog'
 import { getAllRecipes } from '@/lib/recipes'
-import { perServingOf, sourceLabel, NUTRIENTS, formatNutrient } from '@/lib/nutrition'
+import { perServingOf, sourceLabel, NUTRIENTS, formatNutrient, lookupBarcode } from '@/lib/nutrition'
 import type { Recipe, NutritionMacros } from '@/types/recipe'
-import type { Meal, SavedFood, RecentFood } from '@/types/nutrition'
+import type { Meal, SavedFood, RecentFood, BarcodeProduct, LogSource } from '@/types/nutrition'
+import type { IScannerControls } from '@zxing/browser'
 
-type Mode = 'search' | 'recipes' | 'manual'
+type Mode = 'search' | 'recipes' | 'manual' | 'scan'
 
 interface FoodResult {
   name: string
   nutrition: NutritionMacros          // per serving
-  source: 'usda' | 'ai_estimate'
+  source: Exclude<LogSource, 'recipe' | 'manual'>
   confidence?: string
+}
+
+// ── Scan mode plumbing ───────────────────────────────────────────────────────
+
+type ScanStatus =
+  | 'idle'        // mode not started yet (pre-effect first render)
+  | 'starting'    // getUserMedia in flight (permission prompt may be up)
+  | 'scanning'    // live feed + decode loop running
+  | 'looking_up'  // barcode read, camera stopped, /api/barcode-lookup in flight
+  | 'hit'         // product found — confirm-and-log card
+  | 'miss'        // lookup returned found:false
+  | 'denied'      // no permission / no camera / insecure context
+  | 'error'       // lookup or decoder failure
+
+// Product barcodes only (no QR etc.) — keys are the BarcodeDetector format names.
+const SCAN_FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e']
+
+/**
+ * Native BarcodeDetector where the browser supports the product formats
+ * (zero-cost, no download), else the zxing fallback. Runtime-detected because
+ * support is uneven — historically missing on iOS Safari and Firefox.
+ */
+async function pickScanEngine(): Promise<{ engine: 'native'; formats: string[] } | { engine: 'zxing' }> {
+  try {
+    const BD = (window as any).BarcodeDetector
+    if (BD && typeof BD.getSupportedFormats === 'function') {
+      const supported: string[] = await BD.getSupportedFormats()
+      const formats = SCAN_FORMATS.filter(f => supported.includes(f))
+      if (formats.length > 0) return { engine: 'native', formats }
+    }
+  } catch { /* fall through to zxing */ }
+  return { engine: 'zxing' }
 }
 
 const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
@@ -74,6 +115,19 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const [manualMacros, setManualMacros] = useState<Record<string, string>>({
     calories: '', protein_g: '', carbs_g: '', fat_g: '', fiber_g: '', sugar_g: '',
   })
+
+  // mode 4 — scan
+  const [scanStatus, setScanStatus] = useState<ScanStatus>('idle')
+  const [scanSession, setScanSession] = useState(0)   // bump → restart the scanner
+  const [scanHit, setScanHit] = useState<BarcodeProduct | null>(null)
+  const [scanCode, setScanCode] = useState('')
+  const [scanMessage, setScanMessage] = useState('')
+  const [scanStarred, setScanStarred] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const zxingControlsRef = useRef<IScannerControls | null>(null)
+  const scanLoopRef = useRef<number | null>(null)      // native-detector interval id
+  const scanGen = useRef(0)                            // invalidates in-flight camera/decode async work
 
   // recents + favorites quick row
   const [recents, setRecents] = useState<RecentFood[]>([])
@@ -129,6 +183,140 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     return () => clearTimeout(t)
   }, [query, mode, user])
 
+  // ── scan mode: camera + decode lifecycle ──────────────────────────────────
+
+  // Idempotent teardown — kills the decode loop and every camera track so the
+  // camera light never stays on. Bumping scanGen cancels any in-flight async.
+  const stopCamera = () => {
+    scanGen.current++
+    if (scanLoopRef.current !== null) {
+      window.clearInterval(scanLoopRef.current)
+      scanLoopRef.current = null
+    }
+    try { zxingControlsRef.current?.stop() } catch { /* already stopped */ }
+    zxingControlsRef.current = null
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+  }
+
+  const onBarcodeDetected = async (code: string) => {
+    stopCamera()   // camera off the moment we have a read
+    setScanCode(code)
+    setScanStatus('looking_up')
+    if (!user) return
+    try {
+      const token = await user.getIdToken()
+      const data = await lookupBarcode(code, token)
+      if (data.found) {
+        setScanHit(data)
+        setScanStatus('hit')
+      } else {
+        setScanStatus('miss')
+      }
+    } catch (e: any) {
+      setScanMessage(e?.message || 'Lookup failed')
+      setScanStatus('error')
+    }
+  }
+
+  const startScanner = async () => {
+    const gen = ++scanGen.current
+    setScanHit(null); setScanCode(''); setScanMessage(''); setScanStarred(false)
+    setScanStatus('starting')
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      // No camera API — insecure context (plain http) or very old browser.
+      setScanMessage('Camera is not available in this browser.')
+      setScanStatus('denied')
+      return
+    }
+
+    let stream: MediaStream
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },   // rear camera on phones
+        audio: false,
+      })
+    } catch (e: any) {
+      setScanMessage(e?.name === 'NotFoundError' || e?.name === 'OverconstrainedError'
+        ? 'No camera found on this device.'
+        : 'Camera access needed to scan.')
+      setScanStatus('denied')
+      return
+    }
+    if (gen !== scanGen.current || !videoRef.current) {
+      // Mode/sheet closed while the permission prompt was up — release immediately.
+      stream.getTracks().forEach(t => t.stop())
+      return
+    }
+
+    streamRef.current = stream
+    const video = videoRef.current
+    video.srcObject = stream
+    try { await video.play() } catch { /* interrupted by teardown — tracks handled there */ }
+    if (gen !== scanGen.current) return
+    setScanStatus('scanning')
+
+    const picked = await pickScanEngine()
+    if (gen !== scanGen.current) return
+
+    if (picked.engine === 'native') {
+      const detector = new (window as any).BarcodeDetector({ formats: picked.formats })
+      scanLoopRef.current = window.setInterval(async () => {
+        if (gen !== scanGen.current || !videoRef.current) return
+        try {
+          const codes = await detector.detect(videoRef.current)
+          const raw = codes?.[0]?.rawValue
+          if (raw && gen === scanGen.current) onBarcodeDetected(String(raw))
+        } catch { /* per-frame decode errors are normal — keep scanning */ }
+      }, 250)
+    } else {
+      try {
+        const [{ BrowserMultiFormatReader }, zx] = await Promise.all([
+          import('@zxing/browser'),
+          import('@zxing/library'),
+        ])
+        if (gen !== scanGen.current) return
+        const hints = new Map()
+        hints.set(zx.DecodeHintType.POSSIBLE_FORMATS, [
+          zx.BarcodeFormat.EAN_13, zx.BarcodeFormat.EAN_8,
+          zx.BarcodeFormat.UPC_A, zx.BarcodeFormat.UPC_E,
+        ])
+        const reader = new BrowserMultiFormatReader(hints)
+        zxingControlsRef.current = await reader.decodeFromVideoElement(video, result => {
+          if (result && gen === scanGen.current) onBarcodeDetected(result.getText())
+        })
+      } catch {
+        if (gen !== scanGen.current) return
+        stopCamera()
+        setScanMessage('The barcode scanner failed to start.')
+        setScanStatus('error')
+      }
+    }
+  }
+
+  // Start on entering Scan (or on rescan bump); stop on mode switch, sheet
+  // close (unmount), or session bump — the cleanup runs in all three.
+  useEffect(() => {
+    if (mode !== 'scan') return
+    startScanner()
+    return stopCamera
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, scanSession])
+
+  const handleRescan = () => {
+    // Set a feed-showing status BEFORE bumping the session so the <video>
+    // element is mounted when startScanner looks for it.
+    setScanStatus('starting')
+    setScanSession(s => s + 1)
+  }
+
+  const switchToSearch = () => {
+    setMode('search')   // search input autofocuses on mount
+    setSaveError('')
+  }
+
   const servings = parseFloat(servingsInput)
   const servingsValid = Number.isFinite(servings) && servings > 0
 
@@ -163,7 +351,8 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const canConfirm = servingsValid && !saving && (
     (mode === 'search' && !!result) ||
     (mode === 'recipes' && !!selectedRecipe && !!selectedRecipePer) ||
-    (mode === 'manual' && manualName.trim().length > 0 && !!manualPerServing)
+    (mode === 'manual' && manualName.trim().length > 0 && !!manualPerServing) ||
+    (mode === 'scan' && scanStatus === 'hit' && !!scanHit)
   )
 
   const handleConfirm = async () => {
@@ -190,6 +379,14 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
           name: manualName.trim(), servings_eaten: servings,
           nutrition: scaleMacros(manualPerServing, servings), source: 'manual',
         })
+      } else if (mode === 'scan' && scanHit) {
+        // Same shape as a searched quick food; per_100g basis means the snapshot
+        // is macros × servings where 1 serving = 100 g (the card says so).
+        await addLogEntry(user.uid, {
+          meal, type: 'quick_food', is_cook_event: false, recipe_id: null,
+          name: scanHit.name, servings_eaten: servings,
+          nutrition: scaleMacros(scanHit.nutrition, servings), source: scanHit.source,
+        })
       }
       setLoggedOk(true)
       onLogged?.()
@@ -205,6 +402,15 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     try {
       await saveFavorite(user.uid, { name: result.name, nutrition: result.nutrition, source: result.source })
       setStarred(true)
+      getSavedFoods(user.uid).then(setFavorites).catch(() => {})
+    } catch { /* non-fatal */ }
+  }
+
+  const handleScanStar = async () => {
+    if (!user || !scanHit || scanStarred) return
+    try {
+      await saveFavorite(user.uid, { name: scanHit.name, nutrition: scanHit.nutrition, source: scanHit.source })
+      setScanStarred(true)
       getSavedFoods(user.uid).then(setFavorites).catch(() => {})
     } catch { /* non-fatal */ }
   }
@@ -231,10 +437,14 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     skipNextLookup.current = true
     setMode('search')
     setQuery(item.name)
+    // Barcode-scanned favorites keep their packaged-product source/badge.
+    const src: FoodResult['source'] =
+      item.source === 'ai_estimate' || item.source === 'openfoodfacts' || item.source === 'usda_branded'
+        ? item.source : 'usda'
     setResult({
       name: item.name,
       nutrition: item.nutrition,
-      source: item.source === 'ai_estimate' ? 'ai_estimate' : 'usda',
+      source: src,
     })
     setLookupError('')
   }
@@ -283,12 +493,13 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
             </div>
           )}
 
-          {/* mode pills */}
-          <div className="flex gap-2 mb-4">
+          {/* mode pills — labels kept short so four tabs fit a phone width */}
+          <div className="flex gap-1.5 mb-4">
             {([
-              { m: 'search' as Mode, label: 'Search food', icon: <Search size={13} /> },
-              { m: 'recipes' as Mode, label: 'My recipes', icon: <ChefHat size={13} /> },
+              { m: 'search' as Mode, label: 'Search', icon: <Search size={13} /> },
+              { m: 'recipes' as Mode, label: 'Recipes', icon: <ChefHat size={13} /> },
               { m: 'manual' as Mode, label: 'Manual', icon: <PencilLine size={13} /> },
+              { m: 'scan' as Mode, label: 'Scan', icon: <ScanBarcode size={13} /> },
             ]).map(({ m, label, icon }) => (
               <button
                 key={m}
@@ -427,7 +638,134 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
             </div>
           )}
 
-          {/* shared: servings + meal */}
+          {/* mode 4 — scan */}
+          {mode === 'scan' && (
+            <div>
+              {/* Camera viewport stays mounted across statuses (the ref must be
+                  live before startScanner resolves getUserMedia) — just hidden
+                  once the feed is no longer the thing being shown. */}
+              <div
+                className={`relative rounded-xl overflow-hidden bg-ink border border-border aspect-[4/3] ${
+                  scanStatus === 'idle' || scanStatus === 'starting' || scanStatus === 'scanning' ? '' : 'hidden'
+                }`}
+              >
+                <video
+                  ref={videoRef}
+                  playsInline
+                  muted
+                  aria-label="Camera preview for barcode scanning"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                {/* scan-target frame; the giant shadow dims everything outside it */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-[72%] max-w-[260px] aspect-[1.7] rounded-xl border-2 border-amber/90 shadow-[0_0_0_999px_rgba(10,10,10,0.45)]" />
+                </div>
+                <p className="absolute bottom-2.5 inset-x-0 text-center text-cream/90 text-xs font-body drop-shadow">
+                  {scanStatus === 'scanning' ? 'Point the camera at the barcode' : 'Starting camera…'}
+                </p>
+              </div>
+
+              {scanStatus === 'looking_up' && (
+                <div className="flex items-center justify-center gap-2 text-faint text-sm font-body py-8">
+                  <Loader2 size={14} className="animate-spin text-amber" /> Looking up {scanCode}…
+                </div>
+              )}
+
+              {scanStatus === 'hit' && scanHit && (
+                <div>
+                  <div className="bg-card border border-border rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="min-w-0">
+                        <p className="text-cream text-sm font-body font-medium truncate">{scanHit.name}</p>
+                        <span className="inline-block mt-1 text-[10px] font-body px-2 py-0.5 rounded-md bg-amber/10 text-amber">
+                          {sourceLabel(scanHit.source)} · {scanHit.confidence} ·{' '}
+                          {scanHit.basis === 'per_serving' ? 'per serving' : 'per 100 g'}
+                          {scanHit.serving_size ? ` · serving: ${scanHit.serving_size}` : ''}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleScanStar}
+                        aria-label="Save to favorites"
+                        className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center border transition-all ${
+                          scanStarred ? 'bg-amber/15 border-amber/40 text-amber' : 'bg-surface border-border text-faint hover:text-amber'
+                        }`}
+                      >
+                        <Star size={15} fill={scanStarred ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+                    <MacroGrid macros={scanHit.nutrition} />
+                    {scanHit.basis === 'per_100g' && (
+                      <p className="text-amber/80 text-[11px] font-body mt-3">
+                        ⚠ Values are per 100 g, not per serving — 1 serving below logs 100 g of product.
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleRescan}
+                    className="mt-2 flex items-center gap-1.5 text-faint text-xs font-body hover:text-cream transition-colors"
+                  >
+                    <ScanBarcode size={12} /> Scan another item
+                  </button>
+                </div>
+              )}
+
+              {scanStatus === 'miss' && (
+                <div className="bg-card border border-border rounded-xl p-5 text-center">
+                  <SearchX size={22} className="mx-auto text-faint mb-2" />
+                  <p className="text-cream text-sm font-body font-medium mb-1">Product not found</p>
+                  <p className="text-faint text-xs font-body mb-4">
+                    No match for {scanCode || 'that barcode'} — spirits and small store brands often
+                    aren&apos;t in the databases. Try searching by name instead.
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={switchToSearch} className="btn-primary text-xs flex items-center gap-1.5">
+                      <Search size={13} /> Search by name
+                    </button>
+                    <button onClick={handleRescan} className="btn-ghost text-xs flex items-center gap-1.5">
+                      <ScanBarcode size={13} /> Scan again
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {scanStatus === 'denied' && (
+                <div className="bg-card border border-border rounded-xl p-5 text-center">
+                  <CameraOff size={22} className="mx-auto text-faint mb-2" />
+                  <p className="text-cream text-sm font-body font-medium mb-1">
+                    {scanMessage || 'Camera access needed to scan.'}
+                  </p>
+                  <p className="text-faint text-xs font-body mb-4">
+                    Enable it in your browser settings, or use Search instead.
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={switchToSearch} className="btn-primary text-xs flex items-center gap-1.5">
+                      <Search size={13} /> Use Search
+                    </button>
+                    <button onClick={handleRescan} className="btn-ghost text-xs flex items-center gap-1.5">
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {scanStatus === 'error' && (
+                <div className="bg-card border border-border rounded-xl p-5 text-center">
+                  <p className="text-red-400 text-sm font-body mb-4">{scanMessage || 'Something went wrong.'}</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={handleRescan} className="btn-primary text-xs flex items-center gap-1.5">
+                      <ScanBarcode size={13} /> Scan again
+                    </button>
+                    <button onClick={switchToSearch} className="btn-ghost text-xs flex items-center gap-1.5">
+                      <Search size={13} /> Use Search
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* shared: servings + meal — in scan mode only once there's a product to log */}
+          {(mode !== 'scan' || (scanStatus === 'hit' && !!scanHit)) && (
           <div className="mt-4 flex flex-wrap items-end gap-4">
             <label className="block">
               <span className="text-faint text-[10px] font-body uppercase tracking-widest">Servings</span>
@@ -458,6 +796,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* footer */}
