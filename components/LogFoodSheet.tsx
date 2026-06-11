@@ -4,8 +4,7 @@
 // manual macros — plus a recents+favorites quick row. Writes consumption_log
 // entries with is_cook_event: false. NEVER touches the plan or cooked status
 // (cooked capture is Cooking Mode / the plan checkmark — see lib/consumptionLog
-// logCookEvent). In Session B this mounts in the Today view; until then a
-// temporary entry button lives on the Recipes page.
+// logCookEvent). Mounted from the Nutrition page header ("＋ Log food").
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { X, Search, Star, Loader2, Check, ChefHat, PencilLine } from 'lucide-react'
