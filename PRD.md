@@ -161,8 +161,8 @@ publish the current user's week and subscribe to other users' entries for the sa
    `verifyAuthToken` (Firebase Admin `verifyIdToken`) and returns 401 without a valid Bearer
    token. Client Firestore writes always pass `user.uid` from `useAuth()`.
 3. **Access enforcement is NOT email-restricted at the data layer.** The Firestore rules
-   (now version-controlled in `firestore.rules`, reconstructed from code paths — reconcile
-   with the console before deploying) allow **any** authenticated user to read `recipes` and
+   (managed manually in the Firebase Console — **not** version-controlled here; see
+   **Firestore rules** below) allow **any** authenticated user to read `recipes` and
    read/write their own `users/{uid}/**`. Single-user access is a product convention + the
    HubBanner check, not a Firestore-enforced email allowlist.
 4. **Week identity = Monday ISO date.** All meal-plan logic keys weeks by the Monday of the
@@ -242,13 +242,13 @@ publish the current user's week and subscribe to other users' entries for the sa
 
 ## Section 6 — Known Sharp Edges
 
-- **`firestore.rules` is a reconstruction, not a console export.** A `firestore.rules` file now
-  exists in the repo (committed with the auto-nutrition-on-publish work) so future collection
-  additions get a matching rule in the same change — but it was rebuilt from the `collection(db,…)`
-  paths in code, **not** exported from the live console. The authoritative ruleset still lives in
-  the Firebase console for `malignant-metro`; paste/diff it over the file before any deploy. The
-  file deliberately includes the `users/{uid}/nutrition/{document=**}` rule added in the console
-  after the earlier silent-write incident. There is still no committed `validRating()` rule.
+- **Firestore rules are console-only — do not version them here.** A `firestore.rules` file was
+  briefly committed with the auto-nutrition-on-publish work and then removed: the `malignant-metro`
+  database is **shared across multiple apps**, so a `firebase deploy` of rules from this repo would
+  overwrite the other apps' rulesets. The authoritative ruleset lives exclusively in the Firebase
+  console for `malignant-metro` (it includes the `users/{uid}/nutrition/{document=**}` rule added
+  after the earlier silent-write incident). See **Firestore rules** below; when adding a collection,
+  update the rule in the console, not in this repo.
 - **`ANTHROPIC_API_KEY` is not in local `.env.local`.** All AI routes read
   `process.env.ANTHROPIC_API_KEY`; the local env file only defines the three `FIREBASE_*`
   admin vars. The Anthropic key must be set in Vercel project env vars for AI features to work.
@@ -317,7 +317,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | FlavorGraph-informed generation | Medium | Done | `getComplementaryIngredients` seeds Discover + plan-suggestions prompts |
 | Shared week plans (view friends' plans) | Low | Done | `sharedWeekPlans/{weekID}/users/{uid}` |
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
-| Commit Firestore rules to repo | Medium | Done | `firestore.rules` committed (reconstructed from code paths; includes the `users/{uid}/nutrition/{document=**}` rule). Reconcile with console before deploy — see Sharp Edges |
+| Commit Firestore rules to repo | Medium | Won't do | Reverted — the `malignant-metro` DB is shared across apps, so rules are managed manually in the Firebase Console only (a deploy from here would overwrite other apps' rules). See **Firestore rules** + Sharp Edges |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
 | Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
 | Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window) |
@@ -338,3 +338,12 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 
 AI model in use across all routes: `claude-sonnet-4-20250514`, REST Messages API,
 header `anthropic-version: 2023-06-01`.
+
+---
+
+## Firestore rules
+
+Firestore security rules for the shared malignant-metro database are managed manually in the
+Firebase Console, NOT in this repo. Do not add a deployable firestore.rules file or run firebase
+deploy for rules — the database is shared across multiple apps and a deploy from here would
+overwrite the others' rules. When adding a new collection, update the rules in the console.
