@@ -10,11 +10,16 @@
 // Scan mode decodes EAN/UPC product barcodes from the camera: the native
 // BarcodeDetector API where the browser has it (Chromium, newer Safari),
 // otherwise a lazy-loaded @zxing/browser reader (older iOS Safari, Firefox).
+// Both engines decode the SAME cropped region — the scan-target overlay box —
+// from a single owned loop (see computeRoi), at 1080p-ideal capture. Optional
+// camera capabilities (zoom, torch, tap-to-focus) are feature-detected per
+// track; unsupported ones simply don't render (iOS Safari often has none).
 // A read stops the camera and resolves via lookupBarcode (/api/barcode-lookup).
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   X, Search, Star, Loader2, Check, ChefHat, PencilLine, ScanBarcode, CameraOff, SearchX,
+  Flashlight, ZoomIn, ZoomOut,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import {
@@ -24,7 +29,6 @@ import { getAllRecipes } from '@/lib/recipes'
 import { perServingOf, sourceLabel, NUTRIENTS, formatNutrient, lookupBarcode } from '@/lib/nutrition'
 import type { Recipe, NutritionMacros } from '@/types/recipe'
 import type { Meal, SavedFood, RecentFood, BarcodeProduct, LogSource } from '@/types/nutrition'
-import type { IScannerControls } from '@zxing/browser'
 
 type Mode = 'search' | 'recipes' | 'manual' | 'scan'
 
@@ -65,6 +69,48 @@ async function pickScanEngine(): Promise<{ engine: 'native'; formats: string[] }
     }
   } catch { /* fall through to zxing */ }
   return { engine: 'zxing' }
+}
+
+interface ZoomRange { min: number; max: number; step: number }
+
+/**
+ * object-cover geometry — how the source frame maps onto the displayed video
+ * box. Shared by the ROI crop and tap-to-focus coordinate mapping.
+ */
+function coverGeometry(video: HTMLVideoElement) {
+  const vw = video.videoWidth, vh = video.videoHeight
+  const rect = video.getBoundingClientRect()
+  if (!vw || !vh || rect.width === 0 || rect.height === 0) return null
+  const scale = Math.max(rect.width / vw, rect.height / vh)
+  return {
+    vw, vh, rect, scale,
+    offX: (vw * scale - rect.width) / 2,   // display px cropped off the left/top by cover
+    offY: (vh * scale - rect.height) / 2,
+  }
+}
+
+/**
+ * Map the scan-target overlay (plus a small catch margin) into source-frame
+ * pixels, so the decoder sees exactly the region the user framed. Returns null
+ * when geometry isn't measurable yet (pre-metadata / hidden) — the caller then
+ * decodes the full frame, so ROI failure can never make scanning worse.
+ */
+function computeRoi(video: HTMLVideoElement, overlay: HTMLElement) {
+  const g = coverGeometry(video)
+  if (!g) return null
+  const o = overlay.getBoundingClientRect()
+  if (o.width === 0 || o.height === 0) return null
+  const mx = o.width * 0.15, my = o.height * 0.15
+  let sx = (o.left - g.rect.left - mx + g.offX) / g.scale
+  let sy = (o.top - g.rect.top - my + g.offY) / g.scale
+  let sw = (o.width + 2 * mx) / g.scale
+  let sh = (o.height + 2 * my) / g.scale
+  sx = Math.max(0, Math.min(sx, g.vw - 2))
+  sy = Math.max(0, Math.min(sy, g.vh - 2))
+  sw = Math.min(sw, g.vw - sx)
+  sh = Math.min(sh, g.vh - sy)
+  if (sw < 48 || sh < 32) return null
+  return { sx, sy, sw, sh }
 }
 
 const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
@@ -159,9 +205,26 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const manualInputRef = useRef<HTMLInputElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const zxingControlsRef = useRef<IScannerControls | null>(null)
-  const scanLoopRef = useRef<number | null>(null)      // native-detector interval id
+  const trackRef = useRef<MediaStreamTrack | null>(null)
+  const overlayRef = useRef<HTMLDivElement | null>(null)   // scan-target box — IS the decode region
+  const scanLoopRef = useRef<number | null>(null)      // decode interval id (both engines)
   const scanGen = useRef(0)                            // invalidates in-flight camera/decode async work
+  const flashTimerRef = useRef<number | null>(null)    // decode-confirmation flash → lookup handoff
+
+  // optional camera capabilities — feature-detected per track in
+  // initTrackCapabilities; a missing capability means its control never renders
+  const [scanFlash, setScanFlash] = useState(false)    // brief green "got it" before lookup
+  const [zoomCaps, setZoomCaps] = useState<ZoomRange | null>(null)
+  const [zoomVal, setZoomVal] = useState(1)
+  const [torchSupported, setTorchSupported] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
+  const [canTapFocus, setCanTapFocus] = useState(false)
+  const [tapPoint, setTapPoint] = useState<{ x: number; y: number } | null>(null)   // focus ring, % of box
+  const focusCapsRef = useRef({ poi: false, single: false, continuous: false })
+  const pinchPointers = useRef(new Map<number, { x: number; y: number; sx: number; sy: number; t: number }>())
+  const pinchStart = useRef<{ dist: number; zoom: number } | null>(null)
+  const lastZoomApply = useRef(0)                      // throttle applyConstraints during pinch
+  const lastZoomReq = useRef(1)                        // latest requested zoom (state can lag a render)
 
   // re-log history: recents + favorites (quick row, searchable list — Search/Scan only)
   const [recents, setRecents] = useState<RecentFood[]>([])
@@ -223,23 +286,36 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
 
   // ── scan mode: camera + decode lifecycle ──────────────────────────────────
 
-  // Idempotent teardown — kills the decode loop and every camera track so the
-  // camera light never stays on. Bumping scanGen cancels any in-flight async.
-  const stopCamera = () => {
+  // Releases the decode loop + camera hardware: torch off (belt-and-braces —
+  // stopping the track kills it too, but the light must never outlive the
+  // mode), every track stopped, srcObject kept unless `keepFrame`, which the
+  // decode-confirmation flash uses to hold the last frame on screen.
+  const releaseCamera = (keepFrame = false) => {
     scanGen.current++
     if (scanLoopRef.current !== null) {
       window.clearInterval(scanLoopRef.current)
       scanLoopRef.current = null
     }
-    try { zxingControlsRef.current?.stop() } catch { /* already stopped */ }
-    zxingControlsRef.current = null
+    if (flashTimerRef.current !== null) {
+      window.clearTimeout(flashTimerRef.current)
+      flashTimerRef.current = null
+    }
+    try { (trackRef.current as any)?.applyConstraints?.({ advanced: [{ torch: false }] })?.catch?.(() => {}) } catch { /* stopping anyway */ }
+    trackRef.current = null
+    pinchPointers.current.clear()
+    pinchStart.current = null
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
-    if (videoRef.current) videoRef.current.srcObject = null
+    if (!keepFrame && videoRef.current) videoRef.current.srcObject = null
   }
 
-  const onBarcodeDetected = async (code: string) => {
-    stopCamera()   // camera off the moment we have a read
+  // Idempotent full teardown — effect cleanup, mode switches, typed-code path.
+  const stopCamera = () => releaseCamera(false)
+
+  // Lookup half — shared by camera reads (after the confirmation flash) and
+  // the typed-barcode fallback.
+  const runBarcodeLookup = async (code: string) => {
+    if (videoRef.current) videoRef.current.srcObject = null   // drop the frozen flash frame
     setScanCode(code)
     setScanStatus('looking_up')
     if (!user) return
@@ -258,9 +334,156 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     }
   }
 
+  // Typed-barcode path — no camera necessarily involved; straight to lookup.
+  const onBarcodeDetected = (code: string) => {
+    stopCamera()
+    runBarcodeLookup(code)
+  }
+
+  // Camera-read path: hardware off the moment we have a read (unchanged
+  // behaviour), but the last frame stays frozen on screen behind a brief green
+  // confirmation before the lookup fires.
+  const handleDecodeSuccess = (code: string) => {
+    releaseCamera(true)
+    setScanCode(code)
+    setScanFlash(true)
+    const gen = scanGen.current
+    flashTimerRef.current = window.setTimeout(() => {
+      flashTimerRef.current = null
+      if (gen !== scanGen.current) return   // torn down mid-flash
+      setScanFlash(false)
+      runBarcodeLookup(code)
+    }, 450)
+  }
+
+  // ── optional camera capabilities (zoom / torch / focus) ──────────────────
+  // Everything below is feature-detected per track: absent capability → hidden
+  // control, baseline scanning untouched. iOS Safari commonly reports none of
+  // these; some Androids populate them only a beat after the track starts
+  // (hence the delayed re-probe in startScanner).
+
+  const initTrackCapabilities = (track: MediaStreamTrack) => {
+    let caps: any = {}
+    try { caps = typeof track.getCapabilities === 'function' ? track.getCapabilities() : {} } catch { caps = {} }
+
+    const z = caps.zoom
+    if (z && typeof z.min === 'number' && typeof z.max === 'number' && z.max > z.min) {
+      let current = z.min
+      try {
+        const s: any = track.getSettings()
+        if (typeof s.zoom === 'number') current = s.zoom
+      } catch { /* keep min */ }
+      setZoomCaps({ min: z.min, max: z.max, step: typeof z.step === 'number' && z.step > 0 ? z.step : (z.max - z.min) / 20 })
+      setZoomVal(current)
+      lastZoomReq.current = current
+    }
+
+    if (caps.torch === true) setTorchSupported(true)
+
+    const modes: string[] = Array.isArray(caps.focusMode) ? caps.focusMode : []
+    focusCapsRef.current = {
+      poi: 'pointsOfInterest' in caps,
+      single: modes.includes('single-shot'),
+      continuous: modes.includes('continuous'),
+    }
+    if (focusCapsRef.current.continuous) {
+      // keep refocusing as the phone moves between box sizes/distances
+      try { track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] } as any).catch(() => {}) } catch { /* ignored */ }
+    }
+    setCanTapFocus(focusCapsRef.current.poi || focusCapsRef.current.single)
+  }
+
+  const applyZoom = (v: number, force = false) => {
+    const track = trackRef.current as any
+    if (!track || !zoomCaps) return
+    const clamped = Math.min(zoomCaps.max, Math.max(zoomCaps.min, v))
+    setZoomVal(clamped)
+    lastZoomReq.current = clamped
+    const now = performance.now()
+    if (!force && now - lastZoomApply.current < 90) return   // pinch streams events — don't spam the driver
+    lastZoomApply.current = now
+    try { track.applyConstraints({ advanced: [{ zoom: clamped }] }).catch(() => {}) } catch { /* capability lied — ignore */ }
+  }
+
+  const toggleTorch = () => {
+    const track = trackRef.current as any
+    if (!track || !torchSupported) return
+    const next = !torchOn
+    setTorchOn(next)
+    try {
+      track.applyConstraints({ advanced: [{ torch: next }] }).catch(() => setTorchOn(!next))
+    } catch { setTorchOn(!next) }
+  }
+
+  const focusAt = (clientX: number, clientY: number) => {
+    const video = videoRef.current
+    const track = trackRef.current as any
+    if (!video || !track || !canTapFocus) return
+    const g = coverGeometry(video)
+    if (!g) return
+    setTapPoint({ x: ((clientX - g.rect.left) / g.rect.width) * 100, y: ((clientY - g.rect.top) / g.rect.height) * 100 })
+    window.setTimeout(() => setTapPoint(null), 700)
+    const advanced: any[] = []
+    if (focusCapsRef.current.poi) {
+      // tap → normalized frame coords (inverse of the object-cover crop)
+      const fx = Math.min(1, Math.max(0, (clientX - g.rect.left + g.offX) / g.scale / g.vw))
+      const fy = Math.min(1, Math.max(0, (clientY - g.rect.top + g.offY) / g.scale / g.vh))
+      advanced.push({ pointsOfInterest: [{ x: fx, y: fy }] })
+    }
+    if (focusCapsRef.current.single) advanced.push({ focusMode: 'single-shot' })
+    if (advanced.length === 0) return
+    try { track.applyConstraints({ advanced }).catch(() => {}) } catch { /* degrade silently */ }
+    if (focusCapsRef.current.single && focusCapsRef.current.continuous) {
+      // settle back so the next reposition refocuses on its own
+      const gen = scanGen.current
+      window.setTimeout(() => {
+        if (gen !== scanGen.current) return
+        try { (trackRef.current as any)?.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {}) } catch { /* fine */ }
+      }, 2500)
+    }
+  }
+
+  // One pointer = tap-to-focus candidate; two pointers = pinch zoom.
+  const onScanPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (scanStatus !== 'scanning' || scanFlash) return
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    pinchPointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now() })
+    if (pinchPointers.current.size === 2 && zoomCaps) {
+      const [a, b] = [...pinchPointers.current.values()]
+      pinchStart.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), zoom: lastZoomReq.current }
+    }
+  }
+
+  const onScanPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const p = pinchPointers.current.get(e.pointerId)
+    if (!p) return
+    p.x = e.clientX; p.y = e.clientY
+    if (pinchPointers.current.size === 2 && pinchStart.current && pinchStart.current.dist > 0 && zoomCaps) {
+      const [a, b] = [...pinchPointers.current.values()]
+      applyZoom(pinchStart.current.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / pinchStart.current.dist))
+    }
+  }
+
+  const onScanPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const p = pinchPointers.current.get(e.pointerId)
+    pinchPointers.current.delete(e.pointerId)
+    if (pinchPointers.current.size >= 2) return
+    if (pinchStart.current) {
+      pinchStart.current = null
+      applyZoom(lastZoomReq.current, true)   // trailing apply so the final pinch value sticks
+    } else if (p && performance.now() - p.t < 500 && Math.hypot(p.x - p.sx, p.y - p.sy) < 8) {
+      focusAt(e.clientX, e.clientY)          // a clean tap, not a drag or pinch remnant
+    }
+  }
+
   const startScanner = async () => {
     const gen = ++scanGen.current
     setScanHit(null); setScanCode(''); setScanMessage(''); setScanStarred(false)
+    setScanFlash(false); setZoomCaps(null); setTorchSupported(false); setTorchOn(false)
+    setCanTapFocus(false); setTapPoint(null)
+    focusCapsRef.current = { poi: false, single: false, continuous: false }
+    pinchPointers.current.clear()
+    pinchStart.current = null
     setScanStatus('starting')
 
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -273,7 +496,13 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     let stream: MediaStream
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },   // rear camera on phones
+        video: {
+          facingMode: { ideal: 'environment' },   // rear camera on phones
+          // more pixels = small/distant barcodes still resolve; `ideal` lets
+          // the device serve whatever it can — never an OverconstrainedError
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       })
     } catch (e: any) {
@@ -296,19 +525,30 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     if (gen !== scanGen.current) return
     setScanStatus('scanning')
 
+    // probe zoom/torch/focus — plus one delayed re-probe, since some Androids
+    // report capabilities only shortly after the track is live
+    const track = stream.getVideoTracks()[0] ?? null
+    trackRef.current = track
+    if (track) {
+      initTrackCapabilities(track)
+      window.setTimeout(() => {
+        if (gen === scanGen.current && trackRef.current) initTrackCapabilities(trackRef.current)
+      }, 700)
+    }
+
     const picked = await pickScanEngine()
     if (gen !== scanGen.current) return
 
+    // Per-frame decoder for whichever engine this browser has. Both consume a
+    // canvas, so ONE loop below crops to the scan-target box (ROI) for both.
+    let decodeFrame: (canvas: HTMLCanvasElement) => Promise<string | null>
     if (picked.engine === 'native') {
       const detector = new (window as any).BarcodeDetector({ formats: picked.formats })
-      scanLoopRef.current = window.setInterval(async () => {
-        if (gen !== scanGen.current || !videoRef.current) return
-        try {
-          const codes = await detector.detect(videoRef.current)
-          const raw = codes?.[0]?.rawValue
-          if (raw && gen === scanGen.current) onBarcodeDetected(String(raw))
-        } catch { /* per-frame decode errors are normal — keep scanning */ }
-      }, 250)
+      decodeFrame = async canvas => {
+        const codes = await detector.detect(canvas)
+        const raw = codes?.[0]?.rawValue
+        return raw ? String(raw) : null
+      }
     } else {
       try {
         const [{ BrowserMultiFormatReader }, zx] = await Promise.all([
@@ -321,17 +561,50 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
           zx.BarcodeFormat.EAN_13, zx.BarcodeFormat.EAN_8,
           zx.BarcodeFormat.UPC_A, zx.BarcodeFormat.UPC_E,
         ])
+        hints.set(zx.DecodeHintType.TRY_HARDER, true)   // ROI is small — spend the cycles
         const reader = new BrowserMultiFormatReader(hints)
-        zxingControlsRef.current = await reader.decodeFromVideoElement(video, result => {
-          if (result && gen === scanGen.current) onBarcodeDetected(result.getText())
-        })
+        decodeFrame = async canvas => {
+          try { return reader.decodeFromCanvas(canvas)?.getText() ?? null }
+          catch { return null }   // NotFoundException — no code in this frame
+        }
       } catch {
         if (gen !== scanGen.current) return
         stopCamera()
         setScanMessage('The barcode scanner failed to start.')
         setScanStatus('error')
+        return
       }
     }
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) {
+      stopCamera()
+      setScanMessage('The barcode scanner failed to start.')
+      setScanStatus('error')
+      return
+    }
+    let busy = false   // detect() can outlast a tick — never overlap frames
+    scanLoopRef.current = window.setInterval(async () => {
+      if (busy || gen !== scanGen.current) return
+      const v = videoRef.current
+      if (!v || v.readyState < 2 || !v.videoWidth) return
+      // crop to the overlay box; full frame if geometry isn't measurable yet
+      const roi = overlayRef.current ? computeRoi(v, overlayRef.current) : null
+      const sx = roi ? roi.sx : 0
+      const sy = roi ? roi.sy : 0
+      const sw = roi ? roi.sw : v.videoWidth
+      const sh = roi ? roi.sh : v.videoHeight
+      canvas.width = Math.round(sw)
+      canvas.height = Math.round(sh)
+      busy = true
+      try {
+        ctx.drawImage(v, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
+        const code = await decodeFrame(canvas)
+        if (code && gen === scanGen.current) handleDecodeSuccess(code)
+      } catch { /* per-frame decode errors are normal — keep scanning */ }
+      finally { busy = false }
+    }, 200)
   }
 
   // Start on entering Scan (or on rescan bump); stop on mode switch, sheet
@@ -743,9 +1016,14 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                   live before startScanner resolves getUserMedia) — just hidden
                   once the feed is no longer the thing being shown. */}
               <div
-                className={`relative rounded-xl overflow-hidden bg-ink border border-border aspect-[4/3] ${
+                className={`relative rounded-xl overflow-hidden bg-ink border border-border aspect-[4/3] select-none ${
                   scanStatus === 'idle' || scanStatus === 'starting' || scanStatus === 'scanning' ? '' : 'hidden'
                 }`}
+                style={{ touchAction: 'none' }}   // pinch zooms the camera, not the page
+                onPointerDown={onScanPointerDown}
+                onPointerMove={onScanPointerMove}
+                onPointerUp={onScanPointerUp}
+                onPointerCancel={onScanPointerUp}
               >
                 <video
                   ref={videoRef}
@@ -754,12 +1032,69 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                   aria-label="Camera preview for barcode scanning"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                {/* scan-target frame; the giant shadow dims everything outside it */}
+                {/* scan-target frame = the decode region (computeRoi crops to this
+                    box); the giant shadow dims everything outside it */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-[72%] max-w-[260px] aspect-[1.7] rounded-xl border-2 border-amber/90 shadow-[0_0_0_999px_rgba(10,10,10,0.45)]" />
+                  <div
+                    ref={overlayRef}
+                    className={`w-[72%] max-w-[260px] aspect-[1.7] rounded-xl border-2 shadow-[0_0_0_999px_rgba(10,10,10,0.45)] flex items-center justify-center transition-colors ${
+                      scanFlash ? 'border-emerald-400' : 'border-amber/90'
+                    }`}
+                  >
+                    {scanFlash && <Check size={30} className="text-emerald-400" />}
+                  </div>
                 </div>
-                <p className="absolute bottom-2.5 inset-x-0 text-center text-cream/90 text-xs font-body drop-shadow">
-                  {scanStatus === 'scanning' ? 'Point the camera at the barcode' : 'Starting camera…'}
+                {/* scanning pulse */}
+                {scanStatus === 'scanning' && !scanFlash && (
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ink/70 pointer-events-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber animate-pulse" />
+                    <span className="text-cream/90 text-[10px] font-body">Scanning…</span>
+                  </div>
+                )}
+                {/* torch — rendered only when the track reports the capability */}
+                {torchSupported && scanStatus === 'scanning' && !scanFlash && (
+                  <button
+                    onClick={toggleTorch}
+                    onPointerDown={e => e.stopPropagation()}
+                    aria-label={torchOn ? 'Turn flashlight off' : 'Turn flashlight on'}
+                    className={`absolute top-2 right-2 w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
+                      torchOn ? 'bg-amber text-ink border-amber' : 'bg-ink/70 text-cream/90 border-border'
+                    }`}
+                  >
+                    <Flashlight size={15} />
+                  </button>
+                )}
+                {/* zoom — rendered only when the track reports a usable range */}
+                {zoomCaps && scanStatus === 'scanning' && !scanFlash && (
+                  <div
+                    className="absolute bottom-8 inset-x-4 flex items-center gap-2"
+                    onPointerDown={e => e.stopPropagation()}
+                  >
+                    <ZoomOut size={13} className="text-cream/80 shrink-0" />
+                    <input
+                      type="range"
+                      min={zoomCaps.min}
+                      max={zoomCaps.max}
+                      step={zoomCaps.step}
+                      value={zoomVal}
+                      onChange={e => applyZoom(parseFloat(e.target.value), true)}
+                      aria-label="Camera zoom"
+                      className="flex-1 h-1 accent-amber"
+                    />
+                    <ZoomIn size={13} className="text-cream/80 shrink-0" />
+                  </div>
+                )}
+                {/* tap-to-focus ring */}
+                {tapPoint && (
+                  <div
+                    className="absolute w-12 h-12 -ml-6 -mt-6 rounded-full border-2 border-amber/90 animate-ping pointer-events-none"
+                    style={{ left: `${tapPoint.x}%`, top: `${tapPoint.y}%` }}
+                  />
+                )}
+                <p className="absolute bottom-2.5 inset-x-0 text-center text-cream/90 text-xs font-body drop-shadow pointer-events-none">
+                  {scanFlash ? `Barcode read — ${scanCode}` :
+                    scanStatus === 'scanning' ? `Fill the frame with the barcode${canTapFocus ? ' · tap to focus' : ''}` :
+                    'Starting camera…'}
                 </p>
               </div>
 
