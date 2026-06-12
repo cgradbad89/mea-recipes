@@ -69,6 +69,35 @@ async function pickScanEngine(): Promise<{ engine: 'native'; formats: string[] }
 
 const MEALS: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
 
+// One re-loggable food from the user's history (a starred favorite or a recent
+// log entry) — nutrition is per-serving, so it feeds the confirm flow directly
+// with zero external lookups.
+interface HistoryEntry {
+  key: string
+  fav: boolean
+  item: SavedFood | RecentFood
+}
+
+function HistoryList({ entries, onPick }: { entries: HistoryEntry[]; onPick: (item: SavedFood | RecentFood) => void }) {
+  return (
+    <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+      {entries.map(({ key, fav, item }) => (
+        <button
+          key={key}
+          onClick={() => onPick(item)}
+          className="w-full flex items-center justify-between gap-3 px-3 py-2.5 bg-card hover:bg-surface text-left transition-colors"
+        >
+          <span className="flex items-center gap-1.5 min-w-0">
+            {fav && <Star size={10} className="text-amber shrink-0" fill="currentColor" />}
+            <span className="text-cream text-sm font-body truncate">{item.name}</span>
+          </span>
+          <span className="text-faint text-xs font-body shrink-0">{Math.round(item.nutrition.calories)} cal</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function MacroGrid({ macros }: { macros: NutritionMacros }) {
   return (
     <div className="grid grid-cols-3 gap-x-4 gap-y-1.5">
@@ -101,6 +130,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const [result, setResult] = useState<FoodResult | null>(null)
   const [lookupError, setLookupError] = useState('')
   const [starred, setStarred] = useState(false)
+  const [historyCollapsed, setHistoryCollapsed] = useState(false)   // hide history matches after an explicit pick
   const skipNextLookup = useRef(false)
   const lookupSeq = useRef(0)
 
@@ -123,20 +153,27 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const [scanCode, setScanCode] = useState('')
   const [scanMessage, setScanMessage] = useState('')
   const [scanStarred, setScanStarred] = useState(false)
+  const [manualCode, setManualCode] = useState('')          // typed-barcode fallback
+  const [manualCodeError, setManualCodeError] = useState('')
+  const [historyQuery, setHistoryQuery] = useState('')      // scan-mode history filter
+  const manualInputRef = useRef<HTMLInputElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const zxingControlsRef = useRef<IScannerControls | null>(null)
   const scanLoopRef = useRef<number | null>(null)      // native-detector interval id
   const scanGen = useRef(0)                            // invalidates in-flight camera/decode async work
 
-  // recents + favorites quick row
+  // re-log history: recents + favorites (quick row, searchable list — Search/Scan only)
   const [recents, setRecents] = useState<RecentFood[]>([])
   const [favorites, setFavorites] = useState<SavedFood[]>([])
+  const [historyLoaded, setHistoryLoaded] = useState(false)   // gate so the empty state doesn't flash
 
   useEffect(() => {
     if (!user) return
-    getRecents(user.uid, 5).then(setRecents).catch(() => {})
-    getSavedFoods(user.uid).then(setFavorites).catch(() => {})
+    Promise.allSettled([
+      getRecents(user.uid, 30).then(setRecents),
+      getSavedFoods(user.uid).then(setFavorites),
+    ]).then(() => setHistoryLoaded(true))
   }, [user])
 
   useEffect(() => {
@@ -151,6 +188,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     if (skipNextLookup.current) { skipNextLookup.current = false; return }
     const q = query.trim()
     setResult(null); setLookupError(''); setStarred(false)
+    setHistoryCollapsed(false)   // typing again re-opens history matches
     if (q.length < 2) { setLookupLoading(false); return }
     setLookupLoading(true)
     const seq = ++lookupSeq.current
@@ -317,6 +355,24 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     setSaveError('')
   }
 
+  // Typed-barcode fallback — same lookup + hit/miss path as a camera read.
+  // Covers camera-denied, unreadable/damaged codes, or just typing the digits.
+  const submitManualCode = () => {
+    const code = manualCode.replace(/[\s-]/g, '')
+    if (!/^\d{8,14}$/.test(code)) {
+      setManualCodeError("That doesn't look like a barcode — it's usually the 8–14 digits printed under the lines.")
+      return
+    }
+    setManualCodeError('')
+    onBarcodeDetected(code)   // stops the camera if running (idempotent), then looks up
+  }
+
+  // When the camera is denied/unavailable, the typed barcode IS the scan path —
+  // put the cursor there.
+  useEffect(() => {
+    if (mode === 'scan' && scanStatus === 'denied') manualInputRef.current?.focus()
+  }, [mode, scanStatus])
+
   const servings = parseFloat(servingsInput)
   const servingsValid = Number.isFinite(servings) && servings > 0
 
@@ -415,9 +471,13 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     } catch { /* non-fatal */ }
   }
 
-  // recents/favorites chip tap → prefill the right mode
+  // history pick (chip or list row) → prefill the right confirm flow. Re-logging
+  // uses the stored per-serving snapshot — deliberately NO USDA/OFF re-lookup.
   const prefill = (item: { name: string; nutrition: NutritionMacros; source: string; type?: string; recipe_id?: string | null }) => {
     setSaveError('')
+    lookupSeq.current++          // a slow in-flight web lookup must not overwrite the pick
+    setLookupLoading(false)
+    setHistoryCollapsed(true)
     if (item.type === 'recipe' && item.recipe_id) {
       setMode('recipes')
       setSelectedRecipeId(item.recipe_id)
@@ -449,12 +509,29 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     setLookupError('')
   }
 
-  const quickRow: { key: string; label: string; item: Parameters<typeof prefill>[0]; fav: boolean }[] = [
-    ...favorites.map(f => ({ key: `fav-${f.id}`, label: f.name, item: f as any, fav: true })),
+  // Deduped re-log history: favorites first (keep the star), then recents whose
+  // name isn't already starred. Backs both the quick-tap chips and the
+  // searchable lists in Search/Scan.
+  const history: HistoryEntry[] = useMemo(() => [
+    ...favorites.map(f => ({ key: `fav-${f.id}`, fav: true, item: f })),
     ...recents
       .filter(r => !favorites.some(f => f.name.toLowerCase() === r.name.toLowerCase()))
-      .map((r, i) => ({ key: `rec-${i}`, label: r.name, item: r as any, fav: false })),
-  ]
+      .map((r, i) => ({ key: `rec-${i}`, fav: false, item: r })),
+  ], [favorites, recents])
+
+  const quickRow = history.slice(0, 12)
+
+  const historyMatches = useMemo(() => {   // search mode — filtered by the main query
+    const q = query.trim().toLowerCase()
+    if (!q) return []
+    return history.filter(h => h.item.name.toLowerCase().includes(q)).slice(0, 6)
+  }, [history, query])
+
+  const scanHistoryMatches = useMemo(() => {   // scan mode — its own filter input
+    const q = historyQuery.trim().toLowerCase()
+    if (!q) return []
+    return history.filter(h => h.item.name.toLowerCase().includes(q)).slice(0, 6)
+  }, [history, historyQuery])
 
   return (
     <div className="fixed inset-0 z-[95]">
@@ -473,23 +550,30 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {/* recents + favorites quick row */}
-          {quickRow.length > 0 && (
+          {/* recents + favorites quick row — re-log contexts only (Search/Scan);
+              Recipes and Manual have their own selection logic */}
+          {(mode === 'search' || mode === 'scan') && historyLoaded && (
             <div className="mb-4">
               <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2">Recent & saved</p>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {quickRow.map(({ key, label, item, fav }) => (
-                  <button
-                    key={key}
-                    onClick={() => prefill(item)}
-                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card border border-border text-muted text-xs font-body hover:text-cream hover:border-amber/30 transition-all"
-                  >
-                    {fav && <Star size={10} className="text-amber" fill="currentColor" />}
-                    <span className="max-w-[140px] truncate">{label}</span>
-                    <span className="text-faint">{Math.round(item.nutrition.calories)} cal</span>
-                  </button>
-                ))}
-              </div>
+              {quickRow.length > 0 ? (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {quickRow.map(({ key, item, fav }) => (
+                    <button
+                      key={key}
+                      onClick={() => prefill(item)}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card border border-border text-muted text-xs font-body hover:text-cream hover:border-amber/30 transition-all"
+                    >
+                      {fav && <Star size={10} className="text-amber" fill="currentColor" />}
+                      <span className="max-w-[140px] truncate">{item.name}</span>
+                      <span className="text-faint">{Math.round(item.nutrition.calories)} cal</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-faint text-xs font-body">
+                  Nothing logged yet — search or scan to add your first food.
+                </p>
+              )}
             </div>
           )}
 
@@ -524,6 +608,20 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                 className="input-field mb-3"
                 autoFocus
               />
+              {/* instant matches from the user's own log — no network */}
+              {historyMatches.length > 0 && !historyCollapsed && (
+                <div className="mb-3">
+                  <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-1.5">
+                    From your history — tap to re-log
+                  </p>
+                  <HistoryList entries={historyMatches} onPick={prefill} />
+                </div>
+              )}
+              {historyMatches.length > 0 && !historyCollapsed && (lookupLoading || lookupError || result) && (
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-1.5">
+                  Web lookup — new food
+                </p>
+              )}
               {lookupLoading && (
                 <div className="flex items-center gap-2 text-faint text-sm font-body py-3">
                   <Loader2 size={14} className="animate-spin text-amber" /> Looking up…
@@ -735,7 +833,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                     {scanMessage || 'Camera access needed to scan.'}
                   </p>
                   <p className="text-faint text-xs font-body mb-4">
-                    Enable it in your browser settings, or use Search instead.
+                    Enable it in your browser settings, type the barcode digits below, or use Search instead.
                   </p>
                   <div className="flex items-center justify-center gap-2">
                     <button onClick={switchToSearch} className="btn-primary text-xs flex items-center gap-1.5">
@@ -759,6 +857,61 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                       <Search size={13} /> Use Search
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* typed-barcode fallback — always available, same lookup path as the camera */}
+              <div className="mt-4">
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2">
+                  Or type the barcode digits
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    ref={manualInputRef}
+                    type="text"
+                    value={manualCode}
+                    onChange={e => { setManualCode(e.target.value); setManualCodeError('') }}
+                    onKeyDown={e => { if (e.key === 'Enter') submitManualCode() }}
+                    inputMode="numeric"
+                    placeholder="e.g. 049000006346"
+                    className="input-field flex-1 text-sm"
+                    disabled={scanStatus === 'looking_up'}
+                  />
+                  <button
+                    onClick={submitManualCode}
+                    disabled={scanStatus === 'looking_up' || !manualCode.trim()}
+                    className="btn-primary text-xs shrink-0 disabled:opacity-40"
+                  >
+                    Look up
+                  </button>
+                </div>
+                {manualCodeError && (
+                  <p className="text-amber/80 text-[11px] font-body mt-1.5">{manualCodeError}</p>
+                )}
+              </div>
+
+              {/* re-log from history without scanning anything */}
+              {historyLoaded && history.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2">
+                    Or re-log from your history
+                  </p>
+                  <input
+                    type="text"
+                    value={historyQuery}
+                    onChange={e => setHistoryQuery(e.target.value)}
+                    placeholder="Search foods you've logged…"
+                    className="input-field text-sm"
+                  />
+                  {historyQuery.trim() && (
+                    <div className="mt-2">
+                      {scanHistoryMatches.length > 0 ? (
+                        <HistoryList entries={scanHistoryMatches} onPick={prefill} />
+                      ) : (
+                        <p className="text-faint text-xs font-body">No matches in your history.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
