@@ -929,9 +929,9 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   }, [history, savedQuery])
 
   return (
-    <div className="fixed inset-0 z-[95]">
+    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 max-w-2xl mx-auto bg-surface border border-border rounded-t-3xl max-h-[88vh] flex flex-col animate-fade-in">
+      <div className="relative w-full max-w-2xl bg-surface border border-border rounded-3xl max-h-[88vh] flex flex-col overflow-hidden animate-fade-in">
         {/* header */}
         <div className="shrink-0 px-5 pt-4 pb-3 flex items-center justify-between border-b border-border">
           <h2 className="font-display text-2xl text-cream font-light">Log food</h2>
