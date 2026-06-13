@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import {
   collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch, setDoc, serverTimestamp
 } from 'firebase/firestore'
@@ -72,7 +73,9 @@ export default function GroceryPage() {
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null)
-  const [pickerFlipped, setPickerFlipped] = useState(false)
+  // Viewport-fixed coords for the category menu — it's portaled to <body> so the
+  // category tile's overflow-hidden can't clip it (small tiles cut it off before).
+  const [pickerStyle, setPickerStyle] = useState<CSSProperties | null>(null)
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupChanges, setCleanupChanges] = useState<CleanupChange[] | null>(null)
   const [rejectedChanges, setRejectedChanges] = useState<Set<number>>(new Set())
@@ -185,6 +188,27 @@ export default function GroceryPage() {
     if (!user || item.id.includes('/')) return
     await deleteDoc(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
   }
+
+  // Dismiss the category menu on scroll/resize/Escape or a click outside it — the
+  // menu is position:fixed (portaled), so it must close rather than float away.
+  useEffect(() => {
+    if (!categoryPickerFor) return
+    const close = () => setCategoryPickerFor(null)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    const onPointer = (e: Event) => {
+      if (!(e.target as HTMLElement).closest?.('[data-cat-picker]')) close()
+    }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer, true)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer, true)
+    }
+  }, [categoryPickerFor])
 
   const setManualCategory = async (itemId: string, category: GroceryCategory | null) => {
     if (!user) return
@@ -786,14 +810,19 @@ export default function GroceryPage() {
                       )}
 
                       {/* Category picker trigger */}
-                      <div className="relative shrink-0">
+                      <div className="relative shrink-0" data-cat-picker>
                         <button
                           onClick={(e) => {
                             if (categoryPickerFor === item.id) {
                               setCategoryPickerFor(null)
                             } else {
                               const rect = e.currentTarget.getBoundingClientRect()
-                              setPickerFlipped(rect.top > window.innerHeight / 2)
+                              const right = Math.max(8, window.innerWidth - rect.right)
+                              setPickerStyle(
+                                rect.top > window.innerHeight / 2
+                                  ? { right, bottom: window.innerHeight - rect.top + 6 }
+                                  : { right, top: rect.bottom + 6 },
+                              )
                               setCategoryPickerFor(item.id)
                             }
                           }}
@@ -803,9 +832,14 @@ export default function GroceryPage() {
                           <Tag size={11} />
                         </button>
 
-                        {/* Category picker dropdown */}
-                        {categoryPickerFor === item.id && (
-                          <div className={`absolute right-0 z-20 bg-surface border border-border rounded-xl shadow-lg w-52 max-w-[calc(100vw-2rem)] overflow-hidden ${pickerFlipped ? 'bottom-6' : 'top-6'}`}>
+                        {/* Category picker dropdown — portaled to <body> and
+                            viewport-fixed so the tile's overflow-hidden never clips it */}
+                        {categoryPickerFor === item.id && pickerStyle && createPortal(
+                          <div
+                            data-cat-picker
+                            style={pickerStyle}
+                            className="fixed z-[80] bg-surface border border-border rounded-xl shadow-lg w-52 max-w-[calc(100vw-2rem)] overflow-hidden"
+                          >
                             <p className="text-faint text-xs font-body px-3 py-2 border-b border-border uppercase tracking-widest">Category</p>
                             {MANUAL_CATEGORIES.map(cat => (
                               <button
@@ -827,7 +861,8 @@ export default function GroceryPage() {
                                 <X size={11} /> Reset to auto
                               </button>
                             )}
-                          </div>
+                          </div>,
+                          document.body,
                         )}
                       </div>
                     </div>
