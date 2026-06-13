@@ -28,6 +28,7 @@ import {
 import { db } from './firebase'
 import type { NutritionMacros } from '@/types/recipe'
 import type { ConsumptionEntry, NutritionGoals, SavedFood, RecentFood, Meal } from '@/types/nutrition'
+import { servingsAmountLabel } from './nutrition'
 import { getWeekPlan, addRecipeToWeekPlan, markRecipeCooked, weekIDFromDate } from './userdata'
 
 export function logPath(uid: string) {
@@ -91,8 +92,11 @@ export type NewLogEntry = Omit<ConsumptionEntry, 'id' | 'created_at' | 'userId' 
 
 export async function addLogEntry(userId: string, entry: NewLogEntry): Promise<string> {
   const { date, ...rest } = entry
+  // Drop undefined fields — Firestore rejects them, and amount_label is optional
+  // (cook events and older callers don't set it).
+  const clean = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined))
   const ref = await addDoc(logPath(userId), {
-    ...rest,
+    ...clean,
     recipe_id: rest.recipe_id ?? null,
     date: Timestamp.fromDate(date ?? new Date()),
     created_at: serverTimestamp(),
@@ -139,6 +143,9 @@ export async function updateLogEntryServings(
   const nutrition = scaleMacros(perServing, newServings)
   await updateDoc(doc(logPath(userId), entry.id), {
     servings_eaten: newServings,
+    // The Today editor is servings-based, so re-derive the amount label to match
+    // (a grams-logged entry edited here becomes a servings amount).
+    amount_label: servingsAmountLabel(newServings),
     nutrition,
   })
   return nutrition

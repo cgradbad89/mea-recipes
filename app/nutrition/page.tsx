@@ -324,7 +324,7 @@ function LogEntryRow({
           </div>
         ) : (
           <p className="text-faint text-[11px] font-body mt-1">
-            {entry.servings_eaten}× · {secondary}
+            {entry.amount_label || `${entry.servings_eaten}×`} · {secondary}
           </p>
         )}
       </div>

@@ -67,6 +67,67 @@ export function servingSizeLabel(servings: number | undefined): string {
   return `1 of ${servings}`
 }
 
+// ── Amount-entry helpers (LogFoodSheet servings/grams entry) ─────────────────
+
+/** Trim a quantity to ≤2 decimals with no trailing zeros: 2→"2", 1.5→"1.5", 0.45→"0.45". */
+export function prettyAmount(n: number): string {
+  if (!Number.isFinite(n)) return '0'
+  return String(Math.round(n * 100) / 100)
+}
+
+/** A servings amount as a human label: "1 serving", "1.5 servings". */
+export function servingsAmountLabel(n: number): string {
+  return `${prettyAmount(n)} ${n === 1 ? 'serving' : 'servings'}`
+}
+
+/**
+ * Pull a gram weight out of a free-text serving label, e.g. "30 g" → 30,
+ * "2 cookies (30 g)" → 30, "1 cup (240 ml)" → null. Ignores mg/kg/ml.
+ */
+export function gramsFromServingLabel(label?: string | null): number | null {
+  if (!label) return null
+  const matches = [...label.matchAll(/(\d+(?:\.\d+)?)\s*(?:grams?|g)\b/gi)]
+  if (!matches.length) return null
+  const v = parseFloat(matches[matches.length - 1][1])   // last "<n> g" wins ("2 cookies (30 g)")
+  return Number.isFinite(v) && v > 0 ? v : null
+}
+
+/** Context shown above the amount entry: serving size, servings-per-container, per-100g note. */
+export interface ServingContext {
+  servingLabel?: string | null              // e.g. "30 g", "1 cup (240 ml)"
+  gramsPerServing?: number | null           // numeric fallback when no label
+  servingsPerContainer?: number | null
+  containerKind?: 'container' | 'recipe'
+  per100g?: boolean                          // macros are per 100 g, not per declared serving
+}
+
+function servingSizeText(label?: string | null, grams?: number | null): string | null {
+  const l = (label || '').trim()
+  if (l) return l
+  if (typeof grams === 'number' && grams > 0) return `${prettyAmount(grams)} g`
+  return null
+}
+
+/**
+ * Display lines for a result's serving context — omits anything not present, so
+ * a missing serving size or container count simply doesn't render (no "undefined").
+ */
+export function servingContextLines(ctx: ServingContext): string[] {
+  const lines: string[] = []
+  if (ctx.containerKind !== 'recipe') {
+    const size = servingSizeText(ctx.servingLabel, ctx.gramsPerServing)
+    if (size) lines.push(`1 serving = ${size}`)
+  }
+  const n = ctx.servingsPerContainer
+  if (typeof n === 'number' && Number.isFinite(n) && n >= 1.5) {
+    lines.push(ctx.containerKind === 'recipe'
+      ? `Recipe makes ${prettyAmount(Math.round(n))} servings`
+      : `≈ ${prettyAmount(Math.round(n * 10) / 10)} servings per container`)
+  }
+  if (ctx.per100g) lines.push('Macros shown per 100 g')
+  return lines
+}
+
 /**
  * Whether the servings count behind these numbers was assumed rather than known.
  * Per spec: true when source carries +default_servings, or confidence is low,

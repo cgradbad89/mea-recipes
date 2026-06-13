@@ -32,7 +32,8 @@ export interface ConsumptionEntry {
   is_cook_event: boolean
   recipe_id: string | null
   name: string
-  servings_eaten: number
+  servings_eaten: number   // canonical multiplier on the per-basis nutrition (grams entries store the equivalent)
+  amount_label?: string    // human-readable amount as entered, e.g. "45 g" or "1.5 servings" (optional; older entries omit it)
   nutrition: NutritionMacros
   source: LogSource
   created_at: unknown      // Firestore serverTimestamp
@@ -66,6 +67,8 @@ export interface BarcodeProduct {
   name: string
   nutrition: NutritionMacros
   serving_size: string | null      // declared serving label, e.g. "30 g" (null if unknown)
+  serving_grams?: number | null    // numeric grams in one declared serving, when derivable
+  servings_per_container?: number | null   // ≈ servings in the package, when derivable
   source: BarcodeSource
   confidence: 'medium' | 'low'     // OFF is crowdsourced; USDA branded → medium
   basis: BarcodeBasis

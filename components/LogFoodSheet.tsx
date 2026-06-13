@@ -26,7 +26,10 @@ import {
   addLogEntry, saveFavorite, getSavedFoods, getRecents, autoMealForTime, scaleMacros,
 } from '@/lib/consumptionLog'
 import { getAllRecipes } from '@/lib/recipes'
-import { perServingOf, sourceLabel, NUTRIENTS, formatNutrient, lookupBarcode } from '@/lib/nutrition'
+import {
+  perServingOf, sourceLabel, NUTRIENTS, formatNutrient, lookupBarcode,
+  prettyAmount, gramsFromServingLabel, servingContextLines, type ServingContext,
+} from '@/lib/nutrition'
 import type { Recipe, NutritionMacros } from '@/types/recipe'
 import type { Meal, SavedFood, RecentFood, BarcodeProduct, LogSource } from '@/types/nutrition'
 
@@ -34,9 +37,22 @@ type Mode = 'search' | 'recipes' | 'manual' | 'scan'
 
 interface FoodResult {
   name: string
-  nutrition: NutritionMacros          // per serving
+  nutrition: NutritionMacros          // per serving (or per 100 g when servingGrams is null and source is usda)
   source: Exclude<LogSource, 'recipe' | 'manual'>
   confidence?: string
+  // number → 1 serving = N g (grams toggle); null → fresh lookup had no portion
+  // data (usda ⇒ per-100g basis); undefined → re-logged from history (per-serving).
+  servingGrams?: number | null
+}
+
+// How the amount entry should behave for the currently-selected item.
+type AmountKind = 'servings' | 'servings_or_grams' | 'grams_only'
+interface AmountModel {
+  kind: AmountKind
+  perBasis: NutritionMacros | null    // the nutrition to scale (per serving, or per 100 g for grams_only)
+  gramsPerServing?: number            // present for servings_or_grams
+  basisLabel: 'per serving' | 'per 100 g'
+  ctx: ServingContext                 // serving size / container / per-100g display lines
 }
 
 // ── Scan mode plumbing ───────────────────────────────────────────────────────
@@ -144,6 +160,20 @@ function HistoryList({ entries, onPick }: { entries: HistoryEntry[]; onPick: (it
   )
 }
 
+// Serving size / servings-per-container / per-100g lines under a result card.
+// Renders nothing when no context exists (missing data omits cleanly).
+function ServingLines({ ctx }: { ctx: ServingContext }) {
+  const lines = servingContextLines(ctx)
+  if (!lines.length) return null
+  return (
+    <div className="mt-3 space-y-0.5">
+      {lines.map((l, i) => (
+        <p key={i} className="text-faint text-[11px] font-body">{l}</p>
+      ))}
+    </div>
+  )
+}
+
 function MacroGrid({ macros }: { macros: NutritionMacros }) {
   return (
     <div className="grid grid-cols-3 gap-x-4 gap-y-1.5">
@@ -163,8 +193,11 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const { user } = useAuth()
   const [mode, setMode] = useState<Mode>('search')
 
-  // shared entry fields
+  // shared entry fields — servings is the canonical multiplier; grams is an
+  // alternate way to enter it when the item has a gram-based serving size.
   const [servingsInput, setServingsInput] = useState('1')
+  const [gramsInput, setGramsInput] = useState('')
+  const [amountUnit, setAmountUnit] = useState<'servings' | 'grams'>('servings')
   const [meal, setMeal] = useState<Meal>(autoMealForTime())
   const [saving, setSaving] = useState(false)
   const [loggedOk, setLoggedOk] = useState(false)
@@ -188,6 +221,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
 
   // mode 3 — manual
   const [manualName, setManualName] = useState('')
+  const [manualServingSize, setManualServingSize] = useState('')   // optional label, e.g. "1 cup"
   const [manualMacros, setManualMacros] = useState<Record<string, string>>({
     calories: '', protein_g: '', carbs_g: '', fat_g: '', fiber_g: '', sugar_g: '',
   })
@@ -274,6 +308,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
           nutrition: data.nutrition,
           source: data.source === 'ai_estimate' ? 'ai_estimate' : 'usda',
           confidence: data.confidence,
+          servingGrams: typeof data.servingGrams === 'number' ? data.servingGrams : null,
         })
       } catch (e: any) {
         if (seq === lookupSeq.current) setLookupError(e?.message || 'Lookup failed — try manual entry')
@@ -646,9 +681,6 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     if (mode === 'scan' && scanStatus === 'denied') manualInputRef.current?.focus()
   }, [mode, scanStatus])
 
-  const servings = parseFloat(servingsInput)
-  const servingsValid = Number.isFinite(servings) && servings > 0
-
   const selectedRecipe = useMemo(
     () => recipes.find(r => r.id === selectedRecipeId) || null,
     [recipes, selectedRecipeId],
@@ -677,7 +709,103 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     return m
   }, [manualMacros])
 
-  const canConfirm = servingsValid && !saving && (
+  // ── Adaptive amount entry — degrade per the data each item carries ─────────
+  // Normalize the selected item (any mode) into how its amount should be entered
+  // and what nutrition basis to scale. Keeps handleConfirm uniform across modes.
+  const amountModel: AmountModel = useMemo(() => {
+    if (mode === 'recipes' && selectedRecipe && selectedRecipePer) {
+      const n = selectedRecipe.nutrition
+      return {
+        kind: 'servings', perBasis: selectedRecipePer, basisLabel: 'per serving',
+        ctx: { servingsPerContainer: typeof n?.servings === 'number' ? n.servings : null, containerKind: 'recipe' },
+      }
+    }
+    if (mode === 'manual') {
+      return {
+        kind: 'servings', perBasis: manualPerServing, basisLabel: 'per serving',
+        ctx: { servingLabel: manualServingSize.trim() || null },
+      }
+    }
+    if (mode === 'search' && result) {
+      const g = result.servingGrams
+      if (typeof g === 'number' && g > 0) {
+        return { kind: 'servings_or_grams', perBasis: result.nutrition, gramsPerServing: g, basisLabel: 'per serving', ctx: { gramsPerServing: g } }
+      }
+      // null (explicit) from a fresh USDA lookup = per-100g basis; undefined (a
+      // re-logged favorite) or an AI estimate stays a per-serving snapshot.
+      if (g === null && result.source === 'usda') {
+        return { kind: 'grams_only', perBasis: result.nutrition, basisLabel: 'per 100 g', ctx: { per100g: true } }
+      }
+      return { kind: 'servings', perBasis: result.nutrition, basisLabel: 'per serving', ctx: {} }
+    }
+    if (mode === 'scan' && scanHit) {
+      const g = scanHit.serving_grams ?? gramsFromServingLabel(scanHit.serving_size)
+      const ctx: ServingContext = {
+        servingLabel: scanHit.serving_size, gramsPerServing: g,
+        servingsPerContainer: scanHit.servings_per_container ?? null, containerKind: 'container',
+      }
+      if (scanHit.basis === 'per_100g') {
+        return { kind: 'grams_only', perBasis: scanHit.nutrition, basisLabel: 'per 100 g', ctx: { ...ctx, per100g: true } }
+      }
+      if (typeof g === 'number' && g > 0) {
+        return { kind: 'servings_or_grams', perBasis: scanHit.nutrition, gramsPerServing: g, basisLabel: 'per serving', ctx }
+      }
+      return { kind: 'servings', perBasis: scanHit.nutrition, basisLabel: 'per serving', ctx }
+    }
+    return { kind: 'servings', perBasis: null, basisLabel: 'per serving', ctx: {} }
+  }, [mode, result, selectedRecipe, selectedRecipePer, manualPerServing, manualServingSize, scanHit])
+
+  // Grams is the live input when the model is grams-only, or when the toggle is
+  // on grams for a gram-capable serving.
+  const gramsActive = amountModel.kind === 'grams_only' || (amountModel.kind === 'servings_or_grams' && amountUnit === 'grams')
+
+  // The multiplier applied to perBasis, the human label stored on the entry, and
+  // the equivalent shown under the input. Never produces NaN macros.
+  const amount = useMemo(() => {
+    const G = amountModel.gramsPerServing
+    if (gramsActive) {
+      const g = parseFloat(gramsInput)
+      const valid = Number.isFinite(g) && g > 0
+      if (amountModel.kind === 'grams_only') {
+        // per-100g: scale by grams/100; show the servings equivalent when we know
+        // the declared serving size, otherwise just the grams.
+        const sg = amountModel.ctx.gramsPerServing
+        const s = valid && sg && sg > 0 ? g / sg : 0
+        return { valid, multiplier: valid ? g / 100 : 0, label: valid ? `${prettyAmount(g)} g` : '',
+          equiv: s ? `≈ ${prettyAmount(Math.round(s * 100) / 100)} ${s === 1 ? 'serving' : 'servings'}` : '' }
+      }
+      const s = valid && G ? g / G : 0
+      return { valid: valid && !!G, multiplier: s, label: valid ? `${prettyAmount(g)} g` : '',
+        equiv: valid && G ? `≈ ${prettyAmount(Math.round(s * 100) / 100)} ${s === 1 ? 'serving' : 'servings'}` : '' }
+    }
+    const s = parseFloat(servingsInput)
+    const valid = Number.isFinite(s) && s > 0
+    return { valid, multiplier: valid ? s : 0, label: valid ? `${prettyAmount(s)} ${s === 1 ? 'serving' : 'servings'}` : '',
+      equiv: valid && amountModel.kind === 'servings_or_grams' && G ? `≈ ${prettyAmount(Math.round(s * G))} g` : '' }
+  }, [amountModel, gramsActive, amountUnit, servingsInput, gramsInput])
+
+  // Reset the amount inputs whenever the selected item changes — and seed grams
+  // with one serving's worth (or 100 g for per-100g items) so grams entry starts sane.
+  const itemKey = useMemo(() => {
+    if (mode === 'search') return `s:${result?.name ?? ''}:${result?.servingGrams ?? 'u'}`
+    if (mode === 'recipes') return `r:${selectedRecipeId ?? ''}`
+    if (mode === 'manual') return 'm'
+    if (mode === 'scan') return `b:${scanHit?.name ?? ''}`
+    return ''
+  }, [mode, result, selectedRecipeId, scanHit])
+
+  useEffect(() => {
+    setAmountUnit('servings')
+    setServingsInput('1')
+    const G = amountModel.gramsPerServing ?? amountModel.ctx.gramsPerServing ?? null
+    setGramsInput(
+      amountModel.kind === 'grams_only' ? String(Math.round(G ?? 100))
+      : G ? String(Math.round(G)) : '',
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemKey])
+
+  const canConfirm = amount.valid && !!amountModel.perBasis && !saving && (
     (mode === 'search' && !!result) ||
     (mode === 'recipes' && !!selectedRecipe && !!selectedRecipePer) ||
     (mode === 'manual' && manualName.trim().length > 0 && !!manualPerServing) ||
@@ -688,33 +816,36 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     if (!user || !canConfirm) return
     setSaving(true)
     setSaveError('')
+    // The multiplier scales whatever basis the item carries (per serving, or per
+    // 100 g for grams-only items); amount.label records what the user entered.
+    const mult = amount.multiplier
     try {
       if (mode === 'search' && result) {
         await addLogEntry(user.uid, {
           meal, type: 'quick_food', is_cook_event: false, recipe_id: null,
-          name: result.name, servings_eaten: servings,
-          nutrition: scaleMacros(result.nutrition, servings), source: result.source,
+          name: result.name, servings_eaten: mult, amount_label: amount.label,
+          nutrition: scaleMacros(result.nutrition, mult), source: result.source,
         })
       } else if (mode === 'recipes' && selectedRecipe && selectedRecipePer) {
         // leftover/eat-a-serving path: log only — plan & cooked state untouched
         await addLogEntry(user.uid, {
           meal, type: 'recipe', is_cook_event: false, recipe_id: selectedRecipe.id,
-          name: selectedRecipe.title, servings_eaten: servings,
-          nutrition: scaleMacros(selectedRecipePer, servings), source: 'recipe',
+          name: selectedRecipe.title, servings_eaten: mult, amount_label: amount.label,
+          nutrition: scaleMacros(selectedRecipePer, mult), source: 'recipe',
         })
       } else if (mode === 'manual' && manualPerServing) {
         await addLogEntry(user.uid, {
           meal, type: 'manual', is_cook_event: false, recipe_id: null,
-          name: manualName.trim(), servings_eaten: servings,
-          nutrition: scaleMacros(manualPerServing, servings), source: 'manual',
+          name: manualName.trim(), servings_eaten: mult, amount_label: amount.label,
+          nutrition: scaleMacros(manualPerServing, mult), source: 'manual',
         })
       } else if (mode === 'scan' && scanHit) {
-        // Same shape as a searched quick food; per_100g basis means the snapshot
-        // is macros × servings where 1 serving = 100 g (the card says so).
+        // per_100g items scale by grams/100 (grams-only entry); per_serving by the
+        // servings (or grams ÷ serving grams) multiplier — both land here as `mult`.
         await addLogEntry(user.uid, {
           meal, type: 'quick_food', is_cook_event: false, recipe_id: null,
-          name: scanHit.name, servings_eaten: servings,
-          nutrition: scaleMacros(scanHit.nutrition, servings), source: scanHit.source,
+          name: scanHit.name, servings_eaten: mult, amount_label: amount.label,
+          nutrition: scaleMacros(scanHit.nutrition, mult), source: scanHit.source,
         })
       }
       setLoggedOk(true)
@@ -760,6 +891,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     if (item.source === 'manual') {
       setMode('manual')
       setManualName(item.name)
+      setManualServingSize('')
       setManualMacros({
         calories: String(item.nutrition.calories), protein_g: String(item.nutrition.protein_g),
         carbs_g: String(item.nutrition.carbs_g), fat_g: String(item.nutrition.fat_g),
@@ -909,7 +1041,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                     <div className="min-w-0">
                       <p className="text-cream text-sm font-body font-medium truncate">{result.name}</p>
                       <span className="inline-block mt-1 text-[10px] font-body px-2 py-0.5 rounded-md bg-amber/10 text-amber">
-                        {sourceLabel(result.source)}{result.confidence ? ` · ${result.confidence}` : ''} · per serving
+                        {sourceLabel(result.source)}{result.confidence ? ` · ${result.confidence}` : ''} · {amountModel.basisLabel}
                       </span>
                     </div>
                     <button
@@ -923,6 +1055,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                     </button>
                   </div>
                   <MacroGrid macros={result.nutrition} />
+                  <ServingLines ctx={amountModel.ctx} />
                 </div>
               )}
             </div>
@@ -971,6 +1104,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                     recipe · per serving — logs as eaten, won&apos;t mark cooked
                   </span>
                   <MacroGrid macros={selectedRecipePer} />
+                  <ServingLines ctx={amountModel.ctx} />
                 </div>
               )}
             </div>
@@ -987,6 +1121,16 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                 className="input-field mb-3"
                 autoFocus
               />
+              <label className="block mb-3">
+                <span className="text-faint text-[10px] font-body uppercase tracking-widest">Serving size (optional)</span>
+                <input
+                  type="text"
+                  value={manualServingSize}
+                  onChange={e => setManualServingSize(e.target.value)}
+                  placeholder='e.g. "1 cup", "2 cookies"'
+                  className="input-field mt-1 text-sm"
+                />
+              </label>
               <div className="grid grid-cols-3 gap-2 mb-1">
                 {NUTRIENTS.map(n => (
                   <label key={n.key} className="block">
@@ -1006,6 +1150,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                 ))}
               </div>
               <p className="text-faint text-[11px] font-body">Values are per serving.</p>
+              {manualServingSize.trim() && manualPerServing && <ServingLines ctx={amountModel.ctx} />}
             </div>
           )}
 
@@ -1111,9 +1256,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                       <div className="min-w-0">
                         <p className="text-cream text-sm font-body font-medium truncate">{scanHit.name}</p>
                         <span className="inline-block mt-1 text-[10px] font-body px-2 py-0.5 rounded-md bg-amber/10 text-amber">
-                          {sourceLabel(scanHit.source)} · {scanHit.confidence} ·{' '}
-                          {scanHit.basis === 'per_serving' ? 'per serving' : 'per 100 g'}
-                          {scanHit.serving_size ? ` · serving: ${scanHit.serving_size}` : ''}
+                          {sourceLabel(scanHit.source)} · {scanHit.confidence} · {amountModel.basisLabel}
                         </span>
                       </div>
                       <button
@@ -1127,11 +1270,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                       </button>
                     </div>
                     <MacroGrid macros={scanHit.nutrition} />
-                    {scanHit.basis === 'per_100g' && (
-                      <p className="text-amber/80 text-[11px] font-body mt-3">
-                        ⚠ Values are per 100 g, not per serving — 1 serving below logs 100 g of product.
-                      </p>
-                    )}
+                    <ServingLines ctx={amountModel.ctx} />
                   </div>
                   <button
                     onClick={handleRescan}
@@ -1252,21 +1391,47 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
             </div>
           )}
 
-          {/* shared: servings + meal — in scan mode only once there's a product to log */}
+          {/* shared: amount + meal — in scan mode only once there's a product to log.
+              Amount entry adapts: servings, a servings/grams toggle, or grams-only
+              (per-100g items) per what the selected item supports. */}
           {(mode !== 'scan' || (scanStatus === 'hit' && !!scanHit)) && (
-          <div className="mt-4 flex flex-wrap items-end gap-4">
-            <label className="block">
-              <span className="text-faint text-[10px] font-body uppercase tracking-widest">Servings</span>
-              <input
-                type="number"
-                min="0.25"
-                step="0.25"
-                inputMode="decimal"
-                value={servingsInput}
-                onChange={e => setServingsInput(e.target.value)}
-                className="input-field mt-1 w-24 text-sm"
-              />
-            </label>
+          <div className="mt-4 flex flex-wrap items-start gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1 h-4">
+                <span className="text-faint text-[10px] font-body uppercase tracking-widest">Amount</span>
+                {amountModel.kind === 'servings_or_grams' && (
+                  <div className="flex gap-1">
+                    {(['servings', 'grams'] as const).map(u => (
+                      <button
+                        key={u}
+                        onClick={() => setAmountUnit(u)}
+                        className={`px-2 py-0.5 rounded-md text-[10px] font-body font-medium capitalize transition-all ${
+                          amountUnit === u ? 'bg-amber text-ink' : 'bg-card border border-border text-muted hover:text-cream'
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={gramsActive ? '0' : '0.25'}
+                  step={gramsActive ? '1' : '0.25'}
+                  inputMode="decimal"
+                  value={gramsActive ? gramsInput : servingsInput}
+                  onChange={e => (gramsActive ? setGramsInput(e.target.value) : setServingsInput(e.target.value))}
+                  className="input-field w-24 text-sm"
+                />
+                <span className="text-faint text-xs font-body">{gramsActive ? 'g' : 'servings'}</span>
+              </div>
+              {amount.equiv && <p className="text-faint text-[11px] font-body mt-1">{amount.equiv}</p>}
+              {!amount.valid && (gramsActive ? gramsInput.trim() : servingsInput.trim()) !== '' && (
+                <p className="text-amber/80 text-[11px] font-body mt-1">Enter an amount greater than 0.</p>
+              )}
+            </div>
             <div>
               <span className="text-faint text-[10px] font-body uppercase tracking-widest">Meal</span>
               <div className="flex gap-1.5 mt-1">

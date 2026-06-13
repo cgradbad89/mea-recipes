@@ -20,6 +20,7 @@
 
 import { getAdminDb } from './firebaseAdmin'
 import { parseRecipeContent } from './recipeContent'
+import { gramsFromServingLabel } from './nutrition'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import type { BarcodeProduct } from '@/types/nutrition'
 
@@ -462,6 +463,8 @@ interface UsdaSearchFood {
   dataType: string
   servingSize?: number
   servingSizeUnit?: string
+  householdServingFullText?: string   // Branded: e.g. "1 cup"
+  packageWeight?: string              // Branded: e.g. "16 oz/453 g" — net package weight
   gtinUpc?: string          // present on Branded foods — used for barcode matching
   brandOwner?: string
   brandName?: string
@@ -862,6 +865,16 @@ async function lookupOpenFoodFacts(barcode: string): Promise<BarcodeProduct | nu
     typeof product.serving_size === 'string' && product.serving_size.trim()
       ? product.serving_size.trim() : null
 
+  // OFF normalizes serving_quantity to grams; product_quantity is the net pack
+  // weight. Both are often strings — coerce, and fall back to parsing the label.
+  const sq = Number(product.serving_quantity)
+  const servingGrams = Number.isFinite(sq) && sq > 0 ? sq : gramsFromServingLabel(servingSize)
+  const pq = Number(product.product_quantity)
+  const perContainer =
+    Number.isFinite(pq) && pq > 0 && servingGrams && servingGrams > 0
+      ? Math.round((pq / servingGrams) * 10) / 10
+      : null
+
   return {
     name: String(name).trim(),
     nutrition: {
@@ -870,6 +883,8 @@ async function lookupOpenFoodFacts(barcode: string): Promise<BarcodeProduct | nu
       fiber_g: round1(nutrition.fiber_g), sugar_g: round1(nutrition.sugar_g),
     },
     serving_size: servingSize,
+    serving_grams: servingGrams,
+    servings_per_container: perContainer && perContainer <= 500 ? perContainer : null,
     source: 'openfoodfacts',
     confidence,
     basis: basis === 'serving' ? 'per_serving' : 'per_100g',
@@ -879,6 +894,20 @@ async function lookupOpenFoodFacts(barcode: string): Promise<BarcodeProduct | nu
 /** Strip leading zeros so UPC-12 / EAN-13 representations of the same GTIN match. */
 function normalizeGtin(s: string): string {
   return s.replace(/\D/g, '').replace(/^0+/, '') || '0'
+}
+
+/** Grams out of a USDA branded packageWeight string ("16 oz/453 g", "1 lb"). Prefers an explicit gram value. */
+function packageGrams(pw?: string): number | null {
+  if (!pw) return null
+  const kg = pw.match(/(\d+(?:\.\d+)?)\s*kg\b/i)
+  if (kg) return parseFloat(kg[1]) * 1000
+  const g = pw.match(/(\d+(?:\.\d+)?)\s*g\b/i)
+  if (g) return parseFloat(g[1])
+  const lb = pw.match(/(\d+(?:\.\d+)?)\s*(?:lb|lbs|pound)/i)
+  if (lb) return parseFloat(lb[1]) * 453.59
+  const oz = pw.match(/(\d+(?:\.\d+)?)\s*oz\b/i)
+  if (oz) return parseFloat(oz[1]) * 28.35
+  return null
 }
 
 async function lookupUsdaBranded(barcode: string): Promise<BarcodeProduct | null> {
@@ -896,9 +925,20 @@ async function lookupUsdaBranded(barcode: string): Promise<BarcodeProduct | null
   const macros = macrosFromSearchFood(match)
   if (!macros || !Number.isFinite(macros.calories)) return null
 
-  const serving = match.servingSize && match.servingSizeUnit
-    ? `${match.servingSize} ${match.servingSizeUnit}`.trim()
-    : null
+  const serving = match.householdServingFullText?.trim()
+    || (match.servingSize && match.servingSizeUnit ? `${match.servingSize} ${match.servingSizeUnit}`.trim() : null)
+
+  // numeric grams in one serving (only when the declared unit is grams)…
+  const servingGrams =
+    typeof match.servingSize === 'number' && match.servingSize > 0 &&
+    /^(g|grm|gram|grams)$/i.test(match.servingSizeUnit || '')
+      ? match.servingSize : null
+  // …and ≈ servings/pack from the net package weight, when both parse cleanly.
+  const pkgG = packageGrams(match.packageWeight)
+  const perContainer =
+    pkgG && servingGrams && servingGrams > 0
+      ? Math.round((pkgG / servingGrams) * 10) / 10
+      : null
 
   return {
     name: [match.brandName || match.brandOwner, match.description].filter(Boolean).join(' — ') || match.description,
@@ -908,6 +948,8 @@ async function lookupUsdaBranded(barcode: string): Promise<BarcodeProduct | null
       fiber_g: round1(macros.fiber_g), sugar_g: round1(macros.sugar_g),
     },
     serving_size: serving,
+    serving_grams: servingGrams,
+    servings_per_container: perContainer && perContainer >= 1.5 && perContainer <= 500 ? perContainer : null,
     source: 'usda_branded',
     confidence: 'medium',
     basis: 'per_100g',
