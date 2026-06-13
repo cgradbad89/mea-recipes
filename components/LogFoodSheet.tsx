@@ -1,7 +1,7 @@
 'use client'
 
-// Log-food entry sheet (Surface 3): four modes — USDA search / my recipes /
-// manual macros / barcode scan — plus a recents+favorites quick row. Writes
+// Log-food entry sheet (Surface 3): five modes — a saved/recents list / USDA
+// search / my recipes / manual macros / barcode scan. Writes
 // consumption_log entries with is_cook_event: false. NEVER touches the plan or
 // cooked status (cooked capture is Cooking Mode / the plan checkmark — see
 // lib/consumptionLog logCookEvent). Mounted from the Nutrition page header
@@ -18,7 +18,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import {
-  X, Search, Star, Loader2, Check, ChefHat, PencilLine, ScanBarcode, CameraOff, SearchX,
+  X, Search, Star, Bookmark, Loader2, Check, ChefHat, PencilLine, ScanBarcode, CameraOff, SearchX,
   Flashlight, ZoomIn, ZoomOut,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
@@ -33,7 +33,7 @@ import {
 import type { Recipe, NutritionMacros } from '@/types/recipe'
 import type { Meal, SavedFood, RecentFood, BarcodeProduct, LogSource } from '@/types/nutrition'
 
-type Mode = 'search' | 'recipes' | 'manual' | 'scan'
+type Mode = 'saved' | 'search' | 'recipes' | 'manual' | 'scan'
 
 interface FoodResult {
   name: string
@@ -191,7 +191,7 @@ function MacroGrid({ macros }: { macros: NutritionMacros }) {
 
 export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => void; onLogged?: () => void }) {
   const { user } = useAuth()
-  const [mode, setMode] = useState<Mode>('search')
+  const [mode, setMode] = useState<Mode>('saved')
 
   // shared entry fields — servings is the canonical multiplier; grams is an
   // alternate way to enter it when the item has a gram-based serving size.
@@ -209,7 +209,6 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const [result, setResult] = useState<FoodResult | null>(null)
   const [lookupError, setLookupError] = useState('')
   const [starred, setStarred] = useState(false)
-  const [historyCollapsed, setHistoryCollapsed] = useState(false)   // hide history matches after an explicit pick
   const skipNextLookup = useRef(false)
   const lookupSeq = useRef(0)
 
@@ -235,7 +234,6 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const [scanStarred, setScanStarred] = useState(false)
   const [manualCode, setManualCode] = useState('')          // typed-barcode fallback
   const [manualCodeError, setManualCodeError] = useState('')
-  const [historyQuery, setHistoryQuery] = useState('')      // scan-mode history filter
   const manualInputRef = useRef<HTMLInputElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -260,10 +258,11 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const lastZoomApply = useRef(0)                      // throttle applyConstraints during pinch
   const lastZoomReq = useRef(1)                        // latest requested zoom (state can lag a render)
 
-  // re-log history: recents + favorites (quick row, searchable list — Search/Scan only)
+  // Saved tab — re-log history: recents + favorites, merged & deduped (see `history`)
   const [recents, setRecents] = useState<RecentFood[]>([])
   const [favorites, setFavorites] = useState<SavedFood[]>([])
   const [historyLoaded, setHistoryLoaded] = useState(false)   // gate so the empty state doesn't flash
+  const [savedQuery, setSavedQuery] = useState('')            // Saved-tab filter over the merged history
 
   useEffect(() => {
     if (!user) return
@@ -285,7 +284,6 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     if (skipNextLookup.current) { skipNextLookup.current = false; return }
     const q = query.trim()
     setResult(null); setLookupError(''); setStarred(false)
-    setHistoryCollapsed(false)   // typing again re-opens history matches
     if (q.length < 2) { setLookupLoading(false); return }
     setLookupLoading(true)
     const seq = ++lookupSeq.current
@@ -881,7 +879,6 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     setSaveError('')
     lookupSeq.current++          // a slow in-flight web lookup must not overwrite the pick
     setLookupLoading(false)
-    setHistoryCollapsed(true)
     if (item.type === 'recipe' && item.recipe_id) {
       setMode('recipes')
       setSelectedRecipeId(item.recipe_id)
@@ -915,8 +912,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   }
 
   // Deduped re-log history: favorites first (keep the star), then recents whose
-  // name isn't already starred. Backs both the quick-tap chips and the
-  // searchable lists in Search/Scan.
+  // name isn't already starred. Backs the Saved tab's single searchable list.
   const history: HistoryEntry[] = useMemo(() => [
     ...favorites.map(f => ({ key: `fav-${f.id}`, fav: true, item: f })),
     ...recents
@@ -924,19 +920,13 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
       .map((r, i) => ({ key: `rec-${i}`, fav: false, item: r })),
   ], [favorites, recents])
 
-  const quickRow = history.slice(0, 12)
-
-  const historyMatches = useMemo(() => {   // search mode — filtered by the main query
-    const q = query.trim().toLowerCase()
-    if (!q) return []
-    return history.filter(h => h.item.name.toLowerCase().includes(q)).slice(0, 6)
-  }, [history, query])
-
-  const scanHistoryMatches = useMemo(() => {   // scan mode — its own filter input
-    const q = historyQuery.trim().toLowerCase()
-    if (!q) return []
-    return history.filter(h => h.item.name.toLowerCase().includes(q)).slice(0, 6)
-  }, [history, historyQuery])
+  // Saved tab — the full merged list filtered by its own input. Empty query =
+  // the whole history (favorites first, then most-recent); no cap, it scrolls.
+  const savedMatches = useMemo(() => {
+    const q = savedQuery.trim().toLowerCase()
+    if (!q) return history
+    return history.filter(h => h.item.name.toLowerCase().includes(q))
+  }, [history, savedQuery])
 
   return (
     <div className="fixed inset-0 z-[95]">
@@ -955,52 +945,58 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {/* recents + favorites quick row — re-log contexts only (Search/Scan);
-              Recipes and Manual have their own selection logic */}
-          {(mode === 'search' || mode === 'scan') && historyLoaded && (
-            <div className="mb-4">
-              <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2">Recent & saved</p>
-              {quickRow.length > 0 ? (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {quickRow.map(({ key, item, fav }) => (
-                    <button
-                      key={key}
-                      onClick={() => prefill(item)}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card border border-border text-muted text-xs font-body hover:text-cream hover:border-amber/30 transition-all"
-                    >
-                      {fav && <Star size={10} className="text-amber" fill="currentColor" />}
-                      <span className="max-w-[140px] truncate">{item.name}</span>
-                      <span className="text-faint">{Math.round(item.nutrition.calories)} cal</span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-faint text-xs font-body">
-                  Nothing logged yet — search or scan to add your first food.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* mode pills — labels kept short so four tabs fit a phone width */}
-          <div className="flex gap-1.5 mb-4">
+          {/* mode pills — five tabs; the icon stacked over a small label keeps
+              every column tappable and the labels legible on a narrow phone */}
+          <div className="flex gap-1 mb-4">
             {([
-              { m: 'search' as Mode, label: 'Search', icon: <Search size={13} /> },
-              { m: 'recipes' as Mode, label: 'Recipes', icon: <ChefHat size={13} /> },
-              { m: 'manual' as Mode, label: 'Manual', icon: <PencilLine size={13} /> },
-              { m: 'scan' as Mode, label: 'Scan', icon: <ScanBarcode size={13} /> },
+              { m: 'saved' as Mode, label: 'Saved', icon: <Bookmark size={15} /> },
+              { m: 'search' as Mode, label: 'Search', icon: <Search size={15} /> },
+              { m: 'recipes' as Mode, label: 'Recipes', icon: <ChefHat size={15} /> },
+              { m: 'manual' as Mode, label: 'Manual', icon: <PencilLine size={15} /> },
+              { m: 'scan' as Mode, label: 'Scan', icon: <ScanBarcode size={15} /> },
             ]).map(({ m, label, icon }) => (
               <button
                 key={m}
                 onClick={() => { setMode(m); setSaveError('') }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-body font-medium transition-all ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-xl text-[10px] font-body font-medium transition-all ${
                   mode === m ? 'bg-amber text-ink' : 'bg-card border border-border text-muted hover:text-cream'
                 }`}
               >
-                {icon} {label}
+                {icon}
+                <span>{label}</span>
               </button>
             ))}
           </div>
+
+          {/* mode 0 — saved (recents + favorites: one searchable list) */}
+          {mode === 'saved' && (
+            <div>
+              {historyLoaded && history.length > 0 && (
+                <input
+                  type="text"
+                  value={savedQuery}
+                  onChange={e => setSavedQuery(e.target.value)}
+                  placeholder="Search foods you've logged or saved…"
+                  className="input-field mb-3"
+                />
+              )}
+              {!historyLoaded ? (
+                <div className="flex items-center gap-2 text-faint text-sm font-body py-3">
+                  <Loader2 size={14} className="animate-spin text-amber" /> Loading…
+                </div>
+              ) : history.length === 0 ? (
+                <p className="text-faint text-sm font-body py-3">
+                  Nothing saved yet — search, scan, or add a food and it&apos;ll show up here.
+                </p>
+              ) : savedMatches.length > 0 ? (
+                <div className="max-h-[55vh] overflow-y-auto">
+                  <HistoryList entries={savedMatches} onPick={prefill} />
+                </div>
+              ) : (
+                <p className="text-faint text-sm font-body py-3">No matches in your saved foods.</p>
+              )}
+            </div>
+          )}
 
           {/* mode 1 — search */}
           {mode === 'search' && (
@@ -1013,20 +1009,6 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                 className="input-field mb-3"
                 autoFocus
               />
-              {/* instant matches from the user's own log — no network */}
-              {historyMatches.length > 0 && !historyCollapsed && (
-                <div className="mb-3">
-                  <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-1.5">
-                    From your history — tap to re-log
-                  </p>
-                  <HistoryList entries={historyMatches} onPick={prefill} />
-                </div>
-              )}
-              {historyMatches.length > 0 && !historyCollapsed && (lookupLoading || lookupError || result) && (
-                <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-1.5">
-                  Web lookup — new food
-                </p>
-              )}
               {lookupLoading && (
                 <div className="flex items-center gap-2 text-faint text-sm font-body py-3">
                   <Loader2 size={14} className="animate-spin text-amber" /> Looking up…
@@ -1363,38 +1345,13 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
                   <p className="text-amber/80 text-[11px] font-body mt-1.5">{manualCodeError}</p>
                 )}
               </div>
-
-              {/* re-log from history without scanning anything */}
-              {historyLoaded && history.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2">
-                    Or re-log from your history
-                  </p>
-                  <input
-                    type="text"
-                    value={historyQuery}
-                    onChange={e => setHistoryQuery(e.target.value)}
-                    placeholder="Search foods you've logged…"
-                    className="input-field text-sm"
-                  />
-                  {historyQuery.trim() && (
-                    <div className="mt-2">
-                      {scanHistoryMatches.length > 0 ? (
-                        <HistoryList entries={scanHistoryMatches} onPick={prefill} />
-                      ) : (
-                        <p className="text-faint text-xs font-body">No matches in your history.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
           {/* shared: amount + meal — in scan mode only once there's a product to log.
               Amount entry adapts: servings, a servings/grams toggle, or grams-only
               (per-100g items) per what the selected item supports. */}
-          {(mode !== 'scan' || (scanStatus === 'hit' && !!scanHit)) && (
+          {mode !== 'saved' && (mode !== 'scan' || (scanStatus === 'hit' && !!scanHit)) && (
           <div className="mt-4 flex flex-wrap items-start gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1 h-4">
