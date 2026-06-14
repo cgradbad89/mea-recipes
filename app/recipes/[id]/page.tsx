@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
-  BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send
+  BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send, ShoppingCart, Check
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader, setRecipeDefaultRole } from '@/lib/recipes'
-import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
+import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, addRecipeIngredientsToGrocery, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
 import { logCookEvent } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -67,6 +67,9 @@ export default function RecipeDetailPage() {
   const [assistantLoading, setAssistantLoading] = useState(false)
   const [assistantError, setAssistantError] = useState('')
   const [savingDefaultRole, setSavingDefaultRole] = useState(false)
+  const [addingGrocery, setAddingGrocery] = useState(false)
+  const [groceryAddedCount, setGroceryAddedCount] = useState<number | null>(null)
+  const [groceryError, setGroceryError] = useState('')
 
   useEffect(() => {
     if (!id) return
@@ -226,6 +229,28 @@ export default function RecipeDetailPage() {
   const hasOverrides = !!meta?.overrides &&
     Object.keys(meta.overrides).some(k => k !== 'servings')
   const canDelete = !!user
+
+  // Bulk "Add all to grocery" (Batch 9). REUSES addRecipeIngredientsToGrocery — the
+  // SAME function the Plan→grocery rebuild calls — so the Batch-2 unit-aware parser and
+  // exact-noun merge apply; we never reimplement parsing or grocery writes here. The
+  // ingredient lines are the SAME source the page renders: parseRecipeContent(
+  // displayRecipe.content), i.e. override-aware content, matching the Plan path's
+  // `overrides.content || recipe.content`. Additive — the whole-recipe Plan flow is untouched.
+  const handleAddAllToGrocery = async () => {
+    if (!user || !recipe || addingGrocery) return
+    setAddingGrocery(true)
+    setGroceryError('')
+    try {
+      await addRecipeIngredientsToGrocery(user.uid, recipe.id, ingredients)
+      // Count human ingredient lines (excluding section headers) for the confirmation;
+      // the write itself is idempotent per recipe via exact-noun matching.
+      setGroceryAddedCount(ingredients.filter(l => !detectIngredientHeader(l).isHeader).length)
+    } catch (e: any) {
+      setGroceryError(e?.message || 'Failed to add to grocery')
+    } finally {
+      setAddingGrocery(false)
+    }
+  }
 
   const sendAssistantMessage = async (content: string) => {
     const trimmed = content.trim()
@@ -484,9 +509,35 @@ export default function RecipeDetailPage() {
 
       {ingredients.length > 0 && (
         <section className="mb-8">
-          <h2 className="font-display text-2xl text-cream font-light mb-4 flex items-center gap-2">
-            <ChefHat size={20} className="text-amber" /> Ingredients
-          </h2>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <h2 className="font-display text-2xl text-cream font-light flex items-center gap-2">
+              <ChefHat size={20} className="text-amber" /> Ingredients
+            </h2>
+            {user && (
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <button
+                  onClick={handleAddAllToGrocery}
+                  disabled={addingGrocery}
+                  className="btn-ghost text-xs flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {addingGrocery
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : groceryAddedCount != null
+                      ? <Check size={13} />
+                      : <ShoppingCart size={13} />}
+                  {addingGrocery ? 'Adding…' : groceryAddedCount != null ? 'Add again' : 'Add all to grocery'}
+                </button>
+                {groceryAddedCount != null && (
+                  <span className="text-green-400 text-[11px] font-body">
+                    Added {groceryAddedCount} ingredient{groceryAddedCount !== 1 ? 's' : ''} to grocery ✓
+                  </span>
+                )}
+                {groceryError && (
+                  <span className="text-red-400 text-[11px] font-body">{groceryError}</span>
+                )}
+              </div>
+            )}
+          </div>
           <ul className="space-y-2">
             {ingredients.map((ing, i) => {
               const header = detectIngredientHeader(ing)

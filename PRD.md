@@ -60,7 +60,7 @@ wrapped in a per-route `layout.tsx`.
 |---|---|---|---|
 | Home (redirect) | `/` (`app/page.tsx`) | Done | Redirects to `/recipes`; no landing page |
 | Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence |
-| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, full-screen Cooking Mode (`components/CookingMode.tsx`) |
+| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers**) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
@@ -491,8 +491,14 @@ otherwise unchanged.
   Lock API (`navigator.wakeLock.request('screen')`), re-acquiring on `visibilitychange`. Browsers
   without the API (notably iOS Safari historically) silently no-op — the screen may still sleep.
   The takeover is `fixed inset-0 z-[100]`, sharing the same layer as the Add-to-Plan popover; it
-  covers the `z-50` HubBanner. Its checked-ingredient / current-step state is in-memory only and
-  resets on each launch (no persistence).
+  covers the `z-50` HubBanner. Its checked-ingredient / current-step / timer state is in-memory only
+  and resets on each launch (no persistence). **Step timers (Batch 9)** are tap-to-start only and
+  parsed conservatively from step text (ranges → longer bound; cadence like "every 2 minutes" and
+  temps/quantities excluded). Remaining time is computed from a stored target timestamp, so it stays
+  correct across tab backgrounding (not a naive `setInterval` decrement). The finish alert — short
+  Web-Audio beep + `navigator.vibrate` — is best-effort and feature-detected: it may be blocked while
+  the tab is backgrounded/locked, but the visual "Done!" flash and the correct remaining-time-on-return
+  always work (the wake lock above keeps the screen on while in Cooking Mode).
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
