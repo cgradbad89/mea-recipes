@@ -58,10 +58,10 @@ wrapped in a per-route `layout.tsx`.
 |---|---|---|---|
 | Home (redirect) | `/` (`app/page.tsx`) | Done | Redirects to `/recipes`; no landing page |
 | Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence |
-| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, full-screen Cooking Mode (`components/CookingMode.tsx`) |
+| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, full-screen Cooking Mode (`components/CookingMode.tsx`) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
-| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe, cooked tracking, AI plan suggestions, shared plans |
+| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles**), **desktop drag-and-drop day assignment + tap day-picker**, cooked tracking, AI plan suggestions, shared plans |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
@@ -93,10 +93,15 @@ All user data is keyed under `users/{uid}/…`. The web app mirrors the iOS app'
 ### `recipes/{id}` — shared recipe catalog (`lib/recipes.ts`)
 Doc ID = slugified title. Fields (see `types/recipe.ts` → `Recipe`):
 `recipeID, title, content, category, cuisine, imageURL, sourceURL, sourceFile, labels,
-hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutrition?`.
+hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutrition?, nutritionStatus?, defaultRole?`.
 - `content` is a single freeform string; ingredients/instructions are **parsed at runtime**
   (`parseRecipeContent`), not stored as arrays.
 - `addedBy` = uid of the web user who added it (used by the "Added by me" filter).
+- `defaultRole?` (`'main' | 'side'`, Batch 5.1) is the recipe's explicit meal-plan role, shared on
+  the dish doc. Set from the recipe-detail "Meal-plan default" control via `setRecipeDefaultRole`
+  (single-field merge). On add-to-plan, `resolveRecipeRole` (`lib/userdata.ts`) resolves
+  `defaultRole ?? deriveRoleFromCategory(category)`. `docToRecipe` whitelists it (else it would be
+  dropped). Editing it never rewrites existing plan entries (§5.20).
 - Read with an in-memory module cache (`_recipesCache`), invalidated on save/delete.
 - `nutrition` (written by the nutrition backfill; see `nutrition-tracker-spec.md`) is an embedded
   object: per-serving macros `calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g`, plus
@@ -335,14 +340,28 @@ otherwise unchanged.
     **"Breakfast, Snacks & Sides" → `side`**; all mains (Chicken & Poultry, Beef & Pork, Seafood,
     Vegetarian Mains, Pasta/Noodles & Rice) **and** the ambiguous categories (Salads & Bowls, Soups/Stews
     & Chili) → `main` (a missing side is less wrong than a missing main; unknown/empty category → `main`).
-    The derived role is set on `addRecipeToWeekPlan` at every add site (recipe detail, RecipeCard,
-    Discover, Friends' "add to my plan"). A user can override per entry via the card's Main/Side toggle
-    (`setPlannedRecipeRole`); the override is **persisted on the entry**, so the read-time derivation
-    never clobbers a manual choice. The Plan UI groups cards by day (7-col grid on `lg`, stacked sections
-    on mobile) with a shared **Unscheduled** area, **mains sorted before sides** within each day, and a
-    tap **day-picker** (no drag-and-drop) calling `assignRecipeToDay`. Day/role are display/organization
-    only — they **never** affect grocery (`rebuildGroceryFromPlan` pulls all planned recipes regardless)
-    or cooked tracking, and `logCookEvent` is unchanged.
+    The role used on `addRecipeToWeekPlan` is `resolveRecipeRole(recipe)` at every add site (recipe
+    detail, RecipeCard, Discover, Friends' "add to my plan"). A user can override per entry via the
+    card's Main/Side toggle (`setPlannedRecipeRole`); the override is **persisted on the entry**, so the
+    read-time derivation never clobbers a manual choice. The Plan UI groups cards by day (7-col grid on
+    `lg`, stacked sections on mobile) with a shared **Unscheduled** area and **mains sorted before sides**
+    within each day. Day/role are display/organization only — they **never** affect grocery
+    (`rebuildGroceryFromPlan` pulls all planned recipes regardless) or cooked tracking, and `logCookEvent`
+    is unchanged.
+    **Add-time role precedence (Batch 5.1):** per-week entry override (`setPlannedRecipeRole`) >
+    recipe `defaultRole` > category-derived (`resolveRecipeRole` = `defaultRole ?? deriveRoleFromCategory`).
+    Setting a recipe's `defaultRole` (recipe-detail control, §3) applies to **future adds only** — it
+    **never** rewrites the stored role on entries already in any week plan; existing object entries keep
+    their stored role and legacy-string entries stay category-derived (frozen, independent of `defaultRole`).
+    **Day assignment (Batch 5.1):** in addition to the tap **day-picker** (`Calendar` button → day
+    dropdown, the reliable path and the sole mobile path), the desktop grid supports native HTML5
+    **drag-and-drop** — tiles are `draggable`, day columns and the Unscheduled area are drop targets with
+    an amber ring highlight; both paths call the same `assignRecipeToDay`. Desktop-only by design (the grid
+    is `hidden lg:grid`; HTML5 drag doesn't fire on touch), so mobile is unaffected — no DnD library added.
+    **Role color accent (Batch 5.1):** each plan tile gets a subtle inset left-edge accent —
+    `amber (#E8A838)` = main, `muted (#A89880)` = side (existing theme tokens) — paired with the on-tile
+    Main/Side text label so color is never the only signal (colorblind-safe). Applied to plan tiles only,
+    identical on desktop and mobile; no Mains/Sides sub-headers.
 
 ---
 

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { CalendarPlus, Check, X, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
-import { addRecipeToWeekPlan, weekIDFromDate, deriveRoleFromCategory } from '@/lib/userdata'
+import { addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole } from '@/lib/userdata'
 import RecipeImage, { getCategoryIcon } from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
@@ -131,7 +131,7 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
     if (!user || !selectedWeek) return
     setAdding(true)
     try {
-      await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, deriveRoleFromCategory(recipe.category))
+      await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
       setAdded(true)
       setTimeout(() => {
         setAdded(false)

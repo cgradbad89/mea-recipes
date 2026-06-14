@@ -42,6 +42,11 @@ export interface Recipe {
   // Set when auto-nutrition-on-publish failed/timed out: 'needs_calc' surfaces the
   // manual "Calculate nutrition" retry on the recipe detail page; 'computed' once filled.
   nutritionStatus?: 'needs_calc' | 'computed'
+  // Explicit main/side default for meal planning (Batch 5.1). Lives on the SHARED
+  // recipe doc (main/side is a property of the dish). When unset, the plan falls
+  // back to category-derived role. Add-time precedence: per-week entry override >
+  // defaultRole > category-derived. Editing it never rewrites existing plan entries.
+  defaultRole?: 'main' | 'side'
 }
 
 export interface RecipeOverrides {

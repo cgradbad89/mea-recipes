@@ -6,8 +6,8 @@ import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
   BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send
 } from 'lucide-react'
-import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader } from '@/lib/recipes'
-import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, weekIDFromDate, deriveRoleFromCategory } from '@/lib/userdata'
+import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader, setRecipeDefaultRole } from '@/lib/recipes'
+import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
 import { logCookEvent } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -66,6 +66,7 @@ export default function RecipeDetailPage() {
   const [assistantInput, setAssistantInput] = useState('')
   const [assistantLoading, setAssistantLoading] = useState(false)
   const [assistantError, setAssistantError] = useState('')
+  const [savingDefaultRole, setSavingDefaultRole] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -148,10 +149,25 @@ export default function RecipeDetailPage() {
   const handleConfirmAddToPlan = async () => {
     if (!user || !recipe || !selectedWeek) return
     setAddingToPlan(true)
-    await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, deriveRoleFromCategory(recipe.category))
+    await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
     setAddingToPlan(false)
     setPlanAddedLabel(formatWeekLabel(selectedWeek))
     setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)
+  }
+
+  // Set this recipe's explicit default main/side role on the SHARED doc. Optimistic;
+  // changing it never rewrites roles on entries already in any week plan (future adds only).
+  const handleSetDefaultRole = async (role: PlannedRole) => {
+    if (!recipe) return
+    setSavingDefaultRole(true)
+    setRecipe(prev => prev ? { ...prev, defaultRole: role } : prev)
+    try {
+      await setRecipeDefaultRole(recipe.id, role)
+    } catch {
+      /* best-effort — the live view already reflects the user's choice */
+    } finally {
+      setSavingDefaultRole(false)
+    }
   }
 
   const handleDelete = async () => {
@@ -349,6 +365,36 @@ export default function RecipeDetailPage() {
         {hasOverrides && <span className="text-xs px-2.5 py-1 rounded-lg bg-amber/5 border border-amber/10 text-amber/60 font-body">edited</span>}
         {meta?.rating ? <StarRating value={meta.rating} /> : null}
       </div>
+
+      {/* Meal-plan default role (shared recipe property; distinct from the per-week
+          toggle on the plan page). Shows the effective default; "from category" hints
+          when not yet explicitly set. */}
+      {user && (
+        <div className="flex items-center gap-2 mb-6">
+          <span className="text-faint text-xs font-body">Meal-plan default:</span>
+          <div className="inline-flex rounded-lg border border-border overflow-hidden">
+            {(['main', 'side'] as const).map(r => {
+              const active = resolveRecipeRole(recipe) === r
+              return (
+                <button
+                  key={r}
+                  onClick={() => handleSetDefaultRole(r)}
+                  disabled={savingDefaultRole}
+                  className={`px-3 py-1 text-xs font-body capitalize transition-colors disabled:opacity-50 ${
+                    active ? 'bg-amber/15 text-amber' : 'text-faint hover:text-cream'
+                  }`}
+                  aria-pressed={active}
+                >
+                  {r}
+                </button>
+              )
+            })}
+          </div>
+          {recipe?.defaultRole !== 'main' && recipe?.defaultRole !== 'side' && (
+            <span className="text-faint/60 text-[10px] font-body">from category</span>
+          )}
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="flex gap-3 mb-8 relative">

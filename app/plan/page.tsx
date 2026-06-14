@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, Plus, GripVertical } from 'lucide-react'
 import Link from 'next/link'
 import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -11,7 +11,7 @@ import {
   markRecipeCooked, addRecipeIngredientsToGrocery,
   moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
   publishSharedPlan, subscribeSharedWeekPlans, addRecipeToWeekPlan,
-  assignRecipeToDay, setPlannedRecipeRole, deriveRoleFromCategory,
+  assignRecipeToDay, setPlannedRecipeRole, resolveRecipeRole,
   normalizePlanned, plannedRecipeIDList,
   type WeekPlan, type RecipeMeta, type SharedPlanEntry, type PlannedEntry, type PlannedRole
 } from '@/lib/userdata'
@@ -186,6 +186,10 @@ export default function PlanPage() {
   const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
   const [bulkAddResult, setBulkAddResult] = useState<string | null>(null)
   const [confirmRemoveFor, setConfirmRemoveFor] = useState<string | null>(null)
+  // Desktop drag-and-drop (Batch 5.1): additive to the tap day-picker. Native HTML5
+  // drag — desktop-only (the grid is `hidden lg:grid`); touch/mobile keep the picker.
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null)
   const defaultCheckedRef = useRef(false)
 
   // First-mount: restore last-viewed week from sessionStorage OR auto-default to next week if current is empty
@@ -290,7 +294,7 @@ export default function PlanPage() {
 
   const handleAddFriendRecipe = async (recipeID: string) => {
     if (!user) return
-    await addRecipeToWeekPlan(user.uid, weekID, recipeID, deriveRoleFromCategory(recipes[recipeID]?.category))
+    await addRecipeToWeekPlan(user.uid, weekID, recipeID, resolveRecipeRole(recipes[recipeID]))
     setAddedFriendRecipe(recipeID)
     setTimeout(() => setAddedFriendRecipe(null), 1500)
   }
@@ -409,6 +413,17 @@ export default function PlanPage() {
     await setPlannedRecipeRole(user.uid, weekID, entry.recipeID, entry.role === 'main' ? 'side' : 'main')
   }
 
+  // Drop a dragged tile onto a day (or null = Unscheduled) — same write path as the
+  // tap day-picker, so drag and tap stay one system. Carries the entry's role over.
+  const handleDropOnDay = async (day: string | null) => {
+    const id = draggingId
+    setDragOverKey(null)
+    setDraggingId(null)
+    if (!user || !id) return
+    const role = plannedEntries.find(e => e.recipeID === id)?.role ?? 'main'
+    await assignRecipeToDay(user.uid, weekID, id, day, role)
+  }
+
   const handleAddToGrocery = async (recipeID: string) => {
     if (!user) return
     const recipe = recipes[recipeID]
@@ -482,9 +497,26 @@ export default function PlanPage() {
     const id = entry.recipeID
     const recipe = recipes[id]
     if (!recipe) return null
+    // Task 3 — subtle left-edge color accent (inset shadow respects rounded corners):
+    // amber (#E8A838) = main, muted (#A89880) = side. Theme tokens, paired with the
+    // existing Main/Side text label below, so color is never the sole signal.
+    const roleAccent = entry.role === 'main'
+      ? 'shadow-[inset_3px_0_0_0_#E8A838]'
+      : 'shadow-[inset_3px_0_0_0_#A89880]'
     return (
-      <div key={id} className="bg-surface border border-border rounded-xl p-2.5">
+      <div
+        key={id}
+        draggable
+        onDragStart={e => {
+          setDraggingId(id)
+          e.dataTransfer.effectAllowed = 'move'
+          try { e.dataTransfer.setData('text/plain', id) } catch {}
+        }}
+        onDragEnd={() => { setDraggingId(null); setDragOverKey(null) }}
+        className={`bg-surface border border-border rounded-xl p-2.5 cursor-grab active:cursor-grabbing transition-opacity ${roleAccent} ${draggingId === id ? 'opacity-50' : ''}`}
+      >
         <div className="flex items-start gap-2">
+          <GripVertical size={12} className="hidden lg:block text-faint/30 shrink-0 mt-0.5" aria-hidden="true" />
           <RecipeImage
             src={metas[id]?.overrides?.imageURL || recipe.imageURL}
             alt=""
@@ -778,7 +810,13 @@ export default function PlanPage() {
                   {dayBuckets.map(({ date, entries }) => {
                     const d = new Date(date + 'T12:00:00')
                     return (
-                      <div key={date} className="min-w-0">
+                      <div
+                        key={date}
+                        onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey(date) } }}
+                        onDragLeave={() => setDragOverKey(k => (k === date ? null : k))}
+                        onDrop={e => { e.preventDefault(); handleDropOnDay(date) }}
+                        className={`min-w-0 rounded-xl p-1 -m-1 transition-colors ${dragOverKey === date ? 'bg-amber/5 ring-1 ring-amber/40' : ''}`}
+                      >
                         <div className="text-center mb-2">
                           <p className="text-faint text-[10px] font-body uppercase tracking-wider">
                             {d.toLocaleDateString('en-US', { weekday: 'short' })}
@@ -822,16 +860,31 @@ export default function PlanPage() {
                   })}
                 </div>
 
-                {/* Unscheduled (shared by both layouts) */}
-                {unscheduledEntries.length > 0 && (
-                  <div className="mt-8">
+                {/* Unscheduled (shared by both layouts) + drop target. Shown when it
+                    has items, or — empty — while a drag is in progress so a scheduled
+                    tile can be dragged back to Unscheduled (desktop). */}
+                {(unscheduledEntries.length > 0 || draggingId) && (
+                  <div
+                    onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey('unscheduled') } }}
+                    onDragLeave={() => setDragOverKey(k => (k === 'unscheduled' ? null : k))}
+                    onDrop={e => { e.preventDefault(); handleDropOnDay(null) }}
+                    className={`mt-8 rounded-xl p-2 -m-2 transition-colors ${dragOverKey === 'unscheduled' ? 'bg-amber/5 ring-1 ring-amber/40' : ''}`}
+                  >
                     <div className="flex items-baseline gap-2 mb-3">
                       <h3 className="text-cream text-sm font-body font-medium uppercase tracking-wider">Unscheduled</h3>
-                      <span className="text-faint text-xs font-body">{unscheduledEntries.length}</span>
+                      {unscheduledEntries.length > 0 && (
+                        <span className="text-faint text-xs font-body">{unscheduledEntries.length}</span>
+                      )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                      {unscheduledEntries.map(renderPlannedCard)}
-                    </div>
+                    {unscheduledEntries.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                        {unscheduledEntries.map(renderPlannedCard)}
+                      </div>
+                    ) : (
+                      <div className="border border-dashed border-border rounded-xl py-6 text-center text-faint/40 text-xs font-body">
+                        Drop here to unschedule
+                      </div>
+                    )}
                   </div>
                 )}
               </>

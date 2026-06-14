@@ -158,6 +158,19 @@ function isPlannedRole(v: unknown): v is PlannedRole {
   return v === 'main' || v === 'side'
 }
 
+/**
+ * Resolve the role to use when ADDING a recipe to a plan (Batch 5.1): an explicit
+ * `recipe.defaultRole` wins; otherwise fall back to the category-derived default.
+ * A per-week planned-entry override (setPlannedRecipeRole) still wins over this for
+ * that week's specific instance. Used by every addRecipeToWeekPlan call site.
+ */
+export function resolveRecipeRole(
+  recipe: { defaultRole?: PlannedRole | null; category?: string | null } | null | undefined,
+): PlannedRole {
+  const d = recipe?.defaultRole
+  return isPlannedRole(d) ? d : deriveRoleFromCategory(recipe?.category)
+}
+
 function elementRecipeID(el: PlannedElement): string {
   return typeof el === 'string' ? el : el.recipeID
 }

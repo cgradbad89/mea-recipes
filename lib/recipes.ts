@@ -40,6 +40,9 @@ function docToRecipe(id: string, data: DocumentData): Recipe {
     nutrition: data.nutrition && typeof data.nutrition === 'object' ? data.nutrition : undefined,
     nutritionStatus: data.nutritionStatus === 'needs_calc' || data.nutritionStatus === 'computed'
       ? data.nutritionStatus : undefined,
+    // Batch 5.1 — explicit meal-plan default role. Whitelisted here so it loads
+    // (docToRecipe silently drops any field not listed).
+    defaultRole: data.defaultRole === 'main' || data.defaultRole === 'side' ? data.defaultRole : undefined,
   }
 }
 
@@ -117,6 +120,18 @@ export async function updateRecipeServings(
   invalidateRecipeCache()
 
   return { ...current, ...patch } as RecipeNutrition
+}
+
+/**
+ * Set this recipe's explicit default meal-plan role (main/side) on the SHARED
+ * recipe doc — main/side is a property of the dish, so it is shared like the rest
+ * of the catalog. Single-field merge write. Does NOT touch any week plan: changing
+ * the default affects FUTURE adds only; existing planned entries keep their stored
+ * per-entry role (see lib/userdata.ts resolveRecipeRole / normalizePlanned).
+ */
+export async function setRecipeDefaultRole(id: string, role: 'main' | 'side'): Promise<void> {
+  await setDoc(doc(db, COLLECTION, id), { defaultRole: role }, { merge: true })
+  invalidateRecipeCache()
 }
 
 // ─── Auto-nutrition on publish (shared client helper) ────────────────────────
