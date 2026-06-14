@@ -35,5 +35,8 @@ yarn-error.log*
 next-env.d.ts
 .env.local
 
-# Batch 4: large generated dry-run diff (the reviewable report is batch4-canonical-dryrun.md)
+# Batch 4: large generated dry-run diffs (the reviewable reports are the batch4-*.md files)
 scripts/canonical-dryrun-raw.json
+scripts/canonical-dryrun-v1-raw.json
+scripts/canonical-dryrun-v2-raw.json
+scripts/reaudit-task1.json

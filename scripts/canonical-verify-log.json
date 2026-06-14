@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-14T20:13:39.625Z",
-  "seeds": 124,
-  "verified": 123,
+  "generatedAt": "2026-06-14T21:32:54.705Z",
+  "seeds": 123,
+  "verified": 122,
   "failed": 1,
   "verifiedEntries": [
     {
@@ -692,21 +692,6 @@
         "fat_g": 36.1,
         "fiber_g": 0,
         "sugar_g": 2.9
-      }
-    },
-    {
-      "key": "half and half",
-      "fdcId": 171255,
-      "description": "Cream, fluid, half and half",
-      "dataType": "SR Legacy",
-      "cls": "dairy",
-      "per100g": {
-        "calories": 131,
-        "protein_g": 3.1,
-        "carbs_g": 4.3,
-        "fat_g": 11.5,
-        "fiber_g": 0,
-        "sugar_g": 4.1
       }
     },
     {

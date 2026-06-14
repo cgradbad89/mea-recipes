@@ -421,7 +421,7 @@ otherwise unchanged.
     keeps its old id) and report the failed days. Day/role/cooked semantics, grocery, and nutrition are
     untouched. Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6).
 22. **Canonical staples ingredient resolution** (Batch 4) — a curated, **live-verified** lookup
-    (`lib/canonicalStaples.ts`, 123 entries) maps common cooking staples → the exact correct USDA
+    (`lib/canonicalStaples.ts`, 122 entries) maps common cooking staples → the exact correct USDA
     FoodData Central entry (fdcId + description + dataType + per-100g macros, SR Legacy/Foundation
     plain base forms; generated + verified by `scripts/verify-canonical-staples.js`). It is the **new
     first tier** of ingredient resolution in `computeRecipeNutrition`: **canonical table → existing
@@ -439,6 +439,17 @@ otherwise unchanged.
     recompute is DRY-RUN (`/api/nutrition-canonical-dryrun`, no apply path) and **no stored nutrition
     has been rewritten**; applying the corrected macros is a separate, later, explicitly-authorized step
     (see `batch4-canonical-dryrun.md`).
+    **Batch 4-fix (matcher hardening):** an independent re-audit (`batch4-canonical-reaudit.md`) found
+    the table data sound but the alias layer had a systemic flaw — aliases/guards whose distinguishing
+    word is a stripped `DESCRIPTOR_WORD` (e.g. "minced beef"→`{beef}`, "half and half"→`{half}`,
+    "whole peeled tomatoes"→`{tomato}`; guards on `fresh`/`whole`) collapse to a bare catch-all and
+    hijacked ~16 recipes (whole beef/pork cuts → ground meat; "…cut in half" → cream; cream-of-mushroom
+    soup → raw mushroom). Fix: dropped the degenerate aliases, removed the `half and half` entry,
+    re-based guards on **surviving** tokens (`wheat` not `whole wheat`; added `mushroom`/`oats`/`banana`
+    guards), and added a **generator lint** in `scripts/verify-canonical-staples.js` that fails on any
+    alias collapsing to a bare token or any guard term that is a `DESCRIPTOR_WORD`. Re-verified by a v2
+    dry-run (`batch4-canonical-dryrun-v2.md`): all 16 regressions gone, **zero new regressions**, Easy
+    Spaghetti preserved. Still DRY-RUN — no data applied.
 
 ---
 
@@ -514,7 +525,11 @@ otherwise unchanged.
   per-100g macros → kcal-band check). To change/add an entry, edit the **seed list in the script** and
   re-run it (it re-verifies every entry live and overwrites the file), not the `.ts` directly. The
   generated entries are SR Legacy/Foundation only; `rice vinegar` is intentionally **excluded** (no plain
-  USDA entry) and falls through to the fuzzy matcher. The dry-run tool runs locally **without
+  USDA entry) and falls through to the fuzzy matcher. The script also runs a **lint** (Batch 4-fix) that
+  fails generation if any alias collapses to a bare single token (a catch-all — the "minced beef"→`{beef}`
+  / "half and half"→`{half}` class) or any `guard` term is itself a `DESCRIPTOR_WORD` (stripped before the
+  guard runs → defanged). When adding a seed: never let an alias's only distinguishing word be a descriptor
+  (`minced`, `fresh`, `whole`, `and`, `peeled`…), and guard on a token that survives `keyTokens`. The dry-run tool runs locally **without
   `ANTHROPIC_API_KEY`**, so it computes baseline (canonical-off) and proposed (canonical-on) in the same
   AI-less runtime — the `canonicalΔ` is exact, but absolute totals for AI-dependent recipes read lower
   than the stored `old`, and the high/medium confidence split is a local lower bound. **The Batch-4 diff
@@ -592,7 +607,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Commit Firestore rules to repo | Medium | Won't do | Reverted — the `malignant-metro` DB is shared across apps, so rules are managed manually in the Firebase Console only (a deploy from here would overwrite other apps' rules). See **Firestore rules** + Sharp Edges |
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
 | Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
-| Canonical staples ingredient resolution (nutrition accuracy fix) | High | Partial (dry-run done; apply pending review) | Batch 4. Root-cause fix for implausible macros from USDA fuzzy mis-matches (e.g. Easy Spaghetti pasta → "Frozen yogurts"). `lib/canonicalStaples.ts` (123 live-verified entries, generated by `scripts/verify-canonical-staples.js`) is the new first tier in `computeRecipeNutrition` (canonical → USDA validation → AI). DRY-RUN recompute + diff via `/api/nutrition-canonical-dryrun` → `batch4-canonical-dryrun.md`. **No stored nutrition written** — applying the corrected macros is a separate, explicitly-authorized step. See §5 #22, §6. |
+| Canonical staples ingredient resolution (nutrition accuracy fix) | High | Partial (dry-run done; apply pending review) | Batch 4 + Batch 4-fix. Root-cause fix for implausible macros from USDA fuzzy mis-matches (e.g. Easy Spaghetti pasta → "Frozen yogurts"). `lib/canonicalStaples.ts` (122 live-verified entries, generated + linted by `scripts/verify-canonical-staples.js`) is the new first tier in `computeRecipeNutrition` (canonical → USDA validation → AI). Independent re-audit (`batch4-canonical-reaudit.md`) → matcher hardening (degenerate-alias fixes + generator lint) → v2 dry-run (`batch4-canonical-dryrun-v2.md`): 16 regressions fixed, zero new. **No stored nutrition written** — applying the corrected macros is a separate, explicitly-authorized step. See §5 #22, §6. |
 | Barcode-based packaged-food lookup | Medium | Done | Server-side lookup: `/api/barcode-lookup` + `lib/nutritionEngine.ts` `lookupFoodByBarcode` (Open Food Facts → USDA branded GTIN → miss), client helper `lookupBarcode` (`lib/nutrition.ts`), returns `basis` per_serving\|per_100g. Camera UI: **Scan** mode (4th tab) in `LogFoodSheet.tsx` — native `BarcodeDetector` where supported, lazy-loaded `@zxing/browser` fallback; EAN/UPC only; rear camera via getUserMedia; graceful permission-denied and not-found fallbacks route to Search. Dev panel (`BarcodeTestPanel.tsx`) removed. Reuses `saved_foods`/`consumption_log` — no new collection. Serving/grams amount entry **Done**: per-100g hits take grams directly, per-serving hits with a numeric serving size get a Servings⇄Grams toggle (engine now returns `serving_grams`/`servings_per_container`; entry records `amount_label`). |
 | Push meal plan to Google Calendar | Medium | Done | Manual **"Add this week to Calendar"** on the Plan page → one event per planned day, idempotent re-push via `weekPlans.calendarEventIds`. **Option B auth:** client mints a `calendar.events` OAuth token via a Firebase Google re-auth popup and passes it to the auth-gated `/api/calendar/push` executor (no server-side Google creds; route has no list/search). Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6). |
 | Password login (email/password via account linking) | Medium | Done | Batch 7. Google-signed-in user adds a password in settings (`PasswordLoginSettings` → `linkWithCredential`, same uid/data, no new account); login screen (`SignInOptions`, used in the `/favorites` + `/plan` gates) keeps Google and adds email/password **sign-in only** (no signup) + "Forgot password?" (`sendPasswordResetEmail`, neutral confirmation). Requires the Email/Password provider enabled in the Firebase console (see §4 #7, §6, §8). |

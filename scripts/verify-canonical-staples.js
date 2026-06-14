@@ -67,7 +67,10 @@ const SEEDS = [
   { key: 'butter', aliases: ['butter', 'unsalted butter', 'salted butter'], query: 'butter without salt', cls: 'butter', expect: ['butter'], avoid: ['peanut', 'almond', 'apple', 'cocoa', 'bean', 'whipped', 'oil', 'powder'], guard: /\b(bean|nut|squash|milk|scotch|cocoa|apple|peanut|almond|cashew|sun)\b/i },
 
   // ── Flours / starches ──
-  { key: 'all-purpose flour', aliases: ['flour', 'all-purpose flour', 'all purpose flour', 'white flour', 'plain flour'], query: 'wheat flour white all-purpose enriched', cls: 'flour', expect: ['flour', 'wheat'], avoid: ['self-rising', 'bread', 'cake', 'whole'], guard: /\b(almond|coconut|oat|rice|chickpea|garbanzo|semolina|tapioca|cassava|buckwheat|corn|whole[- ]?wheat|self[- ]?rising|cake|bread)\b/i },
+  // flour guard uses 'wheat' (a SURVIVING token) not 'whole[- ]?wheat' — "whole" is a
+  // stripped descriptor, so "whole wheat flour" arrives as "wheat flour"; guarding on
+  // 'wheat' correctly routes it to the whole-wheat-flour entry instead of all-purpose.
+  { key: 'all-purpose flour', aliases: ['flour', 'all-purpose flour', 'all purpose flour', 'white flour', 'plain flour'], query: 'wheat flour white all-purpose enriched', cls: 'flour', expect: ['flour', 'wheat'], avoid: ['self-rising', 'bread', 'cake', 'whole'], guard: /\b(almond|coconut|oat|rice|chickpea|garbanzo|semolina|tapioca|cassava|buckwheat|corn|wheat|self[- ]?rising|cake|bread)\b/i },
   { key: 'whole wheat flour', aliases: ['whole wheat flour', 'wholemeal flour'], query: 'flour whole wheat', cls: 'flour', expect: ['flour', 'whole', 'wheat'], avoid: ['white', 'pastry'] },
   { key: 'bread flour', aliases: ['bread flour'], query: 'wheat flour bread', cls: 'flour', expect: ['flour', 'bread'], avoid: [] },
   { key: 'cornstarch', aliases: ['cornstarch', 'corn starch', 'cornflour'], query: 'cornstarch', cls: 'flour', expect: ['cornstarch'], avoid: [] },
@@ -83,8 +86,15 @@ const SEEDS = [
   // ── Tomato products (the bad-match-prone, sweet-adjacent core) ──
   { key: 'tomato paste', aliases: ['tomato paste'], query: 'tomato products canned paste without salt added', cls: 'vegetable', expect: ['tomato', 'paste', 'products'], avoid: ['sauce', 'soup', 'sun-dried', 'ketchup', 'puree'] },
   { key: 'tomato sauce', aliases: ['tomato sauce', 'plain tomato sauce', 'passata'], query: 'tomato sauce canned', cls: 'vegetable', expect: ['tomato', 'sauce'], avoid: ['spaghetti', 'marinara', 'pasta', 'with', 'meat', 'mushroom', 'cheese'] },
-  { key: 'crushed tomatoes', aliases: ['crushed tomatoes', 'canned tomatoes', 'whole peeled tomatoes', 'canned whole tomatoes'], query: 'tomatoes canned', cls: 'vegetable', expect: ['tomato', 'canned'], avoid: ['paste', 'sauce', 'soup', 'juice', 'sun-dried', 'green'] },
-  { key: 'tomato', aliases: ['tomato', 'tomatoes', 'roma tomato', 'plum tomato', 'cherry tomatoes', 'grape tomatoes'], query: 'tomatoes red ripe raw year round average', cls: 'vegetable', expect: ['tomato', 'red', 'raw'], avoid: ['paste', 'sauce', 'sun-dried', 'dried', 'canned', 'green', 'orange', 'yellow', 'juice', 'soup'], guard: /\b(paste|sauce|sun[- ]?dried|dried|powder|soup|juice|ketchup|canned|crushed|stewed|puree)\b/i },
+  // "whole peeled tomatoes" dropped — collapses to bare {tomato} (whole/peeled are
+  // stripped), which ties with the fresh-tomato entry and catches sun-dried/tomato-soup.
+  { key: 'crushed tomatoes', aliases: ['crushed tomatoes', 'canned tomatoes', 'canned whole tomatoes'], query: 'tomatoes canned', cls: 'vegetable', expect: ['tomato', 'canned'], avoid: ['paste', 'sauce', 'soup', 'juice', 'sun-dried', 'green'] },
+  // Bare "tomato"/"tomatoes" dropped: with crushed-tomatoes' degenerate {tomato} alias
+  // removed, a bare alias here would make plain "tomatoes" (incl. canned forms like
+  // "fire-roasted tomatoes", "can tomatoes") resolve to FRESH tomato — an under-count
+  // vs the fuzzy matcher's canned match (a new regression). Only the unambiguously-fresh
+  // qualified forms are kept; plain "tomatoes" falls through to the fuzzy matcher (= v1).
+  { key: 'tomato', aliases: ['roma tomato', 'roma tomatoes', 'plum tomato', 'plum tomatoes', 'cherry tomatoes', 'grape tomatoes'], query: 'tomatoes red ripe raw year round average', cls: 'vegetable', expect: ['tomato', 'red', 'raw'], avoid: ['paste', 'sauce', 'sun-dried', 'dried', 'canned', 'green', 'orange', 'yellow', 'juice', 'soup'], guard: /\b(paste|sauce|sun[- ]?dried|dried|powder|soup|juice|ketchup|canned|crushed|stewed|puree)\b/i },
   { key: 'ketchup', aliases: ['ketchup', 'catsup', 'tomato ketchup'], query: 'catsup', cls: 'condiment', expect: ['catsup'], avoid: ['low sodium', 'reduced'] },
 
   // ── Sauces / condiments (bad-match-prone) ──
@@ -118,13 +128,16 @@ const SEEDS = [
   // ── Dairy + eggs ──
   { key: 'whole milk', aliases: ['milk', 'whole milk'], query: 'milk whole 3.25% milkfat with added vitamin d', cls: 'dairy', expect: ['milk', 'whole'], avoid: ['chocolate', 'dry', 'evaporated', 'condensed', 'buttermilk', 'goat'], guard: /\b(coconut|almond|oat|soy|rice|cashew|condensed|evaporated|powder|dry|buttermilk|goat|chocolate)\b/i },
   { key: 'heavy cream', aliases: ['heavy cream', 'heavy whipping cream', 'whipping cream', 'double cream'], query: 'cream fluid heavy whipping', cls: 'dairy', expect: ['cream', 'whipping'], avoid: ['sour', 'half', 'light', 'whipped topping'] },
-  { key: 'half and half', aliases: ['half and half', 'half-and-half'], query: 'cream fluid half and half', cls: 'dairy', expect: ['half'], avoid: ['fat free'] },
+  // "half and half" entry REMOVED — both its aliases tokenize to a single {half}
+  // ("and" is a stripped descriptor), so it matched any "…in half"/"half-moons" prep
+  // fragment → cream (4 spurious hits in the catalog). It cannot be made specific via
+  // aliases; "half and half" now falls through to the fuzzy matcher (which handled it).
   { key: 'sour cream', aliases: ['sour cream'], query: 'cream sour cultured', cls: 'dairy', expect: ['sour', 'cream'], avoid: ['reduced', 'fat free', 'imitation', 'light'] },
   { key: 'cream cheese', aliases: ['cream cheese'], query: 'cheese cream', cls: 'dairy', expect: ['cheese', 'cream'], avoid: ['fat free', 'low fat', 'whipped'] },
   { key: 'buttermilk', aliases: ['buttermilk'], query: 'milk buttermilk fluid cultured lowfat', cls: 'dairy', expect: ['buttermilk', 'fluid'], avoid: ['dry', 'powder', 'dried'] },
   { key: 'plain yogurt', aliases: ['plain yogurt', 'yogurt', 'whole milk yogurt'], query: 'yogurt plain whole milk', cls: 'dairy', expect: ['yogurt', 'plain', 'whole'], avoid: ['greek', 'vanilla', 'fruit', 'low fat', 'nonfat', 'skim', 'soy', 'silk', 'almond', 'coconut'], guard: /\b(greek|vanilla|strawberry|frozen|fruit)\b/i },
   { key: 'greek yogurt', aliases: ['greek yogurt', 'plain greek yogurt'], query: 'yogurt greek plain nonfat', cls: 'dairy', expect: ['yogurt', 'greek'], avoid: ['vanilla', 'fruit', 'strawberry'] },
-  { key: 'egg', aliases: ['egg', 'eggs', 'large egg', 'large eggs'], query: 'egg whole raw fresh', cls: 'meat', expect: ['egg', 'whole', 'raw'], avoid: ['white', 'yolk', 'substitute', 'dried', 'cooked'], guard: /\b(white|yolk|substitute|powder|dried)\b/i },
+  { key: 'egg', aliases: ['egg', 'eggs', 'large egg', 'large eggs'], query: 'egg whole raw fresh', cls: 'meat', expect: ['egg', 'whole', 'raw'], avoid: ['white', 'yolk', 'substitute', 'dried', 'cooked'], guard: /\b(whites?|yolks?|substitute|powder|dried)\b/i },
 
   // ── Cheeses ──
   { key: 'parmesan', aliases: ['parmesan', 'parmesan cheese', 'parmigiano reggiano', 'grated parmesan'], query: 'cheese parmesan hard', cls: 'cheese', expect: ['parmesan'], avoid: ['low', 'topping', 'imitation'] },
@@ -135,9 +148,13 @@ const SEEDS = [
   // ── Proteins (raw base forms) ──
   { key: 'chicken breast', aliases: ['chicken breast', 'chicken breasts', 'boneless skinless chicken breast'], query: 'chicken broilers or fryers breast meat only raw', cls: 'meat', expect: ['chicken', 'breast', 'raw'], avoid: ['cooked', 'fried', 'canned', 'and skin', 'lunchmeat'] },
   { key: 'chicken thigh', aliases: ['chicken thigh', 'chicken thighs', 'boneless skinless chicken thighs'], query: 'chicken broilers or fryers thigh meat only raw', cls: 'meat', expect: ['chicken', 'thigh', 'raw'], avoid: ['cooked', 'fried', 'skin'] },
-  { key: 'ground beef', aliases: ['ground beef', 'lean ground beef', 'ground chuck', 'minced beef'], query: 'beef ground 80% lean meat 20% fat raw', cls: 'meat', expect: ['beef', 'ground', '80%', 'raw'], avoid: ['cooked', 'patty', 'crumbles'] },
-  { key: 'ground turkey', aliases: ['ground turkey', 'lean ground turkey', 'minced turkey'], query: 'turkey ground raw', cls: 'meat', expect: ['turkey', 'ground', 'raw'], avoid: ['cooked', 'patty'] },
-  { key: 'ground pork', aliases: ['ground pork', 'minced pork'], query: 'pork ground raw', cls: 'meat', expect: ['pork', 'ground', 'raw'], avoid: ['cooked'] },
+  // ground-meat: aliases must contain BOTH "ground"+protein. "minced beef/pork/turkey"
+  // dropped — "minced" is a stripped DESCRIPTOR_WORD, so those collapse to a bare
+  // {beef}/{pork}/{turkey} catch-all that hijacks whole cuts (brisket, chuck, sirloin,
+  // pork shoulder, lard…). "minced beef" etc. now fall through to the fuzzy matcher.
+  { key: 'ground beef', aliases: ['ground beef', 'lean ground beef', 'ground chuck'], query: 'beef ground 80% lean meat 20% fat raw', cls: 'meat', expect: ['beef', 'ground', '80%', 'raw'], avoid: ['cooked', 'patty', 'crumbles'] },
+  { key: 'ground turkey', aliases: ['ground turkey', 'lean ground turkey'], query: 'turkey ground raw', cls: 'meat', expect: ['turkey', 'ground', 'raw'], avoid: ['cooked', 'patty'] },
+  { key: 'ground pork', aliases: ['ground pork'], query: 'pork ground raw', cls: 'meat', expect: ['pork', 'ground', 'raw'], avoid: ['cooked'] },
   { key: 'pork tenderloin', aliases: ['pork tenderloin', 'pork loin', 'pork chop', 'pork chops'], query: 'pork fresh loin tenderloin separable lean only raw', cls: 'meat', expect: ['pork', 'raw'], avoid: ['cooked', 'cured', 'ground'] },
   { key: 'bacon', aliases: ['bacon', 'bacon strips', 'sliced bacon'], query: 'pork cured bacon raw', cls: 'bacon', expect: ['bacon'], avoid: ['cooked', 'canadian', 'turkey', 'pre-cooked'] },
   { key: 'salmon', aliases: ['salmon', 'salmon fillet', 'salmon fillets'], query: 'fish salmon atlantic farmed raw', cls: 'meat', expect: ['salmon', 'atlantic', 'raw'], avoid: ['cooked', 'smoked', 'canned'] },
@@ -147,9 +164,16 @@ const SEEDS = [
   // ── Grains / pasta / rice ──
   { key: 'white rice', aliases: ['white rice', 'rice', 'long grain rice', 'jasmine rice', 'basmati rice'], query: 'rice white long-grain regular raw enriched', cls: 'grain', expect: ['rice', 'white', 'raw'], avoid: ['cooked', 'brown', 'wild', 'fried', 'flour', 'medium-grain', 'short-grain', 'instant', 'parboiled', 'glutinous'], guard: /\b(brown|wild|vinegar|flour|paper|noodles?|milk|wine|cakes?|pudding|cooked|fried|krispies)\b/i },
   { key: 'brown rice', aliases: ['brown rice'], query: 'rice brown long-grain raw', cls: 'grain', expect: ['rice', 'brown', 'raw'], avoid: ['cooked', 'flour'] },
-  { key: 'pasta', aliases: ['pasta', 'spaghetti', 'penne', 'macaroni', 'pappardelle', 'fettuccine', 'rigatoni', 'linguine', 'dry pasta'], query: 'pasta dry enriched', cls: 'grain', expect: ['pasta', 'dry'], avoid: ['cooked', 'whole-wheat', 'fresh', 'gluten', 'spinach', 'corn'], guard: /\b(cooked|fresh|whole[- ]?wheat|gluten[- ]?free|chickpea|lentil|rice|sauce)\b/i },
-  { key: 'egg noodles', aliases: ['egg noodles', 'noodles'], query: 'noodles egg dry enriched', cls: 'grain', expect: ['noodle', 'egg'], avoid: ['cooked', 'rice', 'soba', 'spinach', 'chow'] },
-  { key: 'rolled oats', aliases: ['rolled oats', 'oats', 'old fashioned oats', 'quick oats'], query: 'oats', cls: 'grain', expect: ['oats'], avoid: ['cookie', 'bread', 'cooked', 'instant flavored'] },
+  // pasta guard: 'wheat' (surviving token) vetoes whole-wheat pasta; 'gluten' vetoes
+  // gluten-free. 'fresh'/'whole-wheat'/'chickpea'/'lentil'/'rice' removed: 'fresh' is a
+  // stripped descriptor (can't be vetoed post-parse — known limit), and chickpea/lentil/
+  // rice pastas now resolve to a SAFE no-match via the tie rule (pasta vs the legume/rice
+  // entry both score 1 → fall through), rather than a wrong forced match.
+  { key: 'pasta', aliases: ['pasta', 'spaghetti', 'penne', 'macaroni', 'pappardelle', 'fettuccine', 'rigatoni', 'linguine', 'dry pasta'], query: 'pasta dry enriched', cls: 'grain', expect: ['pasta', 'dry'], avoid: ['cooked', 'whole-wheat', 'fresh', 'gluten', 'spinach', 'corn'], guard: /\b(cooked|wheat|gluten|sauce)\b/i },
+  // bare "noodles" alias dropped — it over-caught rice/soba/udon/ramen noodles → egg
+  // noodles. Now only "egg noodles" matches; other noodles fall through to the matcher.
+  { key: 'egg noodles', aliases: ['egg noodles'], query: 'noodles egg dry enriched', cls: 'grain', expect: ['noodle', 'egg'], avoid: ['cooked', 'rice', 'soba', 'spinach', 'chow'] },
+  { key: 'rolled oats', aliases: ['rolled oats', 'oats', 'old fashioned oats', 'quick oats'], query: 'oats', cls: 'grain', expect: ['oats'], avoid: ['cookie', 'bread', 'cooked', 'instant flavored'], guard: /\b(milk|flour|bran|drink|cake|cookie|granola)\b/i },
   { key: 'quinoa', aliases: ['quinoa'], query: 'quinoa uncooked', cls: 'grain', expect: ['quinoa', 'uncooked'], avoid: ['flour'] },
   { key: 'panko breadcrumbs', aliases: ['panko', 'panko breadcrumbs', 'breadcrumbs', 'bread crumbs'], query: 'bread crumbs dry grated plain', cls: 'grain', expect: ['bread', 'crumb'], avoid: ['seasoned'] },
 
@@ -171,7 +195,7 @@ const SEEDS = [
   { key: 'cabbage', aliases: ['cabbage', 'green cabbage', 'shredded cabbage'], query: 'cabbage raw', cls: 'leafy', expect: ['cabbage', 'raw'], avoid: ['red', 'napa', 'chinese', 'cooked', 'slaw'] },
   { key: 'broccoli', aliases: ['broccoli', 'broccoli florets'], query: 'broccoli raw', cls: 'vegetable', expect: ['broccoli', 'raw'], avoid: ['cooked', 'frozen', 'rabe', 'chinese'] },
   { key: 'cauliflower', aliases: ['cauliflower', 'cauliflower florets'], query: 'cauliflower raw', cls: 'vegetable', expect: ['cauliflower', 'raw'], avoid: ['cooked', 'rice', 'frozen'] },
-  { key: 'mushroom', aliases: ['mushroom', 'mushrooms', 'white mushrooms', 'button mushrooms', 'cremini mushrooms'], query: 'mushrooms white raw', cls: 'vegetable', expect: ['mushroom', 'raw'], avoid: ['cooked', 'canned', 'dried', 'shiitake', 'portabella'] },
+  { key: 'mushroom', aliases: ['mushroom', 'mushrooms', 'white mushrooms', 'button mushrooms', 'cremini mushrooms'], query: 'mushrooms white raw', cls: 'vegetable', expect: ['mushroom', 'raw'], avoid: ['cooked', 'canned', 'dried', 'shiitake', 'portabella'], guard: /\b(soup|cream|gravy|sauce|dried|powder)\b/i },
   { key: 'zucchini', aliases: ['zucchini', 'courgette', 'summer squash'], query: 'squash summer zucchini includes skin raw', cls: 'vegetable', expect: ['zucchini', 'raw'], avoid: ['cooked', 'bread'] },
   { key: 'cucumber', aliases: ['cucumber', 'cucumbers'], query: 'cucumber with peel raw', cls: 'vegetable', expect: ['cucumber', 'raw'], avoid: ['pickle'] },
   { key: 'corn', aliases: ['corn', 'corn kernels', 'sweet corn', 'frozen corn'], query: 'corn sweet yellow raw', cls: 'vegetable', expect: ['corn', 'raw'], avoid: ['canned', 'cream', 'meal', 'flour', 'chip', 'syrup', 'starch', 'bread', 'popcorn'], guard: /\b(meal|flour|starch|syrup|chips?|bread|tortillas?|popcorn|grits|nuts?)\b/i },
@@ -185,7 +209,7 @@ const SEEDS = [
   { key: 'lime juice', aliases: ['lime juice'], query: 'lime juice raw', cls: 'fruit', expect: ['lime', 'juice'], avoid: ['concentrate'] },
   { key: 'avocado', aliases: ['avocado', 'avocados'], query: 'avocados raw all commercial varieties', cls: 'fruit', expect: ['avocado', 'raw'], avoid: ['oil', 'dip', 'guacamole'] },
   { key: 'apple', aliases: ['apple', 'apples'], query: 'apples raw with skin', cls: 'fruit', expect: ['apple', 'raw'], avoid: ['juice', 'sauce', 'dried', 'pie', 'cider'], guard: /\b(juice|sauce|dried|pie|cider|butter|vinegar)\b/i },
-  { key: 'banana', aliases: ['banana', 'bananas'], query: 'bananas raw', cls: 'fruit', expect: ['banana', 'raw'], avoid: ['pepper', 'dried', 'chips', 'bread', 'baby'] },
+  { key: 'banana', aliases: ['banana', 'bananas'], query: 'bananas raw', cls: 'fruit', expect: ['banana', 'raw'], avoid: ['pepper', 'dried', 'chips', 'bread', 'baby'], guard: /\b(pepper|chili|bread|squash)\b/i },
   { key: 'orange', aliases: ['orange', 'oranges'], query: 'oranges raw all commercial varieties', cls: 'fruit', expect: ['orange', 'raw'], avoid: ['juice', 'peel', 'mandarin', 'zest'], guard: /\b(juice|peel|zest|extract)\b/i },
 
   // ── Spices / dried herbs (small grams, but deterministic + avoids weird matches) ──
@@ -195,7 +219,7 @@ const SEEDS = [
   { key: 'ground cumin', aliases: ['cumin', 'ground cumin'], query: 'spices cumin seed', cls: 'spice', expect: ['cumin'], avoid: [] },
   { key: 'paprika', aliases: ['paprika', 'smoked paprika', 'sweet paprika'], query: 'spices paprika', cls: 'spice', expect: ['paprika'], avoid: [] },
   { key: 'dried oregano', aliases: ['oregano', 'dried oregano'], query: 'spices oregano dried', cls: 'spice', expect: ['oregano'], avoid: ['fresh'] },
-  { key: 'dried basil', aliases: ['dried basil', 'basil'], query: 'spices basil dried', cls: 'spice', expect: ['basil'], avoid: ['fresh'] },
+  { key: 'dried basil', aliases: ['dried basil'], query: 'spices basil dried', cls: 'spice', expect: ['basil'], avoid: ['fresh'] },
   { key: 'dried thyme', aliases: ['dried thyme', 'thyme'], query: 'spices thyme dried', cls: 'spice', expect: ['thyme'], avoid: ['fresh'] },
   { key: 'ground cinnamon', aliases: ['cinnamon', 'ground cinnamon'], query: 'spices cinnamon ground', cls: 'spice', expect: ['cinnamon'], avoid: ['sugar', 'stick'] },
   { key: 'ground ginger', aliases: ['ground ginger'], query: 'spices ginger ground', cls: 'spice', expect: ['ginger', 'ground'], avoid: [] },
@@ -206,7 +230,10 @@ const SEEDS = [
   { key: 'ground coriander', aliases: ['coriander', 'ground coriander'], query: 'spices coriander seed', cls: 'spice', expect: ['coriander'], avoid: ['leaf', 'cilantro'] },
   { key: 'cilantro', aliases: ['cilantro', 'fresh cilantro', 'coriander leaves'], query: 'coriander cilantro leaves raw', cls: 'leafy', expect: ['coriander', 'raw'], avoid: ['seed', 'dried', 'ground'] },
   { key: 'parsley', aliases: ['parsley', 'fresh parsley', 'flat leaf parsley'], query: 'parsley fresh raw', cls: 'leafy', expect: ['parsley'], avoid: ['dried', 'spice', 'root'] },
-  { key: 'fresh basil', aliases: ['fresh basil', 'basil leaves'], query: 'basil fresh raw', cls: 'leafy', expect: ['basil'], avoid: ['dried', 'spice', 'seed', 'sauce', 'pesto'] },
+  // "fresh basil" alias dropped — collapses to {basil} ("fresh" stripped), which ties with
+  // dried basil. Only the multi-token "basil leaves" remains; plain "basil"/"fresh basil"
+  // falls through to the fuzzy matcher (same as before, where the two basil entries tied).
+  { key: 'fresh basil', aliases: ['basil leaves'], query: 'basil fresh raw', cls: 'leafy', expect: ['basil'], avoid: ['dried', 'spice', 'seed', 'sauce', 'pesto'] },
 ]
 
 // ── USDA fetch helpers ───────────────────────────────────────────────────────
@@ -257,6 +284,72 @@ function r1(n) { return Math.round(n * 10) / 10 }
 
 function tok(s) {
   return s.toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/[\s-]+/).filter(Boolean)
+}
+
+// ── Generator lint (Batch 4-fix) ──────────────────────────────────────────────
+// Catches the degenerate-alias / defanged-guard CLASS the re-audit found. Uses the
+// engine's EXACT keyTokens/stem/DESCRIPTOR_WORDS (kept verbatim in sync with
+// lib/nutritionEngine.ts) so it sees aliases/guards the way the matcher will.
+const DESCRIPTOR_WORDS = new Set([
+  'fresh', 'freshly', 'finely', 'coarsely', 'roughly', 'thinly', 'chopped', 'diced', 'sliced',
+  'minced', 'grated', 'shredded', 'peeled', 'seeded', 'trimmed', 'halved', 'quartered', 'cut',
+  'into', 'pieces', 'piece', 'inch', 'large', 'medium', 'small', 'extra', 'jumbo', 'ripe',
+  'boneless', 'skinless', 'skin-on', 'bone-in', 'lean', 'reduced', 'sodium', 'low', 'unsalted',
+  'salted', 'softened', 'melted', 'divided', 'plus', 'more', 'about', 'such', 'as', 'like',
+  'preferably', 'optional', 'taste', 'needed', 'serving', 'serve', 'garnish', 'whole', 'a', 'an',
+  'the', 'of', 'or', 'and', 'with', 'without', 'your', 'favorite', 'good', 'quality', 'store-bought',
+  'homemade', 'packed', 'loosely', 'loose', 'heaping', 'level', 'roomtemperature', 'room', 'temperature',
+])
+function stem(t) {
+  if (t.length <= 3) return t
+  if (t.endsWith('ies')) return t.slice(0, -3) + 'y'
+  if (t.endsWith('es') && !t.endsWith('ses')) return t.slice(0, -2)
+  if (t.endsWith('s')) return t.slice(0, -1)
+  return t
+}
+function keyTokens(name) {
+  return name.toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/[\s-]+/)
+    .filter(t => t.length > 1 && !DESCRIPTOR_WORDS.has(t)).map(stem)
+}
+
+/**
+ * Lint the generated entries. FAILS on the dangerous class:
+ *  (a) a multi-word alias that collapses to ≤1 UNIQUE token whose token is NOT also an
+ *      intentional atomic (single-word) alias of the same entry → a bare catch-all
+ *      introduced only because a distinguishing word was a stripped DESCRIPTOR_WORD,
+ *  (a') an alias that tokenizes to nothing (dead),
+ *  (b) a guard alternative that is itself a DESCRIPTOR_WORD (stripped → defanged).
+ * Harmless cases (redundant degenerate aliases that collapse to an existing atomic
+ * alias, and plain atomic single-noun aliases) are reported as INFO, not failures.
+ */
+function lintEntries(entries) {
+  const fails = []
+  let atomic = 0, redundant = 0
+  for (const e of entries) {
+    const atomicTokens = new Set()
+    for (const a of e.aliases) {
+      if (a.split(/[\s-]+/).filter(Boolean).length === 1) {
+        const tk = keyTokens(a)
+        if (tk.length === 1) atomicTokens.add(tk[0])
+      }
+    }
+    for (const a of e.aliases) {
+      const srcWords = a.split(/[\s-]+/).filter(Boolean).length
+      const uniq = [...new Set(keyTokens(a))]
+      if (uniq.length === 0) { fails.push(`${e.key}: alias "${a}" tokenizes to NOTHING (dead alias)`); continue }
+      if (srcWords >= 2 && uniq.length <= 1) {
+        if (atomicTokens.has(uniq[0])) redundant++          // harmless (same as an intentional atomic alias)
+        else fails.push(`${e.key}: alias "${a}" collapses to a bare {${uniq[0]}} catch-all (a distinguishing word is a stripped DESCRIPTOR_WORD)`)
+      } else if (srcWords === 1 && uniq.length === 1) atomic++
+    }
+    if (e.guard) {
+      const terms = (e.guard.source.replace(/\\[a-z]/gi, ' ').match(/[a-z]+/gi) || []).map(t => t.toLowerCase())
+      for (const t of terms) if (DESCRIPTOR_WORDS.has(t)) {
+        fails.push(`${e.key}: guard term "${t}" is a DESCRIPTOR_WORD (stripped before the guard runs → defanged)`)
+      }
+    }
+  }
+  return { fails, atomic, redundant }
 }
 
 /** Pick the best candidate for a seed (or null). */
@@ -397,6 +490,18 @@ export const CANONICAL_STAPLES: CanonicalStaple[] = [
   console.log(`VERIFIED: ${verified.length}/${SEEDS.length}   FAILED/EXCLUDED: ${failed.length}`)
   if (failed.length) { console.log('\nFailed/excluded (fell through to existing matcher):'); for (const f of failed) console.log(`  • ${f.key}: ${f.reason}`) }
   console.log(`\nWrote lib/canonicalStaples.ts (${verified.length} entries) + scripts/canonical-verify-log.json`)
+
+  // ── Lint the generated table (Batch 4-fix: prevent recurrence of the bug class) ──
+  const lint = lintEntries(verified)
+  console.log(`\n── LINT (degenerate-alias / defanged-guard class) ──`)
+  console.log(`atomic single-noun aliases: ${lint.atomic} (intentional) · redundant degenerate aliases: ${lint.redundant} (harmless, collapse to an existing atomic alias)`)
+  if (lint.fails.length) {
+    console.log(`\nLINT FAILED (${lint.fails.length}):`)
+    for (const f of lint.fails) console.log(`  ✗ ${f}`)
+    console.log('\nNo Firestore access. No nutrition data written.')
+    process.exit(2)   // non-zero so regeneration is gated on a clean lint
+  }
+  console.log('LINT PASS — no bare catch-all aliases, no descriptor-word guards.')
   console.log('No Firestore access. No nutrition data written.')
   process.exit(0)
 })().catch(err => { console.error('VERIFY ERROR:', err && err.stack || err); process.exit(1) })
