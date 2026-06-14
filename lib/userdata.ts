@@ -214,6 +214,14 @@ export interface WeekPlan {
   weekStartISO: string
   plannedRecipeIDs: PlannedElement[]
   cookedRecipeIDs: string[]
+  // Batch 6 — Google Calendar push. Maps an ISO day (YYYY-MM-DD) in this week to the
+  // Google Calendar event ID the app created for that day's meals. Drives idempotent
+  // re-push: a present id → UPDATE that event; absent → CREATE; a key whose day no
+  // longer has recipes → DELETE then drop the key. The app ONLY ever updates/deletes
+  // event ids stored here — never a calendar search. Survives reads unchanged because
+  // WeekPlan is read as raw `snap.data()` (getWeekPlan/subscribeWeekPlan have no field
+  // whitelist; normalizePlanned only touches plannedRecipeIDs[]).
+  calendarEventIds?: Record<string, string>
   updatedAt?: unknown
 }
 
@@ -391,6 +399,23 @@ export async function setPlannedRecipeRole(
     return entry
   })
   await updateDoc(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
+}
+
+/**
+ * Persist the per-day Google Calendar event-id map after a push (Batch 6). The CALLER
+ * computes the COMPLETE next map from the push results (adds created ids, keeps updated
+ * ids, drops removed days) and passes it whole; this writer replaces the field so a
+ * removed day-key actually disappears — a deep-merge `setDoc({merge:true})` would leave
+ * stale keys behind, hence `updateDoc`. The plan doc always exists when pushing (it has
+ * recipes), so updateDoc is safe. This performs NO calendar I/O — only the Firestore write.
+ */
+export async function saveCalendarEventIds(
+  uid: string,
+  weekID: string,
+  calendarEventIds: Record<string, string>,
+): Promise<void> {
+  const ref = doc(weekPlansPath(uid), weekID)
+  await updateDoc(ref, { calendarEventIds, updatedAt: serverTimestamp() })
 }
 
 // ─── Shared Week Plans ───────────────────────────────────────────────────────

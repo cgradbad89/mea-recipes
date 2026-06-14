@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, Plus, GripVertical, BookOpen, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, CalendarPlus, Plus, GripVertical, BookOpen, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -12,10 +12,11 @@ import {
   moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
   publishSharedPlan, subscribeSharedWeekPlans, addRecipeToWeekPlan,
   assignRecipeToDay, setPlannedRecipeRole, resolveRecipeRole,
-  normalizePlanned, plannedRecipeIDList,
+  normalizePlanned, plannedRecipeIDList, saveCalendarEventIds,
   type WeekPlan, type RecipeMeta, type SharedPlanEntry, type PlannedEntry, type PlannedRole
 } from '@/lib/userdata'
-import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
+import { getAllRecipes, parseRecipeContent, getRecipeById, recipeUrl } from '@/lib/recipes'
+import { runCalendarPush, type CalendarOp } from '@/lib/googleCalendar'
 import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
@@ -186,6 +187,12 @@ export default function PlanPage() {
   const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
   const [bulkAddResult, setBulkAddResult] = useState<string | null>(null)
   const [confirmRemoveFor, setConfirmRemoveFor] = useState<string | null>(null)
+  // Batch 6 — push this week's planned days to Google Calendar (manual button only).
+  const [showCalendarPush, setShowCalendarPush] = useState(false)
+  const [pushTime, setPushTime] = useState('18:30') // default 6:30 PM local, re-defaults each open
+  const [pushing, setPushing] = useState(false)
+  const [pushResult, setPushResult] = useState<string | null>(null) // success/partial summary toast
+  const [pushError, setPushError] = useState<string | null>(null)   // total-failure error, shown in the modal
   // Desktop drag-and-drop (Batch 5.1): additive to the tap day-picker. Native HTML5
   // drag — desktop-only (the grid is `hidden lg:grid`); touch/mobile keep the picker.
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -327,6 +334,22 @@ export default function PlanPage() {
     weekID: addWeeks(weekID, delta),
     label: formatWeekLabel(addWeeks(weekID, delta)),
   }))
+
+  // ─── Calendar push (Batch 6) ──────────────────────────────────────────────
+  // Group ALL day-assigned planned entries (cooked included — a cooked meal still
+  // happened that day, so re-push must not delete its event) by day; mains before
+  // sides. Unscheduled (day=null / out-of-week) entries are never pushed.
+  const calendarDays = weekDates
+    .map(date => ({ date, entries: plannedEntries.filter(e => e.day === date).sort(sortByRole) }))
+    .filter(d => d.entries.length > 0)
+  const storedEventIds: Record<string, string> = plan?.calendarEventIds || {}
+  // Counts for the confirm step.
+  const calCreateCount = calendarDays.filter(d => !storedEventIds[d.date]).length
+  const calUpdateCount = calendarDays.filter(d => !!storedEventIds[d.date]).length
+  const calRemoveCount = Object.keys(storedEventIds).filter(day => !calendarDays.some(d => d.date === day)).length
+  const calTotal = calCreateCount + calUpdateCount + calRemoveCount
+  // Show the button when there's something to push OR stored events to clean up.
+  const hasCalendarWork = calTotal > 0
 
   const maybePromptRating = (recipeID: string) => {
     if (!metas[recipeID]?.rating) setRatingPromptFor(recipeID)
@@ -487,6 +510,106 @@ export default function PlanPage() {
       setBulkAddResult(null)
     } finally {
       setBulkAddingGrocery(false)
+    }
+  }
+
+  // ─── Calendar push handlers (Batch 6) ─────────────────────────────────────
+  // Title + grouped description for one day's event. Headliner = the day's first main,
+  // or first side if no mains. Description groups main-then-side, each line
+  // "Name — <recipe URL>"; a group header appears only when that group is non-empty.
+  const buildDayEvent = (entries: PlannedEntry[]) => {
+    const named: { role: PlannedRole; recipe: Recipe }[] = []
+    for (const e of entries) {
+      const recipe = recipes[e.recipeID]
+      if (recipe) named.push({ role: e.role, recipe })
+    }
+    const mains = named.filter(x => x.role === 'main')
+    const sides = named.filter(x => x.role === 'side')
+    const headliner = (mains[0] || sides[0])?.recipe
+    const title = `🍽 Dinner: ${headliner?.title ?? 'Planned meals'}`
+    const lines: string[] = []
+    if (mains.length) {
+      lines.push('Mains')
+      mains.forEach(x => lines.push(`${x.recipe.title} — ${recipeUrl(x.recipe.id)}`))
+    }
+    if (sides.length) {
+      lines.push('Sides')
+      sides.forEach(x => lines.push(`${x.recipe.title} — ${recipeUrl(x.recipe.id)}`))
+    }
+    return { title, description: lines.join('\n') }
+  }
+
+  // Local YYYY-MM-DDTHH:MM:SS (no offset) — Google applies the supplied timeZone.
+  const fmtLocalDateTime = (d: Date) => {
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`
+  }
+
+  const buildCalendarOperations = (): CalendarOp[] => {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const ops: CalendarOp[] = []
+    for (const { date, entries } of calendarDays) {
+      const { title, description } = buildDayEvent(entries)
+      const start = new Date(`${date}T${pushTime}:00`)
+      const end = new Date(start.getTime() + 60 * 60 * 1000) // 60-minute duration
+      const startISO = fmtLocalDateTime(start)
+      const endISO = fmtLocalDateTime(end)
+      const existing = storedEventIds[date]
+      if (existing) ops.push({ day: date, op: 'update', eventId: existing, title, description, startISO, endISO, timeZone })
+      else ops.push({ day: date, op: 'create', title, description, startISO, endISO, timeZone })
+    }
+    // Emptied days: a stored id whose day no longer has recipes → delete it + drop key.
+    for (const day of Object.keys(storedEventIds)) {
+      if (!calendarDays.some(d => d.date === day)) {
+        ops.push({ day, op: 'delete', eventId: storedEventIds[day] })
+      }
+    }
+    return ops
+  }
+
+  const handleCalendarPush = async () => {
+    if (!user || !plan) return
+    setPushing(true)
+    setPushError(null)
+    setPushResult(null)
+    try {
+      const results = await runCalendarPush(buildCalendarOperations())
+      // Start the next map from the prior one so partial failures keep prior truth: a
+      // failed create is never added; a failed update/delete keeps its old id (the event
+      // still exists on Google), so we never claim a missing event nor orphan a real one.
+      const prev = plan.calendarEventIds || {}
+      const next: Record<string, string> = { ...prev }
+      let created = 0, updated = 0, removed = 0
+      const failedDays: string[] = []
+      for (const r of results) {
+        if (!r.ok) { failedDays.push(r.day); continue }
+        if (r.op === 'delete') { delete next[r.day]; removed++ }
+        else if (r.eventId) {
+          if (prev[r.day]) updated++; else created++
+          next[r.day] = r.eventId
+        }
+      }
+      await saveCalendarEventIds(user.uid, weekID, next)
+      const parts = [`Created ${created}`, `Updated ${updated}`]
+      if (removed) parts.push(`Removed ${removed}`)
+      let summary = parts.join(' · ')
+      if (failedDays.length) {
+        const labels = failedDays
+          .map(d => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }))
+          .join(', ')
+        summary += ` · Failed: ${labels}`
+      }
+      setShowCalendarPush(false)
+      setPushResult(summary)
+      setTimeout(() => setPushResult(null), 6000)
+    } catch (e: any) {
+      console.error('Calendar push error:', e)
+      const cancelled = e?.code === 'auth/popup-closed-by-user' ||
+        e?.code === 'auth/cancelled-popup-request' ||
+        /popup/i.test(e?.message || '')
+      setPushError(cancelled ? 'Calendar access was cancelled.' : 'Calendar push failed — please try again.')
+    } finally {
+      setPushing(false)
     }
   }
 
@@ -766,6 +889,59 @@ export default function PlanPage() {
         </CenteredOverlay>
       )}
 
+      {/* Calendar push — confirm + time step (Batch 6). Push runs only on the explicit
+          "Add to Calendar" click here; nothing in plan data/effects triggers a write. */}
+      {showCalendarPush && (
+        <CenteredOverlay onClose={() => { if (!pushing) setShowCalendarPush(false) }}>
+          <div className="bg-surface border border-amber/20 rounded-2xl p-6 animate-fade-in">
+            <h3 className="font-display text-2xl text-cream font-light mb-1">Add this week to Calendar</h3>
+            <p className="text-faint text-sm font-body mb-4">
+              Creates one event per planned day on your primary Google Calendar. Re-pushing updates the same events — it never duplicates.
+            </p>
+
+            <label htmlFor="cal-push-time" className="block text-faint text-[10px] font-body uppercase tracking-widest mb-1.5">
+              Start time (each day)
+            </label>
+            <input
+              id="cal-push-time"
+              type="time"
+              value={pushTime}
+              onChange={e => setPushTime(e.target.value)}
+              disabled={pushing}
+              className="input-field w-32 text-sm mb-4"
+            />
+
+            <div className="text-sm font-body text-muted mb-4 space-y-0.5">
+              {calCreateCount > 0 && <p>{calCreateCount} day-event{calCreateCount === 1 ? '' : 's'} to create</p>}
+              {calUpdateCount > 0 && <p>{calUpdateCount} day-event{calUpdateCount === 1 ? '' : 's'} to update</p>}
+              {calRemoveCount > 0 && (
+                <p className="text-faint">{calRemoveCount} emptied-day event{calRemoveCount === 1 ? '' : 's'} to remove</p>
+              )}
+              {calTotal === 0 && <p className="text-faint">Nothing to push this week.</p>}
+            </div>
+
+            {pushError && <p className="text-red-400 text-xs font-body mb-3">{pushError}</p>}
+
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowCalendarPush(false)} disabled={pushing} className="btn-ghost text-sm">Cancel</button>
+              <button
+                onClick={handleCalendarPush}
+                disabled={pushing || calTotal === 0}
+                className="btn-primary text-sm disabled:opacity-40"
+              >
+                {pushing ? (
+                  <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Adding…</span>
+                ) : 'Add to Calendar'}
+              </button>
+            </div>
+
+            <p className="text-faint/60 text-[11px] font-body mt-4">
+              You&apos;ll be asked to grant Google Calendar access each time.
+            </p>
+          </div>
+        </CenteredOverlay>
+      )}
+
       {/* Header + week picker */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-4xl text-cream font-light">Meal Plan</h1>
@@ -788,10 +964,34 @@ export default function PlanPage() {
         </div>
       </div>
 
-      {/* Rebuild grocery button */}
-      {plannedIDList.length > 0 && (
-        <div className="mb-8">
-          {showRebuildConfirm ? (
+      {/* Plan controls — rebuild grocery (existing) + add this week to calendar (Batch 6) */}
+      {(plannedIDList.length > 0 || hasCalendarWork) && (
+        <div className="mb-8 space-y-3">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {plannedIDList.length > 0 && !showRebuildConfirm && (
+              <button
+                onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
+                disabled={rebuilding}
+                className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
+              >
+                {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
+                {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
+              </button>
+            )}
+            {hasCalendarWork && (
+              <button
+                onClick={() => { setPushError(null); setPushTime('18:30'); setShowCalendarPush(true) }}
+                disabled={pushing}
+                className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
+              >
+                {pushing ? <Loader2 size={14} className="animate-spin" /> : pushResult ? <Check size={14} className="text-green-400" /> : <CalendarPlus size={14} />}
+                {pushing ? 'Adding…' : 'Add this week to Calendar'}
+              </button>
+            )}
+            {pushResult && <span className="text-xs font-body text-muted">{pushResult}</span>}
+          </div>
+
+          {showRebuildConfirm && (
             <div className="bg-surface border border-amber/20 rounded-xl p-4 animate-fade-in">
               <p className="text-cream text-sm font-body mb-3">
                 This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
@@ -801,15 +1001,6 @@ export default function PlanPage() {
                 <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
               </div>
             </div>
-          ) : (
-            <button
-              onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
-              disabled={rebuilding}
-              className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
-            >
-              {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
-              {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
-            </button>
           )}
         </div>
       )}

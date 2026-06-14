@@ -61,7 +61,7 @@ wrapped in a per-route `layout.tsx`.
 | Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, full-screen Cooking Mode (`components/CookingMode.tsx`) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
-| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans |
+| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
@@ -75,6 +75,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). Calls Anthropic. |
 | `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import) |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list |
+| `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; route calls the Calendar REST API against the user's **primary** calendar and returns one result per op. Has **no list/search** — only acts on the exact event IDs passed (the "no search-and-delete" safety invariant is structural). Token used transiently, never stored. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from taste profile |
 | `/api/plan-suggestions` | POST | Bearer token (required) | AI suggests recipes to complete a week plan (FlavorGraph-informed) |
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
@@ -128,7 +129,7 @@ See §5.17.
 
 ### `users/{uid}/pantry/root/weekPlans/{weekID}` — meal plans (`WeekPlan`)
 `weekID` = ISO date of the **Monday** of the week (`weekIDFromDate`). Per-user (keyed per uid).
-Fields: `weekID, weekStartISO, plannedRecipeIDs[], cookedRecipeIDs[], updatedAt?`.
+Fields: `weekID, weekStartISO, plannedRecipeIDs[], cookedRecipeIDs[], calendarEventIds?, updatedAt?`.
 **`plannedRecipeIDs[]` element shape (Batch 5):** each element is a `PlannedEntry`
 `{ recipeID, day: string | null, role: 'main' | 'side', slot?: string | null }`. `day` is an ISO
 date inside the week, or `null` = **Unscheduled**; `role` is auto-defaulted from the recipe's
@@ -145,6 +146,13 @@ touches *that* recipe (untouched elements are left exactly as stored). **Writers
 `markRecipeCooked` (touches only `cookedRecipeIDs[]`), plus new `assignRecipeToDay(uid,week,recipeID,day,fallbackRole?)`
 and `setPlannedRecipeRole(uid,week,recipeID,role)`. `cookedRecipeIDs[]` stays a plain `string[]` (cooked
 items need neither day nor role).
+**`calendarEventIds?` (Batch 6):** optional `{ [dayISO: string]: googleEventId }` map — the Google
+Calendar event the app created for each pushed day. Drives idempotent re-push (present → UPDATE that
+event, absent → CREATE, a stored key whose day has no recipes → DELETE then drop the key). Written
+ONLY by `saveCalendarEventIds` (`lib/userdata.ts`, an `updateDoc` that replaces the whole field so
+removed day-keys disappear) after an **explicit** push; the app only ever updates/deletes IDs stored
+here — never a calendar search. Survives reads because WeekPlan is read as raw `snap.data()` (no field
+whitelist; `normalizePlanned` only touches `plannedRecipeIDs[]`). See §5.21.
 
 ### `users/{uid}/pantry/root/groceryItems/{docId}` — grocery list (`GroceryItem`)
 Fields: `id, name, quantity, unit, isChecked, isManual, sourceRecipeIDs[], manualSection?,
@@ -376,6 +384,27 @@ otherwise unchanged.
     drag never fires on touch, so a tap opens the sheet and a drag moves the tile with no conflict —
     touch is tap-only (the day picker lives in the sheet). Drag-and-drop and the day picker are unchanged
     behaviorally; only the picker's location moved (tile dropdown → sheet).
+21. **Push meal plan to Google Calendar** (Batch 6) — a manual **"Add this week to Calendar"** button on
+    the Plan page (controls row, next to *Rebuild grocery list*) opens a confirm/time step (time picker
+    defaulting to **6:30 PM each open**, a count of day-events to create/update, and any emptied-day events
+    to remove); confirm runs the push and shows a summary toast (*Created N · Updated M · Removed K*, plus
+    *Failed: <days>* on partial failure). **One event per DAY** that has ≥1 day-assigned recipe (cooked
+    included — a cooked meal still happened that day; Unscheduled `day=null`/out-of-week entries are never
+    pushed). Title `🍽 Dinner: <first main, else first side>`; description groups main-then-side, each line
+    `Name — <recipeUrl(id)>` (`lib/recipes.ts` `recipeUrl` reuses the `/recipes/[id]` route + the recipe's
+    slug id — never re-slugified), with a group header only when non-empty. Default start 6:30 PM local,
+    **60-min** duration; the picked time applies to all days in that push. **Idempotency** lives in
+    `weekPlans.calendarEventIds` (§3): client builds explicit per-day ops from the stored map —
+    `calendarEventIds[day]` present → `update` that event id, absent → `create`; a stored key whose day no
+    longer has recipes → `delete` then drop the key — and `saveCalendarEventIds` persists the recomputed map
+    after the push. **Auth (Option B, no server Google creds):** the client mints a `calendar.events` OAuth
+    access token via a Firebase Google **re-auth popup** (`lib/googleCalendar.ts`, scope requested only here,
+    never on normal sign-in) and passes it to the auth-gated `/api/calendar/push` executor (§2), which calls
+    the Calendar REST API. **Safety:** all writes happen ONLY on the button press (no effect triggers one);
+    the route has no list/search, so the app can only ever update/delete IDs it stored — never a
+    search-and-delete; partial failures keep prior truth (failed create never recorded, failed update/delete
+    keeps its old id) and report the failed days. Day/role/cooked semantics, grocery, and nutrition are
+    untouched. Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6).
 
 ---
 
@@ -468,6 +497,16 @@ otherwise unchanged.
   (`“…”`) and clipped PEM dashes, making `verifyAuthToken` silently 401 ALL auth-gated routes in
   local dev (prod unaffected — Vercel env was clean). Fixed 2026-06-11. If local API routes 401
   with a valid sign-in, check the key formatting first.
+- **Calendar push uses a client-only OAuth token (Batch 6, Option B).** The app holds **no** server-side
+  Google credentials. `/api/calendar/push` is a dumb executor; the `calendar.events` access token is minted
+  on the client via a Firebase Google **re-auth popup** (`lib/googleCalendar.ts`) on **each** push — Firebase
+  keeps no Google refresh token client-side, so a push needs an interactive popup every time and **will fail
+  in popup-blocked / standalone-PWA contexts** (normal sign-in uses `signInWithRedirect` there, but the
+  calendar token path is popup-only by design for this option). **Prerequisites for it to work at all:** the
+  **Google Calendar API enabled** and the **`calendar.events` scope added to the OAuth consent screen** in the
+  `malignant-metro` GCP project (the single user is the test user) — these are Google Cloud Console config, not
+  in this repo. The scope is requested only on the push, never on browse/sign-in. The app only ever
+  updates/deletes event IDs it stored in `weekPlans.calendarEventIds` — **never** a calendar search-and-delete.
 
 ---
 
@@ -489,6 +528,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
 | Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
 | Barcode-based packaged-food lookup | Medium | Done | Server-side lookup: `/api/barcode-lookup` + `lib/nutritionEngine.ts` `lookupFoodByBarcode` (Open Food Facts → USDA branded GTIN → miss), client helper `lookupBarcode` (`lib/nutrition.ts`), returns `basis` per_serving\|per_100g. Camera UI: **Scan** mode (4th tab) in `LogFoodSheet.tsx` — native `BarcodeDetector` where supported, lazy-loaded `@zxing/browser` fallback; EAN/UPC only; rear camera via getUserMedia; graceful permission-denied and not-found fallbacks route to Search. Dev panel (`BarcodeTestPanel.tsx`) removed. Reuses `saved_foods`/`consumption_log` — no new collection. Serving/grams amount entry **Done**: per-100g hits take grams directly, per-serving hits with a numeric serving size get a Servings⇄Grams toggle (engine now returns `serving_grams`/`servings_per_container`; entry records `amount_label`). |
+| Push meal plan to Google Calendar | Medium | Done | Manual **"Add this week to Calendar"** on the Plan page → one event per planned day, idempotent re-push via `weekPlans.calendarEventIds`. **Option B auth:** client mints a `calendar.events` OAuth token via a Firebase Google re-auth popup and passes it to the auth-gated `/api/calendar/push` executor (no server-side Google creds; route has no list/search). Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6). |
 | Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window) |
 
 ---
@@ -503,6 +543,7 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | Firebase Firestore (client) | Recipe catalog + per-user data | Same hardcoded web config |
 | Firebase Admin | Server-side ID-token verification in API routes | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` |
 | Anthropic API | AI recipe generation, parsing, grocery cleanup, recommendations | `ANTHROPIC_API_KEY` (set in Vercel; **not** in local `.env.local`) |
+| Google Calendar API | Push meal-plan days as calendar events (Batch 6) | **No stored credential.** Client-obtained OAuth access token (`calendar.events` scope) via Firebase Google sign-in re-auth popup. Requires the Calendar API **enabled** + the scope on the **OAuth consent screen** in the `malignant-metro` GCP project. |
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |
 
 AI model in use across all routes: `claude-sonnet-4-20250514`, REST Messages API,
