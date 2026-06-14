@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import { CalendarPlus, Check, X, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
+import RecipeImage, { getCategoryIcon } from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 
@@ -17,15 +18,6 @@ function getCuisineClass(cuisine: string): string {
     'middle-eastern': 'cuisine-middle-eastern', greek: 'cuisine-greek',
   }
   return map[c] || 'cuisine-default'
-}
-
-function getCategoryIcon(category: string): string {
-  const map: Record<string, string> = {
-    'Chicken & Poultry': '🍗', 'Vegetarian Mains': '🥦', 'Salads & Bowls': '🥗',
-    'Pasta, Noodles & Rice': '🍝', 'Soups, Stews & Chili': '🍲',
-    'Seafood': '🐟', 'Beef & Pork': '🥩', 'Breakfast, Snacks & Sides': '🍳',
-  }
-  return map[category] || '🍽️'
 }
 
 function HalfStarDisplay({ rating }: { rating: number }) {
@@ -155,17 +147,13 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   return (
     <Link href={`/recipes/${recipe.id}`} className="recipe-card group block relative">
       <div className="relative aspect-[4/3] overflow-hidden bg-card">
-        {displayImageURL ? (
-          <img src={displayImageURL} alt={recipe.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-card">
-            <span className="text-4xl opacity-30">{getCategoryIcon(recipe.category)}</span>
-          </div>
-        )}
+        <RecipeImage
+          src={displayImageURL}
+          alt={recipe.title}
+          category={recipe.category}
+          className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+          emojiClassName="text-4xl"
+        />
         {meta?.rating && meta.rating > 0 && (
           <div className="absolute top-3 left-3 flex items-center gap-1 bg-ink/70 backdrop-blur-sm rounded-lg px-2 py-1">
             <HalfStarDisplay rating={meta.rating} />

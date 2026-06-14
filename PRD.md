@@ -211,12 +211,16 @@ publish the current user's week and subscribe to other users' entries for the sa
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
    prep + cook. Drives the time filter and time badges.
 9. **Grocery categorization** — `categorizeIngredient` (`lib/groceryCategories.ts`) maps an
-   ingredient name to one of 8 iOS-compatible categories by first-match keyword rules.
-   `Staples` is **auto-assigned only** (excluded from `MANUAL_CATEGORIES`). Manual override via
-   `GroceryItem.manualSection`.
+   ingredient name to one of 9 iOS-compatible categories by first-match keyword rules.
+   `Spices & Seasonings` (dried spices/chiles — chile, chili, chipotle, ancho, guajillo,
+   paprika, cumin, etc.) is matched before `Staples` and **is** manually selectable;
+   `Staples` remains **auto-assigned only** (excluded from `MANUAL_CATEGORIES`). Manual
+   override via `GroceryItem.manualSection`.
 10. **AI grocery cleanup** — `POST /api/grocery-cleanup` sends the list to Anthropic, which
     returns per-item actions (`keep` / `merge` / `normalize` / `remove`) with `mergedWith`
-    indices and a category. Last-run tracked in `localStorage` `mea-grocery-last-cleaned`.
+    indices and a category. The route imports `GROCERY_CATEGORIES` (no hand-duplicated list)
+    and validates each returned `category`; an off-list value falls back to the local
+    `categorizeIngredient` match. Last-run tracked in `localStorage` `mea-grocery-last-cleaned`.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) deletes
     non-manual/non-legacy items, then re-adds parsed ingredients from each planned recipe,
     deduping by doc ID and unioning `sourceRecipeIDs`.

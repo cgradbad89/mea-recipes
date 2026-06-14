@@ -16,6 +16,7 @@ import RecipeEditModal from '@/components/RecipeEditModal'
 import CookingMode from '@/components/CookingMode'
 import StarRating from '@/components/StarRating'
 import NutritionSection from '@/components/NutritionSection'
+import RecipeImage from '@/components/RecipeImage'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 
@@ -151,8 +152,26 @@ export default function RecipeDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="animate-spin text-amber" size={28} />
+      <div className="max-w-3xl mx-auto px-4 py-6 animate-fade-in">
+        {/* Back placeholder */}
+        <div className="h-4 w-16 skeleton rounded mb-6" />
+        {/* Hero image */}
+        <div className="aspect-video rounded-2xl skeleton mb-6" />
+        {/* Title */}
+        <div className="h-10 skeleton rounded-lg w-2/3 mb-4" />
+        {/* Tags */}
+        <div className="flex gap-2 mb-8">
+          <div className="h-6 w-20 skeleton rounded-lg" />
+          <div className="h-6 w-24 skeleton rounded-lg" />
+          <div className="h-6 w-16 skeleton rounded-lg" />
+        </div>
+        {/* Ingredient lines */}
+        <div className="h-6 w-40 skeleton rounded mb-4" />
+        <div className="space-y-3">
+          {[90, 75, 82, 68, 78].map((w, i) => (
+            <div key={i} className="h-4 skeleton rounded" style={{ width: `${w}%` }} />
+          ))}
+        </div>
       </div>
     )
   }
@@ -235,9 +254,13 @@ export default function RecipeDetailPage() {
 
       {displayRecipe.imageURL && (
         <div className="rounded-2xl overflow-hidden aspect-video mb-6 bg-card">
-          <img src={displayRecipe.imageURL} alt={displayRecipe.title}
-            className="w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+          <RecipeImage
+            src={displayRecipe.imageURL}
+            alt={displayRecipe.title}
+            category={displayRecipe.category}
+            className="w-full h-full"
+            emojiClassName="text-6xl"
+            loading="eager"
           />
         </div>
       )}
@@ -249,6 +272,7 @@ export default function RecipeDetailPage() {
         <div className="flex items-center gap-2 shrink-0">
           {user && (
             <button onClick={() => setShowEdit(true)}
+              aria-label="Edit recipe"
               className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream hover:border-amber/30 transition-all"
             >
               <Pencil size={14} />
@@ -256,6 +280,7 @@ export default function RecipeDetailPage() {
           )}
           {canDelete && !confirmDelete && (
             <button onClick={() => setConfirmDelete(true)}
+              aria-label="Delete recipe"
               className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
             >
               <Trash2 size={14} />
@@ -274,6 +299,7 @@ export default function RecipeDetailPage() {
             </div>
           )}
           <button onClick={() => toggle(displayRecipe.id)}
+            aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
               fav ? 'bg-amber text-ink' : 'bg-card border border-border text-faint hover:text-cream'
             }`}

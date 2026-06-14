@@ -8,6 +8,7 @@ import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { getAllRecipes } from '@/lib/recipes'
 import { useState, useEffect } from 'react'
 import { Flame, ChefHat, TrendingUp, Calendar, Loader2 } from 'lucide-react'
+import RecipeImage from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 
 function parseWeekStart(iso: string): Date {
@@ -203,16 +204,14 @@ export default function HistoryPage() {
                       href={`/recipes/${recipe.id}`}
                       className="group flex flex-col gap-1.5"
                     >
-                      <div className="aspect-square rounded-xl overflow-hidden bg-card relative flex items-center justify-center">
-                        <span className="text-2xl opacity-30 absolute">🍽️</span>
-                        {(metas[recipe.id]?.overrides?.imageURL || recipe.imageURL) && (
-                          <img
-                            src={metas[recipe.id]?.overrides?.imageURL || recipe.imageURL}
-                            alt={recipe.title}
-                            className="relative w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                          />
-                        )}
+                      <div className="aspect-square rounded-xl overflow-hidden bg-card">
+                        <RecipeImage
+                          src={metas[recipe.id]?.overrides?.imageURL || recipe.imageURL}
+                          alt={recipe.title}
+                          category={recipe.category}
+                          className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+                          emojiClassName="text-2xl"
+                        />
                       </div>
                       <p className="text-faint text-xs font-body line-clamp-2 group-hover:text-cream transition-colors">
                         {recipe.title}

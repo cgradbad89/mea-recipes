@@ -6,6 +6,7 @@ export const GROCERY_CATEGORIES = [
   'Bakery & Bread',
   'Canned / Jarred / Sauces',
   'Beverages',
+  'Spices & Seasonings',
   'Staples',
   'Other',
 ] as const
@@ -94,6 +95,19 @@ const RULES: { keywords: string[]; category: GroceryCategory }[] = [
       'soup', 'broth',
     ],
     category: 'Canned / Jarred / Sauces',
+  },
+  // Spices & Seasonings — dried spices and chiles (placed before Staples so they
+  // win over the spice keywords still listed there; after Produce so fresh
+  // "chili pepper" / "bell pepper" stay in Produce).
+  {
+    keywords: [
+      'chile', 'chili', 'chipotle', 'ancho', 'guajillo', 'chile powder', 'chili powder',
+      'paprika', 'smoked paprika', 'cayenne', 'cumin', 'coriander', 'turmeric',
+      'cinnamon', 'cardamom', 'nutmeg', 'clove', 'allspice', 'bay leaf', 'oregano',
+      'garam masala', 'curry powder', 'five spice', 'zaatar', 'sumac',
+      'garlic powder', 'onion powder', 'spice', 'seasoning',
+    ],
+    category: 'Spices & Seasonings',
   },
   // Staples — auto-assigned only
   {

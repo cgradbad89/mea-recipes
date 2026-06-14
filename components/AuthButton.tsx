@@ -7,6 +7,7 @@ import { LogIn, LogOut, Loader2 } from 'lucide-react'
 export default function AuthButton() {
   const { user, loading, signIn, signOut } = useAuth()
   const [confirming, setConfirming] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
 
   if (loading) {
     return (
@@ -21,8 +22,13 @@ export default function AuthButton() {
       <div className="flex flex-col gap-1">
         {/* User info */}
         <div className="flex items-center gap-2.5 px-2 py-1.5">
-          {user.photoURL ? (
-            <img src={user.photoURL} alt="" className="w-6 h-6 rounded-full" />
+          {user.photoURL && !avatarError ? (
+            <img
+              src={user.photoURL}
+              alt=""
+              className="w-6 h-6 rounded-full"
+              onError={() => setAvatarError(true)}
+            />
           ) : (
             <div className="w-6 h-6 rounded-full bg-amber/20 flex items-center justify-center">
               <span className="text-amber text-xs font-body font-semibold">

@@ -17,6 +17,7 @@ import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
 import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
 import { perServingOf } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
+import RecipeImage from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 
 function getWeekDates(weekID: string): string[] {
@@ -556,10 +557,13 @@ export default function PlanPage() {
                   return (
                     <div key={id}>
                       <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3">
-                        {(metas[id]?.overrides?.imageURL || recipe.imageURL) && (
-                          <img src={metas[id]?.overrides?.imageURL || recipe.imageURL} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                        )}
+                        <RecipeImage
+                          src={metas[id]?.overrides?.imageURL || recipe.imageURL}
+                          alt=""
+                          category={recipe.category}
+                          className="w-12 h-12 rounded-lg shrink-0"
+                          emojiClassName="text-xl"
+                        />
                         <div className="flex-1 min-w-0">
                           <Link href={`/recipes/${id}`}>
                             <p className="text-cream text-sm font-body font-medium truncate hover:text-amber transition-colors">
@@ -738,16 +742,13 @@ export default function PlanPage() {
                               key={rid}
                               className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3"
                             >
-                              {(metas[rid]?.overrides?.imageURL || recipe.imageURL) ? (
-                                <img
-                                  src={metas[rid]?.overrides?.imageURL || recipe.imageURL}
-                                  alt=""
-                                  className="w-10 h-10 rounded-lg object-cover shrink-0"
-                                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded-lg bg-card shrink-0" />
-                              )}
+                              <RecipeImage
+                                src={metas[rid]?.overrides?.imageURL || recipe.imageURL}
+                                alt=""
+                                category={recipe.category}
+                                className="w-10 h-10 rounded-lg shrink-0"
+                                emojiClassName="text-lg"
+                              />
                               <div className="flex-1 min-w-0">
                                 <p className="text-cream text-sm font-body font-medium truncate">
                                   {recipe.title}

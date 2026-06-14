@@ -10,6 +10,7 @@ import { getAllRecipes, saveRecipe, invalidateRecipeCache, getTotalTime, compute
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
 import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
+import RecipeImage from '@/components/RecipeImage'
 import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check, CalendarPlus, ListChecks } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
 
@@ -51,13 +52,13 @@ function RecipeRecommendationCard({
   return (
     <Link href={`/recipes/${recipe.id}`} className="group flex gap-4 items-start p-4 bg-card rounded-2xl border border-border hover:border-amber/30 transition-all duration-200">
       <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface shrink-0">
-        {recipe.imageURL ? (
-          <img src={recipe.imageURL} alt={recipe.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={e => { (e.target as HTMLImageElement).parentElement!.className = 'w-16 h-16 rounded-xl bg-surface flex items-center justify-center shrink-0' }} />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl">🍽️</div>
-        )}
+        <RecipeImage
+          src={recipe.imageURL}
+          alt={recipe.title}
+          category={recipe.category}
+          className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+          emojiClassName="text-2xl"
+        />
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-body font-medium text-cream text-sm leading-snug mb-1 group-hover:text-amber transition-colors line-clamp-1">{recipe.title}</h3>

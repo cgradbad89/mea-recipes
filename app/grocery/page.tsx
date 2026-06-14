@@ -40,6 +40,7 @@ const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
   'Bakery & Bread': '🍞',
   'Canned / Jarred / Sauces': '🥫',
   'Beverages': '🧃',
+  'Spices & Seasonings': '🌶️',
   'Staples': '🧂',
   'Other': '🛒',
 }
@@ -83,6 +84,7 @@ export default function GroceryPage() {
   const [showAddItem, setShowAddItem] = useState(false)
   const [newItemName, setNewItemName] = useState('')
   const [newItemQty, setNewItemQty] = useState('')
+  const [newItemUnit, setNewItemUnit] = useState('')
   const [newItemCategory, setNewItemCategory] = useState<GroceryCategory>('Other')
   const [addingItem, setAddingItem] = useState(false)
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
@@ -315,7 +317,7 @@ export default function GroceryPage() {
         id: newId,
         name: trimmedName,
         quantity: newItemQty.trim(),
-        unit: '',
+        unit: newItemUnit.trim(),
         isChecked: false,
         isManual: true,
         manualSection: category,
@@ -325,6 +327,7 @@ export default function GroceryPage() {
       })
       setNewItemName('')
       setNewItemQty('')
+      setNewItemUnit('')
       setNewItemCategory('Other')
       setShowAddItem(false)
     } catch (e) {
@@ -462,6 +465,13 @@ export default function GroceryPage() {
                 value={newItemQty}
                 onChange={e => setNewItemQty(e.target.value)}
                 placeholder="Qty"
+                className="input-field w-20 shrink-0"
+              />
+              <input
+                value={newItemUnit}
+                onChange={e => setNewItemUnit(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddItem()}
+                placeholder="Unit"
                 className="input-field w-20 shrink-0"
               />
               <div className="relative flex-1">

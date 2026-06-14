@@ -10,6 +10,7 @@ import {
   Loader2, Trash2, Check, ChefHat, ExternalLink,
   Edit3, X, Save, Plus
 } from 'lucide-react'
+import RecipeImage from '@/components/RecipeImage'
 
 const CATEGORIES = [
   'Chicken & Poultry', 'Vegetarian Mains', 'Salads & Bowls',
@@ -102,11 +103,12 @@ function QueueCard({
       {/* Image */}
       {imageURL && !editing && (
         <div className="aspect-video overflow-hidden bg-card">
-          <img
+          <RecipeImage
             src={imageURL}
             alt={title}
-            className="w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+            category={category}
+            className="w-full h-full"
+            emojiClassName="text-5xl"
           />
         </div>
       )}

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
+import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
 
-const CATEGORIES = [
-  'Produce', 'Meat & Seafood', 'Dairy & Eggs', 'Bakery & Bread',
-  'Canned / Jarred / Sauces', 'Beverages', 'Staples', 'Other'
-]
+// Single source of truth for the allowed categories — imported from the shared
+// taxonomy so the prompt and validation can never drift from lib/groceryCategories.
+const CATEGORIES = GROCERY_CATEGORIES as readonly string[]
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +25,7 @@ TASKS:
 1. Deduplicate similar items (e.g. "garlic cloves grated" + "4 cloves garlic" = "garlic")
 2. Normalize names (e.g. "CRUSH and mince the garlic" → "garlic", remove instruction text)
 3. Assign the best category from this exact list: ${CATEGORIES.join(', ')}
-4. Note: "Staples" = oils, vinegars, spices, sugars, flours, salts — things people usually have
+4. Note: "Spices & Seasonings" = dried spices and chiles (e.g. chile, chili, chipotle, ancho, guajillo, chile powder, chili powder, paprika, cumin, cinnamon, turmeric, garam masala). "Staples" = oils, vinegars, sugars, flours, salts — things people usually have
 
 Return ONLY a JSON array, no markdown:
 [
@@ -73,6 +73,18 @@ Rules:
       const m = rawText.match(/\[[\s\S]+\]/)
       if (m) { try { parsed = JSON.parse(m[0]) } catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) } }
       else return NextResponse.json({ error: 'Could not parse response' }, { status: 500 })
+    }
+
+    // Validate each returned category against the allowed list. If the AI invents
+    // a category (e.g. "Beverages" for chile powder), fall back to the local
+    // matcher so a bogus label can't override the correct local categorization.
+    if (Array.isArray(parsed)) {
+      parsed = parsed.map((item: any) => {
+        if (item && typeof item === 'object' && !CATEGORIES.includes(item.category)) {
+          return { ...item, category: categorizeIngredient(item.name || '') }
+        }
+        return item
+      })
     }
 
     return NextResponse.json(parsed)
