@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import type { PlannedElement } from '@/lib/userdata'
 
 export interface WeekPlanData {
   weekID: string
   weekStartISO: string
-  plannedRecipeIDs: string[]
+  // Planned elements may be legacy strings or Batch-5 objects; this hook only
+  // consumes cookedRecipeIDs, but the type reflects the real on-disk shape.
+  plannedRecipeIDs: PlannedElement[]
   cookedRecipeIDs: string[]
 }
 

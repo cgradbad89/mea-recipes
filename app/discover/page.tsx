@@ -8,7 +8,7 @@ import { useRecipeMetas } from '@/hooks/useRecipeMetas'
 import { useFavorites } from '@/hooks/useFavorites'
 import { getAllRecipes, saveRecipe, invalidateRecipeCache, getTotalTime, computeAndStoreNutrition } from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
-import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan } from '@/lib/userdata'
+import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan, deriveRoleFromCategory, plannedRecipeIDList } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeImage from '@/components/RecipeImage'
 import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check, CalendarPlus, ListChecks } from 'lucide-react'
@@ -169,7 +169,7 @@ export default function DiscoverPage() {
     let cancelled = false
     getWeekPlan(user.uid, planWeek).then(plan => {
       if (cancelled) return
-      const ids = plan?.plannedRecipeIDs || []
+      const ids = plannedRecipeIDList(plan?.plannedRecipeIDs)
       const list = ids.map(id => recipes.find(r => r.id === id)).filter(Boolean) as Recipe[]
       setPlanCurrentRecipes(list)
     }).catch(() => {
@@ -251,7 +251,8 @@ export default function DiscoverPage() {
     if (!user) return
     setPlanAddingRecipeId(recipeID)
     try {
-      await addRecipeToWeekPlan(user.uid, planWeek, recipeID)
+      const cat = recipes.find(r => r.id === recipeID)?.category
+      await addRecipeToWeekPlan(user.uid, planWeek, recipeID, deriveRoleFromCategory(cat))
       setPlanAddedRecipeIds(prev => new Set(prev).add(recipeID))
       setTimeout(() => {
         setPlanAddedRecipeIds(prev => {

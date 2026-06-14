@@ -29,7 +29,7 @@ import { db } from './firebase'
 import type { NutritionMacros } from '@/types/recipe'
 import type { ConsumptionEntry, NutritionGoals, SavedFood, RecentFood, Meal } from '@/types/nutrition'
 import { servingsAmountLabel } from './nutrition'
-import { getWeekPlan, addRecipeToWeekPlan, markRecipeCooked, weekIDFromDate } from './userdata'
+import { getWeekPlan, addRecipeToWeekPlan, markRecipeCooked, weekIDFromDate, plannedRecipeIDList } from './userdata'
 
 export function logPath(uid: string) {
   return collection(db, 'users', uid, 'nutrition', 'root', 'log')
@@ -254,9 +254,13 @@ export async function logCookEvent(
 ): Promise<CookEventResult> {
   const weekID = params.weekID || weekIDFromDate(new Date())
 
-  // 1. plan update — reuse the exact existing write paths
+  // 1. plan update — reuse the exact existing write paths. Membership is checked via
+  // the shape-agnostic ID list (planned elements are objects now). No category is
+  // available here, so a freshly-added entry defaults to role 'main' — it's about to
+  // be marked cooked anyway (cooked items don't surface a role); an already-planned
+  // recipe keeps its existing day/role (addRecipeToWeekPlan is idempotent).
   const plan = await getWeekPlan(userId, weekID)
-  if (!plan || !(plan.plannedRecipeIDs || []).includes(params.recipeId)) {
+  if (!plan || !plannedRecipeIDList(plan.plannedRecipeIDs).includes(params.recipeId)) {
     await addRecipeToWeekPlan(userId, weekID, params.recipeId)
   }
   await markRecipeCooked(userId, weekID, params.recipeId, true)

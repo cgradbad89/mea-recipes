@@ -7,7 +7,7 @@ import {
   BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader } from '@/lib/recipes'
-import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
+import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, weekIDFromDate, deriveRoleFromCategory } from '@/lib/userdata'
 import { logCookEvent } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -148,7 +148,7 @@ export default function RecipeDetailPage() {
   const handleConfirmAddToPlan = async () => {
     if (!user || !recipe || !selectedWeek) return
     setAddingToPlan(true)
-    await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id)
+    await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, deriveRoleFromCategory(recipe.category))
     setAddingToPlan(false)
     setPlanAddedLabel(formatWeekLabel(selectedWeek))
     setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)

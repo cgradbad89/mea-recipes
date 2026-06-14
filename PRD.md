@@ -61,7 +61,7 @@ wrapped in a per-route `layout.tsx`.
 | Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, full-screen Cooking Mode (`components/CookingMode.tsx`) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
-| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), cooked tracking, AI plan suggestions, shared plans |
+| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe, cooked tracking, AI plan suggestions, shared plans |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
@@ -122,8 +122,24 @@ deep-merge that touches only that nested field (other overrides + the shared doc
 See §5.17.
 
 ### `users/{uid}/pantry/root/weekPlans/{weekID}` — meal plans (`WeekPlan`)
-`weekID` = ISO date of the **Monday** of the week (`weekIDFromDate`). Fields:
-`weekID, weekStartISO, plannedRecipeIDs[], cookedRecipeIDs[], updatedAt?`.
+`weekID` = ISO date of the **Monday** of the week (`weekIDFromDate`). Per-user (keyed per uid).
+Fields: `weekID, weekStartISO, plannedRecipeIDs[], cookedRecipeIDs[], updatedAt?`.
+**`plannedRecipeIDs[]` element shape (Batch 5):** each element is a `PlannedEntry`
+`{ recipeID, day: string | null, role: 'main' | 'side', slot?: string | null }`. `day` is an ISO
+date inside the week, or `null` = **Unscheduled**; `role` is auto-defaulted from the recipe's
+category on add and user-overridable per entry (see §5.20); `slot` is **reserved** (dinners-only —
+never written today, present so a future meal-slot dimension needs no second migration). **A day may
+hold multiple recipes** (e.g. a main + a side); a `recipeID` is unique within a week.
+**Read-time migration (lossless, no bulk wipe):** legacy docs stored `plannedRecipeIDs` as a bare
+`string[]`. `normalizePlanned`/`normalizePlannedEntry` (`lib/userdata.ts`) coerce any element — legacy
+string OR object — to a full `PlannedEntry`; a legacy string becomes `{ recipeID, day: null, role: <derived
+from category> }`. Old docs keep loading; each entry upgrades to the object form only when a writer
+touches *that* recipe (untouched elements are left exactly as stored). **Writers are read-modify-write**
+(`arrayUnion`/`arrayRemove` no longer work on object elements): `addRecipeToWeekPlan(uid,week,recipeID,role?)`,
+`removeRecipeFromWeekPlan`, `moveRecipeToWeek(...,fallbackRole?)` (resets `day→null` in the target week),
+`markRecipeCooked` (touches only `cookedRecipeIDs[]`), plus new `assignRecipeToDay(uid,week,recipeID,day,fallbackRole?)`
+and `setPlannedRecipeRole(uid,week,recipeID,role)`. `cookedRecipeIDs[]` stays a plain `string[]` (cooked
+items need neither day nor role).
 
 ### `users/{uid}/pantry/root/groceryItems/{docId}` — grocery list (`GroceryItem`)
 Fields: `id, name, quantity, unit, isChecked, isManual, sourceRecipeIDs[], manualSection?,
@@ -164,6 +180,10 @@ servings, prepTime, cookTime, status('pending'|'published'), createdAt?`.
 ### `sharedWeekPlans/{weekID}/users/{uid}` — friends' published plans (`SharedPlanEntry`)
 Fields: `uid, displayName, photoURL, plannedRecipeIDs[], updatedAt?`. The Plan page can
 publish the current user's week and subscribe to other users' entries for the same week.
+**`plannedRecipeIDs[]` here stays a flat `string[]`** (Batch 5): `publishSharedPlan` maps the
+owner's `PlannedEntry[]` down to bare IDs via `plannedRecipeIDList`, so friends see *which* recipes
+were planned but never the owner's private day/role assignments. The publish/Friends' feature is
+otherwise unchanged.
 
 ---
 
@@ -309,6 +329,20 @@ publish the current user's week and subscribe to other users' entries for the sa
     confidence reflects servings + AI usage + kcal-band validation, **not** macro plausibility, so a
     USDA semantic mis-match (e.g. Easy Spaghetti's high sugar) lifts in confidence without the macro
     changing — review the dry-run diff before applying.
+20. **Day-based meal plan + main/side role** (Batch 5) — planned recipes carry a `day` (ISO date in
+    the week, or `null` = Unscheduled) and a `role` (`main`/`side`). **Role defaulting** is auto-derived
+    from the recipe's `category` via `deriveRoleFromCategory`/`CATEGORY_ROLE` (`lib/userdata.ts`): only
+    **"Breakfast, Snacks & Sides" → `side`**; all mains (Chicken & Poultry, Beef & Pork, Seafood,
+    Vegetarian Mains, Pasta/Noodles & Rice) **and** the ambiguous categories (Salads & Bowls, Soups/Stews
+    & Chili) → `main` (a missing side is less wrong than a missing main; unknown/empty category → `main`).
+    The derived role is set on `addRecipeToWeekPlan` at every add site (recipe detail, RecipeCard,
+    Discover, Friends' "add to my plan"). A user can override per entry via the card's Main/Side toggle
+    (`setPlannedRecipeRole`); the override is **persisted on the entry**, so the read-time derivation
+    never clobbers a manual choice. The Plan UI groups cards by day (7-col grid on `lg`, stacked sections
+    on mobile) with a shared **Unscheduled** area, **mains sorted before sides** within each day, and a
+    tap **day-picker** (no drag-and-drop) calling `assignRecipeToDay`. Day/role are display/organization
+    only — they **never** affect grocery (`rebuildGroceryFromPlan` pulls all planned recipes regardless)
+    or cooked tracking, and `logCookEvent` is unchanged.
 
 ---
 
@@ -321,6 +355,12 @@ publish the current user's week and subscribe to other users' entries for the sa
   console for `malignant-metro` (it includes the `users/{uid}/nutrition/{document=**}` rule added
   after the earlier silent-write incident). See **Firestore rules** below; when adding a collection,
   update the rule in the console, not in this repo.
+- **`weekPlans.plannedRecipeIDs[]` holds mixed shapes — always normalize, never `arrayUnion`.**
+  After Batch 5 elements are `PlannedEntry` objects, but legacy docs still hold bare `string`s until a
+  writer upgrades them. Any reader MUST go through `normalizePlanned`/`plannedRecipeIDList`
+  (`lib/userdata.ts`) — a raw `.includes(recipeID)` or `.map(id => …)` over the array will break on
+  object elements. Writers must be read-modify-write: `arrayUnion`/`arrayRemove` compare by deep value
+  and silently fail to dedupe/remove object elements. `cookedRecipeIDs[]` is unaffected (still `string[]`).
 - **`ANTHROPIC_API_KEY` is not in local `.env.local`.** All AI routes read
   `process.env.ANTHROPIC_API_KEY`; the local env file only defines the three `FIREBASE_*`
   admin vars. The Anthropic key must be set in Vercel project env vars for AI features to work.

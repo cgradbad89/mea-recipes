@@ -14,8 +14,6 @@ import {
   Unsubscribe,
   writeBatch,
   deleteField,
-  arrayUnion,
-  arrayRemove,
   runTransaction } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
@@ -114,10 +112,94 @@ export async function setServingsOverride(uid: string, recipeID: string, serving
 // ─── Week Plans ───────────────────────────────────────────────────────────────
 // users/{uid}/pantry/root/weekPlans/{weekID}
 
+export type PlannedRole = 'main' | 'side'
+
+/**
+ * One planned recipe within a week (Batch 5). `day` is an ISO date (YYYY-MM-DD)
+ * inside that week, or null = "Unscheduled". `role` is main/side — auto-defaulted
+ * from the recipe's category on add, user-overridable per entry. `slot` is RESERVED
+ * for a future meal-slot dimension (dinners-only today); it is never written now,
+ * but lives in the type so adding slots later needs no second migration.
+ */
+export interface PlannedEntry {
+  recipeID: string
+  day: string | null
+  role: PlannedRole
+  slot?: string | null
+}
+
+/**
+ * On disk a planned element is EITHER a legacy bare recipeID string (pre-Batch-5
+ * docs) OR a PlannedEntry object. Always normalize on read; writers upgrade any
+ * entry they touch to the object form — a lossless read-time migration, no bulk wipe.
+ */
+export type PlannedElement = string | PlannedEntry
+
+// Recipe category → default role. Only "Breakfast, Snacks & Sides" defaults to a
+// side; mains and the ambiguous Salads/Soups categories default to 'main' (a
+// missing side is less wrong than a missing main — the user can demote per entry).
+// Unknown/empty category → 'main'. Category values mirror types/recipe.ts `Category`.
+const CATEGORY_ROLE: Record<string, PlannedRole> = {
+  'Chicken & Poultry': 'main',
+  'Beef & Pork': 'main',
+  'Seafood': 'main',
+  'Vegetarian Mains': 'main',
+  'Pasta, Noodles & Rice': 'main',
+  'Salads & Bowls': 'main',
+  'Soups, Stews & Chili': 'main',
+  'Breakfast, Snacks & Sides': 'side',
+}
+
+export function deriveRoleFromCategory(category?: string | null): PlannedRole {
+  return (category && CATEGORY_ROLE[category]) || 'main'
+}
+
+function isPlannedRole(v: unknown): v is PlannedRole {
+  return v === 'main' || v === 'side'
+}
+
+function elementRecipeID(el: PlannedElement): string {
+  return typeof el === 'string' ? el : el.recipeID
+}
+
+/**
+ * Read-time adapter. Normalize one planned element (legacy string OR object) into a
+ * full PlannedEntry. Legacy strings → { recipeID, day: null, role } i.e. Unscheduled
+ * with a role derived from the recipe's category (via `resolveCategory` when
+ * supplied, else 'main'). Never wipes, never guesses a day — lossless.
+ */
+export function normalizePlannedEntry(
+  el: PlannedElement,
+  resolveCategory?: (recipeID: string) => string | null | undefined,
+): PlannedEntry {
+  if (typeof el === 'string') {
+    return { recipeID: el, day: null, role: deriveRoleFromCategory(resolveCategory?.(el)) }
+  }
+  const entry: PlannedEntry = {
+    recipeID: el.recipeID,
+    day: el.day ?? null,
+    role: isPlannedRole(el.role) ? el.role : deriveRoleFromCategory(resolveCategory?.(el.recipeID)),
+  }
+  if (el.slot !== undefined) entry.slot = el.slot
+  return entry
+}
+
+export function normalizePlanned(
+  planned: PlannedElement[] | undefined,
+  resolveCategory?: (recipeID: string) => string | null | undefined,
+): PlannedEntry[] {
+  return (planned || []).map(el => normalizePlannedEntry(el, resolveCategory))
+}
+
+/** Recipe IDs from a planned array (legacy or new), order-preserving. */
+export function plannedRecipeIDList(planned: PlannedElement[] | undefined): string[] {
+  return (planned || []).map(elementRecipeID)
+}
+
 export interface WeekPlan {
   weekID: string
   weekStartISO: string
-  plannedRecipeIDs: string[]
+  plannedRecipeIDs: PlannedElement[]
   cookedRecipeIDs: string[]
   updatedAt?: unknown
 }
@@ -151,43 +233,79 @@ export async function getAllWeekPlans(uid: string): Promise<WeekPlan[]> {
   return snap.docs.map(d => d.data() as WeekPlan).sort((a, b) => b.weekID.localeCompare(a.weekID))
 }
 
-export async function addRecipeToWeekPlan(uid: string, weekID: string, recipeID: string): Promise<void> {
+// Elements are objects now, so arrayUnion/arrayRemove no longer work on planned[]
+// (they compare by deep value). Every planned writer is read-modify-write and
+// leaves untouched elements EXACTLY as stored (legacy strings stay strings until
+// the user acts on that specific recipe) — maximally lossless, no role/day churn.
+export async function addRecipeToWeekPlan(
+  uid: string,
+  weekID: string,
+  recipeID: string,
+  role: PlannedRole = 'main',
+): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
   const snap = await getDoc(ref)
   if (!snap.exists()) {
     await setDoc(ref, {
       weekID,
       weekStartISO: weekID,
-      plannedRecipeIDs: [recipeID],
+      plannedRecipeIDs: [{ recipeID, day: null, role }],
       cookedRecipeIDs: [],
       updatedAt: serverTimestamp(),
     })
-  } else {
-    await updateDoc(ref, {
-      plannedRecipeIDs: arrayUnion(recipeID),
-      updatedAt: serverTimestamp(),
-    })
+    return
   }
-}
-
-export async function removeRecipeFromWeekPlan(uid: string, weekID: string, recipeID: string): Promise<void> {
-  const ref = doc(weekPlansPath(uid), weekID)
+  const plan = snap.data() as WeekPlan
+  const planned = plan.plannedRecipeIDs || []
+  // Idempotent (replaces arrayUnion's dedupe): if already planned in any shape,
+  // leave it untouched so an existing day/role is preserved.
+  if (planned.some(el => elementRecipeID(el) === recipeID)) return
   await updateDoc(ref, {
-    plannedRecipeIDs: arrayRemove(recipeID),
+    plannedRecipeIDs: [...planned, { recipeID, day: null, role }],
     updatedAt: serverTimestamp(),
   })
 }
 
-export async function moveRecipeToWeek(uid: string, fromWeekID: string, toWeekID: string, recipeID: string): Promise<void> {
+export async function removeRecipeFromWeekPlan(uid: string, weekID: string, recipeID: string): Promise<void> {
+  const ref = doc(weekPlansPath(uid), weekID)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return
+  const plan = snap.data() as WeekPlan
+  const planned = (plan.plannedRecipeIDs || []).filter(el => elementRecipeID(el) !== recipeID)
+  await updateDoc(ref, { plannedRecipeIDs: planned, updatedAt: serverTimestamp() })
+}
+
+export async function moveRecipeToWeek(
+  uid: string,
+  fromWeekID: string,
+  toWeekID: string,
+  recipeID: string,
+  fallbackRole: PlannedRole = 'main',
+): Promise<void> {
   const fromRef = doc(weekPlansPath(uid), fromWeekID)
   const toRef = doc(weekPlansPath(uid), toWeekID)
   await runTransaction(db, async tx => {
+    const fromSnap = await tx.get(fromRef)
     const toSnap = await tx.get(toRef)
-    tx.update(fromRef, { plannedRecipeIDs: arrayRemove(recipeID), updatedAt: serverTimestamp() })
+    // Carry the entry's role across; the day resets to null — the target week has
+    // different dates, so an old ISO day is meaningless there (lands Unscheduled).
+    let role: PlannedRole = fallbackRole
+    let fromPlanned: PlannedElement[] = []
+    if (fromSnap.exists()) {
+      fromPlanned = (fromSnap.data() as WeekPlan).plannedRecipeIDs || []
+      const moving = fromPlanned.find(el => elementRecipeID(el) === recipeID)
+      if (moving && typeof moving !== 'string' && isPlannedRole(moving.role)) role = moving.role
+    }
+    const remaining = fromPlanned.filter(el => elementRecipeID(el) !== recipeID)
+    tx.update(fromRef, { plannedRecipeIDs: remaining, updatedAt: serverTimestamp() })
+
+    const moved: PlannedEntry = { recipeID, day: null, role }
     if (!toSnap.exists()) {
-      tx.set(toRef, { weekID: toWeekID, weekStartISO: toWeekID, plannedRecipeIDs: [recipeID], cookedRecipeIDs: [], updatedAt: serverTimestamp() })
+      tx.set(toRef, { weekID: toWeekID, weekStartISO: toWeekID, plannedRecipeIDs: [moved], cookedRecipeIDs: [], updatedAt: serverTimestamp() })
     } else {
-      tx.update(toRef, { plannedRecipeIDs: arrayUnion(recipeID), updatedAt: serverTimestamp() })
+      const toPlanned = (toSnap.data() as WeekPlan).plannedRecipeIDs || []
+      const next = toPlanned.some(el => elementRecipeID(el) === recipeID) ? toPlanned : [...toPlanned, moved]
+      tx.update(toRef, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
     }
   })
 }
@@ -198,9 +316,68 @@ export async function markRecipeCooked(uid: string, weekID: string, recipeID: st
   if (!snap.exists()) return
   const plan = snap.data() as WeekPlan
   const cookedIDs = cooked
-    ? [...new Set([...plan.cookedRecipeIDs, recipeID])]
-    : plan.cookedRecipeIDs.filter(id => id !== recipeID)
-  await setDoc(ref, { ...plan, cookedRecipeIDs: cookedIDs, updatedAt: serverTimestamp() })
+    ? [...new Set([...(plan.cookedRecipeIDs || []), recipeID])]
+    : (plan.cookedRecipeIDs || []).filter(id => id !== recipeID)
+  // Only cooked[] changes; planned[] is left exactly as stored (cooked items need
+  // neither day nor role, and we avoid churning the planned array's element shapes).
+  await updateDoc(ref, { cookedRecipeIDs: cookedIDs, updatedAt: serverTimestamp() })
+}
+
+/**
+ * Set or clear a planned entry's `day` (null = Unscheduled). Preserves the entry's
+ * role and upgrades a legacy string entry to the object shape; `fallbackRole` is
+ * used only when upgrading a legacy string (whose role can't be derived here). If
+ * the recipe isn't in the plan yet it is appended on that day.
+ */
+export async function assignRecipeToDay(
+  uid: string,
+  weekID: string,
+  recipeID: string,
+  day: string | null,
+  fallbackRole: PlannedRole = 'main',
+): Promise<void> {
+  const ref = doc(weekPlansPath(uid), weekID)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return
+  const plan = snap.data() as WeekPlan
+  const planned = plan.plannedRecipeIDs || []
+  let found = false
+  const next: PlannedElement[] = planned.map(el => {
+    if (elementRecipeID(el) !== recipeID) return el
+    found = true
+    const role = typeof el !== 'string' && isPlannedRole(el.role) ? el.role : fallbackRole
+    const entry: PlannedEntry = { recipeID, day, role }
+    if (typeof el !== 'string' && el.slot !== undefined) entry.slot = el.slot
+    return entry
+  })
+  if (!found) next.push({ recipeID, day, role: fallbackRole })
+  await updateDoc(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
+}
+
+/**
+ * Manual main/side override for a planned entry. Persisted ON the entry, so the
+ * read-time role derivation never clobbers a user's choice. Preserves the entry's
+ * day; upgrades a legacy string entry to the object shape.
+ */
+export async function setPlannedRecipeRole(
+  uid: string,
+  weekID: string,
+  recipeID: string,
+  role: PlannedRole,
+): Promise<void> {
+  const ref = doc(weekPlansPath(uid), weekID)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) return
+  const plan = snap.data() as WeekPlan
+  const planned = plan.plannedRecipeIDs || []
+  const next: PlannedElement[] = planned.map(el => {
+    if (elementRecipeID(el) !== recipeID) return el
+    const day = typeof el === 'string' ? null : (el.day ?? null)
+    const entry: PlannedEntry = { recipeID, day, role }
+    if (typeof el !== 'string' && el.slot !== undefined) entry.slot = el.slot
+    return entry
+  })
+  await updateDoc(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
 }
 
 // ─── Shared Week Plans ───────────────────────────────────────────────────────
@@ -219,11 +396,14 @@ export async function publishSharedPlan(
   displayName: string,
   photoURL: string,
   weekID: string,
-  plannedRecipeIDs: string[]
+  plannedRecipeIDs: PlannedElement[]
 ): Promise<void> {
   await setDoc(
     doc(db, 'sharedWeekPlans', weekID, 'users', uid),
-    { uid, displayName, photoURL, plannedRecipeIDs, updatedAt: serverTimestamp() }
+    // The shared mirror stays a flat string[] of recipe IDs — friends only see
+    // WHICH recipes you planned, never your private day/role assignments. This keeps
+    // the SharedPlanEntry schema (and the Friends' UI) unchanged.
+    { uid, displayName, photoURL, plannedRecipeIDs: plannedRecipeIDList(plannedRecipeIDs), updatedAt: serverTimestamp() }
   )
 }
 
@@ -378,7 +558,7 @@ export async function deleteSavedGroceryItem(uid: string, itemId: string): Promi
 // ─── Rebuild grocery from plan ───────────────────────────────────────────────
 export async function rebuildGroceryFromPlan(
   uid: string,
-  plannedRecipeIDs: string[],
+  plannedRecipeIDs: PlannedElement[],
   getRecipeById: (id: string) => Promise<Recipe | null>,
   parseContent: (content: string) => { ingredients: string[]; instructions: string[]; description: string },
   metas?: Record<string, { overrides?: { content?: string } }>,
@@ -394,8 +574,9 @@ export async function rebuildGroceryFromPlan(
   })
   await batch.commit()
 
-  // Step 2: Re-add ingredients from each planned recipe
-  for (const recipeID of plannedRecipeIDs) {
+  // Step 2: Re-add ingredients from EVERY planned recipe, regardless of day or
+  // role (neither affects the grocery list — we pull all planned recipes).
+  for (const recipeID of plannedRecipeIDList(plannedRecipeIDs)) {
     const recipe = await getRecipeById(recipeID)
     if (!recipe) continue
     const effectiveContent = metas?.[recipeID]?.overrides?.content || recipe.content

@@ -1,17 +1,19 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw } from 'lucide-react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan, getWeekPlan,
-  markRecipeCooked, addRecipeIngredientsToGrocery, getAllWeekPlans,
+  markRecipeCooked, addRecipeIngredientsToGrocery,
   moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
   publishSharedPlan, subscribeSharedWeekPlans, addRecipeToWeekPlan,
-  type WeekPlan, type RecipeMeta, type SharedPlanEntry
+  assignRecipeToDay, setPlannedRecipeRole, deriveRoleFromCategory,
+  normalizePlanned, plannedRecipeIDList,
+  type WeekPlan, type RecipeMeta, type SharedPlanEntry, type PlannedEntry, type PlannedRole
 } from '@/lib/userdata'
 import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
 import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
@@ -70,7 +72,7 @@ function CookServingsModal({
   }
 
   return (
-    <div className="bg-card border border-amber/20 rounded-xl p-4 mt-2 animate-fade-in">
+    <div className="bg-card border border-amber/20 rounded-xl p-4 animate-fade-in">
       <p className="text-cream text-sm font-body font-medium mb-1">
         Cooked <span className="text-amber">{recipeName}</span> — log it to today?
       </p>
@@ -118,7 +120,7 @@ function CookRatingModal({
   const [note, setNote] = useState('')
 
   return (
-    <div className="bg-card border border-amber/20 rounded-xl p-4 mt-2 animate-fade-in">
+    <div className="bg-card border border-amber/20 rounded-xl p-4 animate-fade-in">
       <p className="text-cream text-sm font-body font-medium mb-3">
         How was <span className="text-amber">{recipeName}</span>?
       </p>
@@ -148,6 +150,20 @@ function CookRatingModal({
   )
 }
 
+// Centered overlay wrapper so inline prompts read well even from a narrow day column.
+function CenteredOverlay({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/80 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div className="w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 export default function PlanPage() {
   const { user, signIn } = useAuth()
   const [weekID, setWeekID] = useState(() => weekIDFromDate(new Date()))
@@ -156,6 +172,7 @@ export default function PlanPage() {
   const [loadingRecipes, setLoadingRecipes] = useState(true)
   const [addingToGrocery, setAddingToGrocery] = useState<string | null>(null)
   const [moveOpenFor, setMoveOpenFor] = useState<string | null>(null)
+  const [dayOpenFor, setDayOpenFor] = useState<string | null>(null)
   const [movingRecipe, setMovingRecipe] = useState<string | null>(null)
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
   const [servingsPromptFor, setServingsPromptFor] = useState<string | null>(null)
@@ -246,7 +263,7 @@ export default function PlanPage() {
   // Load metas for planned recipes (to check existing ratings)
   useEffect(() => {
     if (!user || !plan) return
-    const ids = plan.plannedRecipeIDs || []
+    const ids = plannedRecipeIDList(plan.plannedRecipeIDs)
     ids.forEach(id => {
       if (metas[id] !== undefined) return
       getRecipeMeta(user.uid, id).then(m => {
@@ -255,7 +272,8 @@ export default function PlanPage() {
     })
   }, [user, plan])
 
-  // Publish shared plan whenever local plan changes
+  // Publish shared plan whenever local plan changes (mirror stays a flat ID list —
+  // friends never see the owner's private day/role assignments)
   useEffect(() => {
     if (!user || !plan) return
     const displayName = user.displayName || user.email || 'Anonymous'
@@ -272,15 +290,33 @@ export default function PlanPage() {
 
   const handleAddFriendRecipe = async (recipeID: string) => {
     if (!user) return
-    await addRecipeToWeekPlan(user.uid, weekID, recipeID)
+    await addRecipeToWeekPlan(user.uid, weekID, recipeID, deriveRoleFromCategory(recipes[recipeID]?.category))
     setAddedFriendRecipe(recipeID)
     setTimeout(() => setAddedFriendRecipe(null), 1500)
   }
 
-  const plannedIDs = plan?.plannedRecipeIDs || []
-  const cookedIDs = new Set(plan?.cookedRecipeIDs || [])
-  const uncookedPlanned = plannedIDs.filter(id => !cookedIDs.has(id))
-  const cooked = plannedIDs.filter(id => cookedIDs.has(id))
+  // ─── Derived plan state (day + role aware) ────────────────────────────────
+  const weekDates = getWeekDates(weekID)
+  const weekDateSet = new Set(weekDates)
+  // Read-time adapter: legacy string entries normalize to Unscheduled + a role
+  // derived from the recipe's category; object entries keep their stored day/role.
+  const plannedEntries = normalizePlanned(plan?.plannedRecipeIDs, id => recipes[id]?.category)
+  const cookedSet = new Set(plan?.cookedRecipeIDs || [])
+  const plannedIDList = plannedRecipeIDList(plan?.plannedRecipeIDs)
+  const uncookedEntries = plannedEntries.filter(e => !cookedSet.has(e.recipeID))
+  const cooked = plannedIDList.filter(id => cookedSet.has(id))
+
+  // Mains before sides within a day for readability.
+  const sortByRole = (a: PlannedEntry, b: PlannedEntry) =>
+    (a.role === 'main' ? 0 : 1) - (b.role === 'main' ? 0 : 1)
+  const dayBuckets = weekDates.map(date => ({
+    date,
+    entries: uncookedEntries.filter(e => e.day === date).sort(sortByRole),
+  }))
+  // Anything without a day (or a stale day outside this week) → Unscheduled.
+  const unscheduledEntries = uncookedEntries
+    .filter(e => !e.day || !weekDateSet.has(e.day))
+    .sort(sortByRole)
 
   // Surrounding weeks for move dropdown (2 before, 2 after)
   const surroundingWeeks = [-2, -1, 1, 2].map(delta => ({
@@ -351,12 +387,26 @@ export default function PlanPage() {
     await removeRecipeFromWeekPlan(user.uid, weekID, recipeID)
   }
 
-  const handleMoveToWeek = async (recipeID: string, targetWeekID: string) => {
+  const handleMoveToWeek = async (recipeID: string, targetWeekID: string, role: PlannedRole) => {
     if (!user) return
     setMovingRecipe(recipeID)
-    await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID)
+    await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID, role)
     setMoveOpenFor(null)
     setMovingRecipe(null)
+  }
+
+  // Assign (or clear) a planned entry's day. Passes the entry's current role so a
+  // legacy-string upgrade keeps the role the user is looking at.
+  const handleAssignDay = async (entry: PlannedEntry, day: string | null) => {
+    if (!user) return
+    setDayOpenFor(null)
+    await assignRecipeToDay(user.uid, weekID, entry.recipeID, day, entry.role)
+  }
+
+  // Manual main/side override (persists on the entry; re-derivation won't clobber it).
+  const handleToggleRole = async (entry: PlannedEntry) => {
+    if (!user) return
+    await setPlannedRecipeRole(user.uid, weekID, entry.recipeID, entry.role === 'main' ? 'side' : 'main')
   }
 
   const handleAddToGrocery = async (recipeID: string) => {
@@ -387,6 +437,7 @@ export default function PlanPage() {
     if (!user || !plan) return
     setRebuilding(true)
     setShowRebuildConfirm(false)
+    // rebuild pulls ALL planned recipes regardless of day/role.
     await rebuildGroceryFromPlan(user.uid, plan.plannedRecipeIDs || [], getRecipeById, parseRecipeContent, metas)
     setRebuilding(false)
     setRebuildDone(true)
@@ -407,13 +458,13 @@ export default function PlanPage() {
         }
       })
       let addedCount = 0
-      for (const recipeID of uncookedPlanned) {
-        if (alreadyAdded.has(recipeID)) continue
-        const recipe = recipes[recipeID]
+      for (const entry of uncookedEntries) {
+        if (alreadyAdded.has(entry.recipeID)) continue
+        const recipe = recipes[entry.recipeID]
         if (!recipe) continue
-        const effectiveContent = metas[recipeID]?.overrides?.content || recipe.content
+        const effectiveContent = metas[entry.recipeID]?.overrides?.content || recipe.content
         const { ingredients } = parseRecipeContent(effectiveContent)
-        await addRecipeIngredientsToGrocery(user.uid, recipeID, ingredients)
+        await addRecipeIngredientsToGrocery(user.uid, entry.recipeID, ingredients)
         addedCount++
       }
       setBulkAddResult(addedCount > 0 ? `Done! ${addedCount} added` : 'Already up to date')
@@ -425,6 +476,154 @@ export default function PlanPage() {
       setBulkAddingGrocery(false)
     }
   }
+
+  // ─── A single planned recipe card (reused: day grid, mobile stack, Unscheduled) ──
+  const renderPlannedCard = (entry: PlannedEntry) => {
+    const id = entry.recipeID
+    const recipe = recipes[id]
+    if (!recipe) return null
+    return (
+      <div key={id} className="bg-surface border border-border rounded-xl p-2.5">
+        <div className="flex items-start gap-2">
+          <RecipeImage
+            src={metas[id]?.overrides?.imageURL || recipe.imageURL}
+            alt=""
+            category={recipe.category}
+            className="w-10 h-10 rounded-lg shrink-0"
+            emojiClassName="text-lg"
+          />
+          <div className="flex-1 min-w-0">
+            <Link href={`/recipes/${id}`}>
+              <p className="text-cream text-xs font-body font-medium truncate hover:text-amber transition-colors" title={recipe.title}>
+                {recipe.title}
+              </p>
+            </Link>
+            <div className="flex items-center gap-1.5 mt-1">
+              <button
+                onClick={() => handleToggleRole(entry)}
+                className={`text-[10px] font-body px-1.5 py-0.5 rounded-md border transition-colors ${
+                  entry.role === 'main'
+                    ? 'border-amber/30 text-amber bg-amber/10'
+                    : 'border-border text-faint hover:text-cream'
+                }`}
+                title="Toggle main / side"
+              >
+                {entry.role === 'main' ? 'Main' : 'Side'}
+              </button>
+              <span className="text-faint text-[10px] font-body capitalize truncate">{recipe.cuisine}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 mt-2 flex-wrap">
+          {/* Assign to day */}
+          <div className="relative">
+            <button
+              onClick={() => { setDayOpenFor(dayOpenFor === id ? null : id); setMoveOpenFor(null) }}
+              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
+              title="Assign to a day"
+            >
+              <Calendar size={12} />
+            </button>
+            {dayOpenFor === id && (
+              <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-lg py-1 w-44 max-w-[calc(100vw-2rem)] animate-fade-in">
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Assign to day</p>
+                {weekDates.map(date => {
+                  const d = new Date(date + 'T12:00:00')
+                  return (
+                    <button
+                      key={date}
+                      onClick={() => handleAssignDay(entry, date)}
+                      className={`w-full text-left px-3 py-2 text-sm font-body transition-colors ${
+                        entry.day === date ? 'text-amber' : 'text-muted hover:text-cream hover:bg-surface'
+                      }`}
+                    >
+                      {d.toLocaleDateString('en-US', { weekday: 'long' })}
+                      <span className="text-faint ml-1">{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </button>
+                  )
+                })}
+                <button
+                  onClick={() => handleAssignDay(entry, null)}
+                  className={`w-full text-left px-3 py-2 text-sm font-body border-t border-border/50 transition-colors ${
+                    !entry.day || !weekDateSet.has(entry.day) ? 'text-amber' : 'text-muted hover:text-cream hover:bg-surface'
+                  }`}
+                >
+                  Unscheduled
+                </button>
+              </div>
+            )}
+          </div>
+          {/* Move to another week */}
+          <div className="relative">
+            <button
+              onClick={() => { setMoveOpenFor(moveOpenFor === id ? null : id); setDayOpenFor(null) }}
+              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
+              title="Move to another week"
+            >
+              {movingRecipe === id ? <Loader2 size={12} className="animate-spin" /> : <ArrowRightLeft size={12} />}
+            </button>
+            {moveOpenFor === id && (
+              <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-lg py-1 w-48 max-w-[calc(100vw-2rem)] animate-fade-in">
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Move to week</p>
+                {surroundingWeeks.map(w => (
+                  <button
+                    key={w.weekID}
+                    onClick={() => handleMoveToWeek(id, w.weekID, entry.role)}
+                    className="w-full text-left px-3 py-2 text-sm font-body text-muted hover:text-cream hover:bg-surface transition-colors"
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Add ingredients to grocery */}
+          <button
+            onClick={() => handleAddToGrocery(id)}
+            disabled={addingToGrocery === id || addedToGrocery === id}
+            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all ${
+              addedToGrocery === id
+                ? 'border-green-400/30 text-green-400 bg-green-400/10'
+                : 'border-border text-faint hover:text-amber hover:border-amber/30'
+            }`}
+            title="Add ingredients to grocery list"
+          >
+            {addingToGrocery === id
+              ? <Loader2 size={12} className="animate-spin" />
+              : addedToGrocery === id
+              ? <Check size={12} />
+              : <ShoppingCart size={12} />}
+          </button>
+          {/* Mark cooked */}
+          <button
+            onClick={() => handleMarkCooked(id, true)}
+            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-green-400 hover:border-green-400/30 transition-all"
+            title="Mark as cooked"
+          >
+            <Check size={12} />
+          </button>
+          {/* Remove */}
+          <button
+            onClick={() => setConfirmRemoveFor(id)}
+            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
+            title="Remove from plan"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const emptyDayAffordance = (
+    <Link
+      href="/recipes"
+      className="flex items-center justify-center border border-dashed border-border rounded-xl py-5 text-faint/40 hover:text-amber hover:border-amber/30 transition-all"
+      title="Browse recipes to add"
+    >
+      <Plus size={16} />
+    </Link>
+  )
 
   if (!user) {
     return (
@@ -442,7 +641,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       {/* Remove from plan confirmation modal */}
       {confirmRemoveFor && (
         <div
@@ -470,6 +669,28 @@ export default function PlanPage() {
         </div>
       )}
 
+      {/* Cooked-servings prompt (centered overlay so it reads well from any column) */}
+      {servingsPromptFor && recipes[servingsPromptFor] && (
+        <CenteredOverlay onClose={() => setServingsPromptFor(null)}>
+          <CookServingsModal
+            recipeName={recipes[servingsPromptFor].title}
+            onConfirm={s => handleServingsConfirm(servingsPromptFor, s)}
+            onSkip={() => handleServingsSkip(servingsPromptFor)}
+          />
+        </CenteredOverlay>
+      )}
+
+      {/* Post-cook rating prompt */}
+      {ratingPromptFor && recipes[ratingPromptFor] && (
+        <CenteredOverlay onClose={handleRatingSkip}>
+          <CookRatingModal
+            recipeName={recipes[ratingPromptFor].title}
+            onSave={(r, n) => handleRatingSave(ratingPromptFor, r, n)}
+            onSkip={handleRatingSkip}
+          />
+        </CenteredOverlay>
+      )}
+
       {/* Header + week picker */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="font-display text-4xl text-cream font-light">Meal Plan</h1>
@@ -493,7 +714,7 @@ export default function PlanPage() {
       </div>
 
       {/* Rebuild grocery button */}
-      {plannedIDs.length > 0 && (
+      {plannedIDList.length > 0 && (
         <div className="mb-8">
           {showRebuildConfirm ? (
             <div className="bg-surface border border-amber/20 rounded-xl p-4 animate-fade-in">
@@ -524,16 +745,16 @@ export default function PlanPage() {
         </div>
       ) : (
         <>
-          {/* Planned section */}
-          <section className="mb-8">
+          {/* Planned section — day view */}
+          <section className="mb-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-xl text-cream font-light">
                 Planned
-                {uncookedPlanned.length > 0 && (
-                  <span className="ml-2 text-faint text-sm font-body">{uncookedPlanned.length}</span>
+                {uncookedEntries.length > 0 && (
+                  <span className="ml-2 text-faint text-sm font-body">{uncookedEntries.length}</span>
                 )}
               </h2>
-              {uncookedPlanned.length > 0 && (
+              {uncookedEntries.length > 0 && (
                 <button
                   onClick={handleBulkAddToGrocery}
                   disabled={bulkAddingGrocery}
@@ -545,132 +766,95 @@ export default function PlanPage() {
               )}
             </div>
 
-            {uncookedPlanned.length === 0 ? (
+            {uncookedEntries.length === 0 ? (
               <div className="bg-surface border border-border rounded-2xl p-6 text-center">
                 <p className="text-faint text-sm font-body mb-3">No recipes planned this week</p>
                 <Link href="/recipes" className="btn-ghost text-xs">Browse recipes →</Link>
               </div>
             ) : (
-              <div className="space-y-2">
-                {uncookedPlanned.map(id => {
-                  const recipe = recipes[id]
-                  if (!recipe) return null
-                  return (
-                    <div key={id}>
-                      <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3">
-                        <RecipeImage
-                          src={metas[id]?.overrides?.imageURL || recipe.imageURL}
-                          alt=""
-                          category={recipe.category}
-                          className="w-12 h-12 rounded-lg shrink-0"
-                          emojiClassName="text-xl"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <Link href={`/recipes/${id}`}>
-                            <p className="text-cream text-sm font-body font-medium truncate hover:text-amber transition-colors">
-                              {recipe.title}
-                            </p>
-                          </Link>
-                          <p className="text-faint text-xs font-body capitalize">{recipe.cuisine}</p>
+              <>
+                {/* DESKTOP: 7-column week grid */}
+                <div className="hidden lg:grid grid-cols-7 gap-2">
+                  {dayBuckets.map(({ date, entries }) => {
+                    const d = new Date(date + 'T12:00:00')
+                    return (
+                      <div key={date} className="min-w-0">
+                        <div className="text-center mb-2">
+                          <p className="text-faint text-[10px] font-body uppercase tracking-wider">
+                            {d.toLocaleDateString('en-US', { weekday: 'short' })}
+                          </p>
+                          <p className="text-muted text-sm font-body">{d.getDate()}</p>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          {/* Move to week */}
-                          <div className="relative">
-                            <button
-                              onClick={() => setMoveOpenFor(moveOpenFor === id ? null : id)}
-                              className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
-                              title="Move to another week"
-                            >
-                              {movingRecipe === id
-                                ? <Loader2 size={13} className="animate-spin" />
-                                : <ArrowRightLeft size={13} />
-                              }
-                            </button>
-                            {moveOpenFor === id && (
-                              <div className="absolute right-0 top-9 z-10 bg-card border border-border rounded-xl shadow-lg py-1 w-48 max-w-[calc(100vw-2rem)] animate-fade-in">
-                                <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Move to week</p>
-                                {surroundingWeeks.map(w => (
-                                  <button
-                                    key={w.weekID}
-                                    onClick={() => handleMoveToWeek(id, w.weekID)}
-                                    className="w-full text-left px-3 py-2 text-sm font-body text-muted hover:text-cream hover:bg-surface transition-colors"
-                                  >
-                                    {w.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handleAddToGrocery(id)}
-                            disabled={addingToGrocery === id || addedToGrocery === id}
-                            className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${
-                              addedToGrocery === id
-                                ? 'border-green-400/30 text-green-400 bg-green-400/10'
-                                : 'border-border text-faint hover:text-amber hover:border-amber/30'
-                            }`}
-                            title="Add ingredients to grocery list"
-                          >
-                            {addingToGrocery === id
-                              ? <Loader2 size={13} className="animate-spin" />
-                              : addedToGrocery === id
-                              ? <Check size={13} />
-                              : <ShoppingCart size={13} />
-                            }
-                          </button>
-                          <button
-                            onClick={() => handleMarkCooked(id, true)}
-                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-green-400 hover:border-green-400/30 transition-all"
-                            title="Mark as cooked"
-                          >
-                            <Check size={13} />
-                          </button>
-                          <button
-                            onClick={() => setConfirmRemoveFor(id)}
-                            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
-                            title="Remove from plan"
-                          >
-                            <X size={13} />
-                          </button>
+                        <div className="space-y-2">
+                          {entries.length > 0
+                            ? entries.map(renderPlannedCard)
+                            : emptyDayAffordance}
                         </div>
                       </div>
-                      {/* Servings prompt when ticking cooked (writes log + plan on confirm) */}
-                      {servingsPromptFor === id && (
-                        <CookServingsModal
-                          recipeName={recipe.title}
-                          onConfirm={s => handleServingsConfirm(id, s)}
-                          onSkip={() => handleServingsSkip(id)}
-                        />
-                      )}
-                      {/* Rating prompt after marking cooked */}
-                      {ratingPromptFor === id && (
-                        <CookRatingModal
-                          recipeName={recipe.title}
-                          onSave={(r, n) => handleRatingSave(id, r, n)}
-                          onSkip={handleRatingSkip}
-                        />
-                      )}
+                    )
+                  })}
+                </div>
+
+                {/* MOBILE: stacked day sections */}
+                <div className="lg:hidden space-y-5">
+                  {dayBuckets.map(({ date, entries }) => {
+                    const d = new Date(date + 'T12:00:00')
+                    return (
+                      <div key={date}>
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <span className="text-cream text-sm font-body font-medium">
+                            {d.toLocaleDateString('en-US', { weekday: 'long' })}
+                          </span>
+                          <span className="text-faint text-xs font-body">
+                            {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                          {entries.length > 0 && (
+                            <span className="text-faint text-xs font-body ml-auto">{entries.length}</span>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {entries.length > 0
+                            ? entries.map(renderPlannedCard)
+                            : emptyDayAffordance}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Unscheduled (shared by both layouts) */}
+                {unscheduledEntries.length > 0 && (
+                  <div className="mt-8">
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <h3 className="text-cream text-sm font-body font-medium uppercase tracking-wider">Unscheduled</h3>
+                      <span className="text-faint text-xs font-body">{unscheduledEntries.length}</span>
                     </div>
-                  )
-                })}
-              </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                      {unscheduledEntries.map(renderPlannedCard)}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </section>
 
-          {/* Cooked section */}
-          {cooked.length > 0 && (
-            <section>
-              <h2 className="font-display text-xl text-cream font-light mb-4">
-                Cooked
-                <span className="ml-2 text-faint text-sm font-body">{cooked.length}</span>
-              </h2>
-              <div className="space-y-2">
-                {cooked.map(id => {
-                  const recipe = recipes[id]
-                  if (!recipe) return null
-                  return (
-                    <div key={id}>
-                      <div className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3 opacity-60">
+          <div className="max-w-3xl mx-auto">
+            {/* Cooked section */}
+            {cooked.length > 0 && (
+              <section>
+                <h2 className="font-display text-xl text-cream font-light mb-4">
+                  Cooked
+                  <span className="ml-2 text-faint text-sm font-body">{cooked.length}</span>
+                </h2>
+                <div className="space-y-2">
+                  {cooked.map(id => {
+                    const recipe = recipes[id]
+                    if (!recipe) return null
+                    return (
+                      <div
+                        key={id}
+                        className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3 opacity-60"
+                      >
                         <div className="w-12 h-12 rounded-lg bg-card flex items-center justify-center shrink-0">
                           <Check size={16} className="text-green-400" />
                         </div>
@@ -688,97 +872,90 @@ export default function PlanPage() {
                           Undo
                         </button>
                       </div>
-                      {ratingPromptFor === id && (
-                        <CookRatingModal
-                          recipeName={recipe.title}
-                          onSave={(r, n) => handleRatingSave(id, r, n)}
-                          onSkip={handleRatingSkip}
-                        />
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          )}
+                    )
+                  })}
+                </div>
+              </section>
+            )}
 
-          {/* Friends' plans section */}
-          {friendPlans.filter(fp => fp.plannedRecipeIDs.length > 0).length > 0 && (
-            <section className="mt-10">
-              <h2 className="font-display text-xl text-cream font-light mb-4">
-                Everyone&apos;s plan this week
-              </h2>
-              <div className="space-y-6">
-                {friendPlans
-                  .filter(fp => fp.plannedRecipeIDs.length > 0)
-                  .map(fp => (
-                    <div key={fp.uid}>
-                      {/* Friend header */}
-                      <div className="flex items-center gap-2 mb-3">
-                        {fp.photoURL ? (
-                          <img
-                            src={fp.photoURL}
-                            alt=""
-                            className="w-7 h-7 rounded-full object-cover"
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                          />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-amber/20 flex items-center justify-center">
-                            <span className="text-amber text-xs font-body font-bold">
-                              {(fp.displayName || '?')[0].toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <span className="text-cream text-sm font-body font-medium">
-                          {fp.displayName}
-                        </span>
-                      </div>
-                      {/* Friend's recipes */}
-                      <div className="space-y-2">
-                        {fp.plannedRecipeIDs.map(rid => {
-                          const recipe = recipes[rid]
-                          if (!recipe) return null
-                          return (
-                            <div
-                              key={rid}
-                              className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3"
-                            >
-                              <RecipeImage
-                                src={metas[rid]?.overrides?.imageURL || recipe.imageURL}
-                                alt=""
-                                category={recipe.category}
-                                className="w-10 h-10 rounded-lg shrink-0"
-                                emojiClassName="text-lg"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-cream text-sm font-body font-medium truncate">
-                                  {recipe.title}
-                                </p>
-                                <p className="text-faint text-xs font-body capitalize">{recipe.cuisine}</p>
-                              </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <Link
-                                  href={`/recipes/${rid}`}
-                                  className="px-2.5 py-1 rounded-lg border border-border text-faint text-xs font-body hover:text-amber hover:border-amber/30 transition-all"
-                                >
-                                  View
-                                </Link>
-                                <button
-                                  onClick={() => handleAddFriendRecipe(rid)}
-                                  className="px-2.5 py-1 rounded-lg border border-border text-faint text-xs font-body hover:text-amber hover:border-amber/30 transition-all"
-                                >
-                                  {addedFriendRecipe === rid ? 'Added!' : 'Add to my plan'}
-                                </button>
-                              </div>
+            {/* Friends' plans section */}
+            {friendPlans.filter(fp => fp.plannedRecipeIDs.length > 0).length > 0 && (
+              <section className="mt-10">
+                <h2 className="font-display text-xl text-cream font-light mb-4">
+                  Everyone&apos;s plan this week
+                </h2>
+                <div className="space-y-6">
+                  {friendPlans
+                    .filter(fp => fp.plannedRecipeIDs.length > 0)
+                    .map(fp => (
+                      <div key={fp.uid}>
+                        {/* Friend header */}
+                        <div className="flex items-center gap-2 mb-3">
+                          {fp.photoURL ? (
+                            <img
+                              src={fp.photoURL}
+                              alt=""
+                              className="w-7 h-7 rounded-full object-cover"
+                              onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-amber/20 flex items-center justify-center">
+                              <span className="text-amber text-xs font-body font-bold">
+                                {(fp.displayName || '?')[0].toUpperCase()}
+                              </span>
                             </div>
-                          )
-                        })}
+                          )}
+                          <span className="text-cream text-sm font-body font-medium">
+                            {fp.displayName}
+                          </span>
+                        </div>
+                        {/* Friend's recipes */}
+                        <div className="space-y-2">
+                          {fp.plannedRecipeIDs.map(rid => {
+                            const recipe = recipes[rid]
+                            if (!recipe) return null
+                            return (
+                              <div
+                                key={rid}
+                                className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3"
+                              >
+                                <RecipeImage
+                                  src={metas[rid]?.overrides?.imageURL || recipe.imageURL}
+                                  alt=""
+                                  category={recipe.category}
+                                  className="w-10 h-10 rounded-lg shrink-0"
+                                  emojiClassName="text-lg"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-cream text-sm font-body font-medium truncate">
+                                    {recipe.title}
+                                  </p>
+                                  <p className="text-faint text-xs font-body capitalize">{recipe.cuisine}</p>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Link
+                                    href={`/recipes/${rid}`}
+                                    className="px-2.5 py-1 rounded-lg border border-border text-faint text-xs font-body hover:text-amber hover:border-amber/30 transition-all"
+                                  >
+                                    View
+                                  </Link>
+                                  <button
+                                    onClick={() => handleAddFriendRecipe(rid)}
+                                    className="px-2.5 py-1 rounded-lg border border-border text-faint text-xs font-body hover:text-amber hover:border-amber/30 transition-all"
+                                  >
+                                    {addedFriendRecipe === rid ? 'Added!' : 'Add to my plan'}
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-              </div>
-            </section>
-          )}
+                    ))}
+                </div>
+              </section>
+            )}
+          </div>
         </>
       )}
     </div>
