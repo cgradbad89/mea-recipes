@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     const diffs: any[] = []
     let affectedCount = 0, changedCount = 0, errorCount = 0
     let wouldWriteCount = 0, writtenCount = 0
-    const skipped = { noCanonical: 0, noStoredTotal: 0, invalid: 0, noMaterialChange: 0, wouldDowngrade: 0, error: 0 }
+    const skipped = { noCanonical: 0, noStoredTotal: 0, invalid: 0, noCanonicalEffect: 0, noMaterialChange: 0, wouldDowngrade: 0, error: 0 }
 
     for (const { id, data } of batch) {
       const old = (data as any).nutrition as RecipeNutrition | undefined
@@ -125,20 +125,30 @@ export async function POST(req: NextRequest) {
         const affected = proposed.canonicalHits.length > 0
         if (affected) affectedCount++
 
-        // ── Write decision (evaluated in BOTH modes; only acted on when apply) ──
+        // baseline (canonical-OFF) — computed for every affected recipe (both modes) so
+        // the write gate can require the change be ATTRIBUTABLE TO THE CANONICAL TABLE
+        // (proposed vs baseline = canonicalΔ), not merely different from the stale stored
+        // value (which also captures unrelated engine drift / AI variance, e.g. a recipe
+        // whose dried fruit re-resolves higher while canonical only touched its oats).
+        let baseline = proposed
+        if (affected) baseline = await computeRecipeNutrition(id, { useCanonical: false })
+        const delta = macroDelta(proposed.nutrition.total, baseline.nutrition.total)
+        const changedVsBaseline = affected && anyMacroChanged(delta)   // canonicalΔ material
+
+        // ── Write decision (evaluated in BOTH modes; acted on only when apply) ──
         const valid = validTotal(proposed.nutrition.total)
         const hasStored = !!(old?.total && typeof old.total.calories === 'number')
-        const material = affected && hasStored && materialVsStored(proposed.nutrition.total, old!.total)
+        const storedDiffers = hasStored && materialVsStored(proposed.nutrition.total, old!.total)
         const notDowngrade = rank(proposed.nutrition.confidence) >= rank(old?.confidence)
         let skipReason: string | null = null
         if (!affected) { skipReason = 'no-canonical'; skipped.noCanonical++ }
-        else if (!hasStored) { skipReason = 'no-stored-total'; skipped.noStoredTotal++ }
         else if (!valid) { skipReason = 'invalid-recompute'; skipped.invalid++ }
-        else if (!material) { skipReason = 'no-material-change'; skipped.noMaterialChange++ }
+        else if (!hasStored) { skipReason = 'no-stored-total'; skipped.noStoredTotal++ }
+        else if (!changedVsBaseline) { skipReason = 'no-canonical-effect'; skipped.noCanonicalEffect++ }  // canonical didn't change macros (engine-drift only)
+        else if (!storedDiffers) { skipReason = 'no-material-change'; skipped.noMaterialChange++ }          // write would be a no-op vs stored
         else if (!notDowngrade) { skipReason = 'would-downgrade'; skipped.wouldDowngrade++ }
         const wouldWrite = skipReason === null
-        if (wouldWrite) wouldWriteCount++
-        if (wouldWrite) changedCount++
+        if (wouldWrite) { wouldWriteCount++; changedCount++ }
 
         // ── Persist (apply mode only) — capture prior value into nutrition_prev first ──
         let written = false
@@ -154,12 +164,6 @@ export async function POST(req: NextRequest) {
           writtenCount++
           prevCaptured = prev
         }
-
-        // baseline (canonical-off) only needed for the DRY-RUN diff.
-        let baseline = proposed
-        if (!apply && affected) baseline = await computeRecipeNutrition(id, { useCanonical: false })
-        const delta = macroDelta(proposed.nutrition.total, baseline.nutrition.total)
-        const changedVsBaseline = affected && anyMacroChanged(delta)
 
         const baseByName = new Map(baseline.resolutions.map(r => [r.name, r]))
         const resolutionChanges = proposed.resolutions

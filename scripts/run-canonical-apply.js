@@ -25,7 +25,7 @@ const MACROS = ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g
 
 async function postPage(token, offset) {
   const url = `${BASE}/api/nutrition-canonical-dryrun?limit=${LIMIT}&offset=${offset}${APPLY ? '&apply=true' : ''}`
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 6; attempt++) {
     try {
       const res = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(75000) })
       if (res.ok) return await res.json()
@@ -35,9 +35,9 @@ async function postPage(token, offset) {
     } catch (e) {
       console.log(`   offset ${offset} attempt ${attempt + 1}: ${e.message}`)
     }
-    await new Promise(r => setTimeout(r, 2000))
+    await new Promise(r => setTimeout(r, 2500))
   }
-  throw new Error(`page offset ${offset} failed after retries`)
+  return null   // give up on this page; caller records the failed offset and continues (idempotent re-run)
 }
 
 ;(async () => {
@@ -46,18 +46,23 @@ async function postPage(token, offset) {
   console.log(`${APPLY ? 'APPLY' : 'PREVIEW (dry-run)'} against ${BASE} (limit ${LIMIT})…`)
 
   const diffs = []
-  let meta = null, offset = 0
-  while (true) {
+  const failedOffsets = []
+  let meta = null, offset = 0, scopeTotal = Infinity
+  while (offset < scopeTotal) {
     const page = await postPage(token, offset)
+    if (!page) { console.log(`  offset ${offset}: FAILED after retries — recording + continuing`); failedOffsets.push(offset); offset += LIMIT; continue }
     if (page.error) throw new Error(`route error: ${page.error}`)
     meta = page
+    scopeTotal = page.scopeTotal
     diffs.push(...page.diffs)
     const w = diffs.filter(d => d.written).length
     console.log(`  offset ${offset}: processed ${page.processed}, written so far ${w}, wouldWrite ${diffs.filter(d => d.wouldWrite).length}, remaining ${page.remainingAfterBatch}`)
     if (page.remainingAfterBatch <= 0 || page.processed === 0) break
     offset += LIMIT
   }
+  if (failedOffsets.length) console.log(`\n⚠ ${failedOffsets.length} page(s) FAILED (offsets ${failedOffsets.join(',')}) — re-run to retry them (idempotent).`)
 
+  if (!meta) throw new Error('no successful pages — aborting (check deploy/token)')
   const written = diffs.filter(d => d.written)
   const wouldWrite = diffs.filter(d => d.wouldWrite)
   const byReason = {}
@@ -100,11 +105,13 @@ async function postPage(token, offset) {
   L.push(`| Processed | ${diffs.length} |`)
   L.push(`| **${APPLY ? 'WRITTEN' : 'would write'}** | **${APPLY ? written.length : wouldWrite.length}** |`)
   L.push(`| skipped: no canonical hit | ${byReason['no-canonical'] || 0} |`)
+  L.push(`| skipped: no canonical effect (change was engine-drift, not the table) | ${byReason['no-canonical-effect'] || 0} |`)
   L.push(`| skipped: would downgrade confidence | ${byReason['would-downgrade'] || 0} |`)
-  L.push(`| skipped: no material change | ${byReason['no-material-change'] || 0} |`)
+  L.push(`| skipped: no material change vs stored | ${byReason['no-material-change'] || 0} |`)
   L.push(`| skipped: no stored total | ${byReason['no-stored-total'] || 0} |`)
   L.push(`| skipped: invalid recompute | ${byReason['invalid-recompute'] || 0} |`)
   L.push(`| skipped: parse error | ${byReason['error'] || 0} |`)
+  if (failedOffsets.length) L.push(`| ⚠ pages failed (not processed) | offsets ${failedOffsets.join(', ')} |`)
   L.push('')
   L.push('## Confidence distribution after')
   L.push('')
