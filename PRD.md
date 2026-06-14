@@ -15,7 +15,9 @@ and grocery lists stay in sync across web and iOS.
 is per-user isolated, but in practice the app is used by one person. Friends' published
 week plans can be viewed via the `sharedWeekPlans` collection.
 
-**Hosting:** Vercel · **Auth:** Firebase Auth (Google sign-in) · **Database:** Firebase Firestore
+**Hosting:** Vercel · **Auth:** Firebase Auth — Google sign-in, plus an optional email/password
+credential **linked to the same account** (Batch 7; same uid/data, no separate accounts) ·
+**Database:** Firebase Firestore
 
 ### Tech Stack
 
@@ -224,6 +226,18 @@ otherwise unchanged.
    "Your serving size" control writes `meta.overrides.servings` (per-user), while the edit modal's
    "Recipe default servings · shared" still corrects the shared `recipes/{id}.nutrition` for
    everyone (the only servings write that crosses users — kept deliberate + clearly labelled).
+7. **Password login is account LINKING, never a second account (Batch 7).** A user signs in with
+   Google first; "Set up password login" (`PasswordLoginSettings`, in the `AuthButton` account area)
+   calls `linkWithCredential` with an `EmailAuthProvider` credential built from the user's **own
+   existing email** — attaching password sign-in to the **same uid**. There is **no**
+   `createUserWithEmailAndPassword` anywhere and no signup screen, so a password can only ever exist
+   on an already-authorized Google account; all per-uid data (nutrition, plans, meta, favorites,
+   `addedBy`, `calendarEventIds`) is preserved untouched. The login screen's email/password form does
+   `signInWithEmailAndPassword` only. The "already linked" check is `user.providerData` containing the
+   `'password'` provider (surfaced as `AuthContext.hasPassword`). `auth/requires-recent-login` on
+   linking/changing is handled by a Google `reauthenticateWithPopup` + one retry. **Console
+   prerequisite:** the Email/Password provider must be enabled in Firebase Auth or these calls throw
+   `auth/operation-not-allowed` (see §6, §8).
 
 ---
 
@@ -428,6 +442,16 @@ otherwise unchanged.
   admin vars. The Anthropic key must be set in Vercel project env vars for AI features to work.
 - **Firebase web config is hardcoded** in `lib/firebase.ts` (apiKey, project, appId). This is
   normal for Firebase web apps but means the client config is committed, not env-driven.
+- **Password login needs the Email/Password provider enabled in the Firebase console (Batch 7).**
+  The linking flow, the login-screen email/password sign-in, and password reset all throw
+  `auth/operation-not-allowed` until **Authentication → Sign-in method → Email/Password** is enabled
+  for `malignant-metro`. This is a one-time manual console step — it cannot be done from code. The
+  re-auth needed for `auth/requires-recent-login` (and the calendar push, Batch 6) uses
+  `reauthenticateWithPopup`, so like the calendar push it can be blocked in popup-blocked /
+  standalone-PWA contexts; setting up a password from a desktop browser avoids this. Password reset
+  only does anything for accounts that actually linked a password — a Google-only account has nothing
+  to reset, which the neutral "if an account with a password exists…" confirmation covers without
+  leaking which emails are registered.
 - **URL import can't reach paywalled sites.** `/api/ai-ingest` server-fetches the page with a
   generic User-Agent; paywalled/login-walled sites (e.g. NYT Cooking) return blocked content.
   Fallback is the **bookmarklet** (set up in `/queue#bookmarklet`) which captures the page from
@@ -529,6 +553,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
 | Barcode-based packaged-food lookup | Medium | Done | Server-side lookup: `/api/barcode-lookup` + `lib/nutritionEngine.ts` `lookupFoodByBarcode` (Open Food Facts → USDA branded GTIN → miss), client helper `lookupBarcode` (`lib/nutrition.ts`), returns `basis` per_serving\|per_100g. Camera UI: **Scan** mode (4th tab) in `LogFoodSheet.tsx` — native `BarcodeDetector` where supported, lazy-loaded `@zxing/browser` fallback; EAN/UPC only; rear camera via getUserMedia; graceful permission-denied and not-found fallbacks route to Search. Dev panel (`BarcodeTestPanel.tsx`) removed. Reuses `saved_foods`/`consumption_log` — no new collection. Serving/grams amount entry **Done**: per-100g hits take grams directly, per-serving hits with a numeric serving size get a Servings⇄Grams toggle (engine now returns `serving_grams`/`servings_per_container`; entry records `amount_label`). |
 | Push meal plan to Google Calendar | Medium | Done | Manual **"Add this week to Calendar"** on the Plan page → one event per planned day, idempotent re-push via `weekPlans.calendarEventIds`. **Option B auth:** client mints a `calendar.events` OAuth token via a Firebase Google re-auth popup and passes it to the auth-gated `/api/calendar/push` executor (no server-side Google creds; route has no list/search). Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6). |
+| Password login (email/password via account linking) | Medium | Done | Batch 7. Google-signed-in user adds a password in settings (`PasswordLoginSettings` → `linkWithCredential`, same uid/data, no new account); login screen (`SignInOptions`, used in the `/favorites` + `/plan` gates) keeps Google and adds email/password **sign-in only** (no signup) + "Forgot password?" (`sendPasswordResetEmail`, neutral confirmation). Requires the Email/Password provider enabled in the Firebase console (see §4 #7, §6, §8). |
 | Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window) |
 
 ---
@@ -539,7 +564,7 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 
 | Service | Purpose | Credential(s) (env var names) |
 |---|---|---|
-| Firebase Auth | Google sign-in / user identity | Web config hardcoded in `lib/firebase.ts` (apiKey, authDomain, projectId, …) |
+| Firebase Auth | User identity — **Google sign-in** + optional **email/password linked to the same account** (Batch 7) | Web config hardcoded in `lib/firebase.ts` (apiKey, authDomain, projectId, …). **Console prerequisite:** the **Email/Password** provider must be enabled under Authentication → Sign-in method, or the link/sign-in/reset calls throw `auth/operation-not-allowed`. |
 | Firebase Firestore (client) | Recipe catalog + per-user data | Same hardcoded web config |
 | Firebase Admin | Server-side ID-token verification in API routes | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` |
 | Anthropic API | AI recipe generation, parsing, grocery cleanup, recommendations | `ANTHROPIC_API_KEY` (set in Vercel; **not** in local `.env.local`) |

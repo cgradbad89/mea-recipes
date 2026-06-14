@@ -20,6 +20,7 @@ import { runCalendarPush, type CalendarOp } from '@/lib/googleCalendar'
 import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
+import SignInOptions from '@/components/SignInOptions'
 import RecipeImage from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 
@@ -166,7 +167,7 @@ function CenteredOverlay({ children, onClose }: { children: ReactNode; onClose: 
 }
 
 export default function PlanPage() {
-  const { user, signIn } = useAuth()
+  const { user } = useAuth()
   const [weekID, setWeekID] = useState(() => weekIDFromDate(new Date()))
   const [plan, setPlan] = useState<WeekPlan | null>(null)
   const [recipes, setRecipes] = useState<Record<string, Recipe>>({})
@@ -703,7 +704,7 @@ export default function PlanPage() {
         <p className="text-muted text-sm font-body text-center max-w-xs">
           Sign in to plan your meals for the week and keep everything in sync across devices.
         </p>
-        <button onClick={signIn} className="btn-primary">Sign in with Google</button>
+        <SignInOptions />
       </div>
     )
   }

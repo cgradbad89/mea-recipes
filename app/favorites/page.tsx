@@ -10,6 +10,7 @@ import { getAllRecipes, getTotalTime } from '@/lib/recipes'
 import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
+import SignInOptions from '@/components/SignInOptions'
 import type { Recipe } from '@/types/recipe'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
@@ -28,7 +29,7 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
 }
 
 export default function FavoritesPage() {
-  const { user, signIn } = useAuth()
+  const { user } = useAuth()
   const { favorites, loaded } = useFavorites()
   const metas = useRecipeMetas()
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
@@ -188,7 +189,7 @@ export default function FavoritesPage() {
         <p className="text-muted text-sm font-body text-center max-w-xs">
           Sign in to save favorites and sync them across all your devices.
         </p>
-        <button onClick={signIn} className="btn-primary">Sign in with Google</button>
+        <SignInOptions />
       </div>
     )
   }

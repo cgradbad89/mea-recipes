@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { LogIn, LogOut, Loader2 } from 'lucide-react'
+import PasswordLoginSettings from './PasswordLoginSettings'
 
 export default function AuthButton() {
   const { user, loading, signIn, signOut } = useAuth()
@@ -40,6 +41,9 @@ export default function AuthButton() {
             {user.displayName || user.email}
           </span>
         </div>
+
+        {/* Password login (account linking) */}
+        <PasswordLoginSettings />
 
         {/* Sign out — with confirmation */}
         {confirming ? (
