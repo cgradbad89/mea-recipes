@@ -80,6 +80,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
 | `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Anthropic. |
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → USDA with match validation → Anthropic AI fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
+| `/api/nutrition-revalidate` | POST | Bearer token (required) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
 | `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,serving_grams?,servings_per_container?,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g). `serving_grams?` (numeric grams in one declared serving) and `servings_per_container?` (≈ servings/pack, derived from OFF `product_quantity`/`serving_quantity` or USDA `packageWeight`) are present when derivable — they drive the servings/grams toggle and the serving-context lines in Scan. Server-side fetch sets OFF's courtesy User-Agent. Read-only. Fed by the **Scan** mode in `LogFoodSheet.tsx` (camera → BarcodeDetector or zxing fallback). |
 
 ---
@@ -100,17 +101,25 @@ hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutritio
 - `nutrition` (written by the nutrition backfill; see `nutrition-tracker-spec.md`) is an embedded
   object: per-serving macros `calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g`, plus
   `serving_size, servings, total{…}, source, confidence, computed_at`. `total` (whole-recipe) is
-  the durable basis; per-serving = `total / servings`. Editing servings re-derives per-serving via
-  `updateRecipeServings` (`lib/recipes.ts`) — a **deep-merge** write that never alters `total`.
-  `docToRecipe` must explicitly pass `nutrition`/`servings` through (it whitelists fields).
+  the durable basis; per-serving = `total / servings`. Editing the **shared default** servings
+  re-derives per-serving via `updateRecipeServings` (`lib/recipes.ts`) — a **deep-merge** write
+  that never alters `total`. A **per-user** servings override (`meta.overrides.servings`) instead
+  derives per-serving live at render as `total ÷ effectiveServings` (`effectiveServings` =
+  override ?? `nutrition.servings`) **without** writing the shared doc (§5.17). `docToRecipe` must
+  explicitly pass `nutrition`/`servings` through (it whitelists fields).
 
 ### `users/{uid}/recipes/root/favorites/{recipeID}` — favorites
 Doc per favorited recipe; body `{ updatedAt }`. Existence = favorited.
 
 ### `users/{uid}/recipes/root/meta/{recipeID}` — notes, ratings, overrides (`RecipeMeta`)
 Fields: `recipeID, note?, rating?, updatedAt?, overrides?`. `overrides` may contain
-`title, cuisine, category, content, imageURL, prepTime, cookTime` — per-user edits that
-shadow the shared catalog recipe without mutating it. Doc ID is sanitized (`/`→`_`, spaces→`-`).
+`title, cuisine, category, content, imageURL, prepTime, cookTime` (strings) and
+`servings` (number) — per-user edits that shadow the shared catalog recipe without
+mutating it. Doc ID is sanitized (`/`→`_`, spaces→`-`). **`overrides.servings`** is the
+per-user servings override (Batch 3): when set, this user's per-serving macros derive from
+the shared `nutrition.total ÷ servings`; written/cleared by `setServingsOverride` via a
+deep-merge that touches only that nested field (other overrides + the shared doc untouched).
+See §5.17.
 
 ### `users/{uid}/pantry/root/weekPlans/{weekID}` — meal plans (`WeekPlan`)
 `weekID` = ISO date of the **Monday** of the week (`weekIDFromDate`). Fields:
@@ -178,7 +187,10 @@ publish the current user's week and subscribe to other users' entries for the sa
    (the sole cross-user surface is the opt-in `sharedWeekPlans`).
 6. **Shared catalog, private edits.** Recipe documents in `recipes` are shared/global; a user's
    personal changes live in `meta.overrides` and shadow the catalog at render time — the catalog
-   doc is never mutated by an override.
+   doc is never mutated by an override. As of Batch 3 this includes **servings**: the recipe-detail
+   "Your serving size" control writes `meta.overrides.servings` (per-user), while the edit modal's
+   "Recipe default servings · shared" still corrects the shared `recipes/{id}.nutrition` for
+   everyone (the only servings write that crosses users — kept deliberate + clearly labelled).
 
 ---
 
@@ -269,6 +281,34 @@ publish the current user's week and subscribe to other users' entries for the sa
     merge only into manual items and recipe adds only into recipe items (the pools stay separate
     to preserve the rebuild invariant in §5.11). The existing whole-list "AI Clean Up List" button
     (§5.10) is unchanged.
+17. **Per-user servings override & effective-servings derivation** (Batch 3) — each viewer can set
+    their own serving size on the recipe detail page (`NutritionSection` stepper/input), stored at
+    `meta.overrides.servings` via `setServingsOverride` (`lib/userdata.ts`). Per-serving macros are
+    **recomputed live** as shared `nutrition.total ÷ effectiveServings`, where
+    `effectiveServings = override ?? nutrition.servings` (`effectiveServings`/`perServingForViewer`
+    in `lib/nutrition.ts`). The shared `nutrition.total`/`servings` are **never** mutated by an
+    override — it is pure render-time derivation. The "servings were assumed" caveat is suppressed
+    once a viewer sets their own count. Override-aware cooked-capture: both `logCookEvent` call
+    sites (recipe detail Cooking Mode + plan-page checkmark) snapshot `perServingForViewer(...)` so
+    a logged cook reflects the macros the user actually saw. The **edit modal** keeps a separate
+    "Recipe default servings · shared" control that writes the shared doc via `updateRecipeServings`
+    (correcting a genuinely-wrong default for everyone) and preserves `overrides.servings` on save.
+18. **Low-confidence macro gating (display-only)** (Batch 3) — `nutrition.confidence` is
+    **per-recipe** (`high|medium|low`), not per-field, so gating is section-level: when
+    `confidence === 'low'` **and** the viewer has not set a personal servings override,
+    `NutritionSection` dims the whole macro grid (`opacity-50`) and shows one caution caption
+    ("Low-confidence estimate — may be inaccurate."). Values are never hidden or replaced with "—".
+    For recipe nutrition, `low` is produced by the engine **only** when servings were defaulted, so
+    a viewer-supplied serving count clears the dim. Reuses the existing `trustBadge`/`servingsAssumed`
+    helpers — no parallel confidence concept. Display-only: stored nutrition + engine are untouched.
+19. **Low-confidence nutrition re-validation** (Batch 3) — `/api/nutrition-revalidate` re-runs the
+    shared engine on the low-confidence population to repair bad estimates. **Dry-run by default**
+    (diff only); `?apply=true` persists, and only for recompiles that are no longer `low`
+    confidence. Servings are recovered from the stored `nutrition.servings` on re-run, so
+    assumed-servings recipes lift `low → medium/high` legitimately. Caveat (see §6): the engine's
+    confidence reflects servings + AI usage + kcal-band validation, **not** macro plausibility, so a
+    USDA semantic mis-match (e.g. Easy Spaghetti's high sugar) lifts in confidence without the macro
+    changing — review the dry-run diff before applying.
 
 ---
 
@@ -302,10 +342,22 @@ publish the current user's week and subscribe to other users' entries for the sa
 - **`docToRecipe` whitelists fields.** `lib/recipes.ts` maps an explicit field list — any new
   recipe-doc field (e.g. `nutrition`, `servings`) is silently dropped on read until added to the
   mapper. Backfilled data won't reach the UI otherwise.
-- **Nutrition servings edits write the shared recipe doc, not per-user `meta` overrides.** Unlike
-  title/content edits (which are personal overrides), the servings correction in `RecipeEditModal`
-  mutates `recipes/{id}.nutrition` for everyone — servings is a property of the recipe, and
-  `nutrition.total` only lives on the shared doc. Safe given the single-user model.
+- **Two servings controls — know which writes where (Batch 3).** The recipe-detail "Your serving
+  size" stepper (`NutritionSection`) writes the **per-user** `meta.overrides.servings` and only
+  changes that viewer's per-serving derivation (`total ÷ effectiveServings`, computed live — §5.17).
+  The edit modal's "Recipe default servings · shared" input still mutates the **shared**
+  `recipes/{id}.nutrition` for everyone via `updateRecipeServings` (it corrects a genuinely-wrong
+  stored default; `nutrition.total` only lives on the shared doc). This shared write is the **one**
+  servings path that crosses users — keep its label explicit. The edit modal preserves
+  `overrides.servings` when saving other edits so a personal serving size isn't clobbered.
+- **Confidence ≠ macro plausibility (re-validation gotcha, Batch 3).** The engine's
+  `nutrition.confidence` is driven by servings-defaulting, AI-tier usage, and kcal-band validation —
+  **not** by whether a macro is realistic. A USDA match that passes the kcal band but is
+  semantically wrong (e.g. a sweet sauce inflating "Easy Spaghetti" sugar) reads as `medium`/`high`.
+  `/api/nutrition-revalidate` re-running the same engine recovers servings and can lift such a
+  recipe `low → high` **without** changing the bad macro — so always review the dry-run diff (it
+  shows confidence jumping while the macro is unchanged) before `?apply=true`. A real fix is an
+  engine-level ingredient-resolution correction (canonical staples), not the re-run tool.
 - **Category label drift.** The AI prompt and some UI use unpunctuated category names (e.g.
   "Pasta Noodles & Rice"), while `types/recipe.ts` `Category` uses comma forms
   ("Pasta, Noodles & Rice"). Normalize when comparing.

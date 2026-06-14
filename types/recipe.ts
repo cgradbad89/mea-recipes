@@ -49,6 +49,7 @@ export interface RecipeOverrides {
   cuisine?: string
   category?: string
   content?: string
+  servings?: number   // per-user servings override (see lib/userdata.ts RecipeMeta.overrides)
 }
 
 export type Category =

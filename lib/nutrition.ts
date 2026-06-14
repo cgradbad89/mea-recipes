@@ -67,6 +67,36 @@ export function servingSizeLabel(servings: number | undefined): string {
   return `1 of ${servings}`
 }
 
+/**
+ * The servings count actually in effect for the viewer: their personal override
+ * when set to a positive number, else the recipe's shared stored basis
+ * (`nutrition.servings`). Never mutates anything — pure derivation. This is the
+ * denominator behind per-user per-serving macros: total ÷ effectiveServings.
+ */
+export function effectiveServings(
+  n: RecipeNutrition | undefined,
+  override: number | undefined | null,
+): number | undefined {
+  if (typeof override === 'number' && Number.isFinite(override) && override > 0) return override
+  return n?.servings
+}
+
+/**
+ * Per-serving macros AS THE VIEWER SEES THEM: derived live from the durable
+ * whole-recipe `total` divided by the viewer's effective servings (their
+ * override if set, else the shared default). Falls back to the recipe's own
+ * per-serving basis when no `total` exists (an override can't be applied without
+ * the whole-recipe total). The shared `nutrition.total` is never written here.
+ */
+export function perServingForViewer(
+  n: RecipeNutrition | undefined,
+  override: number | undefined | null,
+): NutritionMacros | null {
+  if (!n) return null
+  const derived = perServingFromTotal(n.total, effectiveServings(n, override))
+  return derived || perServingOf(n)
+}
+
 // ── Amount-entry helpers (LogFoodSheet servings/grams entry) ─────────────────
 
 /** Trim a quantity to ≤2 decimals with no trailing zeros: 2→"2", 1.5→"1.5", 0.45→"0.45". */

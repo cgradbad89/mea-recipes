@@ -79,7 +79,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
-    const newOverrides: Record<string, string | undefined> = {
+    const newOverrides: Record<string, string | number | undefined> = {
       title: title !== recipe.title ? title : undefined,
       cuisine: cuisine !== recipe.cuisine ? cuisine : undefined,
       category: category !== recipe.category ? category : undefined,
@@ -87,6 +87,10 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
       imageURL: imageURL !== (recipe.imageURL || '') ? imageURL : undefined,
       prepTime: prepTime !== ((recipe as any).prepTime || '') ? prepTime : undefined,
       cookTime: cookTime !== ((recipe as any).cookTime || '') ? cookTime : undefined,
+      // Preserve THIS user's personal servings override (set on the detail page).
+      // The servings input below edits the SHARED recipe default, not this — they
+      // are independent, so rebuilding overrides here must not drop it.
+      servings: overrides.servings,
     }
     const clean = Object.fromEntries(Object.entries(newOverrides).filter(([, v]) => v !== undefined))
     const updatedMeta: RecipeMeta = {
@@ -197,12 +201,18 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
             </div>
           </div>
 
-          {/* Nutrition — servings (recipe-level, not a personal override) */}
+          {/* Nutrition — SHARED recipe-default servings (corrects a genuinely wrong
+              stored default for everyone). Distinct from the personal "Your serving
+              size" control on the detail page, which only affects this user. */}
           {hasNutrition && (
             <div className="border-t border-border pt-4">
               <label className="text-faint text-xs font-body uppercase tracking-widest mb-1.5 block">
-                Servings
+                Recipe default servings · shared
               </label>
+              <p className="text-faint/80 text-[11px] font-body mb-2 -mt-0.5">
+                Corrects the recipe&apos;s real default for everyone. To change just your
+                own per-serving view, use “Your serving size” on the recipe page.
+              </p>
               <div className="flex items-center gap-3">
                 <input
                   type="number"

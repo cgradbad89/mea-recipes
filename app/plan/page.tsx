@@ -15,7 +15,7 @@ import {
 } from '@/lib/userdata'
 import { getAllRecipes, parseRecipeContent, getRecipeById } from '@/lib/recipes'
 import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
-import { perServingOf } from '@/lib/nutrition'
+import { perServingForViewer } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
 import RecipeImage from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
@@ -317,7 +317,8 @@ export default function PlanPage() {
     await logCookEvent(user.uid, {
       recipeId: recipeID,
       recipeName: recipes[recipeID]?.title || recipeID,
-      perServing: perServingOf(recipes[recipeID]?.nutrition),
+      // Override-aware: log the per-serving macros this user actually sees.
+      perServing: perServingForViewer(recipes[recipeID]?.nutrition, metas[recipeID]?.overrides?.servings),
       servingsEaten,
       weekID,
     })

@@ -7,9 +7,9 @@ import {
   BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader } from '@/lib/recipes'
-import { getRecipeMeta, saveRecipeMeta, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
+import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, weekIDFromDate } from '@/lib/userdata'
 import { logCookEvent } from '@/lib/consumptionLog'
-import { perServingOf } from '@/lib/nutrition'
+import { perServingForViewer } from '@/lib/nutrition'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useAuth } from '@/lib/AuthContext'
 import RecipeEditModal from '@/components/RecipeEditModal'
@@ -120,6 +120,24 @@ export default function RecipeDetailPage() {
     }
   }
 
+  // Per-user servings override (Batch 3): writes THIS user's meta.overrides.servings,
+  // never the shared recipe doc. Optimistically reflected so the per-serving macros
+  // (and any cooked-capture below) recompute live from the shared nutrition.total.
+  const handleSetServings = async (servings: number | null) => {
+    if (!user || !id) return
+    setMeta(prev => {
+      const overrides = { ...(prev?.overrides || {}) }
+      if (servings == null) delete overrides.servings
+      else overrides.servings = servings
+      return { ...(prev || {}), overrides: Object.keys(overrides).length ? overrides : undefined }
+    })
+    try {
+      await setServingsOverride(user.uid, id, servings)
+    } catch {
+      /* best-effort — the live view already reflects the user's intent */
+    }
+  }
+
   const handleOpenPlanPicker = () => {
     const weeks = getWeekOptions()
     setSelectedWeek(weeks[1]?.weekID || weeks[0].weekID) // default to next week
@@ -187,7 +205,10 @@ export default function RecipeDetailPage() {
 
   const { ingredients, instructions, description } = parseRecipeContent(displayRecipe.content)
   const fav = isFavorite(displayRecipe.id)
-  const hasOverrides = meta?.overrides && Object.keys(meta.overrides).length > 0
+  // "edited" badge reflects content edits only — a personal servings override has
+  // its own "Your serving size" UI and shouldn't read as the recipe being edited.
+  const hasOverrides = !!meta?.overrides &&
+    Object.keys(meta.overrides).some(k => k !== 'servings')
   const canDelete = !!user
 
   const sendAssistantMessage = async (content: string) => {
@@ -408,6 +429,8 @@ export default function RecipeDetailPage() {
       <NutritionSection
         nutrition={recipe?.nutrition}
         recipeId={recipe?.id}
+        overrideServings={meta?.overrides?.servings}
+        onSetOverrideServings={handleSetServings}
         onCalculated={(nutrition: RecipeNutrition) =>
           setRecipe(r => (r ? { ...r, nutrition, servings: nutrition.servings ?? r.servings } : r))
         }
@@ -573,7 +596,9 @@ export default function RecipeDetailPage() {
             await logCookEvent(user.uid, {
               recipeId: displayRecipe.id,
               recipeName: displayRecipe.title,
-              perServing: perServingOf(recipe?.nutrition),
+              // Log the macros THIS user sees — derived from their effective
+              // serving size (override ?? shared default), not the shared default.
+              perServing: perServingForViewer(recipe?.nutrition, meta?.overrides?.servings),
               servingsEaten,
             })
           } : undefined}

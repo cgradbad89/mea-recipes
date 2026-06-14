@@ -64,6 +64,10 @@ export interface RecipeMeta {
     imageURL?: string
     prepTime?: string
     cookTime?: string
+    // Per-user servings override (Batch 3). When set, this user's per-serving
+    // macros derive from shared nutrition.total ÷ servings; the shared
+    // recipe.servings / nutrition.total are never mutated. Absent → shared default.
+    servings?: number
   }
 }
 
@@ -87,6 +91,24 @@ export async function saveRecipeMeta(uid: string, recipeID: string, meta: Partia
     data.overrides = deleteField()
   }
   await setDoc(doc(metaPath(uid), sanitizeMetaID(recipeID)), data, { merge: true })
+}
+
+/**
+ * Set or clear THIS user's personal servings override for a recipe
+ * (`meta.overrides.servings`). Pass null to clear it and fall back to the
+ * recipe's shared default. A deep-merge write that touches ONLY `overrides.servings`
+ * — other overrides (title/content/image…) and the shared recipe doc are untouched.
+ */
+export async function setServingsOverride(uid: string, recipeID: string, servings: number | null): Promise<void> {
+  await setDoc(
+    doc(metaPath(uid), sanitizeMetaID(recipeID)),
+    {
+      recipeID,
+      overrides: { servings: servings == null ? deleteField() : servings },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
 }
 
 // ─── Week Plans ───────────────────────────────────────────────────────────────
