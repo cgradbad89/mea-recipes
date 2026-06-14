@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, Plus, GripVertical } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, Plus, GripVertical, BookOpen, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { getDocs, collection } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -171,9 +171,9 @@ export default function PlanPage() {
   const [recipes, setRecipes] = useState<Record<string, Recipe>>({})
   const [loadingRecipes, setLoadingRecipes] = useState(true)
   const [addingToGrocery, setAddingToGrocery] = useState<string | null>(null)
-  const [moveOpenFor, setMoveOpenFor] = useState<string | null>(null)
-  const [dayOpenFor, setDayOpenFor] = useState<string | null>(null)
-  const [movingRecipe, setMovingRecipe] = useState<string | null>(null)
+  // Batch 5.2: tapping a tile opens this action sheet (replaces the inline action row
+  // + the per-tile day/week dropdowns).
+  const [sheetFor, setSheetFor] = useState<string | null>(null)
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
   const [servingsPromptFor, setServingsPromptFor] = useState<string | null>(null)
   const [metas, setMetas] = useState<Record<string, RecipeMeta>>({})
@@ -393,17 +393,15 @@ export default function PlanPage() {
 
   const handleMoveToWeek = async (recipeID: string, targetWeekID: string, role: PlannedRole) => {
     if (!user) return
-    setMovingRecipe(recipeID)
+    setSheetFor(null)
     await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID, role)
-    setMoveOpenFor(null)
-    setMovingRecipe(null)
   }
 
   // Assign (or clear) a planned entry's day. Passes the entry's current role so a
-  // legacy-string upgrade keeps the role the user is looking at.
+  // legacy-string upgrade keeps the role the user is looking at. Closes the sheet.
   const handleAssignDay = async (entry: PlannedEntry, day: string | null) => {
     if (!user) return
-    setDayOpenFor(null)
+    setSheetFor(null)
     await assignRecipeToDay(user.uid, weekID, entry.recipeID, day, entry.role)
   }
 
@@ -513,135 +511,46 @@ export default function PlanPage() {
           try { e.dataTransfer.setData('text/plain', id) } catch {}
         }}
         onDragEnd={() => { setDraggingId(null); setDragOverKey(null) }}
-        className={`bg-surface border border-border rounded-xl p-2.5 cursor-grab active:cursor-grabbing transition-opacity ${roleAccent} ${draggingId === id ? 'opacity-50' : ''}`}
+        onClick={() => setSheetFor(id)}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSheetFor(id) } }}
+        role="button"
+        tabIndex={0}
+        aria-label={`${recipe.title} — open actions`}
+        className={`bg-surface border border-border rounded-xl overflow-hidden cursor-pointer transition-opacity ${roleAccent} ${draggingId === id ? 'opacity-50' : ''}`}
       >
-        <div className="flex items-start gap-2">
-          <GripVertical size={12} className="hidden lg:block text-faint/30 shrink-0 mt-0.5" aria-hidden="true" />
+        {/* Image gets the room now; the name moves below it (fully readable). */}
+        <div className="relative">
           <RecipeImage
             src={metas[id]?.overrides?.imageURL || recipe.imageURL}
             alt=""
             category={recipe.category}
-            className="w-10 h-10 rounded-lg shrink-0"
-            emojiClassName="text-lg"
+            className="w-full aspect-[4/3]"
+            emojiClassName="text-3xl"
           />
-          <div className="flex-1 min-w-0">
-            <Link href={`/recipes/${id}`}>
-              <p className="text-cream text-xs font-body font-medium truncate hover:text-amber transition-colors" title={recipe.title}>
-                {recipe.title}
-              </p>
-            </Link>
-            <div className="flex items-center gap-1.5 mt-1">
-              <button
-                onClick={() => handleToggleRole(entry)}
-                className={`text-[10px] font-body px-1.5 py-0.5 rounded-md border transition-colors ${
-                  entry.role === 'main'
-                    ? 'border-amber/30 text-amber bg-amber/10'
-                    : 'border-border text-faint hover:text-cream'
-                }`}
-                title="Toggle main / side"
-              >
-                {entry.role === 'main' ? 'Main' : 'Side'}
-              </button>
-              <span className="text-faint text-[10px] font-body capitalize truncate">{recipe.cuisine}</span>
-            </div>
-          </div>
+          {/* Desktop drag affordance — the whole tile is draggable; this is the hint. */}
+          <span className="hidden lg:flex absolute top-1 left-1 items-center justify-center rounded bg-ink/40 text-cream/60 p-0.5" aria-hidden="true">
+            <GripVertical size={12} />
+          </span>
         </div>
-        <div className="flex items-center gap-1 mt-2 flex-wrap">
-          {/* Assign to day */}
-          <div className="relative">
-            <button
-              onClick={() => { setDayOpenFor(dayOpenFor === id ? null : id); setMoveOpenFor(null) }}
-              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
-              title="Assign to a day"
+        <div className="p-2">
+          <p className="text-cream text-xs font-body font-medium leading-snug line-clamp-2" title={recipe.title}>
+            {recipe.title}
+          </p>
+          <div className="flex items-center gap-1.5 mt-1">
+            {/* Role label (color + text, kept from 5.1) — toggling moved into the sheet. */}
+            <span
+              className={`text-[10px] font-body px-1.5 py-0.5 rounded-md border ${
+                entry.role === 'main'
+                  ? 'border-amber/30 text-amber bg-amber/10'
+                  : 'border-border text-faint'
+              }`}
             >
-              <Calendar size={12} />
-            </button>
-            {dayOpenFor === id && (
-              <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-lg py-1 w-44 max-w-[calc(100vw-2rem)] animate-fade-in">
-                <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Assign to day</p>
-                {weekDates.map(date => {
-                  const d = new Date(date + 'T12:00:00')
-                  return (
-                    <button
-                      key={date}
-                      onClick={() => handleAssignDay(entry, date)}
-                      className={`w-full text-left px-3 py-2 text-sm font-body transition-colors ${
-                        entry.day === date ? 'text-amber' : 'text-muted hover:text-cream hover:bg-surface'
-                      }`}
-                    >
-                      {d.toLocaleDateString('en-US', { weekday: 'long' })}
-                      <span className="text-faint ml-1">{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    </button>
-                  )
-                })}
-                <button
-                  onClick={() => handleAssignDay(entry, null)}
-                  className={`w-full text-left px-3 py-2 text-sm font-body border-t border-border/50 transition-colors ${
-                    !entry.day || !weekDateSet.has(entry.day) ? 'text-amber' : 'text-muted hover:text-cream hover:bg-surface'
-                  }`}
-                >
-                  Unscheduled
-                </button>
-              </div>
+              {entry.role === 'main' ? 'Main' : 'Side'}
+            </span>
+            {recipe.cuisine && (
+              <span className="text-faint text-[10px] font-body capitalize truncate">{recipe.cuisine}</span>
             )}
           </div>
-          {/* Move to another week */}
-          <div className="relative">
-            <button
-              onClick={() => { setMoveOpenFor(moveOpenFor === id ? null : id); setDayOpenFor(null) }}
-              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-amber hover:border-amber/30 transition-all"
-              title="Move to another week"
-            >
-              {movingRecipe === id ? <Loader2 size={12} className="animate-spin" /> : <ArrowRightLeft size={12} />}
-            </button>
-            {moveOpenFor === id && (
-              <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-lg py-1 w-48 max-w-[calc(100vw-2rem)] animate-fade-in">
-                <p className="text-faint text-[10px] font-body uppercase tracking-widest px-3 py-1.5">Move to week</p>
-                {surroundingWeeks.map(w => (
-                  <button
-                    key={w.weekID}
-                    onClick={() => handleMoveToWeek(id, w.weekID, entry.role)}
-                    className="w-full text-left px-3 py-2 text-sm font-body text-muted hover:text-cream hover:bg-surface transition-colors"
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Add ingredients to grocery */}
-          <button
-            onClick={() => handleAddToGrocery(id)}
-            disabled={addingToGrocery === id || addedToGrocery === id}
-            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all ${
-              addedToGrocery === id
-                ? 'border-green-400/30 text-green-400 bg-green-400/10'
-                : 'border-border text-faint hover:text-amber hover:border-amber/30'
-            }`}
-            title="Add ingredients to grocery list"
-          >
-            {addingToGrocery === id
-              ? <Loader2 size={12} className="animate-spin" />
-              : addedToGrocery === id
-              ? <Check size={12} />
-              : <ShoppingCart size={12} />}
-          </button>
-          {/* Mark cooked */}
-          <button
-            onClick={() => handleMarkCooked(id, true)}
-            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-green-400 hover:border-green-400/30 transition-all"
-            title="Mark as cooked"
-          >
-            <Check size={12} />
-          </button>
-          {/* Remove */}
-          <button
-            onClick={() => setConfirmRemoveFor(id)}
-            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
-            title="Remove from plan"
-          >
-            <X size={12} />
-          </button>
         </div>
       </div>
     )
@@ -656,6 +565,10 @@ export default function PlanPage() {
       <Plus size={16} />
     </Link>
   )
+
+  // The planned entry / recipe whose action sheet is open (Batch 5.2).
+  const sheetEntry = sheetFor ? (plannedEntries.find(e => e.recipeID === sheetFor) || null) : null
+  const sheetRecipe = sheetEntry ? recipes[sheetEntry.recipeID] : null
 
   if (!user) {
     return (
@@ -696,6 +609,136 @@ export default function PlanPage() {
               >
                 Remove
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tile action sheet (Batch 5.2) — bottom sheet on mobile, centered modal on
+          desktop. Mirrors the LogFoodSheet shell. Every action calls an EXISTING plan
+          writer (no plan logic reimplemented). */}
+      {sheetEntry && sheetRecipe && (
+        <div className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={() => setSheetFor(null)} />
+          <div className="relative w-full sm:max-w-md bg-surface border border-border rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
+            {/* Header — thumbnail + name so it's clear which tile you're acting on */}
+            <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
+              <RecipeImage
+                src={metas[sheetEntry.recipeID]?.overrides?.imageURL || sheetRecipe.imageURL}
+                alt=""
+                category={sheetRecipe.category}
+                className="w-12 h-12 rounded-lg shrink-0"
+                emojiClassName="text-xl"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-cream text-sm font-body font-medium leading-snug line-clamp-2">{sheetRecipe.title}</p>
+                <p className="text-faint text-xs font-body capitalize">{sheetEntry.role} · {sheetRecipe.cuisine}</p>
+              </div>
+              <button onClick={() => setSheetFor(null)} aria-label="Close" className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream transition-all shrink-0">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-4 space-y-4">
+              {/* 1. View recipe — first, since tapping the tile no longer navigates */}
+              <Link
+                href={`/recipes/${sheetEntry.recipeID}`}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-card border border-border text-cream text-sm font-body hover:border-amber/30 transition-all"
+              >
+                <BookOpen size={16} className="text-amber shrink-0" /> View recipe
+              </Link>
+
+              {/* 2. Assign to day (closes the sheet) */}
+              <div>
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2 flex items-center gap-1.5"><Calendar size={11} /> Assign to day</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {weekDates.map(date => {
+                    const d = new Date(date + 'T12:00:00')
+                    const active = sheetEntry.day === date
+                    return (
+                      <button
+                        key={date}
+                        onClick={() => handleAssignDay(sheetEntry, date)}
+                        className={`px-1 py-2 rounded-lg text-xs font-body transition-colors ${active ? 'bg-amber/15 text-amber border border-amber/30' : 'bg-card border border-border text-muted hover:text-cream'}`}
+                      >
+                        <span className="block">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                        <span className="block text-[10px] text-faint">{d.getDate()}</span>
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => handleAssignDay(sheetEntry, null)}
+                    className={`px-1 py-2 rounded-lg text-xs font-body transition-colors ${(!sheetEntry.day || !weekDateSet.has(sheetEntry.day)) ? 'bg-amber/15 text-amber border border-amber/30' : 'bg-card border border-border text-muted hover:text-cream'}`}
+                  >
+                    Unsch.
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Main / Side (per-week override; keeps the sheet open) */}
+              <div>
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2">Role (this week)</p>
+                <div className="inline-flex rounded-lg border border-border overflow-hidden">
+                  {(['main', 'side'] as const).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => { if (sheetEntry.role !== r) handleToggleRole(sheetEntry) }}
+                      aria-pressed={sheetEntry.role === r}
+                      className={`px-5 py-1.5 text-xs font-body capitalize transition-colors ${sheetEntry.role === r ? 'bg-amber/15 text-amber' : 'text-faint hover:text-cream'}`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Add to grocery (keeps the sheet open, shows feedback) */}
+              <button
+                onClick={() => handleAddToGrocery(sheetEntry.recipeID)}
+                disabled={addingToGrocery === sheetEntry.recipeID || addedToGrocery === sheetEntry.recipeID}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-card border border-border text-cream text-sm font-body hover:border-amber/30 transition-all disabled:opacity-70"
+              >
+                {addingToGrocery === sheetEntry.recipeID
+                  ? <Loader2 size={16} className="animate-spin text-amber shrink-0" />
+                  : addedToGrocery === sheetEntry.recipeID
+                  ? <Check size={16} className="text-green-400 shrink-0" />
+                  : <ShoppingCart size={16} className="text-amber shrink-0" />}
+                {addedToGrocery === sheetEntry.recipeID ? 'Added to grocery' : 'Add ingredients to grocery'}
+              </button>
+
+              {/* 5. Mark cooked (closes the sheet; the servings/rating flow takes over) */}
+              <button
+                onClick={() => { const rid = sheetEntry.recipeID; setSheetFor(null); handleMarkCooked(rid, true) }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-card border border-border text-cream text-sm font-body hover:border-green-400/30 transition-all"
+              >
+                <Check size={16} className="text-green-400 shrink-0" /> Mark cooked
+              </button>
+
+              {/* 6. Move to another week (closes the sheet) */}
+              <div>
+                <p className="text-faint text-[10px] font-body uppercase tracking-widest mb-2 flex items-center gap-1.5"><ArrowRightLeft size={11} /> Move to another week</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {surroundingWeeks.map(w => (
+                    <button
+                      key={w.weekID}
+                      onClick={() => handleMoveToWeek(sheetEntry.recipeID, w.weekID, sheetEntry.role)}
+                      className="px-2 py-2 rounded-lg text-xs font-body bg-card border border-border text-muted hover:text-cream hover:border-amber/30 transition-colors"
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 7. Remove — destructive, separated at the bottom (closes the sheet, opens confirm) */}
+              <div className="pt-3 border-t border-border/50">
+                <button
+                  onClick={() => { const rid = sheetEntry.recipeID; setSheetFor(null); setConfirmRemoveFor(rid) }}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-red-400 text-sm font-body hover:bg-red-500/10 transition-all"
+                >
+                  <Trash2 size={16} className="shrink-0" /> Remove from plan
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -850,7 +893,7 @@ export default function PlanPage() {
                             <span className="text-faint text-xs font-body ml-auto">{entries.length}</span>
                           )}
                         </div>
-                        <div className="space-y-2">
+                        <div className={entries.length > 0 ? 'grid grid-cols-2 gap-2' : ''}>
                           {entries.length > 0
                             ? entries.map(renderPlannedCard)
                             : emptyDayAffordance}
@@ -877,7 +920,7 @@ export default function PlanPage() {
                       )}
                     </div>
                     {unscheduledEntries.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                         {unscheduledEntries.map(renderPlannedCard)}
                       </div>
                     ) : (

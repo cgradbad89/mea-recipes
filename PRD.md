@@ -61,7 +61,7 @@ wrapped in a per-route `layout.tsx`.
 | Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, full-screen Cooking Mode (`components/CookingMode.tsx`) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
-| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles**), **desktop drag-and-drop day assignment + tap day-picker**, cooked tracking, AI plan suggestions, shared plans |
+| Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
@@ -362,6 +362,20 @@ otherwise unchanged.
     `amber (#E8A838)` = main, `muted (#A89880)` = side (existing theme tokens) — paired with the on-tile
     Main/Side text label so color is never the only signal (colorblind-safe). Applied to plan tiles only,
     identical on desktop and mobile; no Mains/Sides sub-headers.
+    **Tile → action sheet (Batch 5.2):** plan tiles were redesigned for legibility — image on top,
+    recipe **name below** (up to 2 lines, `line-clamp-2`), the role label + color accent kept, and **no
+    inline action buttons**. Tapping a tile opens a single **action sheet** (bottom sheet on mobile,
+    centered modal on desktop — mirrors the `LogFoodSheet` shell) whose header shows the recipe
+    thumbnail + name and whose body holds every action that used to be inline, each calling its existing
+    writer: **View recipe** (link, first), **Assign to day** (`assignRecipeToDay`, closes), **Main/Side**
+    (`setPlannedRecipeRole`, stays open), **Add to grocery** (`addRecipeIngredientsToGrocery`, stays open
+    w/ feedback), **Mark cooked** (closes → `handleMarkCooked` servings/rating flow), **Move to week**
+    (`moveRecipeToWeek`, closes), **Remove** (de-emphasized red, separated; closes → reuses the existing
+    confirm-remove modal). **Tap vs drag:** the tile is both `onClick` (→ sheet) and HTML5 `draggable`
+    (→ `assignRecipeToDay` via day-column drop); the browser suppresses `click` after a drag and HTML5
+    drag never fires on touch, so a tap opens the sheet and a drag moves the tile with no conflict —
+    touch is tap-only (the day picker lives in the sheet). Drag-and-drop and the day picker are unchanged
+    behaviorally; only the picker's location moved (tile dropdown → sheet).
 
 ---
 
