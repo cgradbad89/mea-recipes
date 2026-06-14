@@ -21,6 +21,7 @@
 import { getAdminDb } from './firebaseAdmin'
 import { parseRecipeContent } from './recipeContent'
 import { gramsFromServingLabel } from './nutrition'
+import { CANONICAL_STAPLES as FDC_STAPLES, type CanonicalStaple } from './canonicalStaples'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import type { BarcodeProduct } from '@/types/nutrition'
 
@@ -37,13 +38,30 @@ export interface ParsedIngredient {
 interface ResolvedFood {
   per100g: NutritionMacros
   matchedDescription: string
-  resolvedBy: 'usda' | 'ai'
+  resolvedBy: 'usda' | 'ai' | 'canonical'
+  fdcId?: number          // set when resolvedBy === 'canonical'
+}
+
+/** Per-ingredient resolution trace — surfaced for the canonical dry-run diff. */
+export interface IngredientResolution {
+  name: string
+  grams: number
+  resolvedBy: 'usda' | 'ai' | 'canonical'
+  matchedDescription: string
+  fdcId?: number
+  calPer100g: number
+  sugarPer100g: number
+  fiberPer100g: number
 }
 
 export interface RecipeComputeResult {
   nutrition: RecipeNutrition
   unresolved: string[]    // ingredient lines that produced no nutrition data
   flagged: string[]       // skipped/odd lines (unquantified sides, junk…)
+  // (Batch 4) which ingredients resolved via the canonical staples table, and a
+  // full per-ingredient resolution trace (both empty/derived in the normal path).
+  canonicalHits: { name: string; fdcId: number; description: string }[]
+  resolutions: IngredientResolution[]
 }
 
 export interface FoodLookupResult {
@@ -417,7 +435,7 @@ const CANONICAL_STAPLES: { re: RegExp; query: string; cls: FoodClass }[] = [
   { re: /\bsoy sauce\b/i, query: 'soy sauce shoyu', cls: 'condiment' },
 ]
 
-type FoodClass =
+export type FoodClass =
   | 'oil' | 'butter' | 'leafy' | 'legume' | 'meat' | 'bacon' | 'cheese' | 'nuts'
   | 'sugar' | 'flour' | 'broth' | 'spice' | 'vegetable' | 'fruit' | 'dairy' | 'condiment' | 'grain' | 'unknown'
 
@@ -455,6 +473,53 @@ const KCAL_BANDS: Record<FoodClass, [number, number]> = {
 function classify(name: string): FoodClass {
   for (const [re, cls] of CLASS_RULES) if (re.test(name)) return cls
   return 'unknown'
+}
+
+// ─── Canonical staples table (FDC-ID direct resolution, Batch 4) ──────────────
+// FDC_STAPLES (lib/canonicalStaples.ts) maps common staples to an exact, live-
+// verified USDA entry. Precompute each entry's alias token-sets once, using the
+// SAME keyTokens normalization applied to the ingredient name at lookup time.
+const FDC_ALIAS_TOKENS: { entry: CanonicalStaple; aliasTokens: string[][] }[] =
+  FDC_STAPLES.map(entry => ({
+    entry,
+    aliasTokens: entry.aliases.map(a => keyTokens(a)).filter(t => t.length > 0),
+  }))
+
+/**
+ * Conservative canonical-staple match. Runs BEFORE the fuzzy USDA search; on a hit
+ * the engine uses the entry's verified per-100g macros directly. On no hit returns
+ * null and the existing matcher runs unchanged.
+ *
+ * Matching rule (deliberately strict — a WRONG canonical match is worse than none):
+ *  1. Tokenize the ingredient name with keyTokens (drops prep/size descriptors,
+ *     stems plurals) — identical to the lookup normalization.
+ *  2. An entry matches when ALL tokens of one of its aliases are a subset of the
+ *     ingredient's tokens (alias ⊆ ingredient). The entry's score is the size of
+ *     its largest matching alias (more tokens = more specific).
+ *  3. The single most-specific entry wins. If two DIFFERENT entries tie at the top
+ *     score the result is AMBIGUOUS → return null (fall through to the fuzzy path).
+ *  4. A per-entry `guard` regex vetoes the entry when a qualified homograph that has
+ *     no dedicated entry is present (e.g. "butter beans"/"butternut" never → butter,
+ *     "almond flour" never → all-purpose flour).
+ */
+function matchCanonicalStaple(name: string): CanonicalStaple | null {
+  const toks = new Set(keyTokens(name))
+  if (toks.size === 0) return null
+  const lower = name.toLowerCase()
+  let best: CanonicalStaple | null = null
+  let bestScore = 0
+  let tied = false
+  for (const { entry, aliasTokens } of FDC_ALIAS_TOKENS) {
+    if (entry.guard && entry.guard.test(lower)) continue
+    let entryScore = 0
+    for (const at of aliasTokens) {
+      if (at.length > entryScore && at.every(t => toks.has(t))) entryScore = at.length
+    }
+    if (entryScore === 0) continue
+    if (entryScore > bestScore) { best = entry; bestScore = entryScore; tied = false }
+    else if (entryScore === bestScore && best && entry !== best) { tied = true }
+  }
+  return tied ? null : best
 }
 
 interface UsdaSearchFood {
@@ -613,9 +678,34 @@ async function aiEstimateIngredient(name: string, grams: number): Promise<Nutrit
 // enhancement — this keeps repeat lookups within a server instance free.)
 const ingredientCache = new Map<string, ResolvedFood | null>()
 
-async function resolveIngredient(name: string): Promise<ResolvedFood | null> {
-  const cacheKey = name.toLowerCase().trim()
+async function resolveIngredient(name: string, opts: { useCanonical?: boolean } = {}): Promise<ResolvedFood | null> {
+  const useCanonical = opts.useCanonical !== false   // default ON (production behavior)
+  // Cache key is namespaced by the toggle so the dry-run's canonical-on and
+  // canonical-off (baseline) passes never share a cached resolution.
+  const cacheKey = `${useCanonical ? 'c1' : 'c0'}:${name.toLowerCase().trim()}`
   if (ingredientCache.has(cacheKey)) return ingredientCache.get(cacheKey) ?? null
+
+  // (Batch 4) CANONICAL STAPLES FIRST — a curated, live-verified FDC-ID table.
+  // On a hit we trust its per-100g macros directly and SKIP the fuzzy matcher.
+  if (useCanonical) {
+    const hit = matchCanonicalStaple(name)
+    if (hit) {
+      // The kcal/100g band stays a sanity check even on a canonical hit: a verified
+      // entry should pass it. If one ever doesn't, that's a signal the FDC id is
+      // wrong — LOG it, but don't reject (rejecting would only fall back to the
+      // worse fuzzy match the table exists to override).
+      const [lo, hi] = KCAL_BANDS[hit.cls]
+      if (hit.per100g.calories < lo || hit.per100g.calories > hi) {
+        console.warn(`[canonical] band check failed: "${name}" → ${hit.description} (fdc ${hit.fdcId}) = ${hit.per100g.calories} kcal/100g, outside ${hit.cls} band [${lo}, ${hi}]`)
+      }
+      const resolved: ResolvedFood = {
+        per100g: hit.per100g, matchedDescription: hit.description,
+        resolvedBy: 'canonical', fdcId: hit.fdcId,
+      }
+      ingredientCache.set(cacheKey, resolved)
+      return resolved
+    }
+  }
 
   // canonical staples reroute the query before search (butter beans → legume, …)
   let query = name
@@ -647,7 +737,15 @@ async function resolveIngredient(name: string): Promise<ResolvedFood | null> {
 
 function round1(n: number): number { return Math.round(n * 10) / 10 }
 
-export async function computeRecipeNutrition(recipeId: string): Promise<RecipeComputeResult> {
+export async function computeRecipeNutrition(
+  recipeId: string,
+  opts: { useCanonical?: boolean } = {},
+): Promise<RecipeComputeResult> {
+  // useCanonical defaults ON. The canonical dry-run tool calls this twice per
+  // recipe — once canonical-on (proposed) and once canonical-off (baseline) — to
+  // isolate exactly what the canonical table changes. Production callers
+  // (nutrition-lookup, nutrition-revalidate) omit opts → canonical on, as today.
+  const useCanonical = opts.useCanonical !== false
   const db = getAdminDb()
   const snap = await db.collection('recipes').doc(recipeId).get()
   if (!snap.exists) throw new Error(`Recipe not found: ${recipeId}`)
@@ -658,15 +756,27 @@ export async function computeRecipeNutrition(recipeId: string): Promise<RecipeCo
 
   const { parsed, flagged } = parseIngredientList(ingredients)
   const unresolved: string[] = []
+  const canonicalHits: { name: string; fdcId: number; description: string }[] = []
+  const resolutions: IngredientResolution[] = []
   const total: NutritionMacros = { ...ZERO }
   let usedAI = false
+  let usedCanonical = false
 
   for (const ing of parsed) {
     if (ing.grams == null) { unresolved.push(ing.raw); continue }
     if (ing.grams === 0) continue   // negligible seasonings
-    const food = await resolveIngredient(ing.name)
+    const food = await resolveIngredient(ing.name, { useCanonical })
     if (!food) { unresolved.push(ing.raw); continue }
     if (food.resolvedBy === 'ai') usedAI = true
+    if (food.resolvedBy === 'canonical') {
+      usedCanonical = true
+      canonicalHits.push({ name: ing.name, fdcId: food.fdcId!, description: food.matchedDescription })
+    }
+    resolutions.push({
+      name: ing.name, grams: ing.grams, resolvedBy: food.resolvedBy,
+      matchedDescription: food.matchedDescription, fdcId: food.fdcId,
+      calPer100g: food.per100g.calories, sugarPer100g: food.per100g.sugar_g, fiberPer100g: food.per100g.fiber_g,
+    })
     const factor = ing.grams / 100
     total.calories += food.per100g.calories * factor
     total.protein_g += food.per100g.protein_g * factor
@@ -694,7 +804,13 @@ export async function computeRecipeNutrition(recipeId: string): Promise<RecipeCo
     fiber_g: round1(total.fiber_g / servings), sugar_g: round1(total.sugar_g / servings),
   }
 
-  const source = (usedAI ? 'usda+ai' : 'usda') + (servingsDefaulted ? '+default_servings' : '')
+  // Provenance suffix order: base usda, then +canonical (≥1 curated FDC hit),
+  // then +ai (AI tier used), then +default_servings. '+canonical' still startsWith
+  // 'usda', so sourceLabel()/matchedTier()/needsRevalidation() are unaffected.
+  const source = 'usda'
+    + (usedCanonical ? '+canonical' : '')
+    + (usedAI ? '+ai' : '')
+    + (servingsDefaulted ? '+default_servings' : '')
   const confidence = servingsDefaulted ? 'low' : (usedAI || unresolved.length > 0 ? 'medium' : 'high')
 
   const nutrition: RecipeNutrition = {
@@ -706,7 +822,7 @@ export async function computeRecipeNutrition(recipeId: string): Promise<RecipeCo
     confidence,
     computed_at: new Date(),
   }
-  return { nutrition, unresolved, flagged }
+  return { nutrition, unresolved, flagged, canonicalHits, resolutions }
 }
 
 // ─── Public API: food-name lookup (quick-food / "Big Mac" path) ─────────────

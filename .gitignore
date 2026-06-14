@@ -34,3 +34,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
+
+# Batch 4: large generated dry-run diff (the reviewable report is batch4-canonical-dryrun.md)
+scripts/canonical-dryrun-raw.json
