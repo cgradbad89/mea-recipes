@@ -11,6 +11,7 @@ import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCat
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil } from 'lucide-react'
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
+import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 
 interface GroceryItem {
   id: string
@@ -50,15 +51,16 @@ function getCategory(item: GroceryItem): GroceryCategory {
   return categorizeIngredient(item.name)
 }
 
-const MEASUREMENT_WORDS = /^(cup|cups|tbsp|tsp|tablespoon|tablespoons|teaspoon|teaspoons|oz|ounce|ounces|lb|lbs|pound|pounds|g|gram|grams|kg|ml|liter|liters|can|cans|clove|cloves|bunch|package|packages|pkg|slice|slices|piece|pieces|head|heads|stalk|stalks)\b/i
+// Measurement/countable unit vocabulary is the SHARED source in
+// lib/ingredientParser (MEASUREMENT_WORDS_RE) \u2014 do not re-declare it here.
 const PREP_WORDS = /^(grated|chopped|minced|diced|sliced|crushed|peeled|halved|quartered|roughly|finely|thinly|coarsely|freshly|ground|dried|frozen|cooked|raw|whole|large|medium|small|extra)\b/i
 
 function extractIngredientName(name: string): string {
   let s = name.trim()
   // Remove leading quantities and fractions: "1", "1/2", "1-2", unicode fractions
   s = s.replace(/^[\d\s.,/\-\u00BC-\u00BE\u2150-\u215E]+/, '')
-  // Remove measurement words
-  s = s.replace(MEASUREMENT_WORDS, '')
+  // Remove measurement words (shared vocabulary)
+  s = s.replace(MEASUREMENT_WORDS_RE, '')
   // Remove prep words (may repeat)
   let prev = ''
   while (prev !== s) {
@@ -304,27 +306,94 @@ export default function GroceryPage() {
     }
   }
 
+  // Per-item AI fallback: ask the server to split ONE line the deterministic
+  // parser was unsure about. Returns null on any failure so the caller keeps the
+  // line as-is (never worse than today).
+  const aiParseLine = async (
+    line: string,
+  ): Promise<{ quantity: string; unit: string; name: string } | null> => {
+    if (!user) return null
+    try {
+      const token = await user.getIdToken()
+      const res = await fetch('/api/grocery-cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ mode: 'parse-line', line }),
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      if (data && typeof data.name === 'string' && data.name.trim()) {
+        return {
+          quantity: typeof data.quantity === 'string' ? data.quantity : '',
+          unit: typeof data.unit === 'string' ? data.unit : '',
+          name: data.name.trim(),
+        }
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
   const handleAddItem = async () => {
     if (!user || !newItemName.trim()) return
     setAddingItem(true)
-    const trimmedName = newItemName.trim()
+    const typedName = newItemName.trim()
+    const typedQty = newItemQty.trim()
+    const typedUnit = newItemUnit.trim()
     const category = newItemCategory
+
+    // Parse what the user left implicit. Explicit qty/unit fields (Batch 1's
+    // manual inputs) always win — only blanks are filled from the parse. The AI
+    // fallback fires only when the deterministic parser is unsure AND the user
+    // didn't already supply both qty and unit.
+    let parsed = parseIngredient(typedName)
+    if (parsed.confidence === 'low' && !(typedQty && typedUnit)) {
+      const ai = await aiParseLine(typedName)
+      if (ai) parsed = { ...ai, confidence: 'high' }
+    }
+    const finalQuantity = typedQty || parsed.quantity || ''
+    const finalUnit = typedUnit || parsed.unit || ''
+    const finalName = parsed.confidence === 'high' && parsed.name ? parsed.name : typedName
+
     try {
-      const sanitizeId = (s: string) => s.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 80)
-      const newId = sanitizeId(trimmedName.toLowerCase()) + '-' + Date.now()
-      const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', newId)
-      await setDoc(ref, {
-        id: newId,
-        name: trimmedName,
-        quantity: newItemQty.trim(),
-        unit: newItemUnit.trim(),
-        isChecked: false,
-        isManual: true,
-        manualSection: category,
-        sourceRecipeIDs: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
+      // Conservative exact-noun merge into an existing MANUAL item only. Recipe
+      // items are managed by rebuild and must not absorb manual quantities, so we
+      // never merge across that boundary (a near-duplicate is safer than a lost
+      // quantity). No exact match → add a new line.
+      const noun = normalizeNoun(finalName)
+      const target = items.find(
+        it => it.isManual && !it.id.includes('/') && normalizeNoun(it.name) === noun,
+      )
+      if (target) {
+        const merged = mergeQuantities(
+          { quantity: target.quantity || '', unit: target.unit || '' },
+          { quantity: finalQuantity, unit: finalUnit },
+        )
+        const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', target.id)
+        await updateDoc(ref, {
+          quantity: merged.quantity,
+          unit: merged.unit,
+          updatedAt: serverTimestamp(),
+        })
+        // name / isChecked / manualSection on the surviving item are left intact.
+      } else {
+        const sanitizeId = (s: string) => s.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 80)
+        const newId = sanitizeId(finalName.toLowerCase()) + '-' + Date.now()
+        const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', newId)
+        await setDoc(ref, {
+          id: newId,
+          name: finalName,
+          quantity: finalQuantity,
+          unit: finalUnit,
+          isChecked: false,
+          isManual: true,
+          manualSection: category,
+          sourceRecipeIDs: [],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        })
+      }
       setNewItemName('')
       setNewItemQty('')
       setNewItemUnit('')
@@ -335,8 +404,9 @@ export default function GroceryPage() {
     } finally {
       setAddingItem(false)
     }
-    // Save to savedGroceryItems in the background — must not block form flow
-    upsertSavedGroceryItem(user.uid, trimmedName, category)
+    // Save the cleaned item name to savedGroceryItems in the background — must
+    // not block form flow.
+    upsertSavedGroceryItem(user.uid, finalName, category)
       .then(() => getSavedGroceryItems(user.uid))
       .then(setSavedItems)
       .catch(e => console.error('Failed to save grocery item to saved list:', e))

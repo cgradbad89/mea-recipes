@@ -118,8 +118,12 @@ shadow the shared catalog recipe without mutating it. Doc ID is sanitized (`/`�
 
 ### `users/{uid}/pantry/root/groceryItems/{docId}` — grocery list (`GroceryItem`)
 Fields: `id, name, quantity, unit, isChecked, isManual, sourceRecipeIDs[], manualSection?,
-createdAt?, updatedAt?`. Per-user isolated (explicit comment in `userdata.ts`). Auto-added
-items are keyed `sanitize(recipeID-ingredient)`; manual items keyed `sanitize(name)`.
+createdAt?, updatedAt?`. Per-user isolated (explicit comment in `userdata.ts`). `quantity`/`unit`/
+`name` are populated by the shared parser at add time (see §5.16) — `name` holds the bare noun
+phrase, not the whole line. Auto-added (recipe) items are keyed `sanitize(normalizedNoun)` so the
+same ingredient across recipes lands on one doc (legacy `sanitize(recipeID-ingredient)` ids are
+still read/merged); manual items keyed `sanitize(name)-<timestamp>`. Existing items are never
+re-parsed — parsing is additive, on the add path only.
 
 ### `users/{uid}/pantry/root/savedGroceryItems/{itemId}` — remembered grocery items (`SavedGroceryItem`)
 Fields: `id, name, defaultCategory, timesUsed, lastUsed`. Frequency-ranked memory of
@@ -222,8 +226,10 @@ publish the current user's week and subscribe to other users' entries for the sa
     and validates each returned `category`; an off-list value falls back to the local
     `categorizeIngredient` match. Last-run tracked in `localStorage` `mea-grocery-last-cleaned`.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) deletes
-    non-manual/non-legacy items, then re-adds parsed ingredients from each planned recipe,
-    deduping by doc ID and unioning `sourceRecipeIDs`.
+    non-manual/non-legacy items, then re-adds parsed ingredients from each planned recipe via
+    `addRecipeIngredientsToGrocery`, which merges by normalized noun and unions `sourceRecipeIDs`
+    (see §5.16). Idempotent: re-adding a recipe already in `sourceRecipeIDs` is a no-op, and the
+    delete-then-re-add means quantities never double-count across rebuilds.
 12. **Flavor pairing scoring** — `getComplementaryIngredients` normalizes input ingredients
     (strips quantities/units/prep words), looks up pairings (exact → suffix → last word), and
     scores candidates by rank-weighted frequency, returning the top N not already present.
@@ -243,6 +249,26 @@ publish the current user's week and subscribe to other users' entries for the sa
     `nutritionStatus:'needs_calc'` and returns null so the recipe still saves. Servings defaulting
     (→4, `+default_servings`, low confidence, durable `total`) happens inside the engine. The
     detail-page empty state offers a "Calculate nutrition" retry for flagged/uncomputed recipes.
+16. **Unit-aware grocery ingredient parsing & add-merge** — `lib/ingredientParser.ts` is the
+    pure, deterministic, firebase-free **single source** of measurement/unit vocabulary and the
+    parser used at the grocery-ADD boundary (recipe storage is untouched). `parseIngredient(line)`
+    → `{quantity, unit, name, confidence}`: it reads a leading quantity (integers, decimals,
+    `1/2`, unicode fractions `½`, mixed `1 1/2`, ranges `1-2`/`1 to 2`), then a unit word, then the
+    noun phrase. **MEASUREMENT** units (cup, tbsp, g, lb…) are distinguished from **COUNTABLE**
+    units (can, jar, bunch, head, clove, ear…) so `"1 can black beans"` keeps `can` as the unit
+    (never renders `"1 black beans"`) and `"4 ears shucked corn"` keeps `ears`. It returns
+    `confidence:'low'` only on genuinely ambiguous structure (a doubled quantity like
+    `"6 4 ears…"`); otherwise plain noun phrases are stored verbatim with no AI call. On the
+    **manual-add** path only, a low-confidence line triggers a per-item AI fallback
+    (`POST /api/grocery-cleanup {mode:'parse-line'}`, unit validated against the shared vocab,
+    falls back to whole-line `name` if junk). **Add-merge** (decision: conservative): a new item
+    merges into an existing one only on an **exact normalized-noun** match (`normalizeNoun` =
+    lowercase + strip punctuation/articles, **no stemming or modifier-drop**, so `"red onion"` ≠
+    `"onion"`); `mergeQuantities` **sums** compatible units (`"2 cups"+"1 cup"="3 cups"`) and
+    otherwise lists both side by side without dropping either (`"2 cups + 3 tbsp"`). Manual adds
+    merge only into manual items and recipe adds only into recipe items (the pools stay separate
+    to preserve the rebuild invariant in §5.11). The existing whole-list "AI Clean Up List" button
+    (§5.10) is unchanged.
 
 ---
 

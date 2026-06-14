@@ -20,6 +20,7 @@ import {
 import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
 import type { GroceryCategory } from './groceryCategories'
+import { parseIngredient, normalizeNoun, mergeQuantities } from './ingredientParser'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
 // users/{uid}/recipes/root/favorites/{recipeID}
@@ -382,36 +383,85 @@ export async function rebuildGroceryFromPlan(
 }
 
 // ─── Add recipe ingredients to grocery ───────────────────────────────────────
+// Each ingredient line is parsed into {quantity, unit, name} at write time (the
+// grocery-add boundary — recipe storage is untouched) via the shared, pure
+// ingredientParser. New items merge by EXACT normalized noun into existing
+// RECIPE-sourced (non-manual) items only:
+//   • manual items are never touched here, so the rebuild invariant holds
+//     (rebuild deletes recipe-sourced items and re-adds them; manual quantities
+//     must never get folded into a recipe item or they'd be lost on rebuild);
+//   • already-contributed recipes are skipped so re-adding the same recipe (or a
+//     repeated "Add to grocery") stays idempotent.
+// The deterministic parser handles recipe lines without any AI call; a rare
+// low-confidence/ambiguous line is stored verbatim in `name` (status quo — never
+// worse). The single-line AI fallback is reserved for the interactive manual-add
+// path, not this bulk path.
 export async function addRecipeIngredientsToGrocery(
   uid: string,
   recipeID: string,
   ingredients: string[]
 ): Promise<void> {
+  // Snapshot existing items once; index non-manual items by normalized noun.
+  const snap = await getDocs(groceryPath(uid))
+  const byNoun = new Map<string, { id: string; data: GroceryItem }>()
+  snap.docs.forEach(d => {
+    const data = d.data() as GroceryItem
+    if (data.isManual) return
+    const noun = normalizeNoun(data.name)
+    if (noun && !byNoun.has(noun)) byNoun.set(noun, { id: d.id, data })
+  })
+
+  const batch = writeBatch(db)
+  let wrote = false
+
   for (const ingredient of ingredients) {
     if (!ingredient.trim()) continue
-    const id = sanitizeDocId(`${recipeID}-${ingredient.toLowerCase().slice(0, 40)}`)
-    const ref = doc(groceryPath(uid), id)
-    const existing = await getDoc(ref)
-    if (existing.exists()) {
-      const data = existing.data() as GroceryItem
-      if (!data.sourceRecipeIDs.includes(recipeID)) {
-        await updateDoc(ref, {
-          sourceRecipeIDs: [...data.sourceRecipeIDs, recipeID],
-          updatedAt: serverTimestamp(),
-        })
-      }
+    const parsed = parseIngredient(ingredient)
+    const usable = parsed.confidence === 'high' && !!parsed.name
+    const name = usable ? parsed.name : ingredient.trim()
+    const quantity = usable ? parsed.quantity : ''
+    const unit = usable ? parsed.unit : ''
+    const noun = normalizeNoun(name)
+
+    const target = noun ? byNoun.get(noun) : undefined
+    if (target) {
+      const data = target.data
+      const sources = data.sourceRecipeIDs || []
+      if (sources.includes(recipeID)) continue // already contributed — idempotent
+      const merged = mergeQuantities(
+        { quantity: data.quantity || '', unit: data.unit || '' },
+        { quantity, unit },
+      )
+      const newSources = [...sources, recipeID]
+      batch.update(doc(groceryPath(uid), target.id), {
+        quantity: merged.quantity,
+        unit: merged.unit,
+        sourceRecipeIDs: newSources,
+        updatedAt: serverTimestamp(),
+      })
+      // Reflect the merge in-memory so later same-noun lines fold in too.
+      target.data = { ...data, quantity: merged.quantity, unit: merged.unit, sourceRecipeIDs: newSources }
+      wrote = true
     } else {
-      await setDoc(ref, {
+      const id = sanitizeDocId(noun || `${recipeID}-${name.toLowerCase().slice(0, 40)}`)
+      const newItem: GroceryItem = {
         id,
-        name: ingredient,
-        quantity: '',
-        unit: '',
+        name,
+        quantity,
+        unit,
         isChecked: false,
         isManual: false,
         sourceRecipeIDs: [recipeID],
+      }
+      batch.set(doc(groceryPath(uid), id), {
+        ...newItem,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+      if (noun) byNoun.set(noun, { id, data: newItem })
+      wrote = true
     }
   }
+
+  if (wrote) await batch.commit()
 }
