@@ -43,7 +43,7 @@ ${instructions.length ? instructions.map((s, i) => `${i + 1}. ${s}`).join('\n') 
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: systemPrompt,
         messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
