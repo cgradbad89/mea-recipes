@@ -36,7 +36,18 @@ export default function FavoritesPage() {
   const [loadingRecipes, setLoadingRecipes] = useState(true)
 
   const [search, setSearch] = useState(() => readLS('mea_favorites_search', ''))
-  const [cuisine, setCuisine] = useState(() => readLS('mea_favorites_cuisine', 'All'))
+  const [cuisine, setCuisine] = useState<string[]>(() => {
+    const val = readLS<string>('mea_favorites_cuisine', 'All')
+    if (val === 'All' || !val) return []
+    if (val.startsWith('[')) {
+      try {
+        return JSON.parse(val)
+      } catch {
+        return []
+      }
+    }
+    return [val]
+  })
   const [category, setCategory] = useState(() => readLS('mea_favorites_category', 'All'))
   const [minRating, setMinRating] = useState(() => readLS<number>('mea_favorites_minRating', 0, v => parseInt(v, 10) || 0))
   const [source, setSource] = useState<SourceFilter>(() => readLS<SourceFilter>('mea_favorites_source', 'all', v => (v as SourceFilter)))
@@ -51,7 +62,7 @@ export default function FavoritesPage() {
   useEffect(() => {
     try {
       localStorage.setItem('mea_favorites_search', search)
-      localStorage.setItem('mea_favorites_cuisine', cuisine)
+      localStorage.setItem('mea_favorites_cuisine', JSON.stringify(cuisine))
       localStorage.setItem('mea_favorites_category', category)
       localStorage.setItem('mea_favorites_minRating', String(minRating))
       localStorage.setItem('mea_favorites_source', source)
@@ -108,7 +119,7 @@ export default function FavoritesPage() {
       : favoriteRecipes
 
     const f = baseList.filter(r => {
-      const matchCuisine = cuisine === 'All' || r.cuisine.toLowerCase() === cuisine.toLowerCase()
+      const matchCuisine = cuisine.length === 0 || cuisine.some(c => r.cuisine.toLowerCase() === c.toLowerCase())
       const matchCategory = category === 'All' || r.category === category
       const recipeRating = metas[r.id]?.rating || 0
       const matchRating = minRating === 0 || recipeRating >= minRating

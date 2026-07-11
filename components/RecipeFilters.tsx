@@ -27,12 +27,12 @@ export type SourceFilter = 'all' | 'mine' | 'others'
 
 interface FiltersProps {
   search: string
-  cuisine: string
+  cuisine: string[]
   category: string
   minRating: number
   source: SourceFilter
   onSearchChange: (v: string) => void
-  onCuisineChange: (v: string) => void
+  onCuisineChange: (v: string[]) => void
   onCategoryChange: (v: string) => void
   onMinRatingChange: (v: number) => void
   onSourceChange: (v: SourceFilter) => void
@@ -48,10 +48,10 @@ export default function RecipeFilters({
   totalCount, filteredCount, isSignedIn,
 }: FiltersProps) {
   const [showFilters, setShowFilters] = useState(false)
-  const hasFilters = cuisine !== 'All' || category !== 'All' || minRating > 0 || source !== 'all'
+  const hasFilters = cuisine.length > 0 || category !== 'All' || minRating > 0 || source !== 'all'
 
   const clearAll = () => {
-    onCuisineChange('All')
+    onCuisineChange([])
     onCategoryChange('All')
     onMinRatingChange(0)
     onSourceChange('all')
@@ -151,19 +151,32 @@ export default function RecipeFilters({
           <div>
             <p className="text-faint text-xs font-body uppercase tracking-widest mb-2.5">Cuisine</p>
             <div className="flex flex-wrap gap-2">
-              {CUISINES.map(c => (
-                <button
-                  key={c}
-                  onClick={() => onCuisineChange(c)}
-                  className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium capitalize transition-all duration-150 border ${
-                    cuisine === c
-                      ? 'bg-amber/10 text-amber border-amber/30'
-                      : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+              {CUISINES.map(c => {
+                const isSelected = c === 'All' ? cuisine.length === 0 : cuisine.includes(c)
+                return (
+                  <button
+                    key={c}
+                    onClick={() => {
+                      if (c === 'All') {
+                        onCuisineChange([])
+                      } else {
+                        if (cuisine.includes(c)) {
+                          onCuisineChange(cuisine.filter(x => x !== c))
+                        } else {
+                          onCuisineChange([...cuisine, c])
+                        }
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium capitalize transition-all duration-150 border ${
+                      isSelected
+                        ? 'bg-amber/10 text-amber border-amber/30'
+                        : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
+                    }`}
+                  >
+                    {c}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
