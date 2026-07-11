@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const prompt = `You are a grocery list organizer. Clean up this grocery list and return improved data.
 
 GROCERY ITEMS:
-${items.map((item: any, i: number) => `${i}: "${item.name}" (qty: ${item.quantity || ''} ${item.unit || ''})`).join('\n')}
+${items.map((item: any, i: number) => `${i}: "${item.name}" (qty: ${item.quantity || ''} ${item.unit || ''}) [category: ${item.manualSection || categorizeIngredient(item.name)}]`).join('\n')}
 
 TASKS:
 1. Deduplicate similar items (e.g. "garlic cloves grated" + "4 cloves garlic" = "garlic")
@@ -41,7 +41,11 @@ TASKS:
 3. Assign the best category from this exact list: ${CATEGORIES.join(', ')}
 4. Note: "Spices & Seasonings" = dried spices and chiles (e.g. chile, chili, chipotle, ancho, guajillo, chile powder, chili powder, paprika, cumin, cinnamon, turmeric, garam masala). "Staples" = oils, vinegars, sugars, flours, salts — things people usually have
 
-Return ONLY a JSON array, no markdown:
+Return ONLY a JSON array containing ONLY the items that require modification.
+An item requires modification if it needs to be merged, its name/quantity/unit should be normalized, or its current category is incorrect.
+Do NOT include items that should be kept exactly as-is (action "keep").
+
+JSON Format:
 [
   {
     "originalIndex": 0,
@@ -49,7 +53,7 @@ Return ONLY a JSON array, no markdown:
     "quantity": "combined quantity or empty string",
     "unit": "unit or empty string",
     "category": "exact category from list above",
-    "action": "keep" | "merge" | "normalize" | "remove",
+    "action": "merge" | "normalize" | "remove",
     "mergedWith": [1, 2] // indices of items merged into this one, or empty array
   }
 ]
@@ -58,8 +62,8 @@ Rules:
 - If merging items, include all original indices in mergedWith
 - action "remove" = clearly not a grocery item (e.g. instruction text like "ON THE STOVE")
 - action "merge" = combined with another item
-- action "normalize" = cleaned up name but kept as-is
-- action "keep" = no changes needed
+- action "normalize" = cleaned up name/quantity/unit, or corrected category
+- If no items need modification, return an empty array []
 - Return ONLY the JSON array`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -81,27 +85,67 @@ Rules:
     const data = await response.json()
     const rawText = data.content?.[0]?.text || ''
 
-    let parsed: any
-    try { parsed = JSON.parse(rawText.trim()) }
+    let parsedChanges: any[]
+    try { parsedChanges = JSON.parse(rawText.trim()) }
     catch {
-      const m = rawText.match(/\[[\s\S]+\]/)
-      if (m) { try { parsed = JSON.parse(m[0]) } catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) } }
+      const m = rawText.match(/\[[\s\S]*\]/)
+      if (m) { try { parsedChanges = JSON.parse(m[0]) } catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) } }
       else return NextResponse.json({ error: 'Could not parse response' }, { status: 500 })
     }
 
-    // Validate each returned category against the allowed list. If the AI invents
-    // a category (e.g. "Beverages" for chile powder), fall back to the local
-    // matcher so a bogus label can't override the correct local categorization.
-    if (Array.isArray(parsed)) {
-      parsed = parsed.map((item: any) => {
-        if (item && typeof item === 'object' && !CATEGORIES.includes(item.category)) {
-          return { ...item, category: categorizeIngredient(item.name || '') }
-        }
-        return item
-      })
+    if (!Array.isArray(parsedChanges)) {
+      parsedChanges = []
     }
 
-    return NextResponse.json(parsed)
+    // Identify indices that are merged into other items
+    const mergedIndices = new Set<number>()
+    for (const change of parsedChanges) {
+      if (change && Array.isArray(change.mergedWith)) {
+        change.mergedWith.forEach((idx: any) => {
+          const num = Number(idx)
+          if (!isNaN(num)) mergedIndices.add(num)
+        })
+      }
+    }
+
+    // Reconstruct the full array expected by the frontend
+    const reconstructed = items.map((originalItem: any, i: number) => {
+      const suggestedChange = parsedChanges.find(c => c && c.originalIndex === i)
+      
+      const defaultCategory = originalItem.manualSection || categorizeIngredient(originalItem.name)
+
+      if (suggestedChange) {
+        // Validate category
+        if (!CATEGORIES.includes(suggestedChange.category)) {
+          suggestedChange.category = categorizeIngredient(suggestedChange.name || '')
+        }
+        return suggestedChange
+      }
+      
+      if (mergedIndices.has(i)) {
+        return {
+          originalIndex: i,
+          name: originalItem.name,
+          quantity: originalItem.quantity || '',
+          unit: originalItem.unit || '',
+          category: defaultCategory,
+          action: 'merge',
+          mergedWith: []
+        }
+      }
+      
+      return {
+        originalIndex: i,
+        name: originalItem.name,
+        quantity: originalItem.quantity || '',
+        unit: originalItem.unit || '',
+        category: defaultCategory,
+        action: 'keep',
+        mergedWith: []
+      }
+    })
+
+    return NextResponse.json(reconstructed)
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
