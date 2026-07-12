@@ -172,9 +172,12 @@ export default function GroceryPage() {
       groups[cat].push(item)
     })
     Object.keys(groups).forEach(cat => {
-      groups[cat].sort((a, b) =>
-        extractIngredientName(a.name).toLowerCase().localeCompare(extractIngredientName(b.name).toLowerCase())
-      )
+      groups[cat].sort((a, b) => {
+        if (a.isChecked !== b.isChecked) {
+          return (a.isChecked ? 1 : 0) - (b.isChecked ? 1 : 0)
+        }
+        return extractIngredientName(a.name).toLowerCase().localeCompare(extractIngredientName(b.name).toLowerCase())
+      })
     })
     return groups
   }, [items])
