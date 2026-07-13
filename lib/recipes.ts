@@ -271,7 +271,7 @@ const INGREDIENT_HEADER_KEYWORDS = new Set([
   'topping', 'toppings', 'filling', 'glaze', 'rub', 'spice mix',
   'spice blend', 'seasoning', 'seasoning blend', 'to serve',
   'to garnish', 'for serving', 'serving', 'dough', 'batter',
-  'crust', 'assembly',
+  'crust', 'assembly', 'main', 'main dish', 'dish',
 ])
 
 function cleanHeaderText(s: string): string {
