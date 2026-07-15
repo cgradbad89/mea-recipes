@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { X, ChefHat, BookOpen, ChevronLeft, ChevronRight, ExternalLink, Check, Timer, Play, Pause, Bell, RotateCcw } from 'lucide-react'
+import { X, ChefHat, BookOpen, ChevronLeft, ChevronRight, ExternalLink, Check, Timer, Play, Pause, Bell, RotateCcw, ChevronDown, ChevronUp, List } from 'lucide-react'
 import { detectIngredientHeader } from '@/lib/recipes'
+import { parseIngredient } from '@/lib/ingredientParser'
 
 // ─── Step-duration timer parsing (Batch 9) ────────────────────────────────────
 // Conservative, TAP-TO-START only — nothing here auto-starts. We surface a small
@@ -131,8 +132,6 @@ interface CookingModeProps {
   onMarkCooked?: (servingsEaten: number) => Promise<void>
 }
 
-type Tab = 'ingredients' | 'instructions'
-
 export default function CookingMode({
   title,
   ingredients,
@@ -141,14 +140,48 @@ export default function CookingMode({
   onClose,
   onMarkCooked,
 }: CookingModeProps) {
-  const [tab, setTab] = useState<Tab>('ingredients')
   const [checked, setChecked] = useState<Set<number>>(new Set())
   const [currentStep, setCurrentStep] = useState(0)
   const [showFinish, setShowFinish] = useState(false)
+  const [showAllIngredients, setShowAllIngredients] = useState(false)
+  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set())
   const [servingsInput, setServingsInput] = useState('1')
   const [savingCooked, setSavingCooked] = useState(false)
   const [cookedError, setCookedError] = useState('')
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null)
+
+  // ─── Map ingredients to steps ─────────────────────────────────────────────
+  const stepIngredients = useMemo(() => {
+    const parsedIngs = ingredients.map((ing, i) => {
+      const header = detectIngredientHeader(ing);
+      if (header.isHeader) return null;
+      const parsed = parseIngredient(ing);
+      const baseName = parsed.name.split(',')[0].trim().toLowerCase();
+      const words = baseName.split(/\s+/);
+      const coreNoun = words[words.length - 1] || baseName;
+      return { index: i, raw: ing, searchTarget: coreNoun || ing.toLowerCase() };
+    }).filter(Boolean) as { index: number, raw: string, searchTarget: string }[];
+
+    return instructions.map(step => {
+      const stepLower = step.toLowerCase();
+      const stepIngs: { index: number, raw: string }[] = [];
+      
+      parsedIngs.forEach(ping => {
+        try {
+          const escaped = ping.searchTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+          if (regex.test(stepLower)) {
+            stepIngs.push({ index: ping.index, raw: ping.raw });
+          }
+        } catch (e) {
+          if (stepLower.includes(ping.searchTarget)) {
+            stepIngs.push({ index: ping.index, raw: ping.raw });
+          }
+        }
+      });
+      return stepIngs;
+    });
+  }, [instructions, ingredients]);
 
   // ─── Tap-to-start step timers (Batch 9) ───────────────────────────────────
   const [timers, setTimers] = useState<RunningTimer[]>([])
@@ -337,6 +370,16 @@ export default function CookingMode({
     })
   }
 
+  const toggleStepExpanded = (i: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setExpandedSteps(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) next.delete(i)
+      else next.add(i)
+      return next
+    })
+  }
+
   const goPrev = () => setCurrentStep(s => Math.max(0, s - 1))
   const goNext = () => setCurrentStep(s => Math.min(instructions.length - 1, s + 1))
 
@@ -370,128 +413,118 @@ export default function CookingMode({
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="shrink-0 flex gap-2 px-4 pt-3">
-        <button
-          onClick={() => setTab('ingredients')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
-            tab === 'ingredients'
-              ? 'bg-amber text-ink'
-              : 'bg-card border border-border text-muted hover:text-cream'
-          }`}
-        >
-          <ChefHat size={15} /> Ingredients
-        </button>
-        <button
-          onClick={() => setTab('instructions')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-body font-medium transition-all ${
-            tab === 'instructions'
-              ? 'bg-amber text-ink'
-              : 'bg-card border border-border text-muted hover:text-cream'
-          }`}
-        >
-          <BookOpen size={15} /> Instructions
-        </button>
-      </div>
-
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-4 py-5">
+      <div className="flex-1 overflow-y-auto px-4 py-5 pb-24">
+        <div className="max-w-2xl mx-auto flex items-center justify-between mb-4">
+          <h2 className="font-display text-xl text-cream font-light">Instructions</h2>
+          <button 
+            onClick={() => setShowAllIngredients(true)}
+            className="flex items-center gap-2 text-sm font-body text-amber hover:text-amber/80 transition-colors"
+          >
+            <List size={16} /> All Ingredients
+          </button>
+        </div>
+
         <div className="max-w-2xl mx-auto">
-          {tab === 'ingredients' ? (
-            <ul className="space-y-1">
-              {ingredients.map((ing, i) => {
-                const header = detectIngredientHeader(ing)
-                if (header.isHeader) {
-                  return (
-                    <li key={i} className="pt-4 first:pt-0 pb-1">
-                      <h4 className="font-display text-lg text-cream font-medium tracking-wide">
-                        {header.text}
-                      </h4>
-                    </li>
-                  )
-                }
-                const isChecked = checked.has(i)
-                return (
-                  <li key={i}>
-                    <button
-                      onClick={() => toggleChecked(i)}
-                      className="w-full flex items-start gap-3 text-left py-3 px-2 rounded-xl hover:bg-card/60 transition-colors"
-                    >
-                      <span
-                        className={`w-5 h-5 mt-0.5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${
-                          isChecked ? 'bg-amber border-amber text-ink' : 'border-faint/40'
-                        }`}
-                      >
-                        {isChecked && <Check size={13} strokeWidth={3} />}
-                      </span>
-                      <span
-                        className={`text-base font-body leading-relaxed transition-colors ${
-                          isChecked ? 'text-faint line-through' : 'text-cream'
-                        }`}
-                      >
-                        {ing}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <ol className="space-y-3">
-              {instructions.map((step, i) => {
-                const isCurrent = i === currentStep
-                return (
-                  <li key={i}>
-                    <button
-                      onClick={() => setCurrentStep(i)}
-                      className={`w-full flex gap-4 text-left p-4 rounded-2xl border transition-all ${
-                        isCurrent
-                          ? 'bg-amber/10 border-amber/40'
-                          : 'bg-card/40 border-transparent hover:border-border'
-                      }`}
-                    >
-                      <span
-                        className={`font-display text-2xl font-light leading-none mt-0.5 w-7 shrink-0 ${
-                          isCurrent ? 'text-amber' : 'text-amber/40'
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                      <p
-                        className={`font-body leading-relaxed ${
-                          isCurrent ? 'text-cream text-lg' : 'text-muted text-base'
-                        }`}
-                      >
+          <ol className="space-y-3">
+            {instructions.map((step, i) => {
+              const isCurrent = i === currentStep
+              return (
+                <li key={i} className={`rounded-2xl border transition-all ${
+                  isCurrent
+                    ? 'bg-amber/10 border-amber/40'
+                    : 'bg-card/40 border-transparent hover:border-border'
+                }`}>
+                  <div 
+                    className="w-full flex gap-4 text-left p-4 cursor-pointer"
+                    onClick={() => setCurrentStep(i)}
+                  >
+                    <span className={`font-display text-2xl font-light leading-none mt-0.5 w-7 shrink-0 ${isCurrent ? 'text-amber' : 'text-amber/40'}`}>
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-body leading-relaxed ${isCurrent ? 'text-cream text-lg' : 'text-muted text-base'}`}>
                         {step}
                       </p>
-                    </button>
-                    {stepDurations[i] && stepDurations[i].length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2 pl-11">
-                        {stepDurations[i].map((d, di) => (
+                      
+                      {/* Timers */}
+                      {stepDurations[i] && stepDurations[i].length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-3" onClick={e => e.stopPropagation()}>
+                          {stepDurations[i].map((d, di) => (
+                            <button
+                              key={di}
+                              onClick={() => startTimer(d.label, d.seconds)}
+                              aria-label={`Start ${d.label} timer`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber/10 border border-amber/30 text-amber text-xs font-body hover:bg-amber/20 transition-colors"
+                            >
+                              <Timer size={12} /> {d.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Collapsible Ingredients Toggle */}
+                      {stepIngredients[i] && stepIngredients[i].length > 0 && (
+                        <div className="mt-3" onClick={e => e.stopPropagation()}>
                           <button
-                            key={di}
-                            onClick={() => startTimer(d.label, d.seconds)}
-                            aria-label={`Start ${d.label} timer`}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber/10 border border-amber/30 text-amber text-xs font-body hover:bg-amber/20 transition-colors"
+                            onClick={(e) => toggleStepExpanded(i, e)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-body transition-colors ${
+                              expandedSteps.has(i) 
+                                ? 'bg-card border border-border text-cream'
+                                : 'bg-card/50 border border-transparent text-muted hover:text-cream hover:bg-card'
+                            }`}
                           >
-                            <Timer size={12} /> {d.label}
+                            <ChefHat size={14} /> 
+                            {stepIngredients[i].length} {stepIngredients[i].length === 1 ? 'Ingredient' : 'Ingredients'}
+                            {expandedSteps.has(i) ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                           </button>
-                        ))}
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ol>
-          )}
+
+                          {/* Expanded Ingredients List */}
+                          {expandedSteps.has(i) && (
+                            <ul className="mt-2 space-y-1 p-3 bg-ink/40 rounded-xl border border-border/50">
+                              {stepIngredients[i].map(ing => {
+                                const isChecked = checked.has(ing.index);
+                                return (
+                                  <li key={ing.index}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleChecked(ing.index);
+                                      }}
+                                      className="w-full flex items-start gap-3 text-left py-1.5 px-2 rounded-lg hover:bg-surface/50 transition-colors"
+                                    >
+                                      <span
+                                        className={`w-4 h-4 mt-0.5 rounded flex shrink-0 items-center justify-center transition-all border-2 ${
+                                          isChecked ? 'bg-amber border-amber text-ink' : 'border-faint/40'
+                                        }`}
+                                      >
+                                        {isChecked && <Check size={10} strokeWidth={3} />}
+                                      </span>
+                                      <span
+                                        className={`text-sm font-body leading-snug transition-colors ${
+                                          isChecked ? 'text-faint line-through' : 'text-cream'
+                                        }`}
+                                      >
+                                        {ing.raw}
+                                      </span>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
         </div>
       </div>
 
-      {/* Running-timers tray — multiple concurrent timers; each counts down off its
-          stored target timestamp and offers pause/resume + cancel. A finished timer
-          flashes with a bell until dismissed (visual alert; sound + vibrate fire on
-          finish, best-effort). Shown on both tabs so the cook can track e.g. pasta +
-          sauce at once. */}
+      {/* Running-timers tray */}
       {timers.length > 0 && (
         <div className="shrink-0 border-t border-border bg-surface/60 px-4 py-3">
           <div className="max-w-2xl mx-auto">
@@ -568,9 +601,9 @@ export default function CookingMode({
         </div>
       )}
 
-      {/* Footer — step navigation (instructions tab only) */}
-      {tab === 'instructions' && instructions.length > 0 && (
-        <footer className="shrink-0 border-t border-border px-4 py-3">
+      {/* Footer — step navigation */}
+      {instructions.length > 0 && (
+        <footer className="shrink-0 border-t border-border px-4 py-3 bg-ink">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <button
               onClick={goPrev}
@@ -614,10 +647,10 @@ export default function CookingMode({
         </footer>
       )}
 
-      {/* Completion step — "Mark as cooked?" with servings-eaten capture */}
+      {/* Completion step */}
       {showFinish && onMarkCooked && (
         <div
-          className="absolute inset-0 z-10 flex items-center justify-center bg-ink/85 backdrop-blur-sm p-6"
+          className="absolute inset-0 z-[110] flex items-center justify-center bg-ink/85 backdrop-blur-sm p-6"
           onClick={() => !savingCooked && setShowFinish(false)}
         >
           <div
@@ -626,7 +659,7 @@ export default function CookingMode({
           >
             <h3 className="font-display text-2xl text-cream font-light mb-1">Mark as cooked?</h3>
             <p className="text-faint text-sm font-body mb-4">
-              This updates your meal plan and logs it to today&apos;s nutrition.
+              This updates your meal plan and logs it to today's nutrition.
             </p>
             <label className="block mb-4">
               <span className="text-faint text-xs font-body uppercase tracking-widest">Servings eaten</span>
@@ -658,6 +691,72 @@ export default function CookingMode({
                 {savingCooked && <span className="w-3 h-3 border-2 border-ink/40 border-t-ink rounded-full animate-spin" />}
                 Mark cooked
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Ingredients Modal */}
+      {showAllIngredients && (
+        <div
+          className="absolute inset-0 z-[120] flex items-end justify-center sm:items-center bg-ink/85 backdrop-blur-sm sm:p-6"
+          onClick={() => setShowAllIngredients(false)}
+        >
+          <div
+            className="bg-surface border-t sm:border border-border rounded-t-3xl sm:rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col animate-slide-up sm:animate-fade-in shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+              <div className="flex items-center gap-2 text-cream">
+                <ChefHat size={20} />
+                <h3 className="font-display text-xl font-medium">All Ingredients</h3>
+              </div>
+              <button
+                onClick={() => setShowAllIngredients(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-card text-faint hover:text-cream transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto flex-1 pb-10">
+              <ul className="space-y-1">
+                {ingredients.map((ing, i) => {
+                  const header = detectIngredientHeader(ing)
+                  if (header.isHeader) {
+                    return (
+                      <li key={i} className="pt-4 first:pt-0 pb-1">
+                        <h4 className="font-display text-lg text-cream font-medium tracking-wide">
+                          {header.text}
+                        </h4>
+                      </li>
+                    )
+                  }
+                  const isChecked = checked.has(i)
+                  return (
+                    <li key={i}>
+                      <button
+                        onClick={() => toggleChecked(i)}
+                        className="w-full flex items-start gap-3 text-left py-2.5 px-2 rounded-xl hover:bg-card/60 transition-colors"
+                      >
+                        <span
+                          className={`w-5 h-5 mt-0.5 rounded-md border-2 shrink-0 flex items-center justify-center transition-all ${
+                            isChecked ? 'bg-amber border-amber text-ink' : 'border-faint/40'
+                          }`}
+                        >
+                          {isChecked && <Check size={13} strokeWidth={3} />}
+                        </span>
+                        <span
+                          className={`text-base font-body leading-relaxed transition-colors ${
+                            isChecked ? 'text-faint line-through' : 'text-cream'
+                          }`}
+                        >
+                          {ing}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
           </div>
         </div>
