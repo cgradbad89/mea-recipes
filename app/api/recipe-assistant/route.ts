@@ -47,6 +47,7 @@ ${instructions.length ? instructions.map((s, i) => `${i + 1}. ${s}`).join('\n') 
         max_tokens: 1024,
         system: systemPrompt,
         messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
+        cache_control: { type: 'ephemeral' },
       }),
     })
 

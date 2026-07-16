@@ -40,3 +40,4 @@ scripts/canonical-dryrun-raw.json
 scripts/canonical-dryrun-v1-raw.json
 scripts/canonical-dryrun-v2-raw.json
 scripts/reaudit-task1.json
+.env*
