@@ -43,8 +43,8 @@ Anything deferred or not completed: [description or "none"]
 - Vercel team ID: `folstromjohn-1883s-projects`
 - Production URL: mea-recipes.vercel.app
 - Admin email: `folstromjohn@gmail.com` (only user with access; HubBanner gate)
-- No `firestore.rules` file exists in the repo. Do not modify Firestore rules without
-  explicit task instruction.
+- No `firestore.rules` or `firestore.indexes.json` file exists in the repo. Do not modify Firestore rules or indexes without explicit task instruction.
+- **WARNING - DEPLOYMENT DANGER**: Firestore security rules and indexes for `malignant-metro` are shared with other apps and managed manually via Firebase Console. NEVER run `firebase deploy` (or deploy firestore targets) from this repo, and NEVER add a `"firestore"` target to `firebase.json`. Doing so could clobber shared rules and break other apps.
 
 ## Architecture Quick Reference
 - Pages: `app/**/page.tsx` (App Router; per-route `layout.tsx`)

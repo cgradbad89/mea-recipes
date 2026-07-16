@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, CalendarPlus, Plus, GripVertical, BookOpen, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { getDocs, collection } from 'firebase/firestore'
@@ -15,7 +15,8 @@ import {
   normalizePlanned, plannedRecipeIDList, saveCalendarEventIds,
   type WeekPlan, type RecipeMeta, type SharedPlanEntry, type PlannedEntry, type PlannedRole
 } from '@/lib/userdata'
-import { getAllRecipes, parseRecipeContent, getRecipeById, recipeUrl } from '@/lib/recipes'
+import { useAppData } from '@/components/AppDataProvider'
+import { parseRecipeContent, getRecipeById, recipeUrl } from '@/lib/recipes'
 import { runCalendarPush, type CalendarOp } from '@/lib/googleCalendar'
 import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
@@ -168,17 +169,22 @@ function CenteredOverlay({ children, onClose }: { children: ReactNode; onClose: 
 
 export default function PlanPage() {
   const { user } = useAuth()
+  const { recipes: allRecipes, recipesLoading: loadingRecipes, metas, refetchMetas, refetchCookingHistory } = useAppData()
+  
+  const recipes = useMemo(() => {
+    const map: Record<string, Recipe> = {}
+    allRecipes.forEach(r => { map[r.id] = r })
+    return map
+  }, [allRecipes])
+
   const [weekID, setWeekID] = useState(() => weekIDFromDate(new Date()))
   const [plan, setPlan] = useState<WeekPlan | null>(null)
-  const [recipes, setRecipes] = useState<Record<string, Recipe>>({})
-  const [loadingRecipes, setLoadingRecipes] = useState(true)
   const [addingToGrocery, setAddingToGrocery] = useState<string | null>(null)
   // Batch 5.2: tapping a tile opens this action sheet (replaces the inline action row
   // + the per-tile day/week dropdowns).
   const [sheetFor, setSheetFor] = useState<string | null>(null)
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
   const [servingsPromptFor, setServingsPromptFor] = useState<string | null>(null)
-  const [metas, setMetas] = useState<Record<string, RecipeMeta>>({})
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [rebuildDone, setRebuildDone] = useState(false)
@@ -255,15 +261,6 @@ export default function PlanPage() {
     return () => clearTimeout(timer)
   }, [confirmRemoveFor])
 
-  // Load all recipes for lookup
-  useEffect(() => {
-    getAllRecipes().then(list => {
-      const map: Record<string, Recipe> = {}
-      list.forEach(r => { map[r.id] = r })
-      setRecipes(map)
-      setLoadingRecipes(false)
-    })
-  }, [])
 
   // Subscribe to week plan
   useEffect(() => {
@@ -272,17 +269,6 @@ export default function PlanPage() {
     return unsub
   }, [user, weekID])
 
-  // Load metas for planned recipes (to check existing ratings)
-  useEffect(() => {
-    if (!user || !plan) return
-    const ids = plannedRecipeIDList(plan.plannedRecipeIDs)
-    ids.forEach(id => {
-      if (metas[id] !== undefined) return
-      getRecipeMeta(user.uid, id).then(m => {
-        setMetas(prev => ({ ...prev, [id]: m || {} }))
-      })
-    })
-  }, [user, plan])
 
   // Publish shared plan whenever local plan changes (mirror stays a flat ID list —
   // friends never see the owner's private day/role assignments)
@@ -303,6 +289,7 @@ export default function PlanPage() {
   const handleAddFriendRecipe = async (recipeID: string) => {
     if (!user) return
     await addRecipeToWeekPlan(user.uid, weekID, recipeID, resolveRecipeRole(recipes[recipeID]))
+    await refetchCookingHistory()
     setAddedFriendRecipe(recipeID)
     setTimeout(() => setAddedFriendRecipe(null), 1500)
   }
@@ -386,6 +373,7 @@ export default function PlanPage() {
       servingsEaten,
       weekID,
     })
+    await refetchCookingHistory()
     setServingsPromptFor(null)
     maybePromptRating(recipeID)
   }
@@ -393,6 +381,7 @@ export default function PlanPage() {
   const handleServingsSkip = async (recipeID: string) => {
     if (!user) return
     await markRecipeCooked(user.uid, weekID, recipeID, true)
+    await refetchCookingHistory()
     setServingsPromptFor(null)
     maybePromptRating(recipeID)
   }
@@ -402,7 +391,7 @@ export default function PlanPage() {
     const data: Partial<RecipeMeta> = { rating }
     if (note.trim()) data.note = note
     await saveRecipeMeta(user.uid, recipeID, data)
-    setMetas(prev => ({ ...prev, [recipeID]: { ...prev[recipeID], ...data } }))
+    await refetchMetas()
     setRatingPromptFor(null)
   }
 
@@ -413,12 +402,14 @@ export default function PlanPage() {
   const handleRemove = async (recipeID: string) => {
     if (!user) return
     await removeRecipeFromWeekPlan(user.uid, weekID, recipeID)
+    await refetchCookingHistory()
   }
 
   const handleMoveToWeek = async (recipeID: string, targetWeekID: string, role: PlannedRole) => {
     if (!user) return
     setSheetFor(null)
     await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID, role)
+    await refetchCookingHistory()
   }
 
   // Assign (or clear) a planned entry's day. Passes the entry's current role so a
@@ -427,12 +418,14 @@ export default function PlanPage() {
     if (!user) return
     setSheetFor(null)
     await assignRecipeToDay(user.uid, weekID, entry.recipeID, day, entry.role)
+    await refetchCookingHistory()
   }
 
   // Manual main/side override (persists on the entry; re-derivation won't clobber it).
   const handleToggleRole = async (entry: PlannedEntry) => {
     if (!user) return
     await setPlannedRecipeRole(user.uid, weekID, entry.recipeID, entry.role === 'main' ? 'side' : 'main')
+    await refetchCookingHistory()
   }
 
   // Drop a dragged tile onto a day (or null = Unscheduled) — same write path as the
@@ -444,6 +437,7 @@ export default function PlanPage() {
     if (!user || !id) return
     const role = plannedEntries.find(e => e.recipeID === id)?.role ?? 'main'
     await assignRecipeToDay(user.uid, weekID, id, day, role)
+    await refetchCookingHistory()
   }
 
   const handleAddToGrocery = async (recipeID: string) => {
@@ -591,6 +585,7 @@ export default function PlanPage() {
         }
       }
       await saveCalendarEventIds(user.uid, weekID, next)
+      await refetchCookingHistory()
       const parts = [`Created ${created}`, `Updated ${updated}`]
       if (removed) parts.push(`Removed ${removed}`)
       let summary = parts.join(' · ')

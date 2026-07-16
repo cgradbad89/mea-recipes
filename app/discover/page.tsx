@@ -3,10 +3,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
-import { useCookingHistory } from '@/hooks/useCookingHistory'
-import { useRecipeMetas } from '@/hooks/useRecipeMetas'
-import { useFavorites } from '@/hooks/useFavorites'
-import { getAllRecipes, saveRecipe, invalidateRecipeCache, getTotalTime, computeAndStoreNutrition } from '@/lib/recipes'
+import { useAppData } from '@/components/AppDataProvider'
+import { saveRecipe, invalidateRecipeCache, getTotalTime, computeAndStoreNutrition } from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
 import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan, resolveRecipeRole, plannedRecipeIDList } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
@@ -119,10 +117,7 @@ function Section({ title, icon: Icon, color, items, recipes, metas }: {
 
 export default function DiscoverPage() {
   const { user } = useAuth()
-  const { weeks } = useCookingHistory()
-  const metas = useRecipeMetas()
-  const { favorites } = useFavorites()
-  const [recipes, setRecipes] = useState<Recipe[]>([])
+  const { recipes, metas, favorites, cookingHistory: weeks, refetchRecipes, refetchCookingHistory } = useAppData()
   const [recs, setRecs] = useState<RecommendationSet | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -159,9 +154,6 @@ export default function DiscoverPage() {
   const [planNutritionFor, setPlanNutritionFor] = useState<string | null>(null)
   const [planSavedFor, setPlanSavedFor] = useState<Set<string>>(new Set())
 
-  useEffect(() => {
-    getAllRecipes().then(setRecipes)
-  }, [])
 
   // Load currently planned recipes for the selected week
   useEffect(() => {
@@ -253,6 +245,7 @@ export default function DiscoverPage() {
     try {
       const r = recipes.find(r => r.id === recipeID)
       await addRecipeToWeekPlan(user.uid, planWeek, recipeID, resolveRecipeRole(r))
+      await refetchCookingHistory()
       setPlanAddedRecipeIds(prev => new Set(prev).add(recipeID))
       setTimeout(() => {
         setPlanAddedRecipeIds(prev => {
@@ -324,6 +317,7 @@ export default function DiscoverPage() {
         prepTime: gen.prepTime || '',
         cookTime: gen.cookTime || '',
       }, user.uid)
+      await refetchRecipes()
       invalidateRecipeCache()
       // Auto-nutrition — timeout-guarded; never blocks the save.
       setPlanNutritionFor(suggestion.title)
@@ -539,6 +533,7 @@ export default function DiscoverPage() {
         prepTime: generatedRecipe.prepTime || '',
         cookTime: generatedRecipe.cookTime || '',
       }, user.uid)
+      await refetchRecipes()
       invalidateRecipeCache()
       // Auto-nutrition — timeout-guarded; never blocks the save.
       setGenNutritionPhase(true)

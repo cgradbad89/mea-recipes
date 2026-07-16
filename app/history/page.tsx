@@ -3,9 +3,7 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
-import { useCookingHistory } from '@/hooks/useCookingHistory'
-import { useRecipeMetas } from '@/hooks/useRecipeMetas'
-import { getAllRecipes } from '@/lib/recipes'
+import { useAppData } from '@/components/AppDataProvider'
 import { useState, useEffect } from 'react'
 import { Flame, ChefHat, TrendingUp, Calendar, Loader2 } from 'lucide-react'
 import RecipeImage from '@/components/RecipeImage'
@@ -41,17 +39,13 @@ function generateHeatmapWeeks(): string[] {
 
 export default function HistoryPage() {
   const { user } = useAuth()
-  const { weeks, loading } = useCookingHistory()
-  const metas = useRecipeMetas()
-  const [recipes, setRecipes] = useState<Record<string, Recipe>>({})
-
-  useEffect(() => {
-    getAllRecipes().then(all => {
-      const map: Record<string, Recipe> = {}
-      all.forEach(r => { map[r.id] = r })
-      setRecipes(map)
-    })
-  }, [])
+  const { cookingHistory: weeks, cookingHistoryLoading: loading, metas, recipes: allRecipes } = useAppData()
+  
+  const recipes = useMemo(() => {
+    const map: Record<string, Recipe> = {}
+    allRecipes.forEach(r => { map[r.id] = r })
+    return map
+  }, [allRecipes])
 
   const stats = useMemo(() => {
     if (!weeks.length) return { totalCooked: 0, totalWeeks: 0, streak: 0, longestStreak: 0 }

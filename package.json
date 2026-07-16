@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:emulator": "concurrently \"NEXT_PUBLIC_USE_FIRESTORE_EMULATOR=true next dev\" \"firebase emulators:start --only firestore,auth --project malignant-metro\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -26,6 +27,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "concurrently": "^10.0.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
     "postcss": "^8",

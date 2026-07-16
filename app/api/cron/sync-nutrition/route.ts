@@ -3,6 +3,28 @@ import { getAdminDb } from '@/lib/firebaseAdmin'
 import { Timestamp, FieldValue } from 'firebase-admin/firestore'
 import type { ConsumptionEntry, Meal } from '@/types/nutrition'
 
+// Helper to compute a Date anchored to America/New_York
+function getEasternTime(dateString: string, timeString: string = '00:00:00'): Date {
+  const [y, m, d] = dateString.split('-').map(Number)
+  const noonUTC = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  
+  const nyHour = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      hour12: false,
+    }).format(noonUTC),
+    10
+  )
+  
+  const offsetHours = nyHour - 12
+  const sign = offsetHours >= 0 ? '+' : '-'
+  const absHours = Math.abs(offsetHours).toString().padStart(2, '0')
+  const offsetStr = `${sign}${absHours}:00`
+  
+  return new Date(`${dateString}T${timeString}${offsetStr}`)
+}
+
 export async function GET(request: Request) {
   // Auth check using CRON_SECRET to prevent unauthorized public access
   const authHeader = request.headers.get('Authorization')
@@ -11,50 +33,56 @@ export async function GET(request: Request) {
   }
 
   const uid = process.env.MFP_SYNC_UID
-  const accessToken = process.env.MFP_ACCESS_TOKEN
-  const mfpUserId = process.env.MFP_USER_ID
   const sessionCookie = process.env.MFP_SESSION_COOKIE
+  const csrfToken = process.env.MFP_CSRF_TOKEN
 
-  if (!uid || !accessToken || !mfpUserId || !sessionCookie) {
-    console.error('Missing required environment variables for MFP sync (MFP_SYNC_UID, MFP_ACCESS_TOKEN, MFP_USER_ID, MFP_SESSION_COOKIE)')
+  if (!uid || !sessionCookie || !csrfToken) {
+    console.error('Missing required environment variables for MFP sync (MFP_SYNC_UID, MFP_SESSION_COOKIE, MFP_CSRF_TOKEN)')
     return NextResponse.json({ error: 'Configuration Error' }, { status: 500 })
   }
 
-  // Determine target dates: yesterday and today
-  const today = new Date()
-  const yesterday = new Date(today)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  const datesToFetch = [
-    yesterday.toISOString().split('T')[0],
-    today.toISOString().split('T')[0]
-  ]
+  // Determine target dates: yesterday and today (Anchored to Eastern Time)
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const now = new Date()
+  const todayStr = formatter.format(now)
+  const yesterdayStr = formatter.format(new Date(now.getTime() - 86400000))
+  const datesToFetch = [yesterdayStr, todayStr]
 
   const allItems: any[] = []
+  let skippedWaterOrExercise = 0
 
   for (const date of datesToFetch) {
     try {
       const url = `https://api.myfitnesspal.com/v2/diary?entry_date=${date}&types=diary_meal,water,exercise&fields[]=nutritional_contents`
       const res = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Cookie': sessionCookie,
+          'x-csrf-token': csrfToken,
           'mfp-client-id': 'mfp-web',
-          'mfp-user-id': mfpUserId,
-          'Accept': 'application/json',
-          'Cookie': sessionCookie
+          'Accept': 'application/json'
         }
       })
 
       if (!res.ok) {
         const errorText = await res.text()
-        console.error(`MFP API responded with ${res.status} for date ${date}:`, errorText)
+        if (res.status === 401 || res.status === 403) {
+          console.error(`MFP API Error ${res.status}: session cookie or CSRF token likely expired.`, errorText)
+        } else {
+          console.error(`MFP API responded with ${res.status} for date ${date}:`, errorText)
+        }
         return NextResponse.json({ error: `MFP API Error: ${res.status}` }, { status: 502 })
       }
 
       const data = await res.json()
       if (data.items && Array.isArray(data.items)) {
-        // Only keep diary_meal items, ignore water/exercise etc.
-        allItems.push(...data.items.filter((item: any) => item.type === 'diary_meal'))
+        // Filter and categorize items
+        data.items.forEach((item: any) => {
+          if (item.type === 'diary_meal') {
+            allItems.push(item)
+          } else if (item.type === 'water' || item.type === 'exercise') {
+            skippedWaterOrExercise++
+          }
+        })
       }
     } catch (e) {
       console.error(`Failed to fetch MFP data for ${date}:`, e)
@@ -71,11 +99,12 @@ export async function GET(request: Request) {
   const db = getAdminDb()
   const logRef = db.collection('users').doc(uid).collection('nutrition').doc('root').collection('log')
 
-  // Find existing MFP docs for these dates to wipe them
-  const startDate = new Date(`${datesToFetch[0]}T00:00:00Z`)
-  const endDate = new Date(`${datesToFetch[1]}T23:59:59Z`)
+  // Find existing MFP docs for these dates to wipe them, anchored to Eastern Time bounds
+  const startDate = getEasternTime(datesToFetch[0], '00:00:00')
+  const endDate = getEasternTime(datesToFetch[1], '23:59:59')
   
   const existingDocs = await logRef
+    .where('source', '==', 'mfp')
     .where('date', '>=', Timestamp.fromDate(startDate))
     .where('date', '<=', Timestamp.fromDate(endDate))
     .get()
@@ -84,11 +113,8 @@ export async function GET(request: Request) {
   let deleteCount = 0
 
   existingDocs.forEach(doc => {
-    // Only delete items that were explicitly created by this MFP sync
-    if (doc.id.startsWith('mfp-')) {
-      batch.delete(doc.ref)
-      deleteCount++
-    }
+    batch.delete(doc.ref)
+    deleteCount++
   })
 
   // Write new items
@@ -106,7 +132,7 @@ export async function GET(request: Request) {
     
     const entry: ConsumptionEntry = {
       id: entryId,
-      date: Timestamp.fromDate(new Date(`${item.date}T12:00:00Z`)), // Noon UTC avoids timezone edge cases jumping to previous day
+      date: Timestamp.fromDate(getEasternTime(item.date, '12:00:00')), // Anchored to Noon Eastern Time
       meal: mappedMeal,
       type: 'manual', // Stored as a manual entry in the app
       is_cook_event: false,
@@ -115,13 +141,13 @@ export async function GET(request: Request) {
       servings_eaten: 1,
       nutrition: {
         calories: item.nutritional_contents?.energy?.value || 0,
-        protein: item.nutritional_contents?.protein || 0,
-        fat: item.nutritional_contents?.fat || 0,
-        carbs: item.nutritional_contents?.carbohydrates || 0,
-        fiber: item.nutritional_contents?.fiber || 0,
-        sugar: item.nutritional_contents?.sugar || 0,
+        protein_g: item.nutritional_contents?.protein || 0,
+        fat_g: item.nutritional_contents?.fat || 0,
+        carbs_g: item.nutritional_contents?.carbohydrates || 0,
+        fiber_g: item.nutritional_contents?.fiber || 0,
+        sugar_g: item.nutritional_contents?.sugar || 0,
       },
-      source: 'manual', // Standard log source
+      source: 'mfp', // Specifically marked as MFP
       created_at: FieldValue.serverTimestamp(),
       userId: uid
     }
@@ -136,6 +162,8 @@ export async function GET(request: Request) {
     success: true,
     dates: datesToFetch,
     deletedOldItems: deleteCount,
-    syncedNewItems: writeCount
+    syncedNewItems: writeCount,
+    skippedWaterOrExerciseCount: skippedWaterOrExercise,
+    message: skippedWaterOrExercise > 0 ? `Skipped ${skippedWaterOrExercise} water/exercise items.` : undefined
   })
 }

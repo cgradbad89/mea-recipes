@@ -2,9 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useAuth } from '@/lib/AuthContext'
-import { useCookingHistory } from '@/hooks/useCookingHistory'
-import { useRecipeMetas } from '@/hooks/useRecipeMetas'
-import { getAllRecipes } from '@/lib/recipes'
+import { useAppData } from '@/components/AppDataProvider'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -30,14 +28,7 @@ function exportCSV(rows: string[][], filename: string) {
 
 export default function InsightsPage() {
   const { user } = useAuth()
-  const { weeks, loading: weeksLoading } = useCookingHistory()
-  const metas = useRecipeMetas()
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [recipesLoading, setRecipesLoading] = useState(true)
-
-  useEffect(() => {
-    getAllRecipes().then(r => { setRecipes(r); setRecipesLoading(false) })
-  }, [])
+  const { cookingHistory: weeks, cookingHistoryLoading: weeksLoading, metas, recipes, recipesLoading } = useAppData()
 
   const recipeMap = useMemo(() => {
     const map: Record<string, Recipe> = {}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Cormorant_Garamond, DM_Sans } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/lib/AuthContext'
+import { AppDataProvider } from '@/components/AppDataProvider'
 import HubBanner from '@/components/HubBanner'
 
 const cormorant = Cormorant_Garamond({
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body className="bg-ink text-cream font-body antialiased min-h-screen">
         <AuthProvider>
-          <HubBanner />
-          {children}
+          <AppDataProvider>
+            <HubBanner />
+            {children}
+          </AppDataProvider>
         </AuthProvider>
       </body>
     </html>

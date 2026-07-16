@@ -104,9 +104,8 @@ To keep your MyFitnessPal food diary synced with the app, a Vercel Cron Job runs
 3. Filter by `fetch/XHR` and reload the "Diary" page.
 4. Click on a request starting with `diary?entry_date=...`
 5. Look at the **Request Headers** and copy these values into your Vercel Project Environment Variables:
-   - `MFP_ACCESS_TOKEN`: The token from the `Authorization: Bearer <TOKEN>` header.
-   - `MFP_USER_ID`: The numeric ID from the `mfp-user-id` header.
-   - `MFP_SESSION_COOKIE`: The entire string from the `Cookie` header.
+   - `MFP_SESSION_COOKIE`: The entire string from the `cookie` header.
+   - `MFP_CSRF_TOKEN`: The token from the `x-csrf-token` header. Note: This token may expire on a different cadence than the session cookie. Both need to be refreshed together if the sync starts failing.
 6. Make sure `MFP_SYNC_UID` is set to your Firebase Authentication UID.
 7. Make sure `CRON_SECRET` matches between your Vercel env and the cron auth check.
 

@@ -10,7 +10,7 @@ import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIn
 import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, addRecipeIngredientsToGrocery, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
 import { logCookEvent } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
-import { useFavorites } from '@/hooks/useFavorites'
+import { useAppData } from '@/components/AppDataProvider'
 import { useAuth } from '@/lib/AuthContext'
 import RecipeEditModal from '@/components/RecipeEditModal'
 import CookingMode from '@/components/CookingMode'
@@ -42,10 +42,10 @@ export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { user } = useAuth()
-  const { isFavorite, toggle } = useFavorites()
+  const { metas, toggleFavorite: toggle, isFavorite, refetchMetas, refetchRecipes, refetchCookingHistory } = useAppData()
 
   const [recipe, setRecipe] = useState<Recipe | null>(null)
-  const [meta, setMeta] = useState<RecipeMeta | null>(null)
+  const meta = id ? (metas[id as string] || null) : null
   const [loading, setLoading] = useState(true)
   const [note, setNote] = useState('')
   const [rating, setRating] = useState(0)
@@ -77,11 +77,11 @@ export default function RecipeDetailPage() {
   }, [id])
 
   useEffect(() => {
-    if (!user || !id) return
-    getRecipeMeta(user.uid, id).then(m => {
-      if (m) { setMeta(m); setNote(m.note || ''); setRating(m.rating || 0) }
-    })
-  }, [user, id])
+    if (meta) {
+      setNote(meta.note || '')
+      setRating(meta.rating || 0)
+    }
+  }, [meta])
 
   // Warn on tab close if notes are unsaved
   const notesDirty = note !== (meta?.note || '') || rating !== (meta?.rating || 0)
@@ -115,6 +115,7 @@ export default function RecipeDetailPage() {
     setSaveSuccess(false)
     try {
       await saveRecipeMeta(user.uid, id, { note, rating })
+      await refetchMetas()
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } catch (e: any) {
@@ -129,14 +130,9 @@ export default function RecipeDetailPage() {
   // (and any cooked-capture below) recompute live from the shared nutrition.total.
   const handleSetServings = async (servings: number | null) => {
     if (!user || !id) return
-    setMeta(prev => {
-      const overrides = { ...(prev?.overrides || {}) }
-      if (servings == null) delete overrides.servings
-      else overrides.servings = servings
-      return { ...(prev || {}), overrides: Object.keys(overrides).length ? overrides : undefined }
-    })
     try {
       await setServingsOverride(user.uid, id, servings)
+      await refetchMetas()
     } catch {
       /* best-effort — the live view already reflects the user's intent */
     }
@@ -153,6 +149,7 @@ export default function RecipeDetailPage() {
     if (!user || !recipe || !selectedWeek) return
     setAddingToPlan(true)
     await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
+    await refetchCookingHistory()
     setAddingToPlan(false)
     setPlanAddedLabel(formatWeekLabel(selectedWeek))
     setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)
@@ -166,6 +163,7 @@ export default function RecipeDetailPage() {
     setRecipe(prev => prev ? { ...prev, defaultRole: role } : prev)
     try {
       await setRecipeDefaultRole(recipe.id, role)
+      await refetchRecipes()
     } catch {
       /* best-effort — the live view already reflects the user's choice */
     } finally {
@@ -179,6 +177,7 @@ export default function RecipeDetailPage() {
     setDeleteError('')
     try {
       await deleteRecipe(recipe.id)
+      await refetchRecipes()
       router.push('/recipes')
     } catch (e: any) {
       setDeleteError(e?.message || 'Failed to delete recipe')
@@ -707,7 +706,7 @@ export default function RecipeDetailPage() {
           recipe={recipe}
           meta={meta}
           onClose={() => setShowEdit(false)}
-          onSaved={updatedMeta => setMeta(updatedMeta)}
+          onSaved={() => refetchMetas()}
           onNutritionSaved={(nutrition: RecipeNutrition) =>
             setRecipe(r => (r ? { ...r, nutrition, servings: nutrition.servings ?? r.servings } : r))
           }

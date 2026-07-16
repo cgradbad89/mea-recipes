@@ -4,9 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import Fuse from 'fuse.js'
 import { Heart, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
-import { useFavorites } from '@/hooks/useFavorites'
-import { useRecipeMetas } from '@/hooks/useRecipeMetas'
-import { getAllRecipes, getTotalTime } from '@/lib/recipes'
+import { useAppData } from '@/components/AppDataProvider'
+import { getTotalTime } from '@/lib/recipes'
 import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
@@ -30,10 +29,8 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
 
 export default function FavoritesPage() {
   const { user } = useAuth()
-  const { favorites, loaded } = useFavorites()
-  const metas = useRecipeMetas()
-  const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
-  const [loadingRecipes, setLoadingRecipes] = useState(true)
+  const { favorites, favoritesLoading, metas, recipes: allRecipes, recipesLoading } = useAppData()
+  const loaded = !favoritesLoading
 
   const [search, setSearch] = useState(() => readLS('mea_favorites_search', ''))
   const [cuisine, setCuisine] = useState<string[]>(() => {
@@ -72,12 +69,6 @@ export default function FavoritesPage() {
     } catch {}
   }, [search, cuisine, category, minRating, source, sort, filter, timeFilter])
 
-  useEffect(() => {
-    getAllRecipes().then(r => {
-      setAllRecipes(r)
-      setLoadingRecipes(false)
-    })
-  }, [])
 
   // Lazy load cooked recently IDs when that filter is selected
   useEffect(() => {
@@ -188,7 +179,7 @@ export default function FavoritesPage() {
     { value: 'cookedRecently', label: 'Cooked recently', requiresAuth: true },
   ]
 
-  const loading = loadingRecipes || !loaded
+  const loading = recipesLoading || !loaded
 
   if (!user) {
     return (

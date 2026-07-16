@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Fuse from 'fuse.js'
-import { getAllRecipes, getTotalTime } from '@/lib/recipes'
+import { getTotalTime } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
-import { useRecipeMetas } from '@/hooks/useRecipeMetas'
+import { useAppData } from '@/components/AppDataProvider'
 import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
@@ -67,9 +67,7 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
 
 export default function RecipesPage() {
   const { user } = useAuth()
-  const metas = useRecipeMetas()
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [loading, setLoading] = useState(true)
+  const { metas, recipes, recipesLoading: loading } = useAppData()
   const [search, setSearch] = useState(() => readLS('mea_recipes_search', ''))
   const [cuisine, setCuisine] = useState<string[]>(() => {
     const val = readLS<string>('mea_recipes_cuisine', 'All')
@@ -111,9 +109,6 @@ export default function RecipesPage() {
   // (fallback 'all') above, and the user's manual choice persists per browser.
   // Signed-in users are no longer auto-switched to "Added by me" on first load.
 
-  useEffect(() => {
-    getAllRecipes().then(r => { setRecipes(r); setLoading(false) })
-  }, [])
 
   // Lazy load cooked recently IDs when that filter is selected
   useEffect(() => {

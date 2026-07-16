@@ -10,7 +10,7 @@ export type LogEntryType = 'recipe' | 'quick_food' | 'manual'
 // 'openfoodfacts' / 'usda_branded' are packaged-product sources from the barcode
 // lookup (app/api/barcode-lookup) — a scanned product logs as a quick_food whose
 // source reflects which provider answered. See lib/nutritionEngine lookupFoodByBarcode.
-export type LogSource = 'recipe' | 'usda' | 'ai_estimate' | 'manual' | 'openfoodfacts' | 'usda_branded'
+export type LogSource = 'recipe' | 'usda' | 'ai_estimate' | 'manual' | 'openfoodfacts' | 'usda_branded' | 'mfp'
 
 /**
  * One consumed item. Firestore path: users/{uid}/nutrition/root/log/{entryId}

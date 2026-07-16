@@ -25,7 +25,7 @@ import { useAuth } from '@/lib/AuthContext'
 import {
   addLogEntry, saveFavorite, getSavedFoods, getRecents, autoMealForTime, scaleMacros,
 } from '@/lib/consumptionLog'
-import { getAllRecipes } from '@/lib/recipes'
+import { useAppData } from '@/components/AppDataProvider'
 import {
   perServingOf, sourceLabel, NUTRIENTS, formatNutrient, lookupBarcode,
   prettyAmount, gramsFromServingLabel, servingContextLines, type ServingContext,
@@ -213,8 +213,8 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
   const lookupSeq = useRef(0)
 
   // mode 2 — my recipes
-  const [recipes, setRecipes] = useState<Recipe[]>([])
-  const [recipesLoading, setRecipesLoading] = useState(true)
+  const { recipes: allRecipes, recipesLoading } = useAppData()
+  const recipes = useMemo(() => allRecipes.filter(r => perServingOf(r.nutrition)), [allRecipes])
   const [recipeQuery, setRecipeQuery] = useState('')
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null)
 
@@ -272,11 +272,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     ]).then(() => setHistoryLoaded(true))
   }, [user])
 
-  useEffect(() => {
-    getAllRecipes()
-      .then(list => setRecipes(list.filter(r => perServingOf(r.nutrition))))
-      .finally(() => setRecipesLoading(false))
-  }, [])
+
 
   // debounced USDA lookup (mode 1)
   useEffect(() => {
