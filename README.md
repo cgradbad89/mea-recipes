@@ -74,15 +74,46 @@ service cloud.firestore {
 
 ### 4. Run locally
 
+**Option A: Run against Production** (Default)
 ```bash
 npm run dev
 ```
 
+**Option B: Run against Local Firebase Emulators**
+To avoid affecting production data during local development, you can start the Firebase emulator suite alongside Next.js:
+
+```bash
+npm run dev:emulator
+```
+This uses the `NEXT_PUBLIC_USE_FIRESTORE_EMULATOR=true` environment flag to tell the app to connect to `127.0.0.1:8080` (Firestore) and `127.0.0.1:9099` (Auth).
+
+> **Note:** The emulator starts **empty** by default (no recipes, no user data). To test with realistic data, you must manually export from production and import into the emulator. You can export production data using `firebase emulators:export ./emulator-data` (requires Firebase CLI logged into the production project).
+
+> **Vercel Warning:** Never set `NEXT_PUBLIC_USE_FIRESTORE_EMULATOR=true` in Vercel production environments, otherwise the live app will attempt to connect to localhost emulators and fail.
+
+> **🚨 DEPLOYMENT DANGER:** `firebase.json` in this repo must **never** have a `"firestore"` key added to it (which would define rules/indexes deploy targets). Firestore security rules and indexes for the `malignant-metro` project are shared across multiple apps and are managed exclusively via a manual paste into the Firebase Console. Running `firebase deploy` (unscoped, or with `--only firestore`) from this repo could overwrite and clobber rules/indexes relied on by other apps.
+
 Open [http://localhost:3000](http://localhost:3000)
+
+## MyFitnessPal Integration
+
+To keep your MyFitnessPal food diary synced with the app, a Vercel Cron Job runs nightly. Since MFP has no public API, this uses your actual session credentials. When your session expires, you must manually update these environment variables in Vercel:
+
+1. **Log into MyFitnessPal** in your browser.
+2. Open **Developer Tools** -> **Network** tab.
+3. Filter by `fetch/XHR` and reload the "Diary" page.
+4. Click on a request starting with `diary?entry_date=...`
+5. Look at the **Request Headers** and copy these values into your Vercel Project Environment Variables:
+   - `MFP_ACCESS_TOKEN`: The token from the `Authorization: Bearer <TOKEN>` header.
+   - `MFP_USER_ID`: The numeric ID from the `mfp-user-id` header.
+   - `MFP_SESSION_COOKIE`: The entire string from the `Cookie` header.
+6. Make sure `MFP_SYNC_UID` is set to your Firebase Authentication UID.
+7. Make sure `CRON_SECRET` matches between your Vercel env and the cron auth check.
 
 ## Deploy to Vercel
 
 ### Option A — Vercel CLI
+
 
 ```bash
 npm install -g vercel
