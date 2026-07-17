@@ -106,8 +106,13 @@ To keep your MyFitnessPal food diary synced with the app, a Vercel Cron Job runs
 5. Look at the **Request Headers** and copy these values into your Vercel Project Environment Variables:
    - `MFP_SESSION_COOKIE`: The entire string from the `cookie` header.
    - `MFP_CSRF_TOKEN`: The token from the `x-csrf-token` header. Note: This token may expire on a different cadence than the session cookie. Both need to be refreshed together if the sync starts failing.
+   - `MFP_USER_AGENT`: The exact `user-agent` header from that same request. Copying it from the real browser session (rather than hardcoding one) keeps the request consistent with the captured cookie/token, and lets you update it without a code deploy.
 6. Make sure `MFP_SYNC_UID` is set to your Firebase Authentication UID.
 7. Make sure `CRON_SECRET` matches between your Vercel env and the cron auth check.
+
+> **Trigger mode:** the sync route ships with **no cron schedule** in `vercel.json` — it is manual-trigger-only (call the route with the `Authorization: Bearer $CRON_SECRET` header) until idempotency has been confirmed. Add a `crons` entry to `vercel.json` only after verifying a double-trigger produces no duplicate entries.
+>
+> Optional: set `MFP_DEBUG=true` in Vercel to enable verbose troubleshooting logs (env-var presence flags, lengths, fetch URL and header keys — never secret values). Leave it unset for normal quiet operation.
 
 ## Deploy to Vercel
 

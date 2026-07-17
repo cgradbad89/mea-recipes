@@ -32,25 +32,36 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Gate verbose troubleshooting logs behind an env flag so an unattended job
+  // stays quiet in normal operation but can be made chatty without a redeploy.
+  const DEBUG = process.env.MFP_DEBUG === 'true'
+
   const uid = process.env.MFP_SYNC_UID
   const sessionCookie = process.env.MFP_SESSION_COOKIE
   const csrfToken = process.env.MFP_CSRF_TOKEN
+  const userAgent = process.env.MFP_USER_AGENT
 
-  console.log('DEBUG MFP ENV VARS:', {
-    MFP_SYNC_UID_present: !!uid,
-    MFP_SESSION_COOKIE_present: !!sessionCookie,
-    MFP_CSRF_TOKEN_present: !!csrfToken,
-  })
+  if (DEBUG) {
+    console.log('DEBUG MFP ENV VARS:', {
+      MFP_SYNC_UID_present: !!uid,
+      MFP_SESSION_COOKIE_present: !!sessionCookie,
+      MFP_CSRF_TOKEN_present: !!csrfToken,
+      MFP_USER_AGENT_present: !!userAgent,
+    })
+  }
 
-  if (!uid || !sessionCookie || !csrfToken) {
-    console.error('Missing required environment variables for MFP sync (MFP_SYNC_UID, MFP_SESSION_COOKIE, MFP_CSRF_TOKEN)')
+  if (!uid || !sessionCookie || !csrfToken || !userAgent) {
+    console.error('Missing required environment variables for MFP sync (MFP_SYNC_UID, MFP_SESSION_COOKIE, MFP_CSRF_TOKEN, MFP_USER_AGENT)')
     return NextResponse.json({ error: 'Configuration Error' }, { status: 500 })
   }
 
-  console.log('DEBUG MFP ENV VAR LENGTHS:', {
-    cookieLen: sessionCookie.length,
-    csrfTokenLen: csrfToken.length
-  })
+  if (DEBUG) {
+    console.log('DEBUG MFP ENV VAR LENGTHS:', {
+      cookieLen: sessionCookie.length,
+      csrfTokenLen: csrfToken.length,
+      userAgentLen: userAgent.length,
+    })
+  }
 
   // Determine target dates: yesterday and today (Anchored to Eastern Time)
   const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
@@ -65,16 +76,16 @@ export async function GET(request: Request) {
   for (const date of datesToFetch) {
     try {
       const url = `https://api.myfitnesspal.com/v2/diary?entry_date=${date}&types=diary_meal,water,exercise&fields[]=nutritional_contents`
-      console.log(`DEBUG MFP FETCH URL for ${date}:`, url)
-      
+      if (DEBUG) console.log(`DEBUG MFP FETCH URL for ${date}:`, url)
+
       const fetchHeaders = {
         'Cookie': sessionCookie,
         'x-csrf-token': csrfToken,
         'mfp-client-id': 'mfp-web',
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': userAgent,
       }
-      console.log('DEBUG MFP FETCH HEADERS:', Object.keys(fetchHeaders))
+      if (DEBUG) console.log('DEBUG MFP FETCH HEADERS:', Object.keys(fetchHeaders))
 
       const res = await fetch(url, { headers: fetchHeaders })
 
