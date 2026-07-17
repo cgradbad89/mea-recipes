@@ -36,6 +36,12 @@ export async function GET(request: Request) {
   const sessionCookie = process.env.MFP_SESSION_COOKIE
   const csrfToken = process.env.MFP_CSRF_TOKEN
 
+  console.log('DEBUG MFP ENV VARS:', {
+    MFP_SYNC_UID_present: !!uid,
+    MFP_SESSION_COOKIE_present: !!sessionCookie,
+    MFP_CSRF_TOKEN_present: !!csrfToken,
+  })
+
   if (!uid || !sessionCookie || !csrfToken) {
     console.error('Missing required environment variables for MFP sync (MFP_SYNC_UID, MFP_SESSION_COOKIE, MFP_CSRF_TOKEN)')
     return NextResponse.json({ error: 'Configuration Error' }, { status: 500 })
