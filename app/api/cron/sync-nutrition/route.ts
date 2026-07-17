@@ -47,6 +47,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Configuration Error' }, { status: 500 })
   }
 
+  console.log('DEBUG MFP ENV VAR LENGTHS:', {
+    cookieLen: sessionCookie.length,
+    csrfTokenLen: csrfToken.length
+  })
+
   // Determine target dates: yesterday and today (Anchored to Eastern Time)
   const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' })
   const now = new Date()
@@ -60,21 +65,26 @@ export async function GET(request: Request) {
   for (const date of datesToFetch) {
     try {
       const url = `https://api.myfitnesspal.com/v2/diary?entry_date=${date}&types=diary_meal,water,exercise&fields[]=nutritional_contents`
-      const res = await fetch(url, {
-        headers: {
-          'Cookie': sessionCookie,
-          'x-csrf-token': csrfToken,
-          'mfp-client-id': 'mfp-web',
-          'Accept': 'application/json'
-        }
-      })
+      console.log(`DEBUG MFP FETCH URL for ${date}:`, url)
+      
+      const fetchHeaders = {
+        'Cookie': sessionCookie,
+        'x-csrf-token': csrfToken,
+        'mfp-client-id': 'mfp-web',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+      console.log('DEBUG MFP FETCH HEADERS:', Object.keys(fetchHeaders))
+
+      const res = await fetch(url, { headers: fetchHeaders })
 
       if (!res.ok) {
         const errorText = await res.text()
+        console.error('MFP API Error Body:', errorText)
         if (res.status === 401 || res.status === 403) {
-          console.error(`MFP API Error ${res.status}: session cookie or CSRF token likely expired.`, errorText)
+          console.error(`MFP API Error ${res.status}: session cookie or CSRF token likely expired.`)
         } else {
-          console.error(`MFP API responded with ${res.status} for date ${date}:`, errorText)
+          console.error(`MFP API responded with ${res.status} for date ${date}`)
         }
         return NextResponse.json({ error: `MFP API Error: ${res.status}` }, { status: 502 })
       }
