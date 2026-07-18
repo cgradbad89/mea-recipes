@@ -97,16 +97,23 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## MyFitnessPal Integration
 
-To keep your MyFitnessPal food diary synced with the app, a Vercel Cron Job runs nightly. Since MFP has no public API, this uses your actual session credentials. When your session expires, you must manually update these environment variables in Vercel:
+To keep your MyFitnessPal food diary synced with the app, the sync route
+**scrapes the classic diary page HTML** —
+`https://www.myfitnesspal.com/food/diary/{MFP_USERNAME}?date=YYYY-MM-DD` — and
+parses the nutrition table out of the raw response (no documented API is
+involved). Since MFP has no public API, this uses your actual session cookie.
+When your session expires, you must manually update these environment variables
+in Vercel:
 
-1. **Log into MyFitnessPal** in your browser.
-2. Open **Developer Tools** -> **Network** tab.
-3. Filter by `fetch/XHR` and reload the "Diary" page.
-4. Click on a request starting with `diary?entry_date=...`
+1. **Log into MyFitnessPal** in your browser and open your food **Diary**.
+2. Note the username in the diary URL (`.../food/diary/<username>`) — that's
+   `MFP_USERNAME`.
+3. Open **Developer Tools** -> **Network** tab and reload the Diary page.
+4. Click the top-level document request for `food/diary/...`.
 5. Look at the **Request Headers** and copy these values into your Vercel Project Environment Variables:
    - `MFP_SESSION_COOKIE`: The entire string from the `cookie` header.
-   - `MFP_CSRF_TOKEN`: The token from the `x-csrf-token` header. Note: This token may expire on a different cadence than the session cookie. Both need to be refreshed together if the sync starts failing.
-   - `MFP_USER_AGENT`: The exact `user-agent` header from that same request. Copying it from the real browser session (rather than hardcoding one) keeps the request consistent with the captured cookie/token, and lets you update it without a code deploy.
+   - `MFP_USER_AGENT`: The exact `user-agent` header from that same request. Copying it from the real browser session (rather than hardcoding one) keeps the request consistent with the captured cookie, and lets you update it without a code deploy.
+   - `MFP_USERNAME`: The username path segment from step 2.
 6. Make sure `MFP_SYNC_UID` is set to your Firebase Authentication UID.
 7. Make sure `CRON_SECRET` matches between your Vercel env and the cron auth check.
 

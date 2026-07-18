@@ -481,6 +481,15 @@ otherwise unchanged.
   admin vars. The Anthropic key must be set in Vercel project env vars for AI features to work.
 - **Firebase web config is hardcoded** in `lib/firebase.ts` (apiKey, project, appId). This is
   normal for Firebase web apps but means the client config is committed, not env-driven.
+- **MFP nutrition sync is HTML scraping, not an API — validate before wiping.** `app/api/cron/sync-nutrition`
+  fetches the classic diary page and parses it with `cheerio`; food rows are selected by
+  `a[data-food-entry-id]`, nutrients by fixed column position (Calories, Carbs, Fat, Protein, Fiber,
+  Sugar). It is inherently fragile to MFP markup changes. Guard rail: an expired session redirects to
+  login (a page with **no `tr.meal_header`**), so the route treats "zero meal_header rows" as a hard
+  error and returns **before** the Firestore wipe-and-replace — a broken fetch must never look like an
+  empty day. Both target dates are fetched + validated before any delete. The old v2-JSON-API path and
+  `MFP_CSRF_TOKEN`/`mfp-client-id` header were the wrong endpoint (registered-partner OAuth API) and
+  are gone.
 - **Password login needs the Email/Password provider enabled in the Firebase console (Batch 7).**
   The linking flow, the login-screen email/password sign-in, and password reset all throw
   `auth/operation-not-allowed` until **Authentication → Sign-in method → Email/Password** is enabled
@@ -636,6 +645,7 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | Firebase Admin | Server-side ID-token verification in API routes | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` |
 | Anthropic API | AI recipe generation, parsing, grocery cleanup, recommendations | `ANTHROPIC_API_KEY` (set in Vercel; **not** in local `.env.local`) |
 | Google Calendar API | Push meal-plan days as calendar events (Batch 6) | **No stored credential.** Client-obtained OAuth access token (`calendar.events` scope) via Firebase Google sign-in re-auth popup. Requires the Calendar API **enabled** + the scope on the **OAuth consent screen** in the `malignant-metro` GCP project. |
+| MyFitnessPal (nutrition sync) | Nightly-capable import of the food diary into `users/{uid}/nutrition/root/log` (`source: 'mfp'`). **No API** — `app/api/cron/sync-nutrition` scrapes the classic diary page HTML (`/food/diary/{MFP_USERNAME}?date=…`) with `cheerio`. | `MFP_SYNC_UID`, `MFP_SESSION_COOKIE`, `MFP_USER_AGENT`, `MFP_USERNAME`, `CRON_SECRET`; optional `MFP_DEBUG`. Session cookie expires periodically → refresh manually in Vercel. (`MFP_CSRF_TOKEN` is no longer used by code.) |
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |
 
 AI model in use across all routes: `claude-sonnet-4-20250514`, REST Messages API,
