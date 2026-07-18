@@ -75,7 +75,16 @@ export async function GET(request: Request) {
 
   for (const date of datesToFetch) {
     try {
-      const url = `https://api.myfitnesspal.com/v2/diary?entry_date=${date}&types=diary_meal,water,exercise&fields[]=nutritional_contents`
+      // Build the query with URLSearchParams so the square brackets in
+      // `fields[]` are percent-encoded (fields%5B%5D=...). A raw template
+      // literal leaves the brackets unencoded, which MFP rejects with
+      // "Illegal request-target, unexpected character '['".
+      const params = new URLSearchParams({
+        entry_date: date,
+        types: 'diary_meal,water,exercise',
+      })
+      params.append('fields[]', 'nutritional_contents')
+      const url = `https://api.myfitnesspal.com/v2/diary?${params.toString()}`
       if (DEBUG) console.log(`DEBUG MFP FETCH URL for ${date}:`, url)
 
       const fetchHeaders = {
