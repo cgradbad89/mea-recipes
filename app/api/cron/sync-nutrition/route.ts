@@ -45,6 +45,61 @@ function parseNutrientNumber(raw: string): number {
   return Number.isFinite(n) ? n : 0
 }
 
+// ── Header-name-based column resolution ──────────────────────────────────────
+// MFP's diary columns are USER-CONFIGURABLE (the stock default has Sodium where
+// this account shows Fiber), so macro cells are mapped by the meal_header label
+// row's NAMES — never by fixed position. A layout change then yields missing
+// columns (written as 0) instead of silently mis-filed nutrients.
+
+const MACRO_FIELDS = ['calories', 'carbs_g', 'fat_g', 'protein_g', 'fiber_g', 'sugar_g'] as const
+type MacroField = (typeof MACRO_FIELDS)[number]
+
+// Case-insensitive, whitespace-normalised label → target field. Includes the
+// obvious variants MFP has used; unknown labels (Sodium, Cholesterol…) simply
+// don't match and their columns are ignored.
+const HEADER_FIELD_ALIASES: Record<string, MacroField> = {
+  calories: 'calories', cals: 'calories',
+  carbs: 'carbs_g', carbohydrates: 'carbs_g',
+  fat: 'fat_g',
+  protein: 'protein_g',
+  fiber: 'fiber_g', fibre: 'fiber_g',
+  sugar: 'sugar_g', sugars: 'sugar_g',
+}
+
+// Lowercase, drop parenthesised suffixes ("Carbs (g)"), collapse whitespace.
+function normalizeHeaderLabel(raw: string): string {
+  return raw.toLowerCase().replace(/\(.*?\)/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+interface ResolvedColumn { header: string; index: number }
+type ColumnMapping = Record<MacroField, ResolvedColumn | null>
+
+/**
+ * Resolve the diary's column layout from the first meal_header row, whose cells
+ * carry the nutrient column labels ([0] = meal name, [1..] = nutrient names).
+ * Returns null when the header row is missing or no label is recognisable —
+ * the caller MUST abort on null; positional fallback is deliberately absent.
+ */
+function resolveColumnMapping($: cheerio.CheerioAPI): ColumnMapping | null {
+  const headerCells = $('tr.meal_header').first().children('td')
+  if (headerCells.length < 2) return null
+
+  const mapping = Object.fromEntries(MACRO_FIELDS.map(f => [f, null])) as ColumnMapping
+  let matched = 0
+  headerCells.each((i, td) => {
+    if (i === 0) return   // meal-name cell, not a nutrient column
+    const header = $(td).text().replace(/\s+/g, ' ').trim()
+    const norm = normalizeHeaderLabel(header)
+    // Exact alias first, then the first word ("Calories kcal" → "calories").
+    const field = HEADER_FIELD_ALIASES[norm] ?? HEADER_FIELD_ALIASES[norm.split(' ')[0]]
+    if (field && !mapping[field]) {
+      mapping[field] = { header, index: i }
+      matched++
+    }
+  })
+  return matched === 0 ? null : mapping
+}
+
 // One parsed diary food row, before it is mapped into a ConsumptionEntry.
 interface ParsedFoodItem {
   date: string
@@ -111,6 +166,10 @@ export async function GET(request: Request) {
   // never reach the wipe-and-replace step and masquerade as an empty day.
   const allItems: ParsedFoodItem[] = []
 
+  // Per-date resolved header→field mapping, echoed in the response so a manual
+  // trigger shows exactly which diary columns were matched.
+  const columnMappingByDate: Record<string, ColumnMapping> = {}
+
   for (const date of datesToFetch) {
     try {
       // Classic diary page — the nutrition data is present directly in the raw
@@ -154,6 +213,16 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'MFP session invalid (no diary content)' }, { status: 502 })
       }
 
+      // Resolve the diary's nutrient columns BY HEADER NAME. Unresolvable ⇒
+      // hard abort: loudly failing beats silently writing misaligned nutrients.
+      const columnMapping = resolveColumnMapping($)
+      if (!columnMapping) {
+        console.error(`MFP diary for ${date}: could not resolve any nutrient column from the meal_header label row. Aborting — positional fallback is deliberately not attempted.`)
+        return NextResponse.json({ error: 'MFP diary header row unrecognised — aborted before any write' }, { status: 502 })
+      }
+      columnMappingByDate[date] = columnMapping
+      if (DEBUG) console.log(`DEBUG MFP COLUMN MAPPING for ${date}:`, columnMapping)
+
       // Walk every table row in document order, tracking the current meal by the
       // most recent meal_header seen, so each food row is attributed correctly.
       let currentMeal: Meal = 'snack'
@@ -175,11 +244,14 @@ export async function GET(request: Request) {
         const nameServing = foodAnchor.text().replace(/\s+/g, ' ').trim()
 
         // Direct-child cells only, to avoid picking up any nested-table tds.
-        // Column order matches the meal_header labels:
-        // [0] food name, [1] Calories, [2] Carbs, [3] Fat, [4] Protein, [5] Fiber, [6] Sugar.
+        // Cell indices come from the resolved header mapping (food-row tds align
+        // 1:1 with the meal_header label cells). A field whose column is absent
+        // from this diary layout writes 0 — values are never shifted sideways.
         const tds = $tr.children('td')
-        const cellValue = (i: number): number => {
-          const cell = tds.eq(i)
+        const macroValue = (field: MacroField): number => {
+          const col = columnMapping[field]
+          if (!col) return 0
+          const cell = tds.eq(col.index)
           // Some columns wrap the number in `.macro-value` alongside a
           // `.macro-percentage`; others put it as plain text in the td. Prefer
           // the macro-value span so the percentage never leaks into the number.
@@ -193,12 +265,12 @@ export async function GET(request: Request) {
           meal: currentMeal,
           nameServing,
           nutrition: {
-            calories: cellValue(1),
-            carbs_g: cellValue(2),
-            fat_g: cellValue(3),
-            protein_g: cellValue(4),
-            fiber_g: cellValue(5),
-            sugar_g: cellValue(6),
+            calories: macroValue('calories'),
+            carbs_g: macroValue('carbs_g'),
+            fat_g: macroValue('fat_g'),
+            protein_g: macroValue('protein_g'),
+            fiber_g: macroValue('fiber_g'),
+            sugar_g: macroValue('sugar_g'),
           },
         })
       })
@@ -274,5 +346,8 @@ export async function GET(request: Request) {
     dates: datesToFetch,
     deletedOldItems: deleteCount,
     syncedNewItems: writeCount,
+    // Which diary column each macro field was read from (per fetched date);
+    // a null field means that column is absent and it was written as 0.
+    columnMapping: columnMappingByDate,
   })
 }

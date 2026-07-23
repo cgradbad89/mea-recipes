@@ -189,7 +189,28 @@ function MacroGrid({ macros }: { macros: NutritionMacros }) {
   )
 }
 
-export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => void; onLogged?: () => void }) {
+/**
+ * The calendar day a confirmed entry should be dated to. When the caller's
+ * viewed day IS the current day (or no day was given) we keep the exact "now"
+ * timestamp (preserves in-day ordering); any other viewed day logs at noon of
+ * that day — safely inside its dayBounds query window and DST-proof.
+ */
+function resolveEntryDate(logDate: Date | undefined): Date | undefined {
+  if (!logDate) return undefined
+  const now = new Date()
+  const sameDay =
+    logDate.getFullYear() === now.getFullYear() &&
+    logDate.getMonth() === now.getMonth() &&
+    logDate.getDate() === now.getDate()
+  if (sameDay) return undefined
+  return new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate(), 12, 0, 0)
+}
+
+export default function LogFoodSheet({ logDate, onClose, onLogged }: {
+  logDate?: Date            // viewed day to write entries to (defaults to now)
+  onClose: () => void
+  onLogged?: () => void
+}) {
   const { user } = useAuth()
   const [mode, setMode] = useState<Mode>('saved')
 
@@ -813,25 +834,27 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
     // The multiplier scales whatever basis the item carries (per serving, or per
     // 100 g for grams-only items); amount.label records what the user entered.
     const mult = amount.multiplier
+    // Entries land on the day the user is VIEWING, not on "now" — see resolveEntryDate.
+    const date = resolveEntryDate(logDate)
     try {
       if (mode === 'search' && result) {
         await addLogEntry(user.uid, {
           meal, type: 'quick_food', is_cook_event: false, recipe_id: null,
           name: result.name, servings_eaten: mult, amount_label: amount.label,
-          nutrition: scaleMacros(result.nutrition, mult), source: result.source,
+          nutrition: scaleMacros(result.nutrition, mult), source: result.source, date,
         })
       } else if (mode === 'recipes' && selectedRecipe && selectedRecipePer) {
         // leftover/eat-a-serving path: log only — plan & cooked state untouched
         await addLogEntry(user.uid, {
           meal, type: 'recipe', is_cook_event: false, recipe_id: selectedRecipe.id,
           name: selectedRecipe.title, servings_eaten: mult, amount_label: amount.label,
-          nutrition: scaleMacros(selectedRecipePer, mult), source: 'recipe',
+          nutrition: scaleMacros(selectedRecipePer, mult), source: 'recipe', date,
         })
       } else if (mode === 'manual' && manualPerServing) {
         await addLogEntry(user.uid, {
           meal, type: 'manual', is_cook_event: false, recipe_id: null,
           name: manualName.trim(), servings_eaten: mult, amount_label: amount.label,
-          nutrition: scaleMacros(manualPerServing, mult), source: 'manual',
+          nutrition: scaleMacros(manualPerServing, mult), source: 'manual', date,
         })
       } else if (mode === 'scan' && scanHit) {
         // per_100g items scale by grams/100 (grams-only entry); per_serving by the
@@ -839,7 +862,7 @@ export default function LogFoodSheet({ onClose, onLogged }: { onClose: () => voi
         await addLogEntry(user.uid, {
           meal, type: 'quick_food', is_cook_event: false, recipe_id: null,
           name: scanHit.name, servings_eaten: mult, amount_label: amount.label,
-          nutrition: scaleMacros(scanHit.nutrition, mult), source: scanHit.source,
+          nutrition: scaleMacros(scanHit.nutrition, mult), source: scanHit.source, date,
         })
       }
       setLoggedOk(true)

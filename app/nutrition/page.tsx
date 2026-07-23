@@ -5,11 +5,14 @@
 // "＋ Log food" (opens the existing LogFoodSheet) and "Goals" (GoalsModal) —
 // available from both tabs. See nutrition-tracker-spec.md, Surface 4 + UI Shell.
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Apple, Plus, Target, Trash2, Pencil, Check, X, ChefHat, Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
+import {
+  Apple, Plus, Target, Trash2, Pencil, Check, X, ChefHat, Loader2,
+  ChevronLeft, ChevronRight, TriangleAlert,
+} from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import {
-  getTodayEntries, getGoals, deleteLogEntry, updateLogEntryServings,
+  getEntriesForRange, dayBounds, getGoals, deleteLogEntry, updateLogEntryServings,
 } from '@/lib/consumptionLog'
 import { NUTRIENTS, formatNutrient, sourceLabel } from '@/lib/nutrition'
 import GoalRing, { type RingKind } from '@/components/GoalRing'
@@ -23,6 +26,20 @@ type Tab = 'today' | 'insights'
 
 const MEAL_ORDER: Meal[] = ['breakfast', 'lunch', 'snack', 'dinner']
 
+// An entry whose `meal` is missing or unrecognised files under 'uncategorized'
+// — rendered as its own section AFTER the known meals so bad data stays
+// visible instead of silently masquerading as dinner. Empty → not rendered.
+type MealBucket = Meal | 'uncategorized'
+const BUCKET_ORDER: MealBucket[] = [...MEAL_ORDER, 'uncategorized']
+
+// MFP sync staleness: if no source==='mfp' entry exists anywhere in the most
+// recent N days (today inclusive), the daily cron has likely stopped producing
+// data (expired session cookie) and a dismissible banner says so. Derived from
+// the same single range fetch the Today view already makes — never stored,
+// never a separate query.
+const MFP_STALE_AFTER_DAYS = 2
+const MFP_BANNER_DISMISS_KEY = 'nutrition-mfp-stale-dismissed'
+
 // Floors fill toward a target; ceilings warn when exceeded. Per the prompt:
 // protein & fiber are floors; calories, carbs, fat & sugar are ceilings.
 const CEILING_KEYS = new Set<keyof NutritionMacros>(['calories', 'carbs_g', 'fat_g', 'sugar_g'])
@@ -35,6 +52,28 @@ function dayElapsedFraction(): number {
   return Math.min(Math.max(f, 0), 1)
 }
 
+// ── Local-calendar-day helpers for the viewed-day navigation ────────────────
+
+function startOfLocalDay(d: Date): Date {
+  const x = new Date(d); x.setHours(0, 0, 0, 0); return x
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d); x.setDate(x.getDate() + n); return x
+}
+
+/** Readable label for a non-today viewed day, e.g. "Wed, Jul 22" (year added when it differs). */
+function viewedDayLabel(d: Date): string {
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric' }
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric'
+  return d.toLocaleDateString(undefined, opts)
+}
+
+function entryDateMillis(e: ConsumptionEntry): number {
+  const d = e.date as { toMillis?: () => number } | null | undefined
+  return d?.toMillis ? d.toMillis() : 0
+}
+
 const ZERO: NutritionMacros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
 
 export default function NutritionPage() {
@@ -43,16 +82,41 @@ export default function NutritionPage() {
   const [showLogFood, setShowLogFood] = useState(false)
   const [showGoals, setShowGoals] = useState(false)
 
+  // The calendar day the Today tab shows (midnight-anchored, local time).
+  // Back has no lower bound; forward deliberately goes past today (empty
+  // future days are fine). Logging writes to this day, not to "now".
+  const [viewedDate, setViewedDate] = useState<Date>(() => startOfLocalDay(new Date()))
+
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
   const [goals, setGoals] = useState<NutritionGoals | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // MFP sync staleness (see MFP_STALE_AFTER_DAYS). Assessed only from the
+  // today-anchored fetch; day navigation neither sets nor clears it.
+  const [mfpStale, setMfpStale] = useState(false)
+  const [mfpBannerDismissed, setMfpBannerDismissed] = useState(() =>
+    typeof window !== 'undefined' && window.sessionStorage.getItem(MFP_BANNER_DISMISS_KEY) === '1')
+
+  // Guards rapid day-switching: only the most recent fetch may write state.
+  const fetchSeq = useRef(0)
+
   const refresh = useCallback(async () => {
     if (!user) return
-    const [e, g] = await Promise.all([getTodayEntries(user.uid), getGoals(user.uid)])
-    setEntries(e)
+    const seq = ++fetchSeq.current
+    const { start, end } = dayBounds(viewedDate)
+    const todayStart = startOfLocalDay(new Date())
+    const viewingToday = start.getTime() === todayStart.getTime()
+    // When viewing today, widen the SAME single range query backward to cover
+    // the MFP staleness window (yesterday + today for N=2) so the sync banner
+    // is derived with no extra Firestore query. Display still filters to the
+    // viewed day only.
+    const fetchStart = viewingToday ? addDays(todayStart, -(MFP_STALE_AFTER_DAYS - 1)) : start
+    const [all, g] = await Promise.all([getEntriesForRange(user.uid, fetchStart, end), getGoals(user.uid)])
+    if (seq !== fetchSeq.current) return
+    setEntries(viewingToday ? all.filter(e => entryDateMillis(e) >= start.getTime()) : all)
     setGoals(g)
-  }, [user])
+    if (viewingToday) setMfpStale(!all.some(e => e.source === 'mfp'))
+  }, [user, viewedDate])
 
   useEffect(() => {
     if (authLoading) return
@@ -70,8 +134,11 @@ export default function NutritionPage() {
   }, [entries])
 
   const byMeal = useMemo(() => {
-    const map: Record<Meal, ConsumptionEntry[]> = { breakfast: [], lunch: [], snack: [], dinner: [] }
-    for (const e of entries) (map[e.meal] || map.dinner).push(e)
+    const map: Record<MealBucket, ConsumptionEntry[]> = {
+      breakfast: [], lunch: [], snack: [], dinner: [], uncategorized: [],
+    }
+    // A missing/unknown meal lands in 'uncategorized' — visibly — never in dinner.
+    for (const e of entries) (map[e.meal] ?? map.uncategorized).push(e)
     return map
   }, [entries])
 
@@ -88,7 +155,15 @@ export default function NutritionPage() {
   }
 
   const goalsSet = !!goals && NUTRIENTS.some(n => (goals[n.key] || 0) > 0)
-  const elapsed = dayElapsedFraction()
+
+  // Pace markers apply ONLY to the actual current day: a past day is fully
+  // elapsed (1 — it ended; unmet floors read as missed, not "behind pace"),
+  // a future day hasn't started (0 — nothing can be behind yet).
+  const dayDelta = viewedDate.getTime() - startOfLocalDay(new Date()).getTime()
+  const isToday = dayDelta === 0
+  const isFuture = dayDelta > 0
+  const elapsed = dayDelta < 0 ? 1 : isFuture ? 0 : dayElapsedFraction()
+  const dayLabel = isToday ? 'Today' : viewedDayLabel(viewedDate)
 
   // ── Auth / loading gates ────────────────────────────────────────────────
   if (!authLoading && !user) {
@@ -106,7 +181,13 @@ export default function NutritionPage() {
       <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
           <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Nutrition</h1>
-          <p className="text-faint text-sm font-body">What you ate today, against your goals</p>
+          <p className="text-faint text-sm font-body">
+            {isToday
+              ? 'What you ate today, against your goals'
+              : isFuture
+                ? `Logging ahead for ${dayLabel}, against your goals`
+                : `What you ate on ${dayLabel}, against your goals`}
+          </p>
         </div>
         <div className="flex items-center gap-2 mt-2 shrink-0">
           <button onClick={() => setShowGoals(true)} className="btn-ghost flex items-center gap-2 text-xs">
@@ -118,19 +199,71 @@ export default function NutritionPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-8 border-b border-border">
-        {([['today', 'Today'], ['insights', 'Insights']] as [Tab, string][]).map(([t, label]) => (
+      {/* MFP sync staleness warning — non-blocking, session-dismissible */}
+      {mfpStale && !mfpBannerDismissed && (
+        <div className="flex items-start gap-3 bg-amber/5 border border-amber/20 rounded-xl px-4 py-3 mb-6">
+          <TriangleAlert size={15} className="text-amber shrink-0 mt-0.5" />
+          <p className="text-muted text-xs font-body flex-1">
+            The MyFitnessPal sync hasn&apos;t produced any entries in the last {MFP_STALE_AFTER_DAYS} days
+            — the session cookie may need refreshing. Food you log here directly is unaffected.
+          </p>
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-body font-medium -mb-px border-b-2 transition-colors ${
-              tab === t ? 'border-amber text-amber' : 'border-transparent text-muted hover:text-cream'
-            }`}
+            onClick={() => {
+              setMfpBannerDismissed(true)
+              try { window.sessionStorage.setItem(MFP_BANNER_DISMISS_KEY, '1') } catch { /* private mode */ }
+            }}
+            aria-label="Dismiss sync warning"
+            className="text-faint hover:text-cream transition-colors shrink-0"
           >
-            {label}
+            <X size={14} />
           </button>
-        ))}
+        </div>
+      )}
+
+      {/* Tabs + day navigation (Today tab only) */}
+      <div className="flex items-center justify-between gap-2 mb-8 border-b border-border flex-wrap">
+        <div className="flex gap-1">
+          {([['today', 'Today'], ['insights', 'Insights']] as [Tab, string][]).map(([t, label]) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2.5 text-sm font-body font-medium -mb-px border-b-2 transition-colors ${
+                tab === t ? 'border-amber text-amber' : 'border-transparent text-muted hover:text-cream'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {tab === 'today' && (
+          <div className="flex items-center gap-1 pb-1.5">
+            {!isToday && (
+              <button
+                onClick={() => setViewedDate(startOfLocalDay(new Date()))}
+                className="btn-ghost text-xs px-2.5 py-1 mr-1"
+              >
+                Today
+              </button>
+            )}
+            <button
+              onClick={() => setViewedDate(d => addDays(d, -1))}
+              aria-label="Previous day"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-faint hover:text-cream hover:bg-card transition-all"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="text-cream text-sm font-body font-medium min-w-[6.5rem] text-center">
+              {dayLabel}
+            </span>
+            <button
+              onClick={() => setViewedDate(d => addDays(d, 1))}
+              aria-label="Next day"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-faint hover:text-cream hover:bg-card transition-all"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -147,6 +280,8 @@ export default function NutritionPage() {
           elapsed={elapsed}
           byMeal={byMeal}
           hasEntries={entries.length > 0}
+          isToday={isToday}
+          dayLabel={dayLabel}
           onSetGoals={() => setShowGoals(true)}
           onLogFood={() => setShowLogFood(true)}
           onDelete={handleDelete}
@@ -154,7 +289,7 @@ export default function NutritionPage() {
         />
       )}
 
-      {showLogFood && <LogFoodSheet onClose={() => setShowLogFood(false)} onLogged={refresh} />}
+      {showLogFood && <LogFoodSheet logDate={viewedDate} onClose={() => setShowLogFood(false)} onLogged={refresh} />}
       {showGoals && <GoalsModal onClose={() => setShowGoals(false)} onSaved={refresh} />}
     </div>
   )
@@ -163,14 +298,17 @@ export default function NutritionPage() {
 // ── Today tab ──────────────────────────────────────────────────────────────
 
 function TodayTab({
-  goalsSet, goals, totals, elapsed, byMeal, hasEntries, onSetGoals, onLogFood, onDelete, onUpdateServings,
+  goalsSet, goals, totals, elapsed, byMeal, hasEntries, isToday, dayLabel,
+  onSetGoals, onLogFood, onDelete, onUpdateServings,
 }: {
   goalsSet: boolean
   goals: NutritionGoals | null
   totals: NutritionMacros
   elapsed: number
-  byMeal: Record<Meal, ConsumptionEntry[]>
+  byMeal: Record<MealBucket, ConsumptionEntry[]>
   hasEntries: boolean
+  isToday: boolean
+  dayLabel: string
   onSetGoals: () => void
   onLogFood: () => void
   onDelete: (id: string) => void
@@ -214,15 +352,21 @@ function TodayTab({
       {!hasEntries ? (
         <div className="bg-surface border border-border rounded-2xl p-10 text-center">
           <Apple size={32} className="text-faint mx-auto mb-3" />
-          <p className="font-display text-2xl text-cream font-light mb-1">Nothing logged today</p>
-          <p className="text-faint text-sm font-body mb-5">Log a meal, a recipe serving, or a quick food to get started.</p>
+          <p className="font-display text-2xl text-cream font-light mb-1">
+            {isToday ? 'Nothing logged today' : `Nothing logged on ${dayLabel}`}
+          </p>
+          <p className="text-faint text-sm font-body mb-5">
+            {isToday
+              ? 'Log a meal, a recipe serving, or a quick food to get started.'
+              : 'Anything you log while viewing this day is saved to it.'}
+          </p>
           <button onClick={onLogFood} className="btn-primary inline-flex items-center gap-2 text-sm">
             <Plus size={16} /> Log food
           </button>
         </div>
       ) : (
         <div className="space-y-6">
-          {MEAL_ORDER.map(meal => {
+          {BUCKET_ORDER.map(meal => {
             const items = byMeal[meal]
             if (!items.length) return null
             const mealCals = items.reduce((s, e) => s + (e.nutrition?.calories || 0), 0)

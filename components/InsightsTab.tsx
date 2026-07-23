@@ -15,8 +15,9 @@
 // Reads consumption only via getEntriesForRange (lib/consumptionLog.ts); no new
 // data-access logic. See nutrition-tracker-spec.md, Surface 5.
 
-import { useEffect, useMemo, useState } from 'react'
-import { BarChart2, Loader2, Calendar } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { BarChart2, Loader2, Calendar, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { getEntriesForRange } from '@/lib/consumptionLog'
 import { NUTRIENTS, formatNutrient, sourceLabel } from '@/lib/nutrition'
@@ -43,6 +44,17 @@ const MACRO_KCAL: Partial<Record<keyof NutritionMacros, number>> = { protein_g: 
 const MACRO_COLORS: Partial<Record<keyof NutritionMacros, string>> = {
   protein_g: '#E8A838', carbs_g: '#5eead4', fat_g: '#fb923c',
 }
+
+// ── Entries table (below the macro chart) ────────────────────────────────────
+// Sortable column keys: the two text columns, date, plus the six macros.
+type TableSortKey = 'name' | 'meal' | 'date' | keyof NutritionMacros
+interface TableSort { key: TableSortKey; dir: 'asc' | 'desc' }
+
+const MEAL_SORT_ORDER: Record<string, number> = { breakfast: 0, lunch: 1, snack: 2, dinner: 3 }
+
+// Large periods (YTD) can return hundreds of rows — cap the initial render and
+// grow via "Show more" rather than mounting everything at once.
+const TABLE_PAGE_SIZE = 50
 
 // ─── Date helpers (all local-time, calendar-day based) ───────────────────────
 
@@ -77,6 +89,12 @@ function parseIsoDate(s: string): Date | null {
   const [y, m, d] = s.split('-').map(Number)
   if (!y || !m || !d) return null
   return startOfDay(new Date(y, m - 1, d))
+}
+
+/** Millis from an entry's Firestore Timestamp `date` (0 when absent/malformed). */
+function entryDateMillis(e: ConsumptionEntry): number {
+  const d = e.date as { toMillis?: () => number } | null | undefined
+  return d?.toMillis ? d.toMillis() : 0
 }
 
 interface ResolvedRange {
@@ -155,6 +173,13 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Entries table (below the macro chart). Default sort: most recent first.
+  // Drilling a macro re-defaults the sort to that macro descending so its
+  // biggest contributors surface; the row SET never changes with drill state.
+  const [tableSort, setTableSort] = useState<TableSort>({ key: 'date', dir: 'desc' })
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [visibleRows, setVisibleRows] = useState(TABLE_PAGE_SIZE)
+
   const range = useMemo(
     () => resolveRange(kind, now, customStart, customEnd),
     [kind, now, customStart, customEnd],
@@ -170,6 +195,18 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId, range.valid, range.start, range.end])
+
+  // Drill-in re-defaults the table sort to that macro (desc); drill-out
+  // restores the date-desc default. Header clicks still override afterwards.
+  useEffect(() => {
+    setTableSort(drilled ? { key: drilled, dir: 'desc' } : { key: 'date', dir: 'desc' })
+  }, [drilled])
+
+  // New period ⇒ new row set: collapse any expanded row and reset paging.
+  useEffect(() => {
+    setExpandedId(null)
+    setVisibleRows(TABLE_PAGE_SIZE)
+  }, [entries])
 
   // Range totals across all six nutrients.
   const totals = useMemo(() => {
@@ -229,6 +266,31 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
       { name: `Other (${tail.length})`, value: otherTotal, isOther: true },
     ]
   }, [contributors])
+
+  // Every entry in the period, sorted per the active column — derived straight
+  // from the already-fetched `entries`; deliberately NOT a new query.
+  const tableRows = useMemo(() => {
+    const dir = tableSort.dir === 'asc' ? 1 : -1
+    const rows = [...entries]
+    rows.sort((a, b) => {
+      let cmp = 0
+      if (tableSort.key === 'name') cmp = a.name.localeCompare(b.name)
+      else if (tableSort.key === 'meal') cmp = (MEAL_SORT_ORDER[a.meal] ?? 4) - (MEAL_SORT_ORDER[b.meal] ?? 4)
+      else if (tableSort.key === 'date') cmp = entryDateMillis(a) - entryDateMillis(b)
+      else cmp = (a.nutrition?.[tableSort.key] || 0) - (b.nutrition?.[tableSort.key] || 0)
+      if (cmp === 0) cmp = entryDateMillis(a) - entryDateMillis(b)   // stable tiebreak
+      return cmp * dir
+    })
+    return rows
+  }, [entries, tableSort])
+
+  // Header click: same column toggles direction; a new column starts at its
+  // natural default (text ascending, date/macros descending).
+  const handleSortClick = (key: TableSortKey) => {
+    setTableSort(prev => prev.key === key
+      ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { key, dir: key === 'name' || key === 'meal' ? 'asc' : 'desc' })
+  }
 
   return (
     <div className="space-y-8">
@@ -521,6 +583,133 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
               </div>
             </div>
           </section>
+
+          {/* ── Feature 4: meal drill-down table — every entry in the period.
+              Additive to the drill-in panel above: drilling changes column
+              EMPHASIS and default sort here, never the row set. ─────────────── */}
+          <section>
+            <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+              <h3 className="font-display text-xl text-cream font-light">All entries</h3>
+              <span className="text-faint text-xs font-body">
+                {tableRows.length} {tableRows.length === 1 ? 'entry' : 'entries'} · click a row for detail
+                {drilled ? ` · sorted by ${selectedMeta!.label.toLowerCase()}` : ''}
+              </span>
+            </div>
+
+            <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm font-body">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <SortTh label="Name" k="name" sort={tableSort} onSort={handleSortClick} align="left" />
+                      <SortTh label="Meal" k="meal" sort={tableSort} onSort={handleSortClick} align="left" />
+                      <SortTh label="Date" k="date" sort={tableSort} onSort={handleSortClick} align="left" />
+                      {NUTRIENTS.map(n => (
+                        <SortTh
+                          key={n.key}
+                          label={n.label}
+                          k={n.key}
+                          sort={tableSort}
+                          onSort={handleSortClick}
+                          align="right"
+                          highlighted={drilled === n.key}
+                        />
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {tableRows.slice(0, visibleRows).map(e => {
+                      const expanded = expandedId === e.id
+                      const d = new Date(entryDateMillis(e))
+                      return (
+                        <Fragment key={e.id}>
+                          <tr
+                            onClick={() => setExpandedId(expanded ? null : e.id)}
+                            className={`cursor-pointer transition-colors ${expanded ? 'bg-card' : 'hover:bg-card/60'}`}
+                          >
+                            <td className="px-3 py-2.5 first:pl-4 max-w-[220px]">
+                              <span className="text-cream block truncate">{e.name}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-muted capitalize whitespace-nowrap">{e.meal}</td>
+                            <td className="px-3 py-2.5 text-muted whitespace-nowrap">
+                              {d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </td>
+                            {NUTRIENTS.map(n => (
+                              <td
+                                key={n.key}
+                                className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
+                                  drilled === n.key ? 'text-amber bg-amber/[0.06]' : 'text-muted'
+                                }`}
+                              >
+                                {formatNutrient(n.key, e.nutrition?.[n.key])}
+                              </td>
+                            ))}
+                          </tr>
+                          {expanded && (
+                            <tr className="bg-card/60">
+                              <td colSpan={3 + NUTRIENTS.length} className="px-4 py-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                                    <div>
+                                      <p className="text-cream text-sm font-body font-medium">{e.name}</p>
+                                      <p className="text-faint text-xs font-body mt-0.5">
+                                        <span className="capitalize">{e.meal}</span>
+                                        {' · '}
+                                        {d.toLocaleString(undefined, {
+                                          weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+                                          hour: 'numeric', minute: '2-digit',
+                                        })}
+                                      </p>
+                                    </div>
+                                    {e.recipe_id && (
+                                      <Link
+                                        href={`/recipes/${e.recipe_id}`}
+                                        className="text-amber text-xs font-body font-medium hover:text-amber/80 transition-colors inline-flex items-center gap-1 shrink-0"
+                                      >
+                                        View recipe <ExternalLink size={11} />
+                                      </Link>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs font-body">
+                                    <span className="text-faint">
+                                      Servings: <span className="text-cream">{e.servings_eaten}</span>
+                                    </span>
+                                    {e.amount_label && (
+                                      <span className="text-faint">
+                                        Amount: <span className="text-cream">{e.amount_label}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                                    {NUTRIENTS.map(n => (
+                                      <div key={n.key}>
+                                        <p className="text-faint text-[10px] font-body">{n.label}</p>
+                                        <p className={`text-sm font-body font-medium ${drilled === n.key ? 'text-amber' : 'text-cream'}`}>
+                                          {formatNutrient(n.key, e.nutrition?.[n.key])}{n.unit}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {tableRows.length > visibleRows && (
+                <button
+                  onClick={() => setVisibleRows(v => v + TABLE_PAGE_SIZE)}
+                  className="w-full py-3 text-amber text-sm font-body font-medium hover:bg-card/60 transition-colors border-t border-border"
+                >
+                  Show more ({tableRows.length - visibleRows} more)
+                </button>
+              )}
+            </div>
+          </section>
         </>
       )}
     </div>
@@ -580,6 +769,39 @@ function DonutTooltip({
         {formatNutrient(nutrientKey, value)}{unit} · {pct}%
       </p>
     </div>
+  )
+}
+
+// ── Sortable column header for the entries table ────────────────────────────
+
+function SortTh({
+  label, k, sort, onSort, align, highlighted = false,
+}: {
+  label: string
+  k: TableSortKey
+  sort: TableSort
+  onSort: (k: TableSortKey) => void
+  align: 'left' | 'right'
+  highlighted?: boolean
+}) {
+  const active = sort.key === k
+  const Arrow = sort.dir === 'asc' ? ChevronUp : ChevronDown
+  return (
+    <th
+      className={`px-3 py-2.5 first:pl-4 font-medium whitespace-nowrap ${
+        align === 'right' ? 'text-right' : 'text-left'
+      } ${highlighted ? 'bg-amber/[0.06]' : ''}`}
+    >
+      <button
+        onClick={() => onSort(k)}
+        className={`inline-flex items-center gap-0.5 text-xs font-body transition-colors ${
+          highlighted ? 'text-amber' : active ? 'text-cream' : 'text-faint hover:text-cream'
+        }`}
+      >
+        {label}
+        {active && <Arrow size={12} />}
+      </button>
+    </th>
   )
 }
 

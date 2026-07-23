@@ -68,7 +68,7 @@ wrapped in a per-route `layout.tsx`.
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
 | History | `/history` (`app/history/page.tsx`) | Done | Cooking history: 52-week heatmap, streaks, recent cooked weeks |
 | Insights | `/insights` (`app/insights/page.tsx`) | Done | Analytics: cooked totals, avg rating, cuisine breakdown, CSV export |
-| Nutrition | `/nutrition` (`app/nutrition/page.tsx`) | Done | Two tabs: **Today** (six countdown goal rings w/ floor/ceiling colour logic, meal-grouped log w/ inline edit-servings + delete) and **Insights** (`components/InsightsTab.tsx` — range selector week/month/YTD/custom, compounding goal attainment pro-rated to elapsed days via reused `GoalRing`, recharts donut + ranked contributor table by food/recipe per selected nutrient, empty/sparse states). Header hosts persistent "＋ Log food" (`LogFoodSheet`) + "Goals" (`GoalsModal`). Hand-built SVG rings (`components/GoalRing.tsx`); recharts powers the Insights donut |
+| Nutrition | `/nutrition` (`app/nutrition/page.tsx`) | Done | Two tabs: **Today** (six countdown goal rings w/ floor/ceiling colour logic, meal-grouped log w/ inline edit-servings + delete, **day navigation** — back/forward arrows + "Today" jump on a `viewedDate`; back unbounded, forward past today allowed; logging while viewing another day writes to THAT day (noon-anchored via `LogFoodSheet` `logDate`); pace markers apply only to the actual current day (past=fully elapsed, future=not started); unknown/missing `meal` renders in a distinct **Uncategorized** section, never filed under Dinner) and **Insights** (`components/InsightsTab.tsx` — range selector week/month/YTD/custom, compounding goal attainment pro-rated to elapsed days via reused `GoalRing`, recharts donut + ranked contributor table by food/recipe per selected nutrient, **sortable all-entries table** below the chart (Name/Meal/Date + six macros, drill-in highlights + re-sorts that macro's column, inline row expand w/ recipe link, 50-row pages via Show more — derived from the already-fetched `entries`, no new query), empty/sparse states). Dismissible **MFP-sync-stale banner** when no `source:'mfp'` entry in the last 2 days. Header hosts persistent "＋ Log food" (`LogFoodSheet`) + "Goals" (`GoalsModal`). Hand-built SVG rings (`components/GoalRing.tsx`); recharts powers the Insights donut |
 
 ### API Routes (`app/api/`)
 
@@ -171,7 +171,7 @@ Fields: `id, name, defaultCategory, timesUsed, lastUsed`. Frequency-ranked memor
 manually-added items + their chosen category, for faster re-entry.
 
 ### `users/{uid}/nutrition/root/log/{entryId}` — consumption log (`ConsumptionEntry`, `lib/consumptionLog.ts`)
-One doc per consumed item (auto-ID). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, recipe_id|null, name, servings_eaten, amount_label?, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'), created_at, userId`.
+One doc per consumed item (auto-ID; MFP-synced docs use deterministic `mfp-{date}-{foodEntryId}` IDs). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, recipe_id|null, name, servings_eaten, amount_label?, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'|'openfoodfacts'|'usda_branded'|'mfp'), created_at, userId`.
 `servings_eaten` is always the multiplier on the per-basis nutrition (per serving, or per 100 g for grams-entered items); `amount_label?` (optional) records the human-readable amount as entered — e.g. `"45 g"` or `"1.5 servings"` — for the Today view. The recursive console rule `users/{uid}/nutrition/{document=**}` already covers it (no rules change).
 Snapshot semantics: editing a recipe later never rewrites past entries. `is_cook_event: true`
 entries (written only via `logCookEvent` — Cooking Mode finish or plan checkmark) are the only
@@ -483,13 +483,21 @@ otherwise unchanged.
   normal for Firebase web apps but means the client config is committed, not env-driven.
 - **MFP nutrition sync is HTML scraping, not an API — validate before wiping.** `app/api/cron/sync-nutrition`
   fetches the classic diary page and parses it with `cheerio`; food rows are selected by
-  `a[data-food-entry-id]`, nutrients by fixed column position (Calories, Carbs, Fat, Protein, Fiber,
-  Sugar). It is inherently fragile to MFP markup changes. Guard rail: an expired session redirects to
-  login (a page with **no `tr.meal_header`**), so the route treats "zero meal_header rows" as a hard
-  error and returns **before** the Firestore wipe-and-replace — a broken fetch must never look like an
-  empty day. Both target dates are fetched + validated before any delete. The old v2-JSON-API path and
-  `MFP_CSRF_TOKEN`/`mfp-client-id` header were the wrong endpoint (registered-partner OAuth API) and
-  are gone.
+  `a[data-food-entry-id]`, nutrients by **header name, never position**: MFP's diary columns are
+  **user-configurable** (the stock default has Sodium where this account shows Fiber), so the route
+  reads the first `tr.meal_header` row's label cells and maps columns to the six macro fields by
+  case-insensitive name (`resolveColumnMapping`). A macro whose column is absent writes **0** (values
+  are never shifted sideways); an unrecognisable header row **hard-aborts the sync** (502, no
+  positional fallback, nothing written); the resolved per-date mapping is echoed in the response
+  (`columnMapping`) so a manual trigger shows what matched. It is inherently fragile to MFP markup
+  changes. Guard rail: an expired session redirects to login (a page with **no `tr.meal_header`**),
+  so the route treats "zero meal_header rows" as a hard error and returns **before** the Firestore
+  wipe-and-replace — a broken fetch must never look like an empty day. Both target dates are fetched +
+  validated before any delete. The old v2-JSON-API path and `MFP_CSRF_TOKEN`/`mfp-client-id` header
+  were the wrong endpoint (registered-partner OAuth API) and are gone. Client-side staleness signal:
+  the Nutrition page shows a dismissible banner when no `source:'mfp'` entry exists in the last
+  `MFP_STALE_AFTER_DAYS` (2) days — derived from the Today view's own range fetch, no extra query,
+  nothing stored.
 - **Password login needs the Email/Password provider enabled in the Firebase console (Batch 7).**
   The linking flow, the login-screen email/password sign-in, and password reset all throw
   `auth/operation-not-allowed` until **Authentication → Sign-in method → Email/Password** is enabled

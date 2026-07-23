@@ -69,7 +69,7 @@ export function scaleMacros(perServing: NutritionMacros, servings: number): Nutr
 
 const ZERO_MACROS: NutritionMacros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
 
-function dayBounds(d: Date): { start: Date; end: Date } {
+export function dayBounds(d: Date): { start: Date; end: Date } {
   const start = new Date(d); start.setHours(0, 0, 0, 0)
   const end = new Date(d); end.setHours(23, 59, 59, 999)
   return { start, end }
