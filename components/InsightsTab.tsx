@@ -6,9 +6,11 @@
 //      (daily goal × days). For the current/incomplete period, attainment is
 //      pro-rated to ELAPSED days so a mid-week view doesn't read as "failing"
 //      the full-week target. Reuses the GoalRing visual (floors/ceilings).
-//   3. Nutrient-filtered breakdown — a recharts donut whose slices are the
-//      foods/recipes that contributed the selected nutrient (NOT data-source),
-//      plus a ranked contributor table with per-food source badges.
+//   3. Macro composition — a recharts donut of macro share-of-calories plus a
+//      persistent six-nutrient list. Two independent multi-select filters drive
+//      it: MEALS recompute every value in the section (donut, center total,
+//      grams, % of calories) from the matching entries only; MACROS are a
+//      visual highlight here and a hard row filter on the table below.
 //   4. Friendly empty/sparse states (logging just started; most ranges are
 //      thin or empty — never show empty charts, zeros, or divide-by-zero).
 //
@@ -20,21 +22,44 @@ import Link from 'next/link'
 import { BarChart2, Loader2, Calendar, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { getEntriesForRange } from '@/lib/consumptionLog'
-import { NUTRIENTS, formatNutrient, sourceLabel } from '@/lib/nutrition'
+import { NUTRIENTS, formatNutrient } from '@/lib/nutrition'
 import GoalRing, { type RingKind } from '@/components/GoalRing'
-import type { ConsumptionEntry, NutritionGoals } from '@/types/nutrition'
+import type { ConsumptionEntry, Meal, NutritionGoals } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
 type RangeKind = 'week' | 'month' | 'ytd' | 'custom'
+
+// ── Selection model (read by the donut, the nutrient list and the table) ─────
+// Two independent multi-select sets. `calories` is a total, not a macro, so it
+// is never selectable. Both live at the top of InsightsTab on purpose — a
+// planned chart will read the same state.
+export type SelectableMacro = 'protein_g' | 'carbs_g' | 'fat_g' | 'fiber_g' | 'sugar_g'
+
+const SELECTABLE_MACROS: SelectableMacro[] = ['protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g']
+const MEALS: Meal[] = ['breakfast', 'lunch', 'dinner', 'snack']
+const MEAL_LABELS: Record<Meal, string> = {
+  breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
+}
+
+function isSelectableMacro(k: keyof NutritionMacros): k is SelectableMacro {
+  return k !== 'calories'
+}
+
+/** Toggle membership immutably — Set identity must change for memos to re-run. */
+function toggleIn<T>(set: Set<T>, value: T): Set<T> {
+  const next = new Set(set)
+  if (!next.delete(value)) next.add(value)
+  return next
+}
 
 // Same floor/ceiling split the Today view uses: protein & fiber are floors
 // (fill toward target), the rest are ceilings (over = warn).
 const CEILING_KEYS = new Set<keyof NutritionMacros>(['calories', 'carbs_g', 'fat_g', 'sugar_g'])
 
-// Warm-palette donut slices; the tail collapses into "Other" (faint).
-const SLICE_COLORS = ['#E8A838', '#F5C060', '#5eead4', '#93c5fd', '#fb923c', '#c084fc', '#a3e635']
+// Swatch for the non-slice nutrients (calories, fiber, sugar) in the list.
 const OTHER_COLOR = '#6B5E50'
-const MAX_SLICES = 6
+// Ring drawn around a donut slice whose macro is selected.
+const HIGHLIGHT_STROKE = '#F4E4C1'
 
 // Overview donut = macro composition by calorie contribution. Only the three
 // energy-bearing macros are slices; kcal-per-gram drives each slice's value.
@@ -47,7 +72,9 @@ const MACRO_COLORS: Partial<Record<keyof NutritionMacros, string>> = {
 
 // ── Entries table (below the macro chart) ────────────────────────────────────
 // Sortable column keys: the two text columns, date, plus the six macros.
-type TableSortKey = 'name' | 'meal' | 'date' | keyof NutritionMacros
+// 'selected' is not a column — it's the implicit default while macros are
+// selected, sorting by the SUM of the selected macros' grams.
+type TableSortKey = 'name' | 'meal' | 'date' | 'selected' | keyof NutritionMacros
 interface TableSort { key: TableSortKey; dir: 'asc' | 'desc' }
 
 const MEAL_SORT_ORDER: Record<string, number> = { breakfast: 0, lunch: 1, snack: 2, dinner: 3 }
@@ -166,16 +193,26 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   const [kind, setKind] = useState<RangeKind>('week')
   const [customStart, setCustomStart] = useState(isoDate(startOfWeekMonday(now)))
   const [customEnd, setCustomEnd] = useState(isoDate(now))
-  // null = overview (macro composition). A nutrient key = drill-down into the
-  // foods/recipes that contributed it.
-  const [drilled, setDrilled] = useState<keyof NutritionMacros | null>(null)
+  // ── Selection state ────────────────────────────────────────────────────────
+  // Two independent multi-select sets, both empty = unfiltered. Selecting meals
+  // never clears macros and vice versa. Kept here (not in a child) so the
+  // planned macro/meal chart can read them directly.
+  const [selectedMacros, setSelectedMacros] = useState<Set<SelectableMacro>>(() => new Set())
+  const [selectedMeals, setSelectedMeals] = useState<Set<Meal>>(() => new Set())
+
+  const toggleMacro = (k: SelectableMacro) => setSelectedMacros(prev => toggleIn(prev, k))
+  const toggleMeal = (m: Meal) => setSelectedMeals(prev => toggleIn(prev, m))
+  const clearFilters = () => { setSelectedMacros(new Set()); setSelectedMeals(new Set()) }
+  const hasFilters = selectedMacros.size > 0 || selectedMeals.size > 0
+  /** Column/cell highlight test — `calories` is never selectable. */
+  const isMacroSelected = (k: keyof NutritionMacros) => isSelectableMacro(k) && selectedMacros.has(k)
 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
   const [loading, setLoading] = useState(true)
 
   // Entries table (below the macro chart). Default sort: most recent first.
-  // Drilling a macro re-defaults the sort to that macro descending so its
-  // biggest contributors surface; the row SET never changes with drill state.
+  // Selecting macros re-defaults the sort to their summed grams descending so
+  // the rows richest in the selected macros surface first.
   const [tableSort, setTableSort] = useState<TableSort>({ key: 'date', dir: 'desc' })
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [visibleRows, setVisibleRows] = useState(TABLE_PAGE_SIZE)
@@ -196,19 +233,28 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     return () => { cancelled = true }
   }, [userId, range.valid, range.start, range.end])
 
-  // Drill-in re-defaults the table sort to that macro (desc); drill-out
-  // restores the date-desc default. Header clicks still override afterwards.
+  // A new period is a new question — drop macro/meal selection so the section
+  // never reads as filtered-but-not-obviously-so after a range switch.
   useEffect(() => {
-    setTableSort(drilled ? { key: drilled, dir: 'desc' } : { key: 'date', dir: 'desc' })
-  }, [drilled])
+    setSelectedMacros(new Set())
+    setSelectedMeals(new Set())
+  }, [kind, customStart, customEnd])
 
-  // New period ⇒ new row set: collapse any expanded row and reset paging.
+  // Selecting macros re-defaults the table sort to their summed grams (desc);
+  // clearing them restores date-desc. Header clicks still override afterwards.
+  useEffect(() => {
+    setTableSort(selectedMacros.size > 0 ? { key: 'selected', dir: 'desc' } : { key: 'date', dir: 'desc' })
+  }, [selectedMacros])
+
+  // New period or new filter ⇒ new row set: collapse any expanded row and
+  // reset paging.
   useEffect(() => {
     setExpandedId(null)
     setVisibleRows(TABLE_PAGE_SIZE)
-  }, [entries])
+  }, [entries, selectedMacros, selectedMeals])
 
-  // Range totals across all six nutrients.
+  // Range totals across all six nutrients — the FULL period, unfiltered. These
+  // feed the goal rings, which are deliberately immune to macro/meal selection.
   const totals = useMemo(() => {
     const t: NutritionMacros = { ...ZERO }
     for (const e of entries) {
@@ -217,72 +263,67 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     return t
   }, [entries])
 
-  // Per-food contributions to the drilled nutrient, aggregated by name across
-  // every log entry of that food in the range (slices = foods/recipes). Empty
-  // in the overview state (no nutrient drilled).
-  const contributors = useMemo(() => {
-    if (!drilled) return []
-    const map = new Map<string, { name: string; amount: number; source: string }>()
-    for (const e of entries) {
-      const amount = e.nutrition?.[drilled] || 0
-      if (amount <= 0) continue
-      const key = e.name.trim().toLowerCase() || '(unnamed)'
-      const cur = map.get(key)
-      if (cur) cur.amount += amount
-      else map.set(key, { name: e.name.trim() || 'Unnamed', amount, source: e.source })
-    }
-    return Array.from(map.values()).sort((a, b) => b.amount - a.amount)
-  }, [entries, drilled])
+  // Meal filter: OR within the set (a row matches ANY selected meal); empty set
+  // means "all meals". Derived from the already-loaded entries — no new query.
+  const mealEntries = useMemo(
+    () => (selectedMeals.size === 0 ? entries : entries.filter(e => selectedMeals.has(e.meal))),
+    [entries, selectedMeals],
+  )
 
-  // Overview donut: macro composition by calorie contribution (protein·4,
-  // carbs·4, fat·9), each as a share of those calories. Zero-cal macros drop out.
+  // Totals behind the donut + nutrient list. Identical to `totals` when no meal
+  // is selected; otherwise every value in that section is the selected meals'.
+  const sectionTotals = useMemo(() => {
+    if (selectedMeals.size === 0) return totals
+    const t: NutritionMacros = { ...ZERO }
+    for (const e of mealEntries) {
+      for (const n of NUTRIENTS) t[n.key] += e.nutrition?.[n.key] || 0
+    }
+    return t
+  }, [totals, mealEntries, selectedMeals])
+
+  // Donut: macro composition by calorie contribution (protein·4, carbs·4,
+  // fat·9), each as a share of those calories. Zero-cal macros drop out.
   const composition = useMemo(() => {
     const slices = (['protein_g', 'carbs_g', 'fat_g'] as const)
       .map(key => ({
         key,
         name: NUTRIENTS.find(n => n.key === key)!.label,
-        cals: (totals[key] || 0) * (MACRO_KCAL[key] || 0),
+        cals: (sectionTotals[key] || 0) * (MACRO_KCAL[key] || 0),
       }))
       .filter(s => s.cals > 0)
     const total = slices.reduce((s, d) => s + d.cals, 0)
     return { slices, total }
-  }, [totals])
+  }, [sectionTotals])
 
-  const selectedMeta = drilled ? NUTRIENTS.find(n => n.key === drilled)! : null
-  const selectedTotal = drilled ? totals[drilled] : 0
   const goalsSet = !!goals && NUTRIENTS.some(n => (goals[n.key] || 0) > 0)
   const hasEntries = entries.length > 0
 
-  // Donut data: top slices + a collapsed "Other" tail.
-  const donutData = useMemo(() => {
-    if (contributors.length <= MAX_SLICES) {
-      return contributors.map(c => ({ name: c.name, value: c.amount, isOther: false }))
-    }
-    const head = contributors.slice(0, MAX_SLICES)
-    const tail = contributors.slice(MAX_SLICES)
-    const otherTotal = tail.reduce((s, c) => s + c.amount, 0)
-    return [
-      ...head.map(c => ({ name: c.name, value: c.amount, isOther: false })),
-      { name: `Other (${tail.length})`, value: otherTotal, isOther: true },
-    ]
-  }, [contributors])
-
-  // Every entry in the period, sorted per the active column — derived straight
-  // from the already-fetched `entries`; deliberately NOT a new query.
+  // The table's row set: meal-filtered (OR within meals), then macro-filtered —
+  // AND across selections, so a row must carry EVERY selected macro (> 0g).
+  // Still derived straight from the already-fetched `entries`; not a new query.
   const tableRows = useMemo(() => {
+    const macros = Array.from(selectedMacros)
+    const rows = mealEntries.filter(
+      e => macros.every(k => (e.nutrition?.[k] || 0) > 0),
+    )
+
     const dir = tableSort.dir === 'asc' ? 1 : -1
-    const rows = [...entries]
+    const sumOf = (e: ConsumptionEntry) => macros.reduce((s, k) => s + (e.nutrition?.[k] || 0), 0)
     rows.sort((a, b) => {
       let cmp = 0
       if (tableSort.key === 'name') cmp = a.name.localeCompare(b.name)
       else if (tableSort.key === 'meal') cmp = (MEAL_SORT_ORDER[a.meal] ?? 4) - (MEAL_SORT_ORDER[b.meal] ?? 4)
-      else if (tableSort.key === 'date') cmp = entryDateMillis(a) - entryDateMillis(b)
+      // 'selected' with nothing selected can only be a transient state (the
+      // reset effect has not run yet) — fall back to the date default.
+      else if (tableSort.key === 'date' || (tableSort.key === 'selected' && macros.length === 0)) {
+        cmp = entryDateMillis(a) - entryDateMillis(b)
+      } else if (tableSort.key === 'selected') cmp = sumOf(a) - sumOf(b)
       else cmp = (a.nutrition?.[tableSort.key] || 0) - (b.nutrition?.[tableSort.key] || 0)
       if (cmp === 0) cmp = entryDateMillis(a) - entryDateMillis(b)   // stable tiebreak
       return cmp * dir
     })
     return rows
-  }, [entries, tableSort])
+  }, [mealEntries, selectedMacros, tableSort])
 
   // Header click: same column toggles direction; a new column starts at its
   // natural default (text ascending, date/macros descending).
@@ -291,6 +332,12 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
       ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
       : { key, dir: key === 'name' || key === 'meal' ? 'asc' : 'desc' })
   }
+
+  // Human-readable active filters, in canonical display order (not click order).
+  const macroLabels = SELECTABLE_MACROS
+    .filter(k => selectedMacros.has(k))
+    .map(k => NUTRIENTS.find(n => n.key === k)!.label)
+  const mealLabels = MEALS.filter(m => selectedMeals.has(m)).map(m => MEAL_LABELS[m])
 
   return (
     <div className="space-y-8">
@@ -419,70 +466,65 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
             )}
           </section>
 
-          {/* ── Feature 3: one donut, two states — macro composition overview
-              that drills into per-nutrient food contributors ──────────────── */}
+          {/* ── Meal filter chips — recompute the composition below and hard-
+              filter the entries table. Same pill styling as the range selector.
+              The goal rings above are intentionally NOT affected. ─────────── */}
+          <section>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-faint text-xs font-body mr-0.5">Meals</span>
+              {MEALS.map(m => {
+                const on = selectedMeals.has(m)
+                return (
+                  <button
+                    key={m}
+                    onClick={() => toggleMeal(m)}
+                    aria-pressed={on}
+                    className={`px-3.5 py-1.5 rounded-xl text-sm font-body font-medium border transition-all ${
+                      on
+                        ? 'bg-amber/10 border-amber/30 text-amber'
+                        : 'bg-surface border-border text-muted hover:text-cream hover:border-amber/40'
+                    }`}
+                  >
+                    {MEAL_LABELS[m]}
+                  </button>
+                )
+              })}
+              {hasFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-2.5 py-1.5 text-amber text-sm font-body font-medium hover:text-amber/80 transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </section>
+
+          {/* ── Feature 3: macro composition. Meal chips recompute every value
+              here; macro selection is highlight-only (and filters the table
+              below). ─────────────────────────────────────────────────────── */}
           <section>
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
-              {drilled ? (
-                <div className="flex items-baseline gap-3">
-                  <button
-                    onClick={() => setDrilled(null)}
-                    className="text-amber text-sm font-body font-medium hover:text-amber/80 transition-colors shrink-0"
-                  >
-                    ← All nutrients
-                  </button>
-                  <h3 className="font-display text-xl text-cream font-light">
-                    {selectedMeta!.label} sources
-                  </h3>
-                </div>
-              ) : (
-                <h3 className="font-display text-xl text-cream font-light">Macro composition</h3>
-              )}
+              <h3 className="font-display text-xl text-cream font-light">Macro composition</h3>
               <span className="text-faint text-xs font-body">
-                {drilled ? 'Foods & recipes that contributed it' : 'Share of calories · tap a slice or row to drill in'}
+                Share of calories
+                {selectedMeals.size > 0 ? ` · ${mealLabels.join(', ').toLowerCase()} only` : ''}
+                {' · tap a macro to filter the entries below'}
               </span>
             </div>
 
             <div className="bg-surface border border-border rounded-2xl p-5 grid md:grid-cols-2 gap-6 items-center">
-              {/* Donut — composition (overview) or food contributors (drill) */}
+              {/* Donut — macro share of calories over the meal-filtered entries.
+                  Selected macros keep full saturation + a ring; the rest dim. */}
               <div className="relative" style={{ height: 260 }}>
-                {drilled ? (
-                  selectedTotal <= 0 ? (
-                    <InlineNote text={`No ${selectedMeta!.label.toLowerCase()} logged in this range`} />
-                  ) : (
-                    <>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={donutData}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={68}
-                            outerRadius={104}
-                            paddingAngle={1.5}
-                            stroke="none"
-                          >
-                            {donutData.map((d, i) => (
-                              <Cell key={i} fill={d.isOther ? OTHER_COLOR : SLICE_COLORS[i % SLICE_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<DonutTooltip nutrientKey={drilled} unit={selectedMeta!.unit} total={selectedTotal} />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="font-display text-3xl text-cream font-light leading-none">
-                          {formatNutrient(drilled, selectedTotal)}
-                        </span>
-                        <span className="text-faint text-[11px] font-body mt-1">
-                          total {selectedMeta!.label.toLowerCase()}{selectedMeta!.unit ? ` (${selectedMeta!.unit})` : ''}
-                        </span>
-                      </div>
-                    </>
-                  )
-                ) : composition.total <= 0 ? (
-                  <InlineNote text="Not enough macro data to chart composition" />
+                {composition.total <= 0 ? (
+                  <InlineNote
+                    text={
+                      selectedMeals.size > 0
+                        ? `No macros logged for ${mealLabels.join(', ').toLowerCase()} in this range`
+                        : 'Not enough macro data to chart composition'
+                    }
+                  />
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height="100%">
@@ -500,102 +542,135 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                           cursor="pointer"
                           onClick={(d: { key?: keyof NutritionMacros; payload?: { key?: keyof NutritionMacros } }) => {
                             const k = d?.key ?? d?.payload?.key
-                            if (k) setDrilled(k)
+                            if (k && isSelectableMacro(k)) toggleMacro(k)
                           }}
                         >
-                          {composition.slices.map(s => (
-                            <Cell key={s.key} fill={MACRO_COLORS[s.key]} />
-                          ))}
+                          {composition.slices.map(s => {
+                            const on = selectedMacros.has(s.key)
+                            const dimmed = selectedMacros.size > 0 && !on
+                            return (
+                              <Cell
+                                key={s.key}
+                                fill={MACRO_COLORS[s.key]}
+                                fillOpacity={dimmed ? 0.28 : 1}
+                                stroke={on ? HIGHLIGHT_STROKE : 'none'}
+                                strokeWidth={on ? 2 : 0}
+                              />
+                            )
+                          })}
                         </Pie>
                         <Tooltip content={<CompositionTooltip total={composition.total} />} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <span className="font-display text-3xl text-cream font-light leading-none">
-                        {formatNutrient('calories', totals.calories)}
+                        {formatNutrient('calories', sectionTotals.calories)}
                       </span>
-                      <span className="text-faint text-[11px] font-body mt-1">total calories</span>
+                      <span className="text-faint text-[11px] font-body mt-1">
+                        {selectedMeals.size > 0 ? `${mealLabels.join(', ').toLowerCase()} calories` : 'total calories'}
+                      </span>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* List — six-nutrient overview, or ranked food contributors */}
+              {/* List — the six nutrients. Calories is a total (not selectable);
+                  the five macros toggle membership in selectedMacros. */}
               <div className="space-y-1">
-                {drilled ? (
-                  contributors.length === 0 ? (
-                    <p className="text-faint text-sm font-body text-center py-6">
-                      No {selectedMeta!.label.toLowerCase()} logged in this range.
-                    </p>
-                  ) : (
-                    contributors.map((c, i) => {
-                      const pct = selectedTotal > 0 ? Math.round((c.amount / selectedTotal) * 100) : 0
-                      const swatch = i < MAX_SLICES ? SLICE_COLORS[i % SLICE_COLORS.length] : OTHER_COLOR
-                      return (
-                        <div key={c.name + i} className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-card transition-colors">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: swatch }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-cream text-sm font-body truncate">{c.name}</p>
-                            <span className="tag text-[10px] capitalize mt-0.5 inline-block">{sourceLabel(c.source)}</span>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-cream text-sm font-body font-medium leading-none">
-                              {formatNutrient(drilled, c.amount)}
-                              <span className="text-faint text-[10px] ml-0.5">{selectedMeta!.unit}</span>
-                            </p>
-                            <p className="text-faint text-[10px] font-body mt-0.5">{pct}%</p>
-                          </div>
-                        </div>
-                      )
-                    })
+                {NUTRIENTS.map(n => {
+                  const isMacro = n.key in MACRO_COLORS
+                  const cals = (sectionTotals[n.key] || 0) * (MACRO_KCAL[n.key] || 0)
+                  const pct = isMacro && composition.total > 0 ? Math.round((cals / composition.total) * 100) : null
+                  const sub =
+                    n.key === 'calories' ? 'total energy'
+                    : isMacro ? `${pct}% of calories`
+                    : 'subset of carbs'
+                  const swatch = (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ background: isMacro ? MACRO_COLORS[n.key] : OTHER_COLOR }}
+                    />
                   )
-                ) : (
-                  NUTRIENTS.map(n => {
-                    const isMacro = n.key in MACRO_COLORS
-                    const cals = (totals[n.key] || 0) * (MACRO_KCAL[n.key] || 0)
-                    const pct = isMacro && composition.total > 0 ? Math.round((cals / composition.total) * 100) : null
-                    const sub =
-                      n.key === 'calories' ? 'total energy'
-                      : isMacro ? `${pct}% of calories`
-                      : 'subset of carbs'
+                  const body = (
+                    <>
+                      {swatch}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-cream text-sm font-body truncate">{n.label}</p>
+                        <p className="text-faint text-[10px] font-body mt-0.5">{sub}</p>
+                      </div>
+                      <p className="text-cream text-sm font-body font-medium leading-none shrink-0">
+                        {formatNutrient(n.key, sectionTotals[n.key])}
+                        <span className="text-faint text-[10px] ml-0.5">{n.unit}</span>
+                      </p>
+                    </>
+                  )
+
+                  if (!isSelectableMacro(n.key)) {
                     return (
-                      <button
+                      <div
                         key={n.key}
-                        onClick={() => setDrilled(n.key)}
-                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-card transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg border border-transparent"
                       >
-                        <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
-                          style={{ background: isMacro ? MACRO_COLORS[n.key] : OTHER_COLOR }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-cream text-sm font-body truncate">{n.label}</p>
-                          <p className="text-faint text-[10px] font-body mt-0.5">{sub}</p>
-                        </div>
-                        <p className="text-cream text-sm font-body font-medium leading-none shrink-0">
-                          {formatNutrient(n.key, totals[n.key])}
-                          <span className="text-faint text-[10px] ml-0.5">{n.unit}</span>
-                        </p>
-                      </button>
+                        {body}
+                      </div>
                     )
-                  })
-                )}
+                  }
+
+                  const on = selectedMacros.has(n.key)
+                  return (
+                    <button
+                      key={n.key}
+                      onClick={() => toggleMacro(n.key as SelectableMacro)}
+                      aria-pressed={on}
+                      className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg border transition-colors text-left ${
+                        on
+                          ? 'bg-amber/10 border-amber/30'
+                          : 'border-transparent hover:bg-card'
+                      }`}
+                    >
+                      {body}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           </section>
 
-          {/* ── Feature 4: meal drill-down table — every entry in the period.
-              Additive to the drill-in panel above: drilling changes column
-              EMPHASIS and default sort here, never the row set. ─────────────── */}
+          {/* ── Feature 4: entries table. Unlike the section above, macro and
+              meal selection HARD-FILTER the rows here (meals OR'd within the
+              set, macros AND'd across selections). ────────────────────────── */}
           <section>
             <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
-              <h3 className="font-display text-xl text-cream font-light">All entries</h3>
+              <h3 className="font-display text-xl text-cream font-light">
+                {hasFilters ? 'Matching entries' : 'All entries'}
+              </h3>
               <span className="text-faint text-xs font-body">
-                {tableRows.length} {tableRows.length === 1 ? 'entry' : 'entries'} · click a row for detail
-                {drilled ? ` · sorted by ${selectedMeta!.label.toLowerCase()}` : ''}
+                {tableRows.length} {tableRows.length === 1 ? 'entry' : 'entries'}
+                {macroLabels.length > 0 ? ` · with ${macroLabels.join(' + ').toLowerCase()}` : ''}
+                {mealLabels.length > 0 ? ` · ${mealLabels.join(', ').toLowerCase()}` : ''}
+                {selectedMacros.size > 0 ? ' · sorted by selected macros' : ''}
+                {' · click a row for detail'}
               </span>
             </div>
 
+            {tableRows.length === 0 ? (
+              // Distinct from the period-level empty state above: the period HAS
+              // entries, the active filter combination just matches none of them.
+              <div className="bg-surface border border-border rounded-2xl p-10 text-center">
+                <p className="text-cream text-sm font-body">No entries match the selected filters.</p>
+                <p className="text-faint text-xs font-body mt-1.5">
+                  {macroLabels.length > 1
+                    ? 'An entry must contain every selected macro to appear here.'
+                    : 'Try a different macro or meal combination.'}
+                </p>
+                <button
+                  onClick={clearFilters}
+                  className="mt-4 px-3.5 py-1.5 rounded-xl text-sm font-body font-medium border bg-amber/10 border-amber/30 text-amber hover:bg-amber/15 transition-all"
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
             <div className="bg-surface border border-border rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm font-body">
@@ -612,7 +687,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                           sort={tableSort}
                           onSort={handleSortClick}
                           align="right"
-                          highlighted={drilled === n.key}
+                          highlighted={isMacroSelected(n.key)}
                         />
                       ))}
                     </tr>
@@ -638,7 +713,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                               <td
                                 key={n.key}
                                 className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
-                                  drilled === n.key ? 'text-amber bg-amber/[0.06]' : 'text-muted'
+                                  isMacroSelected(n.key) ? 'text-amber bg-amber/[0.06]' : 'text-muted'
                                 }`}
                               >
                                 {formatNutrient(n.key, e.nutrition?.[n.key])}
@@ -684,7 +759,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                                     {NUTRIENTS.map(n => (
                                       <div key={n.key}>
                                         <p className="text-faint text-[10px] font-body">{n.label}</p>
-                                        <p className={`text-sm font-body font-medium ${drilled === n.key ? 'text-amber' : 'text-cream'}`}>
+                                        <p className={`text-sm font-body font-medium ${isMacroSelected(n.key) ? 'text-amber' : 'text-cream'}`}>
                                           {formatNutrient(n.key, e.nutrition?.[n.key])}{n.unit}
                                         </p>
                                       </div>
@@ -709,6 +784,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                 </button>
               )}
             </div>
+            )}
           </section>
         </>
       )}
@@ -744,30 +820,6 @@ function InlineNote({ text }: { text: string }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center text-center px-4">
       <p className="text-faint text-sm font-body">{text}</p>
-    </div>
-  )
-}
-
-// ── Donut tooltip ────────────────────────────────────────────────────────────
-
-function DonutTooltip({
-  active, payload, nutrientKey, unit, total,
-}: {
-  active?: boolean
-  payload?: { name: string; value: number }[]
-  nutrientKey: keyof NutritionMacros
-  unit: string
-  total: number
-}) {
-  if (!active || !payload?.length) return null
-  const { name, value } = payload[0]
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0
-  return (
-    <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg">
-      <p className="text-cream text-xs font-body font-medium">{name}</p>
-      <p className="text-faint text-[11px] font-body mt-0.5">
-        {formatNutrient(nutrientKey, value)}{unit} · {pct}%
-      </p>
     </div>
   )
 }
