@@ -90,6 +90,12 @@ export default function NutritionPage() {
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
   const [goals, setGoals] = useState<NutritionGoals | null>(null)
   const [loading, setLoading] = useState(true)
+  // The local-midnight key of the day `entries`/`goals` currently represent
+  // (null before the first fetch). viewedDate flips synchronously on an arrow
+  // click, but entries only update after the async fetch resolves — comparing
+  // this to viewedDate tells us, on that same click render, that the data on
+  // screen is for a different day and must be gated behind the loader.
+  const [loadedDate, setLoadedDate] = useState<number | null>(null)
 
   // MFP sync staleness (see MFP_STALE_AFTER_DAYS). Assessed only from the
   // today-anchored fetch; day navigation neither sets nor clears it.
@@ -115,6 +121,9 @@ export default function NutritionPage() {
     if (seq !== fetchSeq.current) return
     setEntries(viewingToday ? all.filter(e => entryDateMillis(e) >= start.getTime()) : all)
     setGoals(g)
+    // Stamp which day this data is for (only for the winning fetch, inside the
+    // seq guard) so the render can tell it matches the currently viewed day.
+    setLoadedDate(start.getTime())
     if (viewingToday) setMfpStale(!all.some(e => e.source === 'mfp'))
   }, [user, viewedDate])
 
@@ -164,6 +173,17 @@ export default function NutritionPage() {
   const isFuture = dayDelta > 0
   const elapsed = dayDelta < 0 ? 1 : isFuture ? 0 : dayElapsedFraction()
   const dayLabel = isToday ? 'Today' : viewedDayLabel(viewedDate)
+
+  // Gate the Today content on the loaded data actually being for the viewed day.
+  // viewedDate updates synchronously on an arrow click while `entries` lag until
+  // the fetch resolves, so without this the previous day's list/totals paint for
+  // a frame or more under the new day's label. Reuses the existing full-tab
+  // loader (below). `loading` still covers initial mount and the goals fetch;
+  // this is additive. Scoped to the Today tab — Insights owns its own range and
+  // viewedDate can't change while it's open. (loadedDate is stamped with the
+  // same local-midnight key viewedDate carries, so equality means same day.)
+  const dayDataStale = loadedDate !== viewedDate.getTime()
+  const showLoading = loading || (tab === 'today' && dayDataStale)
 
   // ── Auth / loading gates ────────────────────────────────────────────────
   if (!authLoading && !user) {
@@ -266,7 +286,7 @@ export default function NutritionPage() {
         )}
       </div>
 
-      {loading ? (
+      {showLoading ? (
         <div className="flex items-center justify-center min-h-[40vh]">
           <Loader2 className="animate-spin text-amber" size={28} />
         </div>
