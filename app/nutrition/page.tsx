@@ -19,7 +19,8 @@ import GoalRing, { type RingKind } from '@/components/GoalRing'
 import GoalsModal from '@/components/GoalsModal'
 import LogFoodSheet from '@/components/LogFoodSheet'
 import InsightsTab from '@/components/InsightsTab'
-import type { ConsumptionEntry, NutritionGoals, Meal } from '@/types/nutrition'
+import { getActivitiesForRange } from '@/lib/strava'
+import type { ConsumptionEntry, NutritionGoals, Meal, StravaActivity } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
 type Tab = 'today' | 'insights'
@@ -74,6 +75,11 @@ function entryDateMillis(e: ConsumptionEntry): number {
   return d?.toMillis ? d.toMillis() : 0
 }
 
+function activityDateMillis(a: StravaActivity): number {
+  const d = a.start_date_local as { toMillis?: () => number } | null | undefined
+  return d?.toMillis ? d.toMillis() : 0
+}
+
 const ZERO: NutritionMacros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
 
 export default function NutritionPage() {
@@ -88,6 +94,7 @@ export default function NutritionPage() {
   const [viewedDate, setViewedDate] = useState<Date>(() => startOfLocalDay(new Date()))
 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
+  const [activities, setActivities] = useState<StravaActivity[]>([])
   const [goals, setGoals] = useState<NutritionGoals | null>(null)
   const [loading, setLoading] = useState(true)
   // The local-midnight key of the day `entries`/`goals` currently represent
@@ -117,9 +124,14 @@ export default function NutritionPage() {
     // is derived with no extra Firestore query. Display still filters to the
     // viewed day only.
     const fetchStart = viewingToday ? addDays(todayStart, -(MFP_STALE_AFTER_DAYS - 1)) : start
-    const [all, g] = await Promise.all([getEntriesForRange(user.uid, fetchStart, end), getGoals(user.uid)])
+    const [all, g, act] = await Promise.all([
+      getEntriesForRange(user.uid, fetchStart, end),
+      getGoals(user.uid),
+      getActivitiesForRange(fetchStart, end)
+    ])
     if (seq !== fetchSeq.current) return
     setEntries(viewingToday ? all.filter(e => entryDateMillis(e) >= start.getTime()) : all)
+    setActivities(viewingToday ? act.filter(a => activityDateMillis(a) >= start.getTime()) : act)
     setGoals(g)
     // Stamp which day this data is for (only for the winning fetch, inside the
     // seq guard) so the render can tell it matches the currently viewed day.
@@ -141,6 +153,10 @@ export default function NutritionPage() {
     }
     return t
   }, [entries])
+
+  const burnedCalories = useMemo(() => {
+    return activities.reduce((sum, a) => sum + a.calories, 0)
+  }, [activities])
 
   const byMeal = useMemo(() => {
     const map: Record<MealBucket, ConsumptionEntry[]> = {
@@ -297,6 +313,7 @@ export default function NutritionPage() {
           goalsSet={goalsSet}
           goals={goals}
           totals={totals}
+          burnedCalories={burnedCalories}
           elapsed={elapsed}
           byMeal={byMeal}
           hasEntries={entries.length > 0}
@@ -318,12 +335,13 @@ export default function NutritionPage() {
 // ── Today tab ──────────────────────────────────────────────────────────────
 
 function TodayTab({
-  goalsSet, goals, totals, elapsed, byMeal, hasEntries, isToday, dayLabel,
+  goalsSet, goals, totals, burnedCalories, elapsed, byMeal, hasEntries, isToday, dayLabel,
   onSetGoals, onLogFood, onDelete, onUpdateServings,
 }: {
   goalsSet: boolean
   goals: NutritionGoals | null
   totals: NutritionMacros
+  burnedCalories: number
   elapsed: number
   byMeal: Record<MealBucket, ConsumptionEntry[]>
   hasEntries: boolean
@@ -342,13 +360,14 @@ function TodayTab({
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-y-5 gap-x-2">
             {NUTRIENTS.map(n => {
               const kind: RingKind = CEILING_KEYS.has(n.key) ? 'ceiling' : 'floor'
+              const consumedValue = n.key === 'calories' ? Math.max(0, totals.calories - burnedCalories) : totals[n.key]
               return (
                 <GoalRing
                   key={n.key}
                   nutrientKey={n.key}
                   label={n.label}
                   unit={n.unit}
-                  consumed={totals[n.key]}
+                  consumed={consumedValue}
                   goal={goals?.[n.key] || 0}
                   kind={kind}
                   elapsedFraction={elapsed}
@@ -356,6 +375,15 @@ function TodayTab({
               )
             })}
           </div>
+          {burnedCalories > 0 && (
+            <div className="mt-5 pt-4 border-t border-border flex justify-center items-center gap-4 text-xs font-body text-muted">
+              <span>{Math.round(totals.calories)} consumed</span>
+              <span>−</span>
+              <span>{Math.round(burnedCalories)} burned</span>
+              <span>=</span>
+              <span className="text-cream font-medium">{Math.max(0, Math.round(totals.calories - burnedCalories))} net calories</span>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-2xl p-6 mb-8 text-center">

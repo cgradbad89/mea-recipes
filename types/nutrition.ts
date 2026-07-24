@@ -85,3 +85,13 @@ export interface RecentFood {
   type: LogEntryType
   recipe_id: string | null
 }
+
+/** An activity synced from Strava, tracking burned calories. */
+export interface StravaActivity {
+  id: string
+  name: string
+  type: string
+  start_date_local: unknown  // Firestore Timestamp
+  calories: number
+  moving_time_s: number
+}

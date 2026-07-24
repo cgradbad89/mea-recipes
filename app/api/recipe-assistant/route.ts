@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
+import { GoogleGenAI } from '@google/genai'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,10 +9,11 @@ export async function POST(req: NextRequest) {
 
     const { recipe, messages } = await req.json()
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
+    const ai = new GoogleGenAI({ apiKey })
 
     if (!recipe || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: 'Missing recipe or messages' }, { status: 400 })
@@ -35,32 +37,29 @@ ${ingredients.length ? ingredients.map(i => `- ${i}`).join('\n') : '- (none prov
 Instructions:
 ${instructions.length ? instructions.map((s, i) => `${i + 1}. ${s}`).join('\n') : '(none provided)'}`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: messages.map((m: any) => ({ role: m.role, content: m.content })),
-        cache_control: { type: 'ephemeral' },
-      }),
-    })
+    try {
+      // Map roles from UI ('assistant' / 'user') to Gemini ('model' / 'user')
+      const formattedMessages = messages.map((m: any) => ({
+        role: m.role === 'assistant' ? 'model' : m.role,
+        parts: [{ text: m.content }],
+      }))
 
-    if (!response.ok) {
-      const err = await response.text()
-      console.error('Anthropic error:', err)
+      // Gemini's generateContent doesn't take history via `messages` directly without
+      // `ai.chats`. But we can use `contents` array with roles.
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: formattedMessages,
+        config: {
+          systemInstruction: systemPrompt,
+        },
+      })
+
+      const reply = response.text || ''
+      return NextResponse.json({ reply })
+    } catch (err) {
+      console.error('Gemini error:', err)
       return NextResponse.json({ error: 'Assistant request failed' }, { status: 500 })
     }
-
-    const data = await response.json()
-    const reply = data.content?.[0]?.text || ''
-
-    return NextResponse.json({ reply })
 
   } catch (err: any) {
     console.error('recipe-assistant error:', err)

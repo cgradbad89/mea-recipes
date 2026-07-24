@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
+import { GoogleGenAI } from '@google/genai'
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,10 +9,11 @@ export async function POST(req: NextRequest) {
 
     const { recipes, cookCounts, ratings, favorites } = await req.json()
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
+    const ai = new GoogleGenAI({ apiKey })
 
     // Build taste profile summary
     const topCooked = Object.entries(cookCounts as Record<string, number>)
@@ -102,38 +104,19 @@ Rules:
 - Keep reasons short and personal based on their taste profile
 - Return ONLY the JSON, nothing else`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    })
-
-    if (!response.ok) {
-      return NextResponse.json({ error: 'AI request failed' }, { status: 500 })
-    }
-
-    const data = await response.json()
-    const rawText = data.content?.[0]?.text || ''
-
     let parsed: any
     try {
-      parsed = JSON.parse(rawText.trim())
-    } catch {
-      const match = rawText.match(/\{[\s\S]+\}/)
-      if (match) {
-        try { parsed = JSON.parse(match[0]) }
-        catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) }
-      } else {
-        return NextResponse.json({ error: 'Could not parse response' }, { status: 500 })
-      }
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      })
+      parsed = JSON.parse(response.text || '{}')
+    } catch (err) {
+      console.error('Gemini error:', err)
+      return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 
     return NextResponse.json(parsed)

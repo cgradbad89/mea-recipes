@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { getComplementaryIngredients } from '@/lib/flavorPairings'
+import { GoogleGenAI } from '@google/genai'
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given HTML or text content from a webpage or pasted text, extract the recipe and return ONLY a valid JSON object with no markdown, no backticks, no explanation.
 
@@ -33,10 +34,11 @@ export async function POST(req: NextRequest) {
 
     const { url, html, text, generate, imageURL: providedImage, prepTime: providedPrep, cookTime: providedCook } = await req.json()
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
+    const ai = new GoogleGenAI({ apiKey })
 
     // Generate mode — create a full recipe from a dish name
     if (generate && !html && !text && !url) {
@@ -46,31 +48,21 @@ export async function POST(req: NextRequest) {
         ? `\n\nFLAVOR PAIRING GUIDANCE (from FlavorGraph, a food-science ingredient pairing model):\nWhen choosing ingredients, favor these scientifically complementary ingredients where they fit the dish naturally: ${complementary.join(', ')}.\nDo not force them in — use only those that genuinely suit the recipe.`
         : ''
 
-      const genResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.${flavorGuidance}` }],
-        }),
-      })
-      if (!genResponse.ok) return NextResponse.json({ error: 'AI generation failed' }, { status: 500 })
-      const genData = await genResponse.json()
-      const genText = genData.content?.[0]?.text || ''
-      let genParsed: any
-      try { genParsed = JSON.parse(genText.trim()) }
-      catch {
-        const m = genText.match(/\{[\s\S]+\}/)
-        if (m) { try { genParsed = JSON.parse(m[0]) } catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) } }
-        else return NextResponse.json({ error: 'Could not parse response' }, { status: 500 })
+      try {
+        const genResponse = await ai.models.generateContent({
+          model: 'gemini-3.5-flash',
+          contents: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.${flavorGuidance}`,
+          config: {
+            systemInstruction: SYSTEM_PROMPT,
+            responseMimeType: 'application/json',
+          },
+        })
+        const genParsed = JSON.parse(genResponse.text || '{}')
+        return NextResponse.json({ ...genParsed, title: genParsed.title || generate, sourceURL: '' })
+      } catch (err) {
+        console.error('Gemini generation error:', err)
+        return NextResponse.json({ error: 'AI generation failed or could not parse response' }, { status: 500 })
       }
-      return NextResponse.json({ ...genParsed, title: genParsed.title || generate, sourceURL: '' })
     }
 
     if (!html && !text && !url) {
@@ -113,41 +105,20 @@ export async function POST(req: NextRequest) {
       ? `Parse this recipe from ${url}:\n\n${content}`
       : `Parse this recipe:\n\n${content}`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-    })
-
-    if (!response.ok) {
-      const err = await response.text()
-      console.error('Anthropic error:', err)
-      return NextResponse.json({ error: 'AI parsing failed' }, { status: 500 })
-    }
-
-    const data = await response.json()
-    const rawText = data.content?.[0]?.text || ''
-
     let parsed: any
     try {
-      parsed = JSON.parse(rawText.trim())
-    } catch {
-      const jsonMatch = rawText.match(/\{[\s\S]+\}/)
-      if (jsonMatch) {
-        try { parsed = JSON.parse(jsonMatch[0]) }
-        catch { return NextResponse.json({ error: 'Could not parse AI response' }, { status: 500 }) }
-      } else {
-        return NextResponse.json({ error: 'Could not parse AI response' }, { status: 500 })
-      }
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: userMessage,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: 'application/json',
+        },
+      })
+      parsed = JSON.parse(response.text || '{}')
+    } catch (err) {
+      console.error('Gemini error:', err)
+      return NextResponse.json({ error: 'AI parsing failed or could not parse response' }, { status: 500 })
     }
 
     return NextResponse.json({

@@ -25,9 +25,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
 } from 'recharts'
 import { getEntriesForRange } from '@/lib/consumptionLog'
+import { getActivitiesForRange } from '@/lib/strava'
 import { NUTRIENTS, formatNutrient } from '@/lib/nutrition'
 import GoalRing, { type RingKind } from '@/components/GoalRing'
-import type { ConsumptionEntry, Meal, NutritionGoals } from '@/types/nutrition'
+import type { ConsumptionEntry, Meal, NutritionGoals, StravaActivity } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
 type RangeKind = 'week' | 'month' | 'ytd' | 'custom'
@@ -267,6 +268,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   const isMacroSelected = (k: keyof NutritionMacros) => isSelectableMacro(k) && selectedMacros.has(k)
 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
+  const [activities, setActivities] = useState<StravaActivity[]>([])
   const [loading, setLoading] = useState(true)
 
   // Entries table (below the macro chart). Default sort: most recent first.
@@ -282,12 +284,20 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   )
 
   useEffect(() => {
-    if (!range.valid) { setEntries([]); setLoading(false); return }
+    if (!range.valid) { setEntries([]); setActivities([]); setLoading(false); return }
     let cancelled = false
     setLoading(true)
-    getEntriesForRange(userId, range.start, range.end)
-      .then(e => { if (!cancelled) setEntries(e) })
-      .catch(() => { if (!cancelled) setEntries([]) })
+    Promise.all([
+      getEntriesForRange(userId, range.start, range.end),
+      getActivitiesForRange(range.start, range.end)
+    ])
+      .then(([e, act]) => {
+        if (!cancelled) {
+          setEntries(e)
+          setActivities(act)
+        }
+      })
+      .catch(() => { if (!cancelled) { setEntries([]); setActivities([]) } })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId, range.valid, range.start, range.end])
@@ -321,6 +331,10 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     }
     return t
   }, [entries])
+
+  const burnedCalories = useMemo(() => {
+    return activities.reduce((sum, a) => sum + a.calories, 0)
+  }, [activities])
 
   // Meal filter: OR within the set (a row matches ANY selected meal); empty set
   // means "all meals". Derived from the already-loaded entries — no new query.
@@ -571,13 +585,14 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                       // target is already scaled to elapsed days — the full elapsed
                       // target is what you should have hit by now.
                       const proRatedGoal = (goals?.[n.key] || 0) * range.elapsedDays
+                      const consumedValue = n.key === 'calories' ? Math.max(0, totals.calories - burnedCalories) : totals[n.key]
                       return (
                         <GoalRing
                           key={n.key}
                           nutrientKey={n.key}
                           label={n.label}
                           unit={n.unit}
-                          consumed={totals[n.key]}
+                          consumed={consumedValue}
                           goal={proRatedGoal}
                           kind={kindRing}
                           elapsedFraction={1}
@@ -585,6 +600,15 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                       )
                     })}
                   </div>
+                  {burnedCalories > 0 && (
+                    <div className="mt-5 pt-4 border-t border-border flex justify-center items-center gap-4 text-xs font-body text-muted">
+                      <span>{Math.round(totals.calories)} consumed</span>
+                      <span>−</span>
+                      <span>{Math.round(burnedCalories)} burned</span>
+                      <span>=</span>
+                      <span className="text-cream font-medium">{Math.max(0, Math.round(totals.calories - burnedCalories))} net calories</span>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -594,16 +618,28 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                   Total consumed this range. Set daily goals to see attainment.
                 </p>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-                  {NUTRIENTS.map(n => (
-                    <div key={n.key} className="text-center">
-                      <p className="font-display text-2xl text-cream font-light leading-none">
-                        {formatNutrient(n.key, totals[n.key])}
-                        <span className="text-faint text-[10px] font-body ml-0.5">{n.unit}</span>
-                      </p>
-                      <p className="text-faint text-xs font-body mt-1.5">{n.label}</p>
-                    </div>
-                  ))}
+                  {NUTRIENTS.map(n => {
+                    const consumedValue = n.key === 'calories' ? Math.max(0, totals.calories - burnedCalories) : totals[n.key]
+                    return (
+                      <div key={n.key} className="text-center">
+                        <p className="font-display text-2xl text-cream font-light leading-none">
+                          {formatNutrient(n.key, consumedValue)}
+                          <span className="text-faint text-[10px] font-body ml-0.5">{n.unit}</span>
+                        </p>
+                        <p className="text-faint text-xs font-body mt-1.5">{n.label}</p>
+                      </div>
+                    )
+                  })}
                 </div>
+                {burnedCalories > 0 && (
+                  <div className="mt-5 pt-4 border-t border-border flex justify-center items-center gap-4 text-xs font-body text-muted">
+                    <span>{Math.round(totals.calories)} consumed</span>
+                    <span>−</span>
+                    <span>{Math.round(burnedCalories)} burned</span>
+                    <span>=</span>
+                    <span className="text-cream font-medium">{Math.max(0, Math.round(totals.calories - burnedCalories))} net calories</span>
+                  </div>
+                )}
               </div>
             )}
           </section>
@@ -706,10 +742,10 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <span className="font-display text-3xl text-cream font-light leading-none">
-                        {formatNutrient('calories', sectionTotals.calories)}
+                        {formatNutrient('calories', Math.max(0, sectionTotals.calories - burnedCalories))}
                       </span>
                       <span className="text-faint text-[11px] font-body mt-1">
-                        {selectedMeals.size > 0 ? `${mealLabels.join(', ').toLowerCase()} calories` : 'total calories'}
+                        {selectedMeals.size > 0 ? `${mealLabels.join(', ').toLowerCase()} net cals` : 'net calories'}
                       </span>
                     </div>
                   </>

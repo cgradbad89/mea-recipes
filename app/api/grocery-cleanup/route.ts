@@ -2,19 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
 import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
+import { GoogleGenAI } from '@google/genai'
 
 // Single source of truth for the allowed categories — imported from the shared
 // taxonomy so the prompt and validation can never drift from lib/groceryCategories.
 const CATEGORIES = GROCERY_CATEGORIES as readonly string[]
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6'
+const GEMINI_MODEL = 'gemini-3.5-flash'
 
 export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
     const body = await req.json()
@@ -66,31 +67,20 @@ Rules:
 - If no items need modification, return an empty array []
 - Return ONLY the JSON array`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    })
-
-    if (!response.ok) return NextResponse.json({ error: 'AI request failed' }, { status: 500 })
-
-    const data = await response.json()
-    const rawText = data.content?.[0]?.text || ''
-
-    let parsedChanges: any[]
-    try { parsedChanges = JSON.parse(rawText.trim()) }
-    catch {
-      const m = rawText.match(/\[[\s\S]*\]/)
-      if (m) { try { parsedChanges = JSON.parse(m[0]) } catch { return NextResponse.json({ error: 'Could not parse response' }, { status: 500 }) } }
-      else return NextResponse.json({ error: 'Could not parse response' }, { status: 500 })
+    const ai = new GoogleGenAI({ apiKey })
+    let parsedChanges: any[] = []
+    try {
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        },
+      })
+      parsedChanges = JSON.parse(response.text || '[]')
+    } catch (err) {
+      console.error('Gemini cleanup error:', err)
+      return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 
     if (!Array.isArray(parsedChanges)) {
@@ -175,34 +165,19 @@ Rules:
 Return ONLY this JSON object, no markdown:
 {"quantity": "", "unit": "", "name": ""}`
 
-  let response: Response
+  const ai = new GoogleGenAI({ apiKey })
+  let parsed: any = null
   try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
       },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }],
-      }),
     })
+    parsed = JSON.parse(response.text || '{}')
   } catch {
     return NextResponse.json(fallback)
-  }
-  if (!response.ok) return NextResponse.json(fallback)
-
-  const data = await response.json()
-  const rawText = data.content?.[0]?.text || ''
-  let parsed: any
-  try {
-    parsed = JSON.parse(rawText.trim())
-  } catch {
-    const m = rawText.match(/\{[\s\S]*\}/)
-    if (m) { try { parsed = JSON.parse(m[0]) } catch { parsed = null } }
   }
 
   if (!parsed || typeof parsed !== 'object' || typeof parsed.name !== 'string' || !parsed.name.trim()) {

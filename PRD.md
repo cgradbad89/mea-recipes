@@ -33,7 +33,7 @@ credential **linked to the same account** (Batch 7; same uid/data, no separate a
 | Icons | lucide-react | ^0.383.0 |
 | Charts | recharts | ^2.12.0 |
 | Utility | clsx | ^2.1.1 |
-| AI | Anthropic Messages API (`claude-sonnet-4-20250514`) | REST, `anthropic-version: 2023-06-01` |
+| AI | Gemini API (`gemini-3.5-flash`) | `@google/genai` SDK |
 
 ### Project Identifiers
 
@@ -74,15 +74,15 @@ wrapped in a per-route `layout.tsx`.
 
 | Route | Method | Auth | Summary |
 |---|---|---|---|
-| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). Calls Anthropic. |
+| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). Calls Gemini. |
 | `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import) |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; route calls the Calendar REST API against the user's **primary** calendar and returns one result per op. Has **no list/search** — only acts on the exact event IDs passed (the "no search-and-delete" safety invariant is structural). Token used transiently, never stored. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from taste profile |
 | `/api/plan-suggestions` | POST | Bearer token (required) | AI suggests recipes to complete a week plan (FlavorGraph-informed) |
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
-| `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Anthropic. |
-| `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → Anthropic AI fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
+| `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls Gemini. |
+| `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → Gemini AI fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
 | `/api/nutrition-revalidate` | POST | Bearer token (required) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
 | `/api/nutrition-canonical-dryrun` | POST | Bearer token (required) | **Canonical-staples recompute — DRY-RUN ONLY (Batch 4); there is no apply path in this route.** Recomputes catalog nutrition with the canonical-aware engine and emits a diff: per recipe **baseline** (`useCanonical:false`) vs **proposed** (`useCanonical:true`), so `canonicalΔ = proposed.total − baseline.total` isolates the table's effect; plus stored `old`, which ingredients newly resolved via the table, and old/new confidence. Never writes (no `apply` param exists). `?scope=low` restricts to `confidence==='low'` (Task-C projection); `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
 | `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,serving_grams?,servings_per_container?,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g). `serving_grams?` (numeric grams in one declared serving) and `servings_per_container?` (≈ servings/pack, derived from OFF `product_quantity`/`serving_quantity` or USDA `packageWeight`) are present when derivable — they drive the servings/grams toggle and the serving-context lines in Scan. Server-side fetch sets OFF's courtesy User-Agent. Read-only. Fed by the **Scan** mode in `LogFoodSheet.tsx` (camera → BarcodeDetector or zxing fallback). |
@@ -257,7 +257,7 @@ otherwise unchanged.
    `sessionStorage` (`mea_recipes_default_mine_applied`) **and** the user is signed in, the
    source filter defaults to `mine` once per session.
 4. **AI recipe generation flow** — Discover page: free-text dish name → `POST /api/ai-ingest`
-   with `{ generate }` → Anthropic returns structured JSON → user reviews/edits → `saveRecipe`
+   with `{ generate }` → Gemini returns structured JSON → user reviews/edits → `saveRecipe`
    into `recipes`. Generation is **FlavorGraph-informed**: `getComplementaryIngredients` seeds
    the prompt with scientifically complementary ingredients (`lib/flavorPairings.ts` +
    `lib/flavor-pairings.json`).
@@ -280,7 +280,7 @@ otherwise unchanged.
    paprika, cumin, etc.) is matched before `Staples` and **is** manually selectable;
    `Staples` remains **auto-assigned only** (excluded from `MANUAL_CATEGORIES`). Manual
    override via `GroceryItem.manualSection`.
-10. **AI grocery cleanup** — `POST /api/grocery-cleanup` sends the list to Anthropic, which
+10. **AI grocery cleanup** — `POST /api/grocery-cleanup` sends the list to Gemini, which
     returns per-item actions (`keep` / `merge` / `normalize` / `remove`) with `mergedWith`
     indices and a category. The route imports `GROCERY_CATEGORIES` (no hand-duplicated list)
     and validates each returned `category`; an off-list value falls back to the local
@@ -476,9 +476,9 @@ otherwise unchanged.
   (`lib/userdata.ts`) — a raw `.includes(recipeID)` or `.map(id => …)` over the array will break on
   object elements. Writers must be read-modify-write: `arrayUnion`/`arrayRemove` compare by deep value
   and silently fail to dedupe/remove object elements. `cookedRecipeIDs[]` is unaffected (still `string[]`).
-- **`ANTHROPIC_API_KEY` is not in local `.env.local`.** All AI routes read
-  `process.env.ANTHROPIC_API_KEY`; the local env file only defines the three `FIREBASE_*`
-  admin vars. The Anthropic key must be set in Vercel project env vars for AI features to work.
+- **`GEMINI_API_KEY` is not in local `.env.local`.** All AI routes read
+  `process.env.GEMINI_API_KEY`; the local env file only defines the three `FIREBASE_*`
+  admin vars. The Gemini key must be set in Vercel project env vars for AI features to work.
 - **Firebase web config is hardcoded** in `lib/firebase.ts` (apiKey, project, appId). This is
   normal for Firebase web apps but means the client config is committed, not env-driven.
 - **MFP nutrition sync is HTML scraping, not an API — validate before wiping.** `app/api/cron/sync-nutrition`
@@ -557,7 +557,7 @@ otherwise unchanged.
   / "half and half"→`{half}` class) or any `guard` term is itself a `DESCRIPTOR_WORD` (stripped before the
   guard runs → defanged). When adding a seed: never let an alias's only distinguishing word be a descriptor
   (`minced`, `fresh`, `whole`, `and`, `peeled`…), and guard on a token that survives `keyTokens`. The dry-run tool runs locally **without
-  `ANTHROPIC_API_KEY`**, so it computes baseline (canonical-off) and proposed (canonical-on) in the same
+  `GEMINI_API_KEY`**, so it computes baseline (canonical-off) and proposed (canonical-on) in the same
   AI-less runtime — the `canonicalΔ` is exact, but absolute totals for AI-dependent recipes read lower
   than the stored `old`, and the high/medium confidence split is a local lower bound. **The Batch-4 diff
   is review-only: stored `nutrition`/`servings`/`confidence` are unchanged until a separate apply step.**
@@ -651,13 +651,13 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | Firebase Auth | User identity — **Google sign-in** + optional **email/password linked to the same account** (Batch 7) | Web config hardcoded in `lib/firebase.ts` (apiKey, authDomain, projectId, …). **Console prerequisite:** the **Email/Password** provider must be enabled under Authentication → Sign-in method, or the link/sign-in/reset calls throw `auth/operation-not-allowed`. |
 | Firebase Firestore (client) | Recipe catalog + per-user data | Same hardcoded web config |
 | Firebase Admin | Server-side ID-token verification in API routes | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` |
-| Anthropic API | AI recipe generation, parsing, grocery cleanup, recommendations | `ANTHROPIC_API_KEY` (set in Vercel; **not** in local `.env.local`) |
+| Gemini API | AI recipe generation, parsing, grocery cleanup, recommendations | `GEMINI_API_KEY` (set in Vercel; **not** in local `.env.local`) |
 | Google Calendar API | Push meal-plan days as calendar events (Batch 6) | **No stored credential.** Client-obtained OAuth access token (`calendar.events` scope) via Firebase Google sign-in re-auth popup. Requires the Calendar API **enabled** + the scope on the **OAuth consent screen** in the `malignant-metro` GCP project. |
 | MyFitnessPal (nutrition sync) | Nightly-capable import of the food diary into `users/{uid}/nutrition/root/log` (`source: 'mfp'`). **No API** — `app/api/cron/sync-nutrition` scrapes the classic diary page HTML (`/food/diary/{MFP_USERNAME}?date=…`) with `cheerio`. | `MFP_SYNC_UID`, `MFP_SESSION_COOKIE`, `MFP_USER_AGENT`, `MFP_USERNAME`, `CRON_SECRET`; optional `MFP_DEBUG`. Session cookie expires periodically → refresh manually in Vercel. (`MFP_CSRF_TOKEN` is no longer used by code.) |
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |
 
 AI model in use across all routes: `claude-sonnet-4-20250514`, REST Messages API,
-header `anthropic-version: 2023-06-01`.
+Google Gen AI SDK.
 
 ---
 

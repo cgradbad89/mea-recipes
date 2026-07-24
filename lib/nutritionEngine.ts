@@ -24,6 +24,7 @@ import { gramsFromServingLabel } from './nutrition'
 import { CANONICAL_STAPLES as FDC_STAPLES, type CanonicalStaple } from './canonicalStaples'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import type { BarcodeProduct } from '@/types/nutrition'
+import { GoogleGenAI } from '@google/genai'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -631,29 +632,21 @@ function pickValidated(queryName: string, cls: FoodClass, foods: UsdaSearchFood[
 
 // ─── AI estimate fallback ────────────────────────────────────────────────────
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6'
+const GEMINI_MODEL = 'gemini-3.5-flash'
 
-async function anthropicJson(prompt: string): Promise<Record<string, number> | null> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+async function geminiJson(prompt: string): Promise<Record<string, number> | null> {
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null   // degrade gracefully — key lives in Vercel, may be absent locally
+  const ai = new GoogleGenAI({ apiKey })
   try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-      signal: AbortSignal.timeout(20000),
+    const res = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+      },
     })
-    if (!res.ok) return null
-    const data = await res.json()
-    const text: string = data.content?.[0]?.text || ''
-    const json = text.match(/\{[\s\S]*\}/)
-    if (!json) return null
-    const obj = JSON.parse(json[0])
+    const obj = JSON.parse(res.text || '{}')
     return typeof obj === 'object' && obj ? obj : null
   } catch {
     return null
@@ -661,7 +654,7 @@ async function anthropicJson(prompt: string): Promise<Record<string, number> | n
 }
 
 async function aiEstimateIngredient(name: string, grams: number): Promise<NutritionMacros | null> {
-  const obj = await anthropicJson(
+  const obj = await geminiJson(
     `Estimate the nutrition of ${Math.round(grams)} g of "${name}" (as used in home cooking). ` +
     `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n}`
   )
@@ -892,7 +885,7 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
   } catch { /* fall through to AI */ }
 
   // AI fallback for unresolved foods
-  const obj = await anthropicJson(
+  const obj = await geminiJson(
     `Estimate the nutrition of ONE typical serving of "${name}". ` +
     `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n, "serving_grams": n}`
   )

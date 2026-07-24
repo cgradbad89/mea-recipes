@@ -20,7 +20,7 @@ Per recipe the engine is run twice in the same runtime:
 - **canonicalΔ** = proposed.total − baseline.total → attributable **purely** to the table.
 - **old** = the value stored in Firestore today (reference).
 
-> ⚠️ Run locally **without `ANTHROPIC_API_KEY`**, so the AI fallback tier is off in *both*
+> ⚠️ Run locally **without `GEMINI_API_KEY`**, so the AI fallback tier is off in *both*
 > passes. The canonicalΔ (baseline→proposed) is therefore **exact** (same ingredients
 > unresolved in both). Absolute totals for AI-dependent recipes can read lower than the
 > stored `old` (which was computed on Vercel with AI), and the high/medium confidence split
