@@ -124,19 +124,25 @@ export default function NutritionPage() {
     // is derived with no extra Firestore query. Display still filters to the
     // viewed day only.
     const fetchStart = viewingToday ? addDays(todayStart, -(MFP_STALE_AFTER_DAYS - 1)) : start
-    const [all, g, act] = await Promise.all([
-      getEntriesForRange(user.uid, fetchStart, end),
-      getGoals(user.uid),
-      getActivitiesForRange(fetchStart, end)
-    ])
-    if (seq !== fetchSeq.current) return
-    setEntries(viewingToday ? all.filter(e => entryDateMillis(e) >= start.getTime()) : all)
-    setActivities(viewingToday ? act.filter(a => activityDateMillis(a) >= start.getTime()) : act)
-    setGoals(g)
-    // Stamp which day this data is for (only for the winning fetch, inside the
-    // seq guard) so the render can tell it matches the currently viewed day.
-    setLoadedDate(start.getTime())
-    if (viewingToday) setMfpStale(!all.some(e => e.source === 'mfp'))
+    try {
+      const [all, g, act] = await Promise.all([
+        getEntriesForRange(user.uid, fetchStart, end),
+        getGoals(user.uid),
+        getActivitiesForRange(fetchStart, end)
+      ])
+      if (seq !== fetchSeq.current) return
+      setEntries(viewingToday ? all.filter(e => entryDateMillis(e) >= start.getTime()) : all)
+      setActivities(viewingToday ? act.filter(a => activityDateMillis(a) >= start.getTime()) : act)
+      setGoals(g)
+      // Stamp which day this data is for (only for the winning fetch, inside the
+      // seq guard) so the render can tell it matches the currently viewed day.
+      setLoadedDate(start.getTime())
+      if (viewingToday) setMfpStale(!all.some(e => e.source === 'mfp'))
+    } catch (err) {
+      console.error('Failed to refresh nutrition data:', err)
+      if (seq !== fetchSeq.current) return
+      setLoadedDate(start.getTime())
+    }
   }, [user, viewedDate])
 
   useEffect(() => {

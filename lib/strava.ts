@@ -30,13 +30,18 @@ function snapToActivity(id: string, data: Record<string, unknown>): StravaActivi
  * belong to the current user.
  */
 export async function getActivitiesForRange(start: Date, end: Date): Promise<StravaActivity[]> {
-  const q = query(
-    stravaActivitiesPath(),
-    where('start_date_local', '>=', Timestamp.fromDate(start)),
-    where('start_date_local', '<=', Timestamp.fromDate(end)),
-    orderBy('start_date_local', 'asc'),
-  )
-  const snap = await getDocs(q)
-  const activities = snap.docs.map(d => snapToActivity(d.id, d.data()))
-  return activities
+  try {
+    const q = query(
+      stravaActivitiesPath(),
+      where('start_date_local', '>=', Timestamp.fromDate(start)),
+      where('start_date_local', '<=', Timestamp.fromDate(end)),
+      orderBy('start_date_local', 'asc'),
+    )
+    const snap = await getDocs(q)
+    const activities = snap.docs.map(d => snapToActivity(d.id, d.data()))
+    return activities
+  } catch (err) {
+    console.error('Failed to fetch Strava activities:', err)
+    return []
+  }
 }
