@@ -201,6 +201,11 @@ owner's `PlannedEntry[]` down to bare IDs via `plannedRecipeIDList`, so friends 
 were planned but never the owner's private day/role assignments. The publish/Friends' feature is
 otherwise unchanged.
 
+### `stravaActivities/{id}` — synced Strava activities (`StravaActivity`)
+One doc per Strava activity. This is synced independently by an external process/webhook.
+Fields: `id, name, type, start_date_local (Timestamp), calories, moving_time_s`.
+Queried by `start_date_local` to compute burned calories. Burned calories are subtracted from consumed calories in the Nutrition insights and today views. Note: Requires standard user-scoped Firestore security rules.
+
 ---
 
 ## Section 4 — Domain Invariants
