@@ -92,6 +92,17 @@ const CHART_COLORS: Record<SelectableMacro, string> = {
 const GRID_COLOR = '#2E2820'
 const AXIS_TEXT = '#6B5E50'
 
+// Rounded top corners for the topmost stack segment only. Module-level so the
+// prop keeps a stable identity: recharts' isChildrenEqual shallow-compares Bar
+// props, and a fresh [3,3,0,0] literal each render forced it to throw away and
+// rebuild its axis/stack/graphical-item state on every parent re-render.
+const TOP_RADIUS: [number, number, number, number] = [3, 3, 0, 0]
+
+// Same reason — an inline arrow would be a new identity every render.
+const legendFormatter = (value: string) => (
+  <span className="text-faint text-[11px] font-body">{value}</span>
+)
+
 type BucketUnit = 'day' | 'week' | 'month'
 
 /** Bucket granularity from the range's ACTUAL span, so Custom ranges adapt. */
@@ -824,9 +835,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                         height={26}
                         iconType="circle"
                         iconSize={8}
-                        formatter={(value: string) => (
-                          <span className="text-faint text-[11px] font-body">{value}</span>
-                        )}
+                        formatter={legendFormatter}
                       />
                       {chart.series.map((k, i) => (
                         <Bar
@@ -836,7 +845,15 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                           stackId="macros"
                           fill={CHART_COLORS[k]}
                           maxBarSize={56}
-                          radius={i === chart.series.length - 1 ? [3, 3, 0, 0] : undefined}
+                          // Entry animation OFF, deliberately. recharts renders
+                          // the grow-in by interpolating each rect's height from
+                          // 0, and Rectangle returns null at height 0 — so any
+                          // stall leaves the <g class="recharts-bar-rectangle">
+                          // groups mounted but EMPTY: correct axes, legend and
+                          // positions, no visible bars. That was this chart's
+                          // bug. Static rects render on first paint instead.
+                          isAnimationActive={false}
+                          radius={i === chart.series.length - 1 ? TOP_RADIUS : 0}
                         />
                       ))}
                     </BarChart>
