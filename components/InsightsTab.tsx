@@ -580,7 +580,10 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                 {NUTRIENTS.map(n => {
                   const isMacro = n.key in MACRO_COLORS
                   const cals = (sectionTotals[n.key] || 0) * (MACRO_KCAL[n.key] || 0)
-                  const pct = isMacro && composition.total > 0 ? Math.round((cals / composition.total) * 100) : null
+                  // Share of the section's macro calories. A zero denominator —
+                  // a meal filter matching no entries, or a period with no macro
+                  // data — is 0%, never NaN/null (which rendered as "null%").
+                  const pct = composition.total > 0 ? Math.round((cals / composition.total) * 100) : 0
                   const sub =
                     n.key === 'calories' ? 'total energy'
                     : isMacro ? `${pct}% of calories`
