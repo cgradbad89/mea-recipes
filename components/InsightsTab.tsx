@@ -20,7 +20,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { BarChart2, Loader2, Calendar, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+} from 'recharts'
 import { getEntriesForRange } from '@/lib/consumptionLog'
 import { NUTRIENTS, formatNutrient } from '@/lib/nutrition'
 import GoalRing, { type RingKind } from '@/components/GoalRing'
@@ -68,6 +71,51 @@ const HIGHLIGHT_STROKE = '#F4E4C1'
 const MACRO_KCAL: Partial<Record<keyof NutritionMacros, number>> = { protein_g: 4, carbs_g: 4, fat_g: 9 }
 const MACRO_COLORS: Partial<Record<keyof NutritionMacros, string>> = {
   protein_g: '#E8A838', carbs_g: '#5eead4', fat_g: '#fb923c',
+}
+
+// ── Trend bar chart (between the composition tile and the entries table) ─────
+// Segment colors. Deliberately a SEPARATE map from MACRO_COLORS: that map
+// doubles as the "is this an energy macro?" test in the nutrient list
+// (`n.key in MACRO_COLORS`), so adding fiber/sugar there would silently
+// relabel those rows. Protein/carbs/fat reuse their donut hues so a macro
+// reads the same in both charts; fiber (lime) and sugar (violet) are new hues,
+// well clear of the amber/teal/orange already in play.
+const CHART_COLORS: Record<SelectableMacro, string> = {
+  protein_g: MACRO_COLORS.protein_g!,
+  carbs_g: MACRO_COLORS.carbs_g!,
+  fat_g: MACRO_COLORS.fat_g!,
+  fiber_g: '#a3e635',
+  sugar_g: '#c084fc',
+}
+
+// Dark-theme chart chrome, from the tailwind palette (border / faint).
+const GRID_COLOR = '#2E2820'
+const AXIS_TEXT = '#6B5E50'
+
+type BucketUnit = 'day' | 'week' | 'month'
+
+/** Bucket granularity from the range's ACTUAL span, so Custom ranges adapt. */
+function bucketUnitFor(spanDays: number): BucketUnit {
+  if (spanDays <= 14) return 'day'
+  if (spanDays <= 90) return 'week'
+  return 'month'
+}
+
+function macroLabel(k: SelectableMacro): string {
+  return NUTRIENTS.find(n => n.key === k)!.label
+}
+
+/** Same "Jul 23" convention the entries table uses for its Date column. */
+function shortDay(d: Date): string {
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+function monthKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Display rounding: calories are whole, grams get one decimal. */
+function roundFor(mode: 'kcal' | 'grams', v: number): number {
+  return mode === 'kcal' ? Math.round(v) : Math.round(v * 10) / 10
 }
 
 // ── Entries table (below the macro chart) ────────────────────────────────────
@@ -325,6 +373,80 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     return rows
   }, [mealEntries, selectedMacros, tableSort])
 
+  // ── Trend chart data ───────────────────────────────────────────────────────
+  // Buckets sum from `mealEntries`, NOT `tableRows`: selectedMacros picks which
+  // macros are DISPLAYED, never which entries are counted, so every entry in
+  // the meal-filtered set feeds every macro's bucket total. That mirrors the
+  // donut's semantics; the table's macro AND-filter deliberately does not apply
+  // here. Meal filtering arrives already applied via mealEntries — never re-run.
+  // All in-memory over the already-fetched entries; no new query.
+  const chart = useMemo(() => {
+    const unit = bucketUnitFor(daysInclusive(range.start, range.end))
+    const mode: 'kcal' | 'grams' = selectedMacros.size > 0 ? 'grams' : 'kcal'
+    // Canonical order, never click order. Mode A is the three energy macros;
+    // fiber/sugar are subsets of carbs and have no independent calorie share.
+    const series: SelectableMacro[] = mode === 'grams'
+      ? SELECTABLE_MACROS.filter(k => selectedMacros.has(k))
+      : ['protein_g', 'carbs_g', 'fat_g']
+
+    // Every bucket in the range is emitted, empty ones included — a zero-height
+    // bar among real bars is a normal result, not an empty state.
+    const last = startOfDay(range.end)
+    const multiYear = range.start.getFullYear() !== range.end.getFullYear()
+    const buckets: { key: string; label: string; grams: Record<SelectableMacro, number> }[] = []
+    const indexOf = new Map<string, number>()
+    const push = (key: string, label: string) => {
+      indexOf.set(key, buckets.length)
+      buckets.push({
+        key, label,
+        grams: { protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 },
+      })
+    }
+
+    if (unit === 'day') {
+      for (let d = startOfDay(range.start); d.getTime() <= last.getTime(); d = addDays(d, 1)) {
+        push(isoDate(d), shortDay(d))
+      }
+    } else if (unit === 'week') {
+      // Monday-start, same convention as the "Week" period filter. The first
+      // bucket may open before range.start; only in-range entries exist, so the
+      // sums are unaffected and the label still names the week.
+      for (let d = startOfWeekMonday(range.start); d.getTime() <= last.getTime(); d = addDays(d, 7)) {
+        push(isoDate(d), `Wk ${shortDay(d)}`)
+      }
+    } else {
+      for (let d = startOfMonth(range.start); d.getTime() <= last.getTime();
+           d = startOfDay(new Date(d.getFullYear(), d.getMonth() + 1, 1))) {
+        push(monthKey(d), d.toLocaleDateString(
+          undefined, multiYear ? { month: 'short', year: 'numeric' } : { month: 'short' },
+        ))
+      }
+    }
+
+    for (const e of mealEntries) {
+      const ms = entryDateMillis(e)
+      if (!ms) continue                       // malformed date — can't be bucketed
+      const d = new Date(ms)
+      const key = unit === 'day' ? isoDate(startOfDay(d))
+        : unit === 'week' ? isoDate(startOfWeekMonday(d))
+        : monthKey(d)
+      const i = indexOf.get(key)
+      if (i === undefined) continue
+      const g = buckets[i].grams
+      for (const k of SELECTABLE_MACROS) g[k] += e.nutrition?.[k] || 0
+    }
+
+    const data = buckets.map(b => {
+      const row: Record<string, string | number> = { key: b.key, label: b.label }
+      for (const k of series) {
+        row[k] = roundFor(mode, mode === 'kcal' ? b.grams[k] * (MACRO_KCAL[k] || 0) : b.grams[k])
+      }
+      return row
+    })
+
+    return { unit, mode, series, data }
+  }, [mealEntries, selectedMacros, range])
+
   // Header click: same column toggles direction; a new column starts at its
   // natural default (text ascending, date/macros descending).
   const handleSortClick = (key: TableSortKey) => {
@@ -338,6 +460,15 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     .filter(k => selectedMacros.has(k))
     .map(k => NUTRIENTS.find(n => n.key === k)!.label)
   const mealLabels = MEALS.filter(m => selectedMeals.has(m)).map(m => MEAL_LABELS[m])
+
+  // Chart caption mirrors the composition caption's style: what's plotted, then
+  // the active meal filter, then the bucket size (so a bar that is more than
+  // one day says so).
+  const chartNames = chart.series.map(k => macroLabel(k).toLowerCase()).join(', ')
+  const chartCaption =
+    `${chartNames.charAt(0).toUpperCase()}${chartNames.slice(1)} (${chart.mode === 'kcal' ? 'kcal' : 'g'})`
+    + (mealLabels.length > 0 ? ` · ${mealLabels.join(', ').toLowerCase()}` : '')
+    + ` · one bar per ${chart.unit === 'week' ? 'week (Mon-start)' : chart.unit}`
 
   return (
     <div className="space-y-8">
@@ -639,6 +770,82 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
             </div>
           </section>
 
+          {/* ── Feature 3b: trend bars over time. Meal-filtered like the donut
+              (selectedMacros picks the SERIES, not the entries); bucket size
+              follows the range's span. Display only — no click behaviour. ─── */}
+          <section>
+            <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+              <h3 className="font-display text-xl text-cream font-light">Nutrient trend</h3>
+              <span className="text-faint text-xs font-body">{chartCaption}</span>
+            </div>
+
+            {mealEntries.length === 0 ? (
+              // Only reachable via the meal filter — the period itself has
+              // entries (this whole branch is gated on hasEntries). Buckets with
+              // no entries are NOT this case; they render as zero-height bars.
+              <div className="bg-surface border border-border rounded-2xl p-10 text-center">
+                <p className="text-cream text-sm font-body">No entries match the selected meals.</p>
+                <p className="text-faint text-xs font-body mt-1.5">
+                  Nothing was logged for {mealLabels.join(', ').toLowerCase()} in this range.
+                </p>
+                <button
+                  onClick={clearFilters}
+                  className="mt-4 px-3.5 py-1.5 rounded-xl text-sm font-body font-medium border bg-amber/10 border-amber/30 text-amber hover:bg-amber/15 transition-all"
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="bg-surface border border-border rounded-2xl p-5">
+                <div style={{ height: 288 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chart.data} margin={{ top: 4, right: 8, left: -14, bottom: 0 }}>
+                      <CartesianGrid stroke={GRID_COLOR} vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={{ stroke: GRID_COLOR }}
+                        interval="preserveStartEnd"
+                        minTickGap={6}
+                      />
+                      <YAxis
+                        tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={false}
+                        width={52}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(232,168,56,0.06)' }}
+                        content={<BucketTooltip mode={chart.mode} />}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={26}
+                        iconType="circle"
+                        iconSize={8}
+                        formatter={(value: string) => (
+                          <span className="text-faint text-[11px] font-body">{value}</span>
+                        )}
+                      />
+                      {chart.series.map((k, i) => (
+                        <Bar
+                          key={k}
+                          dataKey={k}
+                          name={macroLabel(k)}
+                          stackId="macros"
+                          fill={CHART_COLORS[k]}
+                          maxBarSize={56}
+                          radius={i === chart.series.length - 1 ? [3, 3, 0, 0] : undefined}
+                        />
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </section>
+
           {/* ── Feature 4: entries table. Unlike the section above, macro and
               meal selection HARD-FILTER the rows here (meals OR'd within the
               set, macros AND'd across selections). ────────────────────────── */}
@@ -812,6 +1019,43 @@ function CompositionTooltip({
       <p className="text-cream text-xs font-body font-medium">{name}</p>
       <p className="text-faint text-[11px] font-body mt-0.5">
         {Math.round(value)} cal · {pct}%
+      </p>
+    </div>
+  )
+}
+
+// ── Trend-chart tooltip: per-segment value + bucket total ───────────────────
+
+function BucketTooltip({
+  active, payload, label, mode,
+}: {
+  active?: boolean
+  payload?: { dataKey?: string | number; name?: string; value?: number; color?: string }[]
+  label?: string
+  mode: 'kcal' | 'grams'
+}) {
+  if (!active || !payload?.length) return null
+  const unit = mode === 'kcal' ? ' kcal' : 'g'
+  const show = (v: number) => (mode === 'kcal' ? Math.round(v).toString() : v.toFixed(1))
+  const total = payload.reduce((s, p) => s + (p.value || 0), 0)
+  return (
+    <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg min-w-[9rem]">
+      <p className="text-cream text-xs font-body font-medium">{label}</p>
+      <div className="mt-1.5 space-y-1">
+        {payload.map(p => (
+          <p key={String(p.dataKey)} className="flex items-center gap-2 text-[11px] font-body">
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ background: p.color || CHART_COLORS[p.dataKey as SelectableMacro] }}
+            />
+            <span className="text-faint">{p.name}</span>
+            <span className="text-cream ml-auto tabular-nums">{show(p.value || 0)}{unit}</span>
+          </p>
+        ))}
+      </div>
+      <p className="flex items-center gap-2 text-[11px] font-body mt-1.5 pt-1.5 border-t border-border">
+        <span className="text-faint">Total</span>
+        <span className="text-cream ml-auto tabular-nums">{show(total)}{unit}</span>
       </p>
     </div>
   )
