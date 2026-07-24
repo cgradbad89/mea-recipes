@@ -22,7 +22,7 @@ import Link from 'next/link'
 import { BarChart2, Loader2, Calendar, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from 'recharts'
 import { getEntriesForRange } from '@/lib/consumptionLog'
 import { getActivitiesForRange } from '@/lib/strava'
@@ -103,6 +103,20 @@ const TOP_RADIUS: [number, number, number, number] = [3, 3, 0, 0]
 const legendFormatter = (value: string) => (
   <span className="text-faint text-[11px] font-body">{value}</span>
 )
+
+// Always-on total-calories reference line, layered over the macro bars. Blue —
+// deliberately clear of every CHART_COLORS hue (amber/teal/orange/lime/violet),
+// the grid/axis browns, and the amber accent used for chips/"Clear filters" — so
+// the line reads as its own thing at a glance. Its value is the real
+// nutrition.calories sum per bucket, never a macro-kcal derivation.
+const CALORIES_LINE_COLOR = '#60a5fa'
+// Dashed so it reads as a line, not a bar edge; dotted markers per bucket.
+const CALORIES_DASH = '5 4'
+// Hoisted for the SAME stable-identity reason as TOP_RADIUS: a fresh dot/config
+// object literal on every render is exactly what made the bars silently fail to
+// draw. These must stay module-level references.
+const CALORIES_DOT = { r: 3, fill: CALORIES_LINE_COLOR, stroke: CALORIES_LINE_COLOR, strokeWidth: 0 }
+const CALORIES_ACTIVE_DOT = { r: 4, fill: CALORIES_LINE_COLOR, stroke: CALORIES_LINE_COLOR, strokeWidth: 0 }
 
 type BucketUnit = 'day' | 'week' | 'month'
 
@@ -418,13 +432,18 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
     // bar among real bars is a normal result, not an empty state.
     const last = startOfDay(range.end)
     const multiYear = range.start.getFullYear() !== range.end.getFullYear()
-    const buckets: { key: string; label: string; grams: Record<SelectableMacro, number> }[] = []
+    // `calories` is the real nutrition.calories sum for the bucket — the
+    // always-on reference line's value. Accumulated in the SAME pass as the
+    // macro grams below, keyed off the SAME bucket index; never a second pass
+    // and never derived from grams × MACRO_KCAL, so it matches the donut/table.
+    const buckets: { key: string; label: string; grams: Record<SelectableMacro, number>; calories: number }[] = []
     const indexOf = new Map<string, number>()
     const push = (key: string, label: string) => {
       indexOf.set(key, buckets.length)
       buckets.push({
         key, label,
         grams: { protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 },
+        calories: 0,
       })
     }
 
@@ -459,6 +478,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
       if (i === undefined) continue
       const g = buckets[i].grams
       for (const k of SELECTABLE_MACROS) g[k] += e.nutrition?.[k] || 0
+      buckets[i].calories += e.nutrition?.calories || 0
     }
 
     const data = buckets.map(b => {
@@ -466,6 +486,9 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
       for (const k of series) {
         row[k] = roundFor(mode, mode === 'kcal' ? b.grams[k] * (MACRO_KCAL[k] || 0) : b.grams[k])
       }
+      // Always emitted, both modes — the reference line reads this key. Whole
+      // kcal, matching how calories are shown elsewhere on the tab.
+      row.calories = Math.round(b.calories)
       return row
     })
 
@@ -846,7 +869,11 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
               <div className="bg-surface border border-border rounded-2xl p-5">
                 <div style={{ height: 288 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chart.data} margin={{ top: 4, right: 8, left: -14, bottom: 0 }}>
+                    {/* ComposedChart (not BarChart) so the always-on calories
+                        Line can layer over the Bar stack with its own axis in
+                        grams mode. Every Bar/axis/grid prop below is carried
+                        over from the old BarChart unchanged — only re-parented. */}
+                    <ComposedChart data={chart.data} margin={{ top: 4, right: 8, left: -14, bottom: 0 }}>
                       <CartesianGrid stroke={GRID_COLOR} vertical={false} />
                       <XAxis
                         dataKey="label"
@@ -862,6 +889,19 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                         axisLine={false}
                         width={52}
                       />
+                      {/* Mode B only: bars are in grams, so the kcal line needs
+                          its own right-hand scale. In Mode A the bars are already
+                          kcal and the line shares the left axis (no axis here). */}
+                      {chart.mode === 'grams' && (
+                        <YAxis
+                          yAxisId="calories"
+                          orientation="right"
+                          tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={52}
+                        />
+                      )}
                       <Tooltip
                         cursor={{ fill: 'rgba(232,168,56,0.06)' }}
                         content={<BucketTooltip mode={chart.mode} />}
@@ -892,7 +932,24 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                           radius={i === chart.series.length - 1 ? TOP_RADIUS : 0}
                         />
                       ))}
-                    </BarChart>
+                      {/* Always-on total-calories reference line, over the bars.
+                          Mode A: shares the left (kcal) axis. Mode B: uses the
+                          right "calories" axis. Same isAnimationActive={false} +
+                          hoisted-prop discipline as the bars (CALORIES_DOT /
+                          CALORIES_ACTIVE_DOT are module-level, never inline). */}
+                      <Line
+                        type="monotone"
+                        dataKey="calories"
+                        name="Calories"
+                        yAxisId={chart.mode === 'grams' ? 'calories' : 0}
+                        stroke={CALORIES_LINE_COLOR}
+                        strokeWidth={2}
+                        strokeDasharray={CALORIES_DASH}
+                        dot={CALORIES_DOT}
+                        activeDot={CALORIES_ACTIVE_DOT}
+                        isAnimationActive={false}
+                      />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </div>
@@ -1090,12 +1147,17 @@ function BucketTooltip({
   if (!active || !payload?.length) return null
   const unit = mode === 'kcal' ? ' kcal' : 'g'
   const show = (v: number) => (mode === 'kcal' ? Math.round(v).toString() : v.toFixed(1))
-  const total = payload.reduce((s, p) => s + (p.value || 0), 0)
+  // The always-on calories Line rides in the same payload as the macro bars.
+  // Pull it out so it neither shows as a "segment" nor pollutes the macro total;
+  // it renders on its own row (always kcal) from the SAME per-bucket value.
+  const segments = payload.filter(p => p.dataKey !== 'calories')
+  const caloriesEntry = payload.find(p => p.dataKey === 'calories')
+  const total = segments.reduce((s, p) => s + (p.value || 0), 0)
   return (
     <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-lg min-w-[9rem]">
       <p className="text-cream text-xs font-body font-medium">{label}</p>
       <div className="mt-1.5 space-y-1">
-        {payload.map(p => (
+        {segments.map(p => (
           <p key={String(p.dataKey)} className="flex items-center gap-2 text-[11px] font-body">
             <span
               className="w-2 h-2 rounded-full shrink-0"
@@ -1110,6 +1172,16 @@ function BucketTooltip({
         <span className="text-faint">Total</span>
         <span className="text-cream ml-auto tabular-nums">{show(total)}{unit}</span>
       </p>
+      {caloriesEntry && (
+        <p className="flex items-center gap-2 text-[11px] font-body mt-1">
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ background: CALORIES_LINE_COLOR }}
+          />
+          <span className="text-faint">Calories</span>
+          <span className="text-cream ml-auto tabular-nums">{Math.round(caloriesEntry.value || 0)} kcal</span>
+        </p>
+      )}
     </div>
   )
 }
