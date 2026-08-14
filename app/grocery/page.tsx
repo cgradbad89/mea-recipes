@@ -100,6 +100,7 @@ export default function GroceryPage() {
   const [editingItemName, setEditingItemName] = useState('')
   const [editingItemQuantity, setEditingItemQuantity] = useState('')
   const [editingItemUnit, setEditingItemUnit] = useState('')
+  const [showCheckedItems, setShowCheckedItems] = useState(false)
 
   const startEditItem = (item: GroceryItem) => {
     setEditingItemId(item.id)
@@ -166,24 +167,23 @@ export default function GroceryPage() {
   const grouped = useMemo(() => {
     const groups: Record<string, GroceryItem[]> = {}
     GROCERY_CATEGORIES.forEach(cat => { groups[cat] = [] })
-    items.forEach(item => {
+    const visibleItems = showCheckedItems ? items : items.filter(item => !item.isChecked)
+    visibleItems.forEach(item => {
       const cat = getCategory(item)
       if (!groups[cat]) groups[cat] = []
       groups[cat].push(item)
     })
     Object.keys(groups).forEach(cat => {
       groups[cat].sort((a, b) => {
-        if (a.isChecked !== b.isChecked) {
-          return (a.isChecked ? 1 : 0) - (b.isChecked ? 1 : 0)
-        }
         return extractIngredientName(a.name).toLowerCase().localeCompare(extractIngredientName(b.name).toLowerCase())
       })
     })
     return groups
-  }, [items])
+  }, [items, showCheckedItems])
 
   const uncheckedCount = items.filter(i => !i.isChecked).length
   const checkedCount = items.filter(i => i.isChecked).length
+  const visibleItemCount = showCheckedItems ? items.length : uncheckedCount
 
   const toggleItem = async (item: GroceryItem) => {
     if (!user) return
@@ -464,7 +464,16 @@ export default function GroceryPage() {
             {checkedCount > 0 && ` · ${checkedCount} checked`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {checkedCount > 0 && (
+            <button
+              onClick={() => setShowCheckedItems(prev => !prev)}
+              className="btn-ghost flex items-center gap-1.5 text-xs"
+            >
+              {showCheckedItems ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              {showCheckedItems ? 'Hide checked' : `Show checked (${checkedCount})`}
+            </button>
+          )}
           {checkedCount > 0 && (
             <button onClick={clearChecked} className="btn-ghost flex items-center gap-1.5 text-xs">
               <CheckCheck size={13} />Clear checked
@@ -765,6 +774,20 @@ export default function GroceryPage() {
         </div>
       )}
 
+      {items.length > 0 && visibleItemCount === 0 && (
+        <div className="text-center py-16 border border-border rounded-2xl">
+          <CheckCheck size={36} className="text-faint mx-auto mb-4" />
+          <p className="font-display text-2xl text-faint font-light mb-2">All items checked</p>
+          <button
+            onClick={() => setShowCheckedItems(true)}
+            className="btn-ghost inline-flex items-center gap-1.5 text-xs"
+          >
+            <ChevronDown size={13} />
+            Show checked ({checkedCount})
+          </button>
+        </div>
+      )}
+
       {/* Grouped items */}
       <div className="space-y-4">
         {GROCERY_CATEGORIES.map(category => {
@@ -784,7 +807,7 @@ export default function GroceryPage() {
                   <span className="text-base">{CATEGORY_EMOJI[category]}</span>
                   <span className="font-body font-medium text-cream text-sm">{category}</span>
                   <span className="text-faint text-xs font-body">
-                    {checkedInCat > 0 ? `${checkedInCat}/${catItems.length}` : catItems.length}
+                    {showCheckedItems && checkedInCat > 0 ? `${checkedInCat}/${catItems.length}` : catItems.length}
                   </span>
                 </div>
                 {isCollapsed ? <ChevronDown size={14} className="text-faint" /> : <ChevronUp size={14} className="text-faint" />}
@@ -796,7 +819,7 @@ export default function GroceryPage() {
                   {catItems.map(item => (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${item.isChecked ? 'opacity-50' : ''}`}
+                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${item.isChecked ? 'opacity-60' : ''}`}
                     >
                       {/* Checkbox */}
                       <button
@@ -861,7 +884,7 @@ export default function GroceryPage() {
                         </div>
                       ) : (
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-body ${item.isChecked ? 'line-through text-faint' : 'text-cream'}`}>
+                          <p className={`text-sm font-body ${item.isChecked ? 'text-faint' : 'text-cream'}`}>
                             {item.quantity && item.unit
                               ? `${item.quantity} ${item.unit} ${item.name}`
                               : item.quantity
