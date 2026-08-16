@@ -165,7 +165,10 @@ export async function getGoals(userId: string): Promise<NutritionGoals | null> {
   return snap.data() as NutritionGoals
 }
 
-export async function saveGoals(userId: string, goals: NutritionMacros): Promise<void> {
+export async function saveGoals(
+  userId: string,
+  goals: NutritionMacros & Pick<NutritionGoals, 'calorie_baseline'>,
+): Promise<void> {
   await setDoc(goalsDocRef(userId), { ...goals, updated_at: serverTimestamp() }, { merge: true })
 }
 

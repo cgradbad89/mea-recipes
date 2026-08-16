@@ -180,8 +180,16 @@ Note: the spec drafted this as a top-level `consumption_log` collection; impleme
 the existing `users/{uid}/{area}/root/*` convention instead.
 
 ### `users/{uid}/nutrition/root/goals/daily` — daily nutrition goals (`NutritionGoals`)
-Single doc: the six macro targets + `updated_at`. (Spec drafted `goals/{userId}`; same
-convention-following relocation as the log.)
+Single doc: the six macro targets, optional user-entered `calorie_baseline` (natural
+calories burned per day before active movement), and `updated_at`. (Spec drafted
+`goals/{userId}`; same convention-following relocation as the log.)
+
+### `users/{uid}/healthMetrics/{YYYY-MM-DD}` — Apple Health daily metrics (`HealthMetric`)
+Read by the nutrition app and written by the Training app/iOS sync. The nutrition app
+uses the optional `move_calories` field as user-owned active calories burned; `date` is
+the local-calendar `YYYY-MM-DD` key and `syncedAt` records the source sync time. The
+nutrition app treats missing `move_calories` as unavailable rather than as confirmed
+zero and does not write this collection.
 
 ### `users/{uid}/nutrition/root/savedFoods/{foodId}` — starred quick-foods (`SavedFood`)
 Doc ID = sanitized lowercased name. Fields: `id, name, nutrition{6 macros per serving},
@@ -644,6 +652,21 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Push meal plan to Google Calendar | Medium | Done | Manual **"Add this week to Calendar"** on the Plan page → one event per planned day, idempotent re-push via `weekPlans.calendarEventIds`. **Option B auth:** client mints a `calendar.events` OAuth token via a Firebase Google re-auth popup and passes it to the auth-gated `/api/calendar/push` executor (no server-side Google creds; route has no list/search). Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6). |
 | Password login (email/password via account linking) | Medium | Done | Batch 7. Google-signed-in user adds a password in settings (`PasswordLoginSettings` → `linkWithCredential`, same uid/data, no new account); login screen (`SignInOptions`, used in the `/favorites` + `/plan` gates) keeps Google and adds email/password **sign-in only** (no signup) + "Forgot password?" (`sendPasswordResetEmail`, neutral confirmation). Requires the Email/Password provider enabled in the Firebase console (see §4 #7, §6, §8). |
 | Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window) |
+| Gemini API cost-optimization | Low | Backlog | Investigate Gemini's context caching or batching equivalent to what was previously verified for Anthropic prompt caching. |
+| Activity calories in nutrition views | Medium | Done | Nutrition Today and Insights now read user-scoped `healthMetrics.move_calories`, combine it with the user-entered `NutritionGoals.calorie_baseline`, and no longer use the unowned Strava collection. |
+
+**Activity calories in nutrition views — resolved (2026-08-16)**
+
+The nutrition pages previously attempted to read `stravaActivities`, a root collection
+with no owner field. That source was unsuitable for a multi-user nutrition tracker and
+could overlap with Apple Health workout calories. The implementation now reads
+`users/{uid}/healthMetrics` using the same inclusive date-string range query as Training
+Web. Active calories are summed only from records that contain a numeric
+`move_calories` value; missing daily values are surfaced as incomplete coverage.
+
+The existing `stravaActivities` data remains documented for historical context but is
+not part of nutrition calculations. No Firestore rules or indexes were changed; the
+existing owner-scoped `healthMetrics` rule is the required access path.
 
 ---
 

@@ -19,8 +19,9 @@ import GoalRing, { type RingKind } from '@/components/GoalRing'
 import GoalsModal from '@/components/GoalsModal'
 import LogFoodSheet from '@/components/LogFoodSheet'
 import InsightsTab from '@/components/InsightsTab'
-import { getActivitiesForRange } from '@/lib/strava'
-import type { ConsumptionEntry, NutritionGoals, Meal, StravaActivity } from '@/types/nutrition'
+import CalorieBalance from '@/components/CalorieBalance'
+import { getHealthMetricsForRange, type HealthMetric } from '@/lib/healthMetrics'
+import type { ConsumptionEntry, NutritionGoals, Meal } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
 type Tab = 'today' | 'insights'
@@ -75,12 +76,14 @@ function entryDateMillis(e: ConsumptionEntry): number {
   return d?.toMillis ? d.toMillis() : 0
 }
 
-function activityDateMillis(a: StravaActivity): number {
-  const d = a.start_date_local as { toMillis?: () => number } | null | undefined
-  return d?.toMillis ? d.toMillis() : 0
-}
-
 const ZERO: NutritionMacros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
+
+function localISODate(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 export default function NutritionPage() {
   const { user, loading: authLoading } = useAuth()
@@ -94,7 +97,7 @@ export default function NutritionPage() {
   const [viewedDate, setViewedDate] = useState<Date>(() => startOfLocalDay(new Date()))
 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
-  const [activities, setActivities] = useState<StravaActivity[]>([])
+  const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>([])
   const [goals, setGoals] = useState<NutritionGoals | null>(null)
   const [loading, setLoading] = useState(true)
   // The local-midnight key of the day `entries`/`goals` currently represent
@@ -128,11 +131,12 @@ export default function NutritionPage() {
       const [all, g, act] = await Promise.all([
         getEntriesForRange(user.uid, fetchStart, end),
         getGoals(user.uid),
-        getActivitiesForRange(fetchStart, end)
+        getHealthMetricsForRange(user.uid, fetchStart, end),
       ])
       if (seq !== fetchSeq.current) return
       setEntries(viewingToday ? all.filter(e => entryDateMillis(e) >= start.getTime()) : all)
-      setActivities(viewingToday ? act.filter(a => activityDateMillis(a) >= start.getTime()) : act)
+      const viewedISO = localISODate(start)
+      setHealthMetrics(viewingToday ? act.filter(m => m.date === viewedISO) : act)
       setGoals(g)
       // Stamp which day this data is for (only for the winning fetch, inside the
       // seq guard) so the render can tell it matches the currently viewed day.
@@ -160,9 +164,18 @@ export default function NutritionPage() {
     return t
   }, [entries])
 
-  const burnedCalories = useMemo(() => {
-    return activities.reduce((sum, a) => sum + a.calories, 0)
-  }, [activities])
+  const activeCalories = useMemo(() => {
+    const value = healthMetrics.find(m => m.date === localISODate(viewedDate))?.move_calories
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0
+  }, [healthMetrics, viewedDate])
+
+  const hasActiveData = useMemo(() => {
+    const value = healthMetrics.find(m => m.date === localISODate(viewedDate))?.move_calories
+    return typeof value === 'number' && Number.isFinite(value)
+  }, [healthMetrics, viewedDate])
+
+  const baselineCalories = goals?.calorie_baseline || 0
+  const burnedCalories = baselineCalories + activeCalories
 
   const byMeal = useMemo(() => {
     const map: Record<MealBucket, ConsumptionEntry[]> = {
@@ -320,6 +333,9 @@ export default function NutritionPage() {
           goals={goals}
           totals={totals}
           burnedCalories={burnedCalories}
+          baselineCalories={baselineCalories}
+          activeCalories={activeCalories}
+          hasActiveData={hasActiveData}
           elapsed={elapsed}
           byMeal={byMeal}
           hasEntries={entries.length > 0}
@@ -341,13 +357,17 @@ export default function NutritionPage() {
 // ── Today tab ──────────────────────────────────────────────────────────────
 
 function TodayTab({
-  goalsSet, goals, totals, burnedCalories, elapsed, byMeal, hasEntries, isToday, dayLabel,
+  goalsSet, goals, totals, burnedCalories, baselineCalories, activeCalories, hasActiveData,
+  elapsed, byMeal, hasEntries, isToday, dayLabel,
   onSetGoals, onLogFood, onDelete, onUpdateServings,
 }: {
   goalsSet: boolean
   goals: NutritionGoals | null
   totals: NutritionMacros
   burnedCalories: number
+  baselineCalories: number
+  activeCalories: number
+  hasActiveData: boolean
   elapsed: number
   byMeal: Record<MealBucket, ConsumptionEntry[]>
   hasEntries: boolean
@@ -381,21 +401,24 @@ function TodayTab({
               )
             })}
           </div>
-          {burnedCalories > 0 && (
-            <div className="mt-5 pt-4 border-t border-border flex justify-center items-center gap-4 text-xs font-body text-muted">
-              <span>{Math.round(totals.calories)} consumed</span>
-              <span>−</span>
-              <span>{Math.round(burnedCalories)} burned</span>
-              <span>=</span>
-              <span className="text-cream font-medium">{Math.max(0, Math.round(totals.calories - burnedCalories))} net calories</span>
-            </div>
-          )}
+          <CalorieBalance
+            consumed={totals.calories}
+            baselineCalories={baselineCalories}
+            activeCalories={activeCalories}
+            hasActiveData={hasActiveData}
+          />
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-2xl p-6 mb-8 text-center">
           <Target size={28} className="text-amber mx-auto mb-3" />
           <p className="text-cream font-body text-sm mb-1">Set your daily goals to see today against your targets.</p>
           <p className="text-faint text-xs font-body mb-4">Your log below still tracks everything you eat.</p>
+          <CalorieBalance
+            consumed={totals.calories}
+            baselineCalories={baselineCalories}
+            activeCalories={activeCalories}
+            hasActiveData={hasActiveData}
+          />
           <button onClick={onSetGoals} className="btn-primary inline-flex items-center gap-2 text-sm">
             <Target size={14} /> Set goals
           </button>

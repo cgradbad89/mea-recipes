@@ -1,17 +1,18 @@
 'use client'
 
 // Goals editor (Feature 3) — the ONLY place daily nutrition targets are set.
-// Loads via getGoals, persists via saveGoals. Six numeric inputs, one per macro.
+// Loads via getGoals, persists via saveGoals. Includes the user-entered
+// natural-burn baseline used alongside Apple Health active calories.
 
 import { useEffect, useState } from 'react'
 import { X, Check, Loader2, Target } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { getGoals, saveGoals } from '@/lib/consumptionLog'
 import { NUTRIENTS } from '@/lib/nutrition'
-import type { NutritionMacros } from '@/types/recipe'
+import type { NutritionGoals } from '@/types/nutrition'
 
 const EMPTY: Record<string, string> = {
-  calories: '', protein_g: '', carbs_g: '', fat_g: '', fiber_g: '', sugar_g: '',
+  calories: '', calorie_baseline: '', protein_g: '', carbs_g: '', fat_g: '', fiber_g: '', sugar_g: '',
 }
 
 export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; onSaved?: () => void }) {
@@ -29,6 +30,7 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
         if (g) {
           setValues({
             calories: g.calories ? String(g.calories) : '',
+            calorie_baseline: g.calorie_baseline ? String(g.calorie_baseline) : '',
             protein_g: g.protein_g ? String(g.protein_g) : '',
             carbs_g: g.carbs_g ? String(g.carbs_g) : '',
             fat_g: g.fat_g ? String(g.fat_g) : '',
@@ -41,7 +43,7 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
       .finally(() => setLoading(false))
   }, [user])
 
-  const parsed: NutritionMacros | null = (() => {
+  const parsed: (NutritionGoals & { calorie_baseline: number }) | null = (() => {
     const num = (k: string) => {
       const v = values[k].trim()
       if (v === '') return 0
@@ -51,6 +53,7 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
     const m = {
       calories: num('calories'), protein_g: num('protein_g'), carbs_g: num('carbs_g'),
       fat_g: num('fat_g'), fiber_g: num('fiber_g'), sugar_g: num('sugar_g'),
+      calorie_baseline: num('calorie_baseline'),
     }
     if (Object.values(m).some(v => Number.isNaN(v))) return null
     return m
@@ -102,7 +105,7 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
                 {NUTRIENTS.map(n => (
                   <label key={n.key} className="block">
                     <span className="text-faint text-[10px] font-body uppercase tracking-widest">
-                      {n.label}{n.unit ? ` (${n.unit})` : ''}
+                      {n.key === 'calories' ? 'Calorie goal (kcal)' : `${n.label}${n.unit ? ` (${n.unit})` : ''}`}
                     </span>
                     <input
                       type="number"
@@ -116,6 +119,23 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
                   </label>
                 ))}
               </div>
+              <label className="block mt-4">
+                <span className="text-faint text-[10px] font-body uppercase tracking-widest">
+                  Natural burn baseline (kcal/day)
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="decimal"
+                  value={values.calorie_baseline}
+                  onChange={e => setValues(prev => ({ ...prev, calorie_baseline: e.target.value }))}
+                  placeholder="—"
+                  className="input-field mt-1 text-sm"
+                />
+                <span className="block text-faint text-[11px] font-body mt-1">
+                  Calories your body burns naturally each day, before active movement.
+                </span>
+              </label>
             </>
           )}
         </div>

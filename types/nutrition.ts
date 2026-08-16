@@ -42,6 +42,8 @@ export interface ConsumptionEntry {
 
 /** Daily targets. Firestore path: users/{uid}/nutrition/root/goals/daily */
 export interface NutritionGoals extends NutritionMacros {
+  /** User-entered calories burned naturally per day, before active movement. */
+  calorie_baseline?: number
   updated_at?: unknown
 }
 

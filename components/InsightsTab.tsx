@@ -25,10 +25,11 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from 'recharts'
 import { getEntriesForRange } from '@/lib/consumptionLog'
-import { getActivitiesForRange } from '@/lib/strava'
+import { getHealthMetricsForRange, type HealthMetric } from '@/lib/healthMetrics'
 import { NUTRIENTS, formatNutrient } from '@/lib/nutrition'
 import GoalRing, { type RingKind } from '@/components/GoalRing'
-import type { ConsumptionEntry, Meal, NutritionGoals, StravaActivity } from '@/types/nutrition'
+import CalorieBalance from '@/components/CalorieBalance'
+import type { ConsumptionEntry, Meal, NutritionGoals } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
 
 type RangeKind = 'week' | 'month' | 'ytd' | 'custom'
@@ -282,7 +283,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   const isMacroSelected = (k: keyof NutritionMacros) => isSelectableMacro(k) && selectedMacros.has(k)
 
   const [entries, setEntries] = useState<ConsumptionEntry[]>([])
-  const [activities, setActivities] = useState<StravaActivity[]>([])
+  const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>([])
   const [loading, setLoading] = useState(true)
 
   // Entries table (below the macro chart). Default sort: most recent first.
@@ -298,20 +299,20 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   )
 
   useEffect(() => {
-    if (!range.valid) { setEntries([]); setActivities([]); setLoading(false); return }
+    if (!range.valid) { setEntries([]); setHealthMetrics([]); setLoading(false); return }
     let cancelled = false
     setLoading(true)
     Promise.all([
       getEntriesForRange(userId, range.start, range.end),
-      getActivitiesForRange(range.start, range.end)
+      getHealthMetricsForRange(userId, range.start, range.end),
     ])
-      .then(([e, act]) => {
+      .then(([e, metrics]) => {
         if (!cancelled) {
           setEntries(e)
-          setActivities(act)
+          setHealthMetrics(metrics)
         }
       })
-      .catch(() => { if (!cancelled) { setEntries([]); setActivities([]) } })
+      .catch(() => { if (!cancelled) { setEntries([]); setHealthMetrics([]) } })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [userId, range.valid, range.start, range.end])
@@ -347,8 +348,27 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
   }, [entries])
 
   const burnedCalories = useMemo(() => {
-    return activities.reduce((sum, a) => sum + a.calories, 0)
-  }, [activities])
+    const active = healthMetrics.reduce((sum, metric) => (
+      typeof metric.move_calories === 'number' && Number.isFinite(metric.move_calories)
+        ? sum + metric.move_calories
+        : sum
+    ), 0)
+    return active + (goals?.calorie_baseline || 0) * range.elapsedDays
+  }, [goals?.calorie_baseline, healthMetrics, range.elapsedDays])
+
+  const activeCalories = useMemo(() => healthMetrics.reduce((sum, metric) => (
+    typeof metric.move_calories === 'number' && Number.isFinite(metric.move_calories)
+      ? sum + metric.move_calories
+      : sum
+  ), 0), [healthMetrics])
+
+  const activeDataDays = useMemo(
+    () => healthMetrics.filter(metric => typeof metric.move_calories === 'number' && Number.isFinite(metric.move_calories)).length,
+    [healthMetrics],
+  )
+
+  const hasActiveData = activeDataDays > 0
+  const baselineCalories = (goals?.calorie_baseline || 0) * range.elapsedDays
 
   // Meal filter: OR within the set (a row matches ANY selected meal); empty set
   // means "all meals". Derived from the already-loaded entries — no new query.
@@ -623,15 +643,14 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                       )
                     })}
                   </div>
-                  {burnedCalories > 0 && (
-                    <div className="mt-5 pt-4 border-t border-border flex justify-center items-center gap-4 text-xs font-body text-muted">
-                      <span>{Math.round(totals.calories)} consumed</span>
-                      <span>−</span>
-                      <span>{Math.round(burnedCalories)} burned</span>
-                      <span>=</span>
-                      <span className="text-cream font-medium">{Math.max(0, Math.round(totals.calories - burnedCalories))} net calories</span>
-                    </div>
-                  )}
+                  <CalorieBalance
+                    consumed={totals.calories}
+                    baselineCalories={baselineCalories}
+                    activeCalories={activeCalories}
+                    hasActiveData={hasActiveData}
+                    activeDays={activeDataDays}
+                    totalDays={range.elapsedDays}
+                  />
                 </div>
               </>
             ) : (
@@ -654,15 +673,14 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                     )
                   })}
                 </div>
-                {burnedCalories > 0 && (
-                  <div className="mt-5 pt-4 border-t border-border flex justify-center items-center gap-4 text-xs font-body text-muted">
-                    <span>{Math.round(totals.calories)} consumed</span>
-                    <span>−</span>
-                    <span>{Math.round(burnedCalories)} burned</span>
-                    <span>=</span>
-                    <span className="text-cream font-medium">{Math.max(0, Math.round(totals.calories - burnedCalories))} net calories</span>
-                  </div>
-                )}
+                <CalorieBalance
+                  consumed={totals.calories}
+                  baselineCalories={baselineCalories}
+                  activeCalories={activeCalories}
+                  hasActiveData={hasActiveData}
+                  activeDays={activeDataDays}
+                  totalDays={range.elapsedDays}
+                />
               </div>
             )}
           </section>
