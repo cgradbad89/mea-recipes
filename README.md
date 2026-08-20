@@ -188,5 +188,5 @@ As of 2026-08-20, every active AI feature uses the central configuration in
 is `openai/gpt-5.6-luna` through Vercel AI Gateway. Structured routes use AI SDK
 schema outputs, model-dependent client caches include the provider/model/version
 identity, and newly generated nutrition data records provider/model/prompt provenance.
-There is no direct-provider fallback. `@google/genai` is retained only for a later,
-separate dependency-cleanup pass.
+There is no direct-provider fallback, and no retired Gemini or Anthropic provider SDK
+is installed. Provider credentials from those integrations are no longer used.

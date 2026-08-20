@@ -27,7 +27,7 @@ credential **linked to the same account** (Batch 7; same uid/data, no separate a
 | Language | TypeScript | ^5 |
 | Runtime | React / React DOM | 19.2.8 |
 | Styling | Tailwind CSS | ^3.4.1 |
-| Client SDK | firebase | ^10.12.0 |
+| Client SDK | firebase | 12.16.0 |
 | Server SDK | firebase-admin | ^13.10.0 |
 | Search | fuse.js | ^7.3.0 |
 | Icons | lucide-react | 0.475.0 |
@@ -686,8 +686,8 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |
 
 AI model in use across all routes as of 2026-08-20: `openai/gpt-5.6-luna` through
-Vercel AI Gateway and the Vercel AI SDK. `@google/genai` remains installed temporarily
-for a separate dependency-cleanup pass, but active application code does not import it.
+Vercel AI Gateway and the Vercel AI SDK. No retired Gemini or Anthropic provider SDK
+is installed, and active application code does not reference their credentials.
 
 ---
 
