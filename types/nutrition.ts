@@ -1,7 +1,7 @@
 // Nutrition tracker data models (Surfaces 2-5). See nutrition-tracker-spec.md
 // "Shared Data Models". NutritionMacros (the six tracked values) lives in
 // types/recipe.ts and is reused here.
-import type { NutritionMacros } from './recipe'
+import type { AIProvenance, NutritionMacros } from './recipe'
 
 export type Meal = 'breakfast' | 'lunch' | 'snack' | 'dinner'
 
@@ -36,6 +36,7 @@ export interface ConsumptionEntry {
   amount_label?: string    // human-readable amount as entered, e.g. "45 g" or "1.5 servings" (optional; older entries omit it)
   nutrition: NutritionMacros
   source: LogSource
+  ai_provenance?: AIProvenance
   created_at: unknown      // Firestore serverTimestamp
   userId: string
 }
@@ -53,6 +54,7 @@ export interface SavedFood {
   name: string
   nutrition: NutritionMacros   // per serving
   source: Exclude<LogSource, 'recipe'>   // barcode-scanned favorites keep their packaged-product source
+  ai_provenance?: AIProvenance
   created_at?: unknown
 }
 
@@ -84,6 +86,7 @@ export interface RecentFood {
   name: string
   nutrition: NutritionMacros   // per single serving (entry snapshot ÷ servings_eaten)
   source: LogSource
+  ai_provenance?: AIProvenance
   type: LogEntryType
   recipe_id: string | null
 }

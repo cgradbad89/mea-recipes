@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       confidence: result.confidence,
       name: result.name,
       servingGrams: result.servingGrams,
+      ...(result.aiProvenance ? { aiProvenance: result.aiProvenance } : {}),
     })
   } catch (err: any) {
     console.error('nutrition-lookup error:', err)

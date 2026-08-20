@@ -20,7 +20,7 @@ Per recipe the engine is run twice in the same runtime:
 - **canonicalΔ** = proposed.total − baseline.total → attributable **purely** to the table.
 - **old** = the value stored in Firestore today (reference).
 
-> ⚠️ Run locally **without `GEMINI_API_KEY`**, so the AI fallback tier is off in *both*
+> ⚠️ Run locally **without AI Gateway authentication**, so the AI fallback tier is off in *both*
 > passes. The canonicalΔ (baseline→proposed) is therefore **exact** (same ingredients
 > unresolved in both). Absolute totals for AI-dependent recipes can read lower than the
 > stored `old` (which was computed on Vercel with AI), and the high/medium confidence split
@@ -192,4 +192,3 @@ FDC IDs, and per-100g macros are identical.
 | Easy Slow Cooker Pot Roast | 499 | 522 | +23 | beef gravy mix → fuzzy gravy |
 
 **Easy Spaghetti preserved:** total sugar **14.8 g** (unchanged from v1), fiber 14.6 g, source `usda+canonical`.
-

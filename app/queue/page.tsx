@@ -364,14 +364,14 @@ export default function QueuePage() {
       <div id="bookmarklet" className="mb-8 bg-surface border border-border rounded-2xl p-5">
         <h2 className="font-display text-xl text-cream font-light mb-1">Browser Bookmarklet</h2>
         <p className="text-faint text-xs font-body mb-4">
-          Save recipes from any site — including NYT Cooking and other paywalled sites you're already logged into.
+          Save recipes from any site — including NYT Cooking and other paywalled sites you&apos;re already logged into.
         </p>
         <div className="bg-card rounded-xl p-4 mb-4">
           <p className="text-cream text-sm font-body font-medium mb-2">Setup instructions:</p>
           <ol className="space-y-1.5 text-faint text-xs font-body">
             <li>1. Show your browser bookmarks bar (⌘+Shift+B on Mac)</li>
-            <li>2. Right-click the bookmarks bar → "Add page" or "Add bookmark"</li>
-            <li>3. Set the name to "🍽️ Save to MEA"</li>
+            <li>2. Right-click the bookmarks bar → &quot;Add page&quot; or &quot;Add bookmark&quot;</li>
+            <li>3. Set the name to &quot;🍽️ Save to MEA&quot;</li>
             <li>4. Paste the code below as the URL/address</li>
             <li>5. On any recipe page, click it — recipe goes to your queue!</li>
           </ol>

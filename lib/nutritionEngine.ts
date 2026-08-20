@@ -14,8 +14,8 @@
 //    checks by food class, canonical staples table, zero-calorie penalty).
 //    Known failure modes guarded: "butter beans"/"butternut" must never match
 //    dairy butter; "X cups oil for frying" capped at 15% absorption.
-//  - AI estimate fallback via the Anthropic API (tagged usda+ai / ai_estimate,
-//    confidence medium). Degrades gracefully when ANTHROPIC_API_KEY is unset.
+//  - AI estimate fallback via Vercel AI Gateway (tagged usda+ai / ai_estimate,
+//    confidence medium). Degrades gracefully when Gateway authentication is unavailable.
 //  - arbitrary food-name lookup (USDA Branded/Survey first) for quick-food.
 
 import { getAdminDb } from './firebaseAdmin'
@@ -24,7 +24,9 @@ import { gramsFromServingLabel } from './nutrition'
 import { CANONICAL_STAPLES as FDC_STAPLES, type CanonicalStaple } from './canonicalStaples'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import type { BarcodeProduct } from '@/types/nutrition'
-import { GoogleGenAI } from '@google/genai'
+import { generateAIObject } from './ai'
+import { AI_CACHE_ID, AI_PROVENANCE } from './aiConfig'
+import { z } from 'zod'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,6 +73,7 @@ export interface FoodLookupResult {
   servingGrams: number | null
   source: 'usda' | 'ai_estimate'
   confidence: 'high' | 'medium' | 'low'
+  aiProvenance?: typeof AI_PROVENANCE
 }
 
 const ZERO: NutritionMacros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
@@ -632,29 +635,34 @@ function pickValidated(queryName: string, cls: FoodClass, foods: UsdaSearchFood[
 
 // ─── AI estimate fallback ────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-3.5-flash'
+const NUTRITION_AI_SCHEMA = z.object({
+  calories: z.number(),
+  protein_g: z.number(),
+  carbs_g: z.number(),
+  fat_g: z.number(),
+  fiber_g: z.number(),
+  sugar_g: z.number(),
+  serving_grams: z.number().optional(),
+})
 
-async function geminiJson(prompt: string): Promise<Record<string, number> | null> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return null   // degrade gracefully — key lives in Vercel, may be absent locally
-  const ai = new GoogleGenAI({ apiKey })
+async function aiNutritionJson(
+  feature: 'nutrition-ingredient-estimate' | 'nutrition-food-estimate',
+  prompt: string,
+): Promise<z.infer<typeof NUTRITION_AI_SCHEMA> | null> {
   try {
-    const res = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
+    return await generateAIObject({
+      feature,
+      prompt,
+      schema: NUTRITION_AI_SCHEMA,
     })
-    const obj = JSON.parse(res.text || '{}')
-    return typeof obj === 'object' && obj ? obj : null
   } catch {
     return null
   }
 }
 
 async function aiEstimateIngredient(name: string, grams: number): Promise<NutritionMacros | null> {
-  const obj = await geminiJson(
+  const obj = await aiNutritionJson(
+    'nutrition-ingredient-estimate',
     `Estimate the nutrition of ${Math.round(grams)} g of "${name}" (as used in home cooking). ` +
     `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n}`
   )
@@ -675,7 +683,7 @@ async function resolveIngredient(name: string, opts: { useCanonical?: boolean } 
   const useCanonical = opts.useCanonical !== false   // default ON (production behavior)
   // Cache key is namespaced by the toggle so the dry-run's canonical-on and
   // canonical-off (baseline) passes never share a cached resolution.
-  const cacheKey = `${useCanonical ? 'c1' : 'c0'}:${name.toLowerCase().trim()}`
+  const cacheKey = `${AI_CACHE_ID}:${useCanonical ? 'c1' : 'c0'}:${name.toLowerCase().trim()}`
   if (ingredientCache.has(cacheKey)) return ingredientCache.get(cacheKey) ?? null
 
   // (Batch 4) CANONICAL STAPLES FIRST — a curated, live-verified FDC-ID table.
@@ -813,6 +821,7 @@ export async function computeRecipeNutrition(
     total: totals,
     source,
     confidence,
+    ...(usedAI ? { ai_provenance: { ...AI_PROVENANCE } } : {}),
     computed_at: new Date(),
   }
   return { nutrition, unresolved, flagged, canonicalHits, resolutions }
@@ -885,7 +894,8 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
   } catch { /* fall through to AI */ }
 
   // AI fallback for unresolved foods
-  const obj = await geminiJson(
+  const obj = await aiNutritionJson(
+    'nutrition-food-estimate',
     `Estimate the nutrition of ONE typical serving of "${name}". ` +
     `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n, "serving_grams": n}`
   )
@@ -900,6 +910,7 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
       servingGrams: typeof obj.serving_grams === 'number' ? obj.serving_grams : null,
       source: 'ai_estimate',
       confidence: 'medium',
+      aiProvenance: AI_PROVENANCE,
     }
   }
   return null

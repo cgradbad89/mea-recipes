@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { getComplementaryIngredients } from '@/lib/flavorPairings'
-import { GoogleGenAI } from '@google/genai'
+import { generateAIObject } from '@/lib/ai'
+import { z } from 'zod'
+
+const RECIPE_SCHEMA = z.object({
+  title: z.string(),
+  cuisine: z.string(),
+  category: z.string(),
+  ingredients: z.array(z.string()),
+  instructions: z.array(z.string()),
+  imageURL: z.string(),
+  description: z.string(),
+  servings: z.string(),
+  prepTime: z.string(),
+  cookTime: z.string(),
+})
 
 const SYSTEM_PROMPT = `You are a recipe parser. Given HTML or text content from a webpage or pasted text, extract the recipe and return ONLY a valid JSON object with no markdown, no backticks, no explanation.
 
@@ -34,12 +48,6 @@ export async function POST(req: NextRequest) {
 
     const { url, html, text, generate, imageURL: providedImage, prepTime: providedPrep, cookTime: providedCook } = await req.json()
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
-    }
-    const ai = new GoogleGenAI({ apiKey })
-
     // Generate mode — create a full recipe from a dish name
     if (generate && !html && !text && !url) {
       const seeds = [generate, ...generate.split(/[\s,]+/)]
@@ -49,18 +57,16 @@ export async function POST(req: NextRequest) {
         : ''
 
       try {
-        const genResponse = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
-          contents: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.${flavorGuidance}`,
-          config: {
-            systemInstruction: SYSTEM_PROMPT,
-            responseMimeType: 'application/json',
-          },
+        const genParsed = await generateAIObject({
+          feature: 'recipe-generation',
+          userId: uid,
+          system: SYSTEM_PROMPT,
+          prompt: `Generate a complete, authentic recipe for: ${generate}\n\nProvide realistic ingredients with measurements and detailed step-by-step instructions.${flavorGuidance}`,
+          schema: RECIPE_SCHEMA,
         })
-        const genParsed = JSON.parse(genResponse.text || '{}')
         return NextResponse.json({ ...genParsed, title: genParsed.title || generate, sourceURL: '' })
       } catch (err) {
-        console.error('Gemini generation error:', err)
+        console.error('AI generation error:', err)
         return NextResponse.json({ error: 'AI generation failed or could not parse response' }, { status: 500 })
       }
     }
@@ -107,17 +113,15 @@ export async function POST(req: NextRequest) {
 
     let parsed: any
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: userMessage,
-        config: {
-          systemInstruction: SYSTEM_PROMPT,
-          responseMimeType: 'application/json',
-        },
+      parsed = await generateAIObject({
+        feature: 'recipe-ingest',
+        userId: uid,
+        system: SYSTEM_PROMPT,
+        prompt: userMessage,
+        schema: RECIPE_SCHEMA,
       })
-      parsed = JSON.parse(response.text || '{}')
     } catch (err) {
-      console.error('Gemini error:', err)
+      console.error('AI Gateway error:', err)
       return NextResponse.json({ error: 'AI parsing failed or could not parse response' }, { status: 500 })
     }
 

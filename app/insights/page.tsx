@@ -291,8 +291,8 @@ export default function InsightsPage() {
       {/* Underutilized — highly rated but not cooked recently */}
       {underutilized.length > 0 && (
         <div className="bg-surface border border-border rounded-2xl p-5">
-          <h2 className="font-display text-xl text-cream font-light mb-1">Haven't made in a while</h2>
-          <p className="text-faint text-xs font-body mb-5">Highly rated recipes you haven't cooked recently</p>
+          <h2 className="font-display text-xl text-cream font-light mb-1">Haven&apos;t made in a while</h2>
+          <p className="text-faint text-xs font-body mb-5">Highly rated recipes you haven&apos;t cooked recently</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {underutilized.map(({ recipe, rating }) => (
               <a key={recipe.id} href={`/recipes/${recipe.id}`} className="group flex gap-3 items-center">

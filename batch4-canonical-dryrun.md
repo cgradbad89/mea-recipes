@@ -20,7 +20,7 @@ Per recipe the engine is run twice in the same runtime:
 - **canonicalΔ** = proposed.total − baseline.total → attributable **purely** to the table.
 - **old** = the value stored in Firestore today (reference).
 
-> ⚠️ Run locally **without `GEMINI_API_KEY`**, so the AI fallback tier is off in *both*
+> ⚠️ Run locally **without AI Gateway authentication**, so the AI fallback tier is off in *both*
 > passes. The canonicalΔ (baseline→proposed) is therefore **exact** (same ingredients
 > unresolved in both). Absolute totals for AI-dependent recipes can read lower than the
 > stored `old` (which was computed on Vercel with AI), and the high/medium confidence split
@@ -154,4 +154,3 @@ canonical-aware engine (still DRY-RUN):
 - **Firestore writes performed this run: 0 (zero).** The route has no apply path.
 - Stored `nutrition`, `servings`, `confidence` are **unchanged**.
 - This diff is for review only. Apply is a separate, later, explicitly-authorized step.
-

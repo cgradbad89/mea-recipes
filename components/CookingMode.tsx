@@ -659,7 +659,7 @@ export default function CookingMode({
           >
             <h3 className="font-display text-2xl text-cream font-light mb-1">Mark as cooked?</h3>
             <p className="text-faint text-sm font-body mb-4">
-              This updates your meal plan and logs it to today's nutrition.
+              This updates your meal plan and logs it to today&apos;s nutrition.
             </p>
             <label className="block mb-4">
               <span className="text-faint text-xs font-body uppercase tracking-widest">Servings eaten</span>

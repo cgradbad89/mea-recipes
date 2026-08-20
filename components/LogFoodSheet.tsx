@@ -30,7 +30,7 @@ import {
   perServingOf, sourceLabel, NUTRIENTS, formatNutrient, lookupBarcode,
   prettyAmount, gramsFromServingLabel, servingContextLines, type ServingContext,
 } from '@/lib/nutrition'
-import type { Recipe, NutritionMacros } from '@/types/recipe'
+import type { AIProvenance, Recipe, NutritionMacros } from '@/types/recipe'
 import type { Meal, SavedFood, RecentFood, BarcodeProduct, LogSource } from '@/types/nutrition'
 
 type Mode = 'saved' | 'search' | 'recipes' | 'manual' | 'scan'
@@ -40,6 +40,7 @@ interface FoodResult {
   nutrition: NutritionMacros          // per serving (or per 100 g when servingGrams is null and source is usda)
   source: Exclude<LogSource, 'recipe' | 'manual'>
   confidence?: string
+  aiProvenance?: AIProvenance
   // number → 1 serving = N g (grams toggle); null → fresh lookup had no portion
   // data (usda ⇒ per-100g basis); undefined → re-logged from history (per-serving).
   servingGrams?: number | null
@@ -324,6 +325,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
           source: data.source === 'ai_estimate' ? 'ai_estimate' : 'usda',
           confidence: data.confidence,
           servingGrams: typeof data.servingGrams === 'number' ? data.servingGrams : null,
+          aiProvenance: data.aiProvenance,
         })
       } catch (e: any) {
         if (seq === lookupSeq.current) setLookupError(e?.message || 'Lookup failed — try manual entry')
@@ -797,7 +799,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
     const valid = Number.isFinite(s) && s > 0
     return { valid, multiplier: valid ? s : 0, label: valid ? `${prettyAmount(s)} ${s === 1 ? 'serving' : 'servings'}` : '',
       equiv: valid && amountModel.kind === 'servings_or_grams' && G ? `≈ ${prettyAmount(Math.round(s * G))} g` : '' }
-  }, [amountModel, gramsActive, amountUnit, servingsInput, gramsInput])
+  }, [amountModel, gramsActive, servingsInput, gramsInput])
 
   // Reset the amount inputs whenever the selected item changes — and seed grams
   // with one serving's worth (or 100 g for per-100g items) so grams entry starts sane.
@@ -842,6 +844,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
           meal, type: 'quick_food', is_cook_event: false, recipe_id: null,
           name: result.name, servings_eaten: mult, amount_label: amount.label,
           nutrition: scaleMacros(result.nutrition, mult), source: result.source, date,
+          ...(result.aiProvenance ? { ai_provenance: result.aiProvenance } : {}),
         })
       } else if (mode === 'recipes' && selectedRecipe && selectedRecipePer) {
         // leftover/eat-a-serving path: log only — plan & cooked state untouched
@@ -877,7 +880,12 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
   const handleStar = async () => {
     if (!user || !result || starred) return
     try {
-      await saveFavorite(user.uid, { name: result.name, nutrition: result.nutrition, source: result.source })
+      await saveFavorite(user.uid, {
+        name: result.name,
+        nutrition: result.nutrition,
+        source: result.source,
+        ...(result.aiProvenance ? { ai_provenance: result.aiProvenance } : {}),
+      })
       setStarred(true)
       getSavedFoods(user.uid).then(setFavorites).catch(() => {})
     } catch { /* non-fatal */ }
@@ -894,7 +902,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
 
   // history pick (chip or list row) → prefill the right confirm flow. Re-logging
   // uses the stored per-serving snapshot — deliberately NO USDA/OFF re-lookup.
-  const prefill = (item: { name: string; nutrition: NutritionMacros; source: string; type?: string; recipe_id?: string | null }) => {
+  const prefill = (item: { name: string; nutrition: NutritionMacros; source: string; ai_provenance?: AIProvenance; type?: string; recipe_id?: string | null }) => {
     setSaveError('')
     lookupSeq.current++          // a slow in-flight web lookup must not overwrite the pick
     setLookupLoading(false)
@@ -926,6 +934,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
       name: item.name,
       nutrition: item.nutrition,
       source: src,
+      ...(item.ai_provenance ? { aiProvenance: item.ai_provenance } : {}),
     })
     setLookupError('')
   }

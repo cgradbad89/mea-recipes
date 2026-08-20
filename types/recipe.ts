@@ -11,12 +11,19 @@ export interface NutritionMacros {
   sugar_g: number
 }
 
+export interface AIProvenance {
+  provider: string
+  model: string
+  prompt_version: string
+}
+
 export interface RecipeNutrition extends NutritionMacros {
   serving_size?: string          // human-readable, e.g. "1 of 4" or "1 of 4 (assumed)"
   servings?: number              // count used to derive per-serving (may be an assumed default)
   total?: NutritionMacros        // whole-recipe basis — durable source of truth
   source?: string                // "source_site" | "usda" | "usda+ai" | "manual" (+ optional suffix)
   confidence?: string            // "high" | "medium" | "low"
+  ai_provenance?: AIProvenance   // present when an AI fallback contributed to this calculation
   computed_at?: unknown          // Firestore timestamp
 }
 

@@ -20,8 +20,8 @@ curl -s -X POST "https://mea-recipes.vercel.app/api/nutrition-revalidate?apply=t
 ```
 
 The route returns the full diff as JSON and also `console.log`s a human-readable
-summary to the server logs. `ANTHROPIC_API_KEY` must be present in the runtime
-env (it is in Vercel; **not** in local `.env.local`) for the AI-fallback tier.
+summary to the server logs. AI Gateway authentication must be present in the runtime
+environment for the AI-fallback tier.
 
 ## Population (VERIFIED — read-only admin probe, 2026-06-13)
 

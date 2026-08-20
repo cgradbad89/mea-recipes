@@ -2,21 +2,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
 import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
-import { GoogleGenAI } from '@google/genai'
+import { generateAIArray, generateAIObject } from '@/lib/ai'
+import { z } from 'zod'
 
 // Single source of truth for the allowed categories — imported from the shared
 // taxonomy so the prompt and validation can never drift from lib/groceryCategories.
 const CATEGORIES = GROCERY_CATEGORIES as readonly string[]
 
-const GEMINI_MODEL = 'gemini-3.5-flash'
+const GROCERY_CHANGE_SCHEMA = z.object({
+  originalIndex: z.number().int(),
+  name: z.string(),
+  quantity: z.string(),
+  unit: z.string(),
+  category: z.string(),
+  action: z.enum(['merge', 'normalize', 'remove']),
+  mergedWith: z.array(z.number().int()),
+})
+
+const PARSED_LINE_SCHEMA = z.object({
+  quantity: z.string(),
+  unit: z.string(),
+  name: z.string(),
+})
 
 export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
     const body = await req.json()
 
@@ -26,7 +38,7 @@ export async function POST(req: NextRequest) {
     // "AI Clean Up List" button does not send `mode`, so its behavior is
     // unchanged.
     if (body?.mode === 'parse-line') {
-      return parseSingleLine(String(body.line || ''), apiKey)
+      return parseSingleLine(String(body.line || ''), uid)
     }
 
     const { items } = body
@@ -67,19 +79,16 @@ Rules:
 - If no items need modification, return an empty array []
 - Return ONLY the JSON array`
 
-    const ai = new GoogleGenAI({ apiKey })
     let parsedChanges: any[] = []
     try {
-      const response = await ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
+      parsedChanges = await generateAIArray({
+        feature: 'grocery-cleanup',
+        userId: uid,
+        prompt,
+        element: GROCERY_CHANGE_SCHEMA,
       })
-      parsedChanges = JSON.parse(response.text || '[]')
     } catch (err) {
-      console.error('Gemini cleanup error:', err)
+      console.error('AI Gateway cleanup error:', err)
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 
@@ -147,7 +156,7 @@ Rules:
 // unit is dropped, and if the AI result is unusable the whole line is returned
 // as `name` (status quo for that item — never worse than today). Always returns
 // 200 with a usable object so the caller can write it directly.
-async function parseSingleLine(line: string, apiKey: string): Promise<NextResponse> {
+async function parseSingleLine(line: string, userId: string): Promise<NextResponse> {
   const trimmed = line.trim()
   const fallback = { quantity: '', unit: '', name: trimmed }
   if (!trimmed) return NextResponse.json(fallback)
@@ -165,17 +174,14 @@ Rules:
 Return ONLY this JSON object, no markdown:
 {"quantity": "", "unit": "", "name": ""}`
 
-  const ai = new GoogleGenAI({ apiKey })
   let parsed: any = null
   try {
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
+    parsed = await generateAIObject({
+      feature: 'grocery-parse-line',
+      userId,
+      prompt,
+      schema: PARSED_LINE_SCHEMA,
     })
-    parsed = JSON.parse(response.text || '{}')
   } catch {
     return NextResponse.json(fallback)
   }

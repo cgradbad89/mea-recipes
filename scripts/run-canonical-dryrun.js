@@ -117,7 +117,7 @@ function fmtDelta(d) { return MACROS.map(k => `${k.replace('_g', '')} ${d[k] > 0
   L.push('- **canonicalΔ** = proposed.total − baseline.total → attributable **purely** to the table.')
   L.push('- **old** = the value stored in Firestore today (reference).')
   L.push('')
-  L.push('> ⚠️ Run locally **without `ANTHROPIC_API_KEY`**, so the AI fallback tier is off in *both*')
+  L.push('> ⚠️ Run locally **without AI Gateway authentication**, so the AI fallback tier is off in *both*')
   L.push('> passes. The canonicalΔ (baseline→proposed) is therefore **exact** (same ingredients')
   L.push('> unresolved in both). Absolute totals for AI-dependent recipes can read lower than the')
   L.push('> stored `old` (which was computed on Vercel with AI), and the high/medium confidence split')

@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { getComplementaryIngredients } from '@/lib/flavorPairings'
-import { GoogleGenAI } from '@google/genai'
+import { generateAIObject } from '@/lib/ai'
+import { z } from 'zod'
+
+const PLAN_SUGGESTIONS_SCHEMA = z.object({
+  existing: z.array(z.object({
+    title: z.string(),
+    reason: z.string(),
+  })),
+  new: z.array(z.object({
+    title: z.string(),
+    cuisine: z.string(),
+    category: z.string(),
+    reason: z.string(),
+  })),
+})
 
 interface PlannedRecipeIn {
   title: string
@@ -25,10 +39,6 @@ export async function POST(req: NextRequest) {
     if (!plannedRecipes || !Array.isArray(plannedRecipes) || plannedRecipes.length === 0) {
       return NextResponse.json({ error: 'No planned recipes provided' }, { status: 400 })
     }
-
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
-    const ai = new GoogleGenAI({ apiKey })
 
     const plannedSummary = plannedRecipes.map((r, i) => {
       // Strip giant content blobs for prompt size — just take first ~400 chars
@@ -84,16 +94,14 @@ ${!wantExisting ? '- "existing" MUST be an empty array.\n' : ''}${!wantNew ? '- 
 
     let parsed: any
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
+      parsed = await generateAIObject({
+        feature: 'plan-suggestions',
+        userId: uid,
+        prompt,
+        schema: PLAN_SUGGESTIONS_SCHEMA,
       })
-      parsed = JSON.parse(response.text || '{}')
     } catch (err) {
-      console.error('Gemini error:', err)
+      console.error('AI Gateway error:', err)
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 

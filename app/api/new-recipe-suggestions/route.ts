@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
-import { GoogleGenAI } from '@google/genai'
+import { generateAIArray } from '@/lib/ai'
+import { z } from 'zod'
+
+const NEW_SUGGESTION_SCHEMA = z.object({
+  title: z.string(),
+  cuisine: z.string(),
+  category: z.string(),
+  description: z.string(),
+  searchQuery: z.string(),
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,12 +17,6 @@ export async function POST(req: NextRequest) {
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { topCuisines, topCategories, recentTitles } = await req.json()
-
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
-    }
-    const ai = new GoogleGenAI({ apiKey })
 
     const prompt = `You are a chef and food writer. Suggest 6 specific recipes this person doesn't have yet based on their taste profile.
 
@@ -42,16 +45,14 @@ Rules:
 
     let parsed: any
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
+      parsed = await generateAIArray({
+        feature: 'new-recipe-suggestions',
+        userId: uid,
+        prompt,
+        element: NEW_SUGGESTION_SCHEMA,
       })
-      parsed = JSON.parse(response.text || '[]')
     } catch (err) {
-      console.error('Gemini error:', err)
+      console.error('AI Gateway error:', err)
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 

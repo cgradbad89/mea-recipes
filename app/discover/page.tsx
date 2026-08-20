@@ -11,9 +11,10 @@ import RecipeCard from '@/components/RecipeCard'
 import RecipeImage from '@/components/RecipeImage'
 import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check, CalendarPlus, ListChecks } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
+import { AI_CACHE_ID, aiCacheKey } from '@/lib/aiConfig'
 
-const CACHE_KEY = 'mea-recommendations-cache'
-const NEW_CACHE_KEY = 'mea-new-suggestions-cache'
+const CACHE_BASE = 'mea-recommendations-cache'
+const NEW_CACHE_BASE = 'mea-new-suggestions-cache'
 
 interface Recommendation {
   title: string
@@ -26,9 +27,10 @@ interface RecommendationSet {
   longTime: Recommendation[]
 }
 
-interface CacheEntry {
-  data: RecommendationSet
+interface CacheEntry<T> {
+  data: T
   timestamp: number
+  identity: string
 }
 
 interface NewSuggestion {
@@ -154,6 +156,16 @@ export default function DiscoverPage() {
   const [planNutritionFor, setPlanNutritionFor] = useState<string | null>(null)
   const [planSavedFor, setPlanSavedFor] = useState<Set<string>>(new Set())
 
+  const recommendationsCacheKey = aiCacheKey(CACHE_BASE, user?.uid || 'signed-out')
+  const newSuggestionsCacheKey = aiCacheKey(NEW_CACHE_BASE, user?.uid || 'signed-out')
+  const planCacheKey = useMemo(() => aiCacheKey('plan-suggestions', [
+    user?.uid || 'signed-out',
+    planWeek,
+    planMode,
+    planCurrentRecipes.map(r => r.id).sort().join(','),
+    recipes.length,
+  ].join('|')), [user?.uid, planWeek, planMode, planCurrentRecipes, recipes.length])
+
 
   // Load currently planned recipes for the selected week
   useEffect(() => {
@@ -172,12 +184,11 @@ export default function DiscoverPage() {
 
   // Restore cached suggestions when changing weeks/mode
   useEffect(() => {
-    const cacheKey = `${planWeek}-${planMode}`
-    const cached = planSuggestionsCache[cacheKey]
+    const cached = planSuggestionsCache[planCacheKey]
     if (cached) setPlanSuggestions(cached)
     else setPlanSuggestions({ existing: [], new: [] })
     setPlanError('')
-  }, [planWeek, planMode, planSuggestionsCache])
+  }, [planCacheKey, planSuggestionsCache])
 
   const planWeekOptions = (() => {
     const now = new Date()
@@ -231,7 +242,7 @@ export default function DiscoverPage() {
 
       const next = { existing: existingMatched, new: data.new || [] }
       setPlanSuggestions(next)
-      setPlanSuggestionsCache(prev => ({ ...prev, [`${planWeek}-${planMode}`]: next }))
+      setPlanSuggestionsCache(prev => ({ ...prev, [planCacheKey]: next }))
     } catch (e: any) {
       setPlanError(e?.message || 'Failed to get suggestions')
     } finally {
@@ -337,26 +348,33 @@ export default function DiscoverPage() {
   }
 
   useEffect(() => {
+    setRecs(null)
+    setLastUpdated(null)
+    if (!user) return
     try {
-      const cached = localStorage.getItem(CACHE_KEY)
+      const cached = localStorage.getItem(recommendationsCacheKey)
       if (cached) {
-        const entry: CacheEntry = JSON.parse(cached)
-        setRecs(entry.data)
-        setLastUpdated(new Date(entry.timestamp))
+        const entry: CacheEntry<RecommendationSet> = JSON.parse(cached)
+        if (entry.identity === AI_CACHE_ID) {
+          setRecs(entry.data)
+          setLastUpdated(new Date(entry.timestamp))
+        }
       }
     } catch {}
-  }, [])
+  }, [user, recommendationsCacheKey])
 
   // Load new suggestions cache
   useEffect(() => {
+    setNewSuggestions([])
+    if (!user) return
     try {
-      const cached = localStorage.getItem(NEW_CACHE_KEY)
+      const cached = localStorage.getItem(newSuggestionsCacheKey)
       if (cached) {
-        const entry = JSON.parse(cached)
-        setNewSuggestions(entry.data)
+        const entry: CacheEntry<NewSuggestion[]> = JSON.parse(cached)
+        if (entry.identity === AI_CACHE_ID) setNewSuggestions(entry.data)
       }
     } catch {}
-  }, [])
+  }, [user, newSuggestionsCacheKey])
 
   const cookCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -395,13 +413,17 @@ export default function DiscoverPage() {
       setRecs(data)
       const now = new Date()
       setLastUpdated(now)
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ data, timestamp: now.getTime() }))
+      localStorage.setItem(recommendationsCacheKey, JSON.stringify({
+        data,
+        timestamp: now.getTime(),
+        identity: AI_CACHE_ID,
+      } satisfies CacheEntry<RecommendationSet>))
     } catch (e: any) {
       setError(e.message || 'Something went wrong')
     } finally {
       setLoading(false)
     }
-  }, [user, recipes, cookCounts, ratings, favorites])
+  }, [user, recipes, cookCounts, ratings, favorites, recommendationsCacheKey])
 
   const handleGetNewSuggestions = async () => {
     if (!user || !recipes.length) return
@@ -431,7 +453,11 @@ export default function DiscoverPage() {
       if (!res.ok) throw new Error(data.error || 'Failed')
       const newData = Array.isArray(data) ? data : []
       setNewSuggestions(newData)
-      localStorage.setItem(NEW_CACHE_KEY, JSON.stringify({ data: newData, timestamp: Date.now() }))
+      localStorage.setItem(newSuggestionsCacheKey, JSON.stringify({
+        data: newData,
+        timestamp: Date.now(),
+        identity: AI_CACHE_ID,
+      } satisfies CacheEntry<NewSuggestion[]>))
     } catch (e: any) {
       setErrorNew(e.message || 'Something went wrong')
     } finally {
@@ -585,7 +611,7 @@ export default function DiscoverPage() {
           <div className="text-center">
             <p className="font-display text-2xl text-cream font-light mb-2">What should I cook?</p>
             <p className="text-faint text-sm font-body max-w-xs">
-              Claude will look at your history, ratings, and favorites to suggest recipes from your collection.
+              AI will look at your history, ratings, and favorites to suggest recipes from your collection.
             </p>
           </div>
           {error && <p className="text-red-400 text-sm font-body">{error}</p>}
@@ -605,7 +631,7 @@ export default function DiscoverPage() {
               <span>Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             )}
             <button
-              onClick={() => { localStorage.removeItem(CACHE_KEY); setRecs(null); setLastUpdated(null) }}
+              onClick={() => { localStorage.removeItem(recommendationsCacheKey); setRecs(null); setLastUpdated(null) }}
               className="flex items-center gap-1.5 hover:text-cream transition-colors ml-auto"
             >
               <RefreshCw size={11} /> Refresh suggestions
@@ -687,7 +713,7 @@ export default function DiscoverPage() {
               </div>
             ))}
             <button
-              onClick={() => { setNewSuggestions([]); localStorage.removeItem(NEW_CACHE_KEY); handleGetNewSuggestions() }}
+              onClick={() => { setNewSuggestions([]); localStorage.removeItem(newSuggestionsCacheKey); handleGetNewSuggestions() }}
               disabled={loadingNew}
               className="btn-ghost flex items-center gap-2 text-xs mt-2"
             >
@@ -706,7 +732,7 @@ export default function DiscoverPage() {
             Complete your week plan
           </h2>
           <p className="text-faint text-xs font-body mt-1">
-            Claude analyzes your current plan and suggests recipes that complement it.
+            AI analyzes your current plan and suggests recipes that complement it.
           </p>
         </div>
 
@@ -874,7 +900,7 @@ export default function DiscoverPage() {
             Generate a Recipe
           </h2>
           <p className="text-faint text-xs font-body mt-1">
-            Describe exactly what you want and Claude will create a recipe for you.
+            Describe exactly what you want and AI will create a recipe for you.
           </p>
         </div>
 

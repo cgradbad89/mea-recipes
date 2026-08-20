@@ -1,11 +1,12 @@
 # MEA Recipes — Web App
 
-A Next.js web app for your personal recipe collection, powered by Firebase Firestore.
+A Next.js web app for your personal recipe collection, powered by Firebase Firestore and Vercel AI Gateway.
 
 ## Tech Stack
 
 - **Next.js 14** (App Router)
 - **Firebase** (Firestore + Google Auth)
+- **Vercel AI Gateway** + **Vercel AI SDK** (`openai/gpt-5.6-luna`)
 - **Tailwind CSS**
 - **TypeScript**
 - **Vercel** (deployment)
@@ -19,6 +20,7 @@ A Next.js web app for your personal recipe collection, powered by Firebase Fires
 - Weekly meal planner (synced with iOS app)
 - Grocery list (shared with iOS app)
 - Add recipes via URL (auto-parses structured recipe sites) or paste
+- AI recipe generation, recommendations, meal-plan suggestions, grocery cleanup, and cooking assistant
 - Notes + ratings per recipe
 - Mobile responsive
 
@@ -73,6 +75,11 @@ service cloud.firestore {
 ```
 
 ### 4. Run locally
+
+Copy `.env.example` to `.env.local` and configure the server credentials needed by
+the features you use. AI features require `AI_GATEWAY_API_KEY` outside Vercel OIDC;
+nutrition lookup also uses `USDA_API_KEY`. Firebase Admin API routes require
+`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`.
 
 **Option A: Run against Production** (Default)
 ```bash
@@ -136,7 +143,7 @@ vercel
 1. Push this folder to a GitHub repo
 2. Go to [vercel.com](https://vercel.com) → New Project
 3. Import your repo
-4. Deploy — no env vars needed (config is in code)
+4. Configure the environment variables documented in `.env.example`, then deploy
 
 ### After deploying
 
@@ -162,6 +169,8 @@ components/
   AddRecipeModal.tsx # Add recipe flow
   AuthButton.tsx    # Google sign in/out
 lib/
+  ai.ts             # Server-only Vercel AI SDK helpers
+  aiConfig.ts       # Gateway model, versioning, cache identity, provenance
   firebase.ts       # Firebase init
   AuthContext.tsx   # Auth provider
   recipes.ts        # Firestore recipe queries
@@ -171,3 +180,13 @@ hooks/
 types/
   recipe.ts         # TypeScript types
 ```
+
+## AI architecture
+
+As of 2026-08-20, every active AI feature uses the central configuration in
+`lib/aiConfig.ts` and the server-only helpers in `lib/ai.ts`. The configured model
+is `openai/gpt-5.6-luna` through Vercel AI Gateway. Structured routes use AI SDK
+schema outputs, model-dependent client caches include the provider/model/version
+identity, and newly generated nutrition data records provider/model/prompt provenance.
+There is no direct-provider fallback. `@google/genai` is retained only for a later,
+separate dependency-cleanup pass.

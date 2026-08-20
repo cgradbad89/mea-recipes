@@ -13,11 +13,11 @@
 
 ## How to use this document
 
-This spec describes one product vision (a lightweight nutrition tracker built into the recipe app) broken into **five independently-buildable surfaces**. It is written so that each surface section is self-contained: it states what data it reads and writes, what it does, how you know it's done, and what it depends on. When a surface is ready to build, its section becomes the basis for a **single Claude Code prompt** — appended with the standard build rules (work on main, merge any auto-branch before pushing, `npm run build` must pass, output report format).
+This spec describes one product vision (a lightweight nutrition tracker built into the recipe app) broken into **five independently-buildable surfaces**. It is written so that each surface section is self-contained: it states what data it reads and writes, what it does, how you know it's done, and what it depends on. When a surface is ready to build, its section becomes the basis for a **single implementation prompt** — appended with the standard build rules (work on main, merge any auto-branch before pushing, `npm run build` must pass, output report format).
 
 **Surfaces are NOT independent at runtime — they form a dependency chain.** Build them in the order below. Each is gated by the one before it because a tracker is worthless without logged data, and logged data is worthless without nutrition on recipes.
 
-**Two surfaces require schema inspection before any code is written** (recipe schema field names; the existing plan "cooked" checkmark). Those are flagged inline and must lead their Claude Code prompt with a read-only inspection step.
+**Two surfaces require schema inspection before any code is written** (recipe schema field names; the existing plan "cooked" checkmark). Those are flagged inline and must lead their implementation prompt with a read-only inspection step.
 
 ---
 
@@ -114,13 +114,13 @@ Goals are **daily targets**. Over a multi-day range they **compound**: target fo
 
 ### Plan integration touchpoint — ⚠️ SCHEMA INSPECTION REQUIRED
 
-The plan page already has a "cooked" checkmark. Its write behavior is **unknown** and must be inspected before building Surface 2. Do not assume field names. The Claude Code prompt for Surface 2 must lead with reading the plan item schema and reporting what the existing checkmark writes.
+The plan page already has a "cooked" checkmark. Its write behavior is **unknown** and must be inspected before building Surface 2. Do not assume field names. The implementation prompt for Surface 2 must lead with reading the plan item schema and reporting what the existing checkmark writes.
 
 ---
 
 ## Shared Module: Nutrition Lookup Engine
 
-**Build as:** a server-side module + API route, reusing the logic validated in the Cowork backfill. **Depends on:** `ANTHROPIC_API_KEY`, `USDA_API_KEY` (both in Vercel + local `.env.local`).
+**Build as:** a server-side module + API route, reusing the logic validated in the Cowork backfill. **Depends on:** AI Gateway authentication and `USDA_API_KEY` in the runtime environment.
 
 This is the single engine behind backfill, recipe re-computation, and live quick-food lookup. It must implement, as proven necessary during backfill:
 
@@ -170,7 +170,7 @@ This shell should be built as part of Surface 4 (the first of the two to be buil
 - [ ] Given a recipe with no nutrition, detail page shows an empty state, not zeros or errors.
 
 ### ⚠️ Inspection note
-Lead the Claude Code prompt with reading the actual recipe schema (field names for id, ingredients, servings, source URL) per the inspect-before-writing principle. Field names are not predictable.
+Lead the implementation prompt with reading the actual recipe schema (field names for id, ingredients, servings, source URL) per the inspect-before-writing principle. Field names are not predictable.
 
 ---
 
@@ -245,7 +245,7 @@ flagging queue.
 - [ ] Editing the recipe afterward does not change the logged entry.
 
 ### ⚠️ Inspection note (BLOCKING)
-The Claude Code prompt MUST begin by reading the plan item schema and reporting what the existing "cooked" checkmark writes today, before writing any code. Do not assume field names or that a "cooked section" exists.
+The implementation prompt MUST begin by reading the plan item schema and reporting what the existing "cooked" checkmark writes today, before writing any code. Do not assume field names or that a "cooked section" exists.
 
 ---
 
@@ -322,14 +322,14 @@ The Claude Code prompt MUST begin by reading the plan item schema and reporting 
 | Order | Surface | Tool | Gated by |
 |---|---|---|---|
 | 0 | Nutrition backfill (data) | **Cowork** (in progress) | — |
-| 1 | Shared lookup engine (server route) | Claude Code | engine logic from backfill |
-| 2 | Recipe detail + edit nutrition | Claude Code | backfill data, `nutrition` model — *buildable in parallel now* |
-| 3 | Consumption log + goals models + cooked capture | Claude Code | #1, ⚠️ plan-schema inspection |
-| 4 | Quick / manual food entry | Claude Code | #1, log model |
-| 5 | Today view | Claude Code | #3, #4 |
-| 6 | Insights dashboard | Claude Code | #3, #4 (real data) |
+| 1 | Shared lookup engine (server route) | Coding agent | engine logic from backfill |
+| 2 | Recipe detail + edit nutrition | Coding agent | backfill data, `nutrition` model — *buildable in parallel now* |
+| 3 | Consumption log + goals models + cooked capture | Coding agent | #1, ⚠️ plan-schema inspection |
+| 4 | Quick / manual food entry | Coding agent | #1, log model |
+| 5 | Today view | Coding agent | #3, #4 |
+| 6 | Insights dashboard | Coding agent | #3, #4 (real data) |
 
-Each Claude Code prompt is single-feature, includes the standard build rules verbatim (work on main; merge any auto-branch before pushing; `npm run build` must pass; stop after 3 build failures and output the log), defines its output report format, and — for surfaces 2 and 3/recipe-edit — leads with a read-only schema inspection step.
+Each implementation prompt is single-feature, includes the standard build rules verbatim (work on main; merge any auto-branch before pushing; `npm run build` must pass; stop after 3 build failures and output the log), defines its output report format, and — for surfaces 2 and 3/recipe-edit — leads with a read-only schema inspection step.
 
 ## Open Questions
 

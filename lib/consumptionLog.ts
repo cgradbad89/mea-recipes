@@ -217,6 +217,7 @@ export async function getRecents(userId: string, count = 5): Promise<RecentFood[
       name: e.name,
       nutrition: scaleMacros(e.nutrition, 1 / servings),
       source: e.source,
+      ...(e.ai_provenance ? { ai_provenance: e.ai_provenance } : {}),
       type: e.type,
       recipe_id: e.recipe_id ?? null,
     })

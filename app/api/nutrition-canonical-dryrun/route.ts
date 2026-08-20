@@ -27,7 +27,7 @@ import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 //   doc (only if not already present, so re-runs preserve the ORIGINAL) for revert,
 //   and the route returns `prevCaptured` so the runner can also write a manifest.
 //
-// IMPORTANT: run APPLY where ANTHROPIC_API_KEY is present (Vercel) so the full
+// IMPORTANT: run APPLY where AI Gateway authentication is present (Vercel) so the full
 // three-tier engine (canonical → USDA → AI) produces the real final values.
 //
 // Auth: Bearer token via verifyAuthToken, matching ai-ingest / nutrition-revalidate.

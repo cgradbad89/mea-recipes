@@ -3,7 +3,7 @@
  * scripts/run-canonical-apply.js  (Batch 4-apply)
  *
  * Drives /api/nutrition-canonical-dryrun against the DEPLOYED VERCEL app (where
- * ANTHROPIC_API_KEY is present → full three-tier engine: canonical → USDA → AI).
+ * AI Gateway authentication is present → full three-tier engine: canonical → USDA → AI).
  *
  *   node scripts/run-canonical-apply.js            # PREVIEW (dry-run on Vercel, no writes)
  *   node scripts/run-canonical-apply.js --apply    # APPLY (persists; ?apply=true)
