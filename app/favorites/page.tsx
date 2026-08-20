@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { Heart, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
@@ -302,7 +303,7 @@ export default function FavoritesPage() {
           <p className="text-faint text-sm font-body mb-6">
             Tap the heart on any recipe to save it here
           </p>
-          <a href="/recipes" className="btn-ghost">Browse recipes</a>
+          <Link href="/recipes" className="btn-ghost">Browse recipes</Link>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-24">

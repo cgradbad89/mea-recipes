@@ -4,7 +4,7 @@ A Next.js web app for your personal recipe collection, powered by Firebase Fires
 
 ## Tech Stack
 
-- **Next.js 14** (App Router)
+- **Next.js 16** (App Router) + **React 19**
 - **Firebase** (Firestore + Google Auth)
 - **Vercel AI Gateway** + **Vercel AI SDK** (`openai/gpt-5.6-luna`)
 - **Tailwind CSS**

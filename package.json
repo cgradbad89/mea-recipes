@@ -7,9 +7,12 @@
     "dev:emulator": "concurrently \"NEXT_PUBLIC_USE_FIRESTORE_EMULATOR=true next dev\" \"firebase emulators:start --only firestore,auth --project malignant-metro\"",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.177",
@@ -22,24 +25,28 @@
     "firebase": "^10.12.0",
     "firebase-admin": "^13.10.0",
     "fuse.js": "^7.3.0",
-    "lucide-react": "^0.383.0",
-    "next": "14.2.35",
-    "react": "^18",
-    "react-dom": "^18",
+    "lucide-react": "0.475.0",
+    "next": "16.3.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "recharts": "^2.12.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "autoprefixer": "^10.0.1",
     "concurrently": "10.0.5",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.35",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4"
   }
 }

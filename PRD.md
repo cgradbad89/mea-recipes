@@ -23,14 +23,14 @@ credential **linked to the same account** (Batch 7; same uid/data, no separate a
 
 | Layer | Technology | Version |
 |---|---|---|
-| Framework | Next.js (App Router) | 14.2.5 |
+| Framework | Next.js (App Router) | 16.3.1 |
 | Language | TypeScript | ^5 |
-| Runtime | React / React DOM | ^18 |
+| Runtime | React / React DOM | 19.2.8 |
 | Styling | Tailwind CSS | ^3.4.1 |
 | Client SDK | firebase | ^10.12.0 |
-| Server SDK | firebase-admin | ^13.7.0 |
+| Server SDK | firebase-admin | ^13.10.0 |
 | Search | fuse.js | ^7.3.0 |
-| Icons | lucide-react | ^0.383.0 |
+| Icons | lucide-react | 0.475.0 |
 | Charts | recharts | ^2.12.0 |
 | Utility | clsx | ^2.1.1 |
 | AI | Vercel AI Gateway (`openai/gpt-5.6-luna`) | Vercel AI SDK + `@ai-sdk/gateway` |
