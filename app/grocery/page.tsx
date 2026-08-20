@@ -269,6 +269,11 @@ export default function GroceryPage() {
       const acceptedChanges = cleanupChanges.filter((_, i) => !rejectedChanges.has(i))
       const batch = writeBatch(db)
       const toDelete = new Set<number>()
+      const mergeSurvivors = new Set(
+        acceptedChanges
+          .filter(change => change.action === 'merge' && change.mergedWith?.length)
+          .map(change => change.originalIndex),
+      )
 
       acceptedChanges.forEach(change => {
         if (change.action === 'remove') {
@@ -276,7 +281,11 @@ export default function GroceryPage() {
           return
         }
         if (change.action === 'merge' && change.mergedWith?.length) {
-          change.mergedWith.forEach(i => toDelete.add(i))
+          change.mergedWith.forEach(i => {
+            // Last-line defense against malformed/reciprocal model output: a
+            // merge survivor can never delete itself or another survivor.
+            if (i !== change.originalIndex && !mergeSurvivors.has(i)) toDelete.add(i)
+          })
         }
         const item = items[change.originalIndex]
         if (!item || item.id.includes('/')) return

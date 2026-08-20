@@ -3,6 +3,7 @@ import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
 import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
 import { generateAIArray, generateAIObject } from '@/lib/ai'
+import { sanitizeGroceryCleanupChanges, type GroceryCleanupChange } from '@/lib/groceryCleanup'
 import { z } from 'zod'
 
 // Single source of truth for the allowed categories — imported from the shared
@@ -72,7 +73,8 @@ JSON Format:
 ]
 
 Rules:
-- If merging items, include all original indices in mergedWith
+- For a merge, return exactly ONE object for the group. originalIndex is the item that survives; mergedWith contains ONLY the OTHER item indices that should be absorbed and deleted. NEVER include originalIndex in mergedWith.
+- Only merge items that represent the same thing a shopper would buy. Do not merge merely related ingredients.
 - action "remove" = clearly not a grocery item (e.g. instruction text like "ON THE STOVE")
 - action "merge" = combined with another item
 - action "normalize" = cleaned up name/quantity/unit, or corrected category
@@ -96,55 +98,9 @@ Rules:
       parsedChanges = []
     }
 
-    // Identify indices that are merged into other items
-    const mergedIndices = new Set<number>()
-    for (const change of parsedChanges) {
-      if (change && Array.isArray(change.mergedWith)) {
-        change.mergedWith.forEach((idx: any) => {
-          const num = Number(idx)
-          if (!isNaN(num)) mergedIndices.add(num)
-        })
-      }
-    }
-
-    // Reconstruct the full array expected by the frontend
-    const reconstructed = items.map((originalItem: any, i: number) => {
-      const suggestedChange = parsedChanges.find(c => c && c.originalIndex === i)
-      
-      const defaultCategory = originalItem.manualSection || categorizeIngredient(originalItem.name)
-
-      if (suggestedChange) {
-        // Validate category
-        if (!CATEGORIES.includes(suggestedChange.category)) {
-          suggestedChange.category = categorizeIngredient(suggestedChange.name || '')
-        }
-        return suggestedChange
-      }
-      
-      if (mergedIndices.has(i)) {
-        return {
-          originalIndex: i,
-          name: originalItem.name,
-          quantity: originalItem.quantity || '',
-          unit: originalItem.unit || '',
-          category: defaultCategory,
-          action: 'merge',
-          mergedWith: []
-        }
-      }
-      
-      return {
-        originalIndex: i,
-        name: originalItem.name,
-        quantity: originalItem.quantity || '',
-        unit: originalItem.unit || '',
-        category: defaultCategory,
-        action: 'keep',
-        mergedWith: []
-      }
-    })
-
-    return NextResponse.json(reconstructed)
+    return NextResponse.json(
+      sanitizeGroceryCleanupChanges(items, parsedChanges as GroceryCleanupChange[]),
+    )
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
