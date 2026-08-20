@@ -27,8 +27,8 @@ credential **linked to the same account** (Batch 7; same uid/data, no separate a
 | Language | TypeScript | ^5 |
 | Runtime | React / React DOM | 19.2.8 |
 | Styling | Tailwind CSS | ^3.4.1 |
-| Client SDK | firebase | 12.16.0 |
-| Server SDK | firebase-admin | ^13.10.0 |
+| Client SDK | firebase | 12.18.0 |
+| Server SDK | firebase-admin | 14.3.0 |
 | Search | fuse.js | ^7.3.0 |
 | Icons | lucide-react | 0.475.0 |
 | Charts | recharts | ^2.12.0 |
