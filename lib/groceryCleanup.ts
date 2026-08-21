@@ -1,4 +1,5 @@
 import { categorizeIngredient, GROCERY_CATEGORIES, type GroceryCategory } from './groceryCategories'
+import { normalizeNoun } from './ingredientParser'
 
 export interface GroceryCleanupItem {
   name: string
@@ -17,53 +18,80 @@ export interface GroceryCleanupChange {
   mergedWith: number[]
 }
 
-const IGNORED_WORDS = new Set([
+const IGNORED_PREP_WORDS = new Set([
   'a', 'an', 'and', 'the', 'of', 'from', 'for', 'to',
   'best', 'quality', 'such', 'as',
-  'fresh', 'freshly', 'packed', 'roughly', 'finely', 'thinly', 'coarsely',
+  'freshly', 'packed', 'roughly', 'finely', 'thinly', 'coarsely',
   'chopped', 'minced', 'diced', 'sliced', 'crushed', 'peeled', 'halved', 'quartered',
-  'ground', 'dried', 'frozen', 'cooked', 'raw', 'whole', 'large', 'medium', 'small', 'extra',
-  'clove', 'cloves', 'leaf', 'leaves',
+  'grated', 'shredded', 'trimmed',
 ])
 
-// Forms that materially change what a shopper buys. For example, whole limes
-// and lime juice must not be merged merely because they share "lime".
-const FORM_WORDS = new Set([
+// Terms that materially change what a shopper buys. These sets must match on
+// both sides before any narrow unit-token allowance is considered.
+const PURCHASE_SENSITIVE_WORDS = new Set([
+  'fresh', 'dried', 'frozen', 'cooked', 'raw', 'ground', 'whole',
+  'lean', 'skinless', 'boneless',
+  'tenderloin', 'sirloin', 'chuck', 'brisket', 'ribeye', 'rump', 'shoulder',
+  'thigh', 'breast', 'wing', 'drumstick', 'loin', 'chop', 'roast', 'steak',
   'juice', 'sauce', 'paste', 'powder', 'oil', 'vinegar', 'milk', 'cream',
-  'cheese', 'broth', 'stock', 'flour', 'seed', 'seeds',
+  'cheese', 'broth', 'stock', 'flour', 'seed',
 ])
 
-function itemTokens(name: string): Set<string> {
+// The only non-exact allowance: a count/container token may be present on one
+// side of an otherwise identical item ("garlic" vs "garlic clove").
+const OPTIONAL_UNIT_WORDS = new Set([
+  'bag', 'bottle', 'box', 'bunch', 'can', 'clove', 'ear', 'head', 'jar',
+  'leaf', 'loaf', 'package', 'piece', 'slice', 'sprig', 'stalk', 'stick',
+])
+
+interface GroceryIdentity {
+  tokens: Set<string>
+  sensitive: Set<string>
+}
+
+function itemIdentity(name: string): GroceryIdentity {
   const beforeDirections = (name || '')
     .toLowerCase()
     .replace(/\([^)]*\)/g, ' ')
     .split(',')[0]
+    .replace(/(\d+)\s*%/g, '$1percent')
     .replace(/[^a-z0-9\s]/g, ' ')
 
-  return new Set(
-    beforeDirections
+  const tokens = new Set(
+    normalizeNoun(beforeDirections)
       .split(/\s+/)
       .map(word => word.trim())
-      .filter(word => word && !/^\d+$/.test(word) && !IGNORED_WORDS.has(word)),
+      .filter(word => word && !/^\d+$/.test(word) && !IGNORED_PREP_WORDS.has(word)),
   )
+  const sensitive = new Set(
+    [...tokens].filter(word => PURCHASE_SENSITIVE_WORDS.has(word) || /^\d+percent$/.test(word)),
+  )
+  return { tokens, sensitive }
+}
+
+function setsEqual(left: Set<string>, right: Set<string>): boolean {
+  return left.size === right.size && [...left].every(word => right.has(word))
 }
 
 /** Conservative lexical guard used before an AI suggestion may delete a peer. */
 export function areLikelySameGroceryItem(a: string, b: string): boolean {
-  const left = itemTokens(a)
-  const right = itemTokens(b)
-  if (!left.size || !right.size) return false
+  const left = itemIdentity(a)
+  const right = itemIdentity(b)
+  if (!left.tokens.size || !right.tokens.size) return false
 
-  const leftForms = new Set([...left].filter(word => FORM_WORDS.has(word)))
-  const rightForms = new Set([...right].filter(word => FORM_WORDS.has(word)))
-  if (
-    leftForms.size !== rightForms.size ||
-    [...leftForms].some(word => !rightForms.has(word))
-  ) return false
+  if (!setsEqual(left.sensitive, right.sensitive)) return false
+  if (setsEqual(left.tokens, right.tokens)) return true
 
-  const smaller = left.size <= right.size ? left : right
-  const larger = smaller === left ? right : left
-  return [...smaller].every(word => larger.has(word))
+  const differing = new Set([
+    ...[...left.tokens].filter(word => !right.tokens.has(word)),
+    ...[...right.tokens].filter(word => !left.tokens.has(word)),
+  ])
+  if (![...differing].every(word => OPTIONAL_UNIT_WORDS.has(word))) return false
+
+  const sharedCore = [...left.tokens].some(word =>
+    right.tokens.has(word) && !OPTIONAL_UNIT_WORDS.has(word),
+  )
+  return sharedCore
 }
 
 export function isClearlyNonGroceryLine(name: string): boolean {

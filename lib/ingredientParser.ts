@@ -136,10 +136,36 @@ export function isKnownUnit(unit: string): boolean {
   return unitCanonical(unit) !== null
 }
 
+const SINGULAR_EXCEPTIONS = new Set([
+  'asparagus', 'bass', 'bison', 'bread', 'cheese', 'couscous', 'deer', 'fish',
+  'hummus', 'molasses', 'moose', 'oats', 'rice', 'salmon', 'series', 'sheep',
+  'shrimp', 'species', 'squid', 'tuna', 'watercress',
+])
+
+const IRREGULAR_FOOD_PLURALS: Record<string, string> = {
+  halves: 'half',
+  knives: 'knife',
+  leaves: 'leaf',
+  loaves: 'loaf',
+  potatoes: 'potato',
+  tomatoes: 'tomato',
+}
+
+/** Conservative food-aware singularizer used only for grocery identity keys. */
+export function singularizeFoodWord(word: string): string {
+  if (!word || SINGULAR_EXCEPTIONS.has(word)) return word
+  if (IRREGULAR_FOOD_PLURALS[word]) return IRREGULAR_FOOD_PLURALS[word]
+  if (word.length > 4 && word.endsWith('ies')) return `${word.slice(0, -3)}y`
+  if (word.length > 4 && word.endsWith('oes')) return word.slice(0, -2)
+  if (word.length > 4 && /(?:ches|shes|xes|zes)$/.test(word)) return word.slice(0, -2)
+  if (word.length > 3 && word.endsWith('s') && !/(?:ss|us|is)$/.test(word)) return word.slice(0, -1)
+  return word
+}
+
 /**
- * Normalise a noun phrase for EXACT-noun merge comparison: lowercase, strip
- * punctuation and standalone articles, collapse whitespace. Deliberately does
- * NOT stem or drop modifiers — "red onion" must NOT collapse to "onion".
+ * Normalise a noun phrase for exact grocery merge comparison: lowercase, strip
+ * punctuation/articles, singularize food words, and collapse whitespace.
+ * Modifiers remain intact — "red onion" still does not collapse to "onion".
  */
 export function normalizeNoun(name: string): string {
   return (name || '')
@@ -148,6 +174,9 @@ export function normalizeNoun(name: string): string {
     .replace(/\b(?:a|an|the)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+    .split(' ')
+    .map(singularizeFoodWord)
+    .join(' ')
 }
 
 /**

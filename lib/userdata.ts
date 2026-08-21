@@ -19,6 +19,7 @@ import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
 import type { GroceryCategory } from './groceryCategories'
 import { parseIngredient, normalizeNoun, mergeQuantities } from './ingredientParser'
+import { commitFirestoreBatches, type FirestoreBatchOperation } from './firestoreBatch'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
 // users/{uid}/recipes/root/favorites/{recipeID}
@@ -531,18 +532,16 @@ export async function deleteGroceryItem(uid: string, itemId: string): Promise<vo
 
 export async function clearCheckedGroceryItems(uid: string): Promise<void> {
   const snap = await getDocs(groceryPath(uid))
-  const batch = writeBatch(db)
-  snap.docs.forEach(d => {
-    if ((d.data() as GroceryItem).isChecked) batch.delete(d.ref)
-  })
-  await batch.commit()
+  const operations = snap.docs
+    .filter(item => (item.data() as GroceryItem).isChecked)
+    .map<FirestoreBatchOperation>(item => batch => batch.delete(item.ref))
+  await commitFirestoreBatches(db, operations)
 }
 
 export async function clearAllGroceryItems(uid: string): Promise<void> {
   const snap = await getDocs(groceryPath(uid))
-  const batch = writeBatch(db)
-  snap.docs.forEach(d => batch.delete(d.ref))
-  await batch.commit()
+  const operations = snap.docs.map<FirestoreBatchOperation>(item => batch => batch.delete(item.ref))
+  await commitFirestoreBatches(db, operations)
 }
 
 // ─── Saved Grocery Items ─────────────────────────────────────────────────────
@@ -606,14 +605,13 @@ export async function rebuildGroceryFromPlan(
 ): Promise<void> {
   // Step 1: Delete non-manual, non-legacy items
   const snap = await getDocs(groceryPath(uid))
-  const batch = writeBatch(db)
-  snap.docs.forEach(d => {
-    const data = d.data() as GroceryItem
-    if (!data.isManual && !d.id.includes('/')) {
-      batch.delete(d.ref)
-    }
-  })
-  await batch.commit()
+  const deleteOperations = snap.docs
+    .filter(item => {
+      const data = item.data() as GroceryItem
+      return !data.isManual && !item.id.includes('/')
+    })
+    .map<FirestoreBatchOperation>(item => batch => batch.delete(item.ref))
+  await commitFirestoreBatches(db, deleteOperations)
 
   // Step 2: Re-add ingredients from EVERY planned recipe, regardless of day or
   // role (neither affects the grocery list — we pull all planned recipes).
