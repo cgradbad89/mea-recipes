@@ -542,6 +542,16 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
   above page chrome to avoid the historical z-index overlap.
 - **Recipe doc IDs are slugified titles.** Two recipes with the same title collide on the same
   `recipes/{slug}` document; `saveRecipe` overwrites by slug.
+- **Some `imageURL`s are hotlinked to external hosts, not Firebase Storage.** The Aug 2026 photo
+  backfill (`scripts/audit-missing-photos.js` + `scripts/apply-photo-matches.js`) filled 13 recipes'
+  missing `imageURL` with Wikimedia Commons/Openverse URLs (`upload.wikimedia.org`,
+  `live.staticflickr.com`) written as-is — no re-upload to Storage. If the source file is ever moved
+  or deleted, that recipe's image breaks with no local fallback. 18 recipes were left with no
+  `imageURL` at all (audit found 34 missing; 3 non-recipe/malformed docs — `sasy-notes`, `smoothies`,
+  a URL-titled doc — were skipped by request; of the remaining 31, only 13 had a candidate that was
+  both correctly licensed and, on actual visual inspection, depicted the right dish — text-only
+  Commons/Openverse search alone had a high false-positive rate, e.g. matching tandoori chicken for a
+  Lebanese chicken recipe or an unrelated museum-artifact photo for "beans, greens and grains").
 - **`docToRecipe` whitelists fields.** `lib/recipes.ts` maps an explicit field list — any new
   recipe-doc field (e.g. `nutrition`, `servings`) is silently dropped on read until added to the
   mapper. Backfilled data won't reach the UI otherwise.
