@@ -39,21 +39,35 @@ function loadEnv() {
 }
 
 let _admin = null
-/** Initialise + return the firebase-admin singleton (cert from env). */
+/**
+ * Initialise + return the firebase-admin singleton (cert from env).
+ *
+ * firebase-admin v14 removed the legacy namespaced API (`require('firebase-admin')`
+ * + `admin.apps` / `admin.credential.cert`) from the CJS root export. This uses the
+ * modular subpath entry points instead, but keeps the same call shape callers already
+ * use: `getAdmin().firestore()` / `getAdmin().auth()`.
+ */
 function getAdmin() {
   if (_admin) return _admin
-  const admin = require('firebase-admin')
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY,
-      }),
-    })
+  const { initializeApp, getApps, cert } = require('firebase-admin/app')
+  const { getFirestore } = require('firebase-admin/firestore')
+  const { getAuth } = require('firebase-admin/auth')
+
+  const app = getApps().length === 0
+    ? initializeApp({
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY,
+        }),
+      })
+    : getApps()[0]
+
+  _admin = {
+    firestore: () => getFirestore(app),
+    auth: () => getAuth(app),
   }
-  _admin = admin
-  return admin
+  return _admin
 }
 
 /** Mint a real Firebase ID token (admin custom token → Identity Toolkit exchange). */

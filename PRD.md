@@ -644,14 +644,14 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
   in this repo. The scope is requested only on the push, never on browse/sign-in. The app only ever
   updates/deletes event IDs it stored in `weekPlans.calendarEventIds` — **never** a calendar search-and-delete.
 
-- **`scripts/_lib.js` `getAdmin()` and `mintIdToken()` are broken under firebase-admin v14.** They use
-  the legacy namespaced API (`admin.apps`, `admin.credential`, `admin.auth()`), but v14's CJS root
-  export only provides app-level functions (`initializeApp`, `cert`, `getApps`, `applicationDefault`,
-  …) — so `getAdmin()` throws `Cannot read properties of undefined (reading 'length')` on
-  `admin.apps.length`. This affects `_verify-apply.js` (via `getAdmin`) and both
-  `run-canonical-{apply,dryrun}.js` (via `mintIdToken`). `loadEnv()` is unaffected and still fine to
-  reuse. New scripts should initialise via the modular subpaths (`firebase-admin/app`,
-  `firebase-admin/firestore`, `firebase-admin/auth`), as `scripts/write-sides-batch.js` does.
+- **`scripts/_lib.js` `getAdmin()`/`mintIdToken()` were broken under firebase-admin v14 (fixed).** They
+  used the legacy namespaced API (`admin.apps`, `admin.credential`, `admin.auth()`), which v14's CJS
+  root export no longer provides. `getAdmin()` now initialises via the modular subpaths
+  (`firebase-admin/app`, `firebase-admin/firestore`, `firebase-admin/auth`) — same as
+  `scripts/write-sides-batch.js` already did — and returns an object exposing `.firestore()`/`.auth()`,
+  preserving the call shape every caller (`_verify-apply.js`, `run-canonical-{apply,dryrun}.js`) already
+  used, so no consumer needed changes. `loadEnv()` was unaffected throughout. New scripts should still
+  prefer the modular subpaths directly rather than the legacy `require('firebase-admin')` root.
 
 ---
 
