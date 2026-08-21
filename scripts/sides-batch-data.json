@@ -1,0 +1,605 @@
+[
+  {
+    "title": "Honey Butter Glazed Carrots",
+    "description": "Tender roasted carrots tossed in a sweet honey butter glaze.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "25 min",
+    "ingredients": [
+      "2 lbs carrots, peeled and cut into 2-inch pieces",
+      "3 tbsp unsalted butter, melted",
+      "2 tbsp honey",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tbsp fresh parsley, chopped (for garnish)"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "In a large bowl, toss carrots with melted butter, honey, salt, and pepper until evenly coated.",
+      "Spread carrots in a single layer on the prepared baking sheet.",
+      "Roast for 20-25 minutes, flipping halfway through, until carrots are tender and lightly caramelized.",
+      "Transfer to a serving dish and garnish with fresh parsley before serving."
+    ]
+  },
+  {
+    "title": "Garlic Parmesan Roasted Potatoes",
+    "description": "Crispy roasted baby potatoes tossed with garlic and parmesan.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "35 min",
+    "ingredients": [
+      "2 lbs baby potatoes, halved",
+      "3 tbsp olive oil",
+      "4 cloves garlic, minced",
+      "1/2 cup grated parmesan cheese",
+      "1 tsp dried Italian herbs",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "2 tbsp fresh parsley, chopped"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss halved potatoes with olive oil, garlic, Italian herbs, salt, and pepper in a large bowl.",
+      "Spread potatoes cut-side down on the baking sheet.",
+      "Roast for 30-35 minutes, until golden and crispy, flipping once halfway through.",
+      "Remove from oven, toss with parmesan cheese while still hot, and garnish with parsley before serving."
+    ]
+  },
+  {
+    "title": "Roasted Asparagus with Lemon",
+    "description": "Simple roasted asparagus brightened with fresh lemon and parmesan.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "5 min",
+    "cookTime": "12 min",
+    "ingredients": [
+      "1.5 lbs asparagus, woody ends trimmed",
+      "2 tbsp olive oil",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 lemon, zested and juiced",
+      "2 tbsp grated parmesan cheese (optional)"
+    ],
+    "instructions": [
+      "Preheat oven to 400°F and line a baking sheet with parchment paper.",
+      "Arrange asparagus in a single layer, drizzle with olive oil, and season with salt and pepper.",
+      "Roast for 10-12 minutes, until tender-crisp.",
+      "Remove from oven and squeeze fresh lemon juice over the top, then sprinkle with lemon zest.",
+      "Top with parmesan cheese, if using, and serve immediately."
+    ]
+  },
+  {
+    "title": "Rice Pilaf",
+    "description": "Fluffy rice sautéed with onion, garlic, and herbs, simmered in broth.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "5 min",
+    "cookTime": "25 min",
+    "ingredients": [
+      "1 tbsp butter",
+      "1 tbsp olive oil",
+      "1/2 small onion, finely diced",
+      "1 clove garlic, minced",
+      "1 cup long-grain white rice",
+      "2 cups chicken or vegetable broth",
+      "1/4 cup orzo or thin vermicelli, broken (optional)",
+      "1/2 tsp salt",
+      "2 tbsp fresh parsley, chopped"
+    ],
+    "instructions": [
+      "Melt butter with olive oil in a saucepan over medium heat. Add onion and cook until softened, about 3 minutes.",
+      "Add garlic and rice (and orzo, if using) and stir for 1-2 minutes until lightly toasted.",
+      "Pour in broth and salt, bring to a boil, then reduce heat to low and cover.",
+      "Simmer for 18-20 minutes, until liquid is absorbed and rice is tender.",
+      "Remove from heat, let stand covered for 5 minutes, then fluff with a fork and stir in parsley."
+    ]
+  },
+  {
+    "title": "Roasted Brussels Sprouts with Bacon",
+    "description": "Crispy roasted Brussels sprouts with smoky bacon and a balsamic drizzle.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "25 min",
+    "ingredients": [
+      "1.5 lbs Brussels sprouts, halved",
+      "4 slices bacon, chopped",
+      "2 tbsp olive oil",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tbsp balsamic glaze (for drizzling)"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss Brussels sprouts with olive oil, salt, and pepper, then spread in a single layer on the baking sheet. Scatter chopped bacon over the top.",
+      "Roast for 20-25 minutes, stirring once, until sprouts are crispy and bacon is cooked through.",
+      "Transfer to a serving dish and drizzle with balsamic glaze before serving."
+    ]
+  },
+  {
+    "title": "Simple House Salad with Vinaigrette",
+    "description": "A crisp mixed green salad with a classic red wine vinaigrette.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "0 min",
+    "ingredients": [
+      "6 cups mixed salad greens",
+      "1/2 cup cherry tomatoes, halved",
+      "1/2 cucumber, sliced",
+      "1/4 red onion, thinly sliced",
+      "3 tbsp olive oil",
+      "1 tbsp red wine vinegar",
+      "1 tsp Dijon mustard",
+      "1/2 tsp honey",
+      "Salt and pepper to taste"
+    ],
+    "instructions": [
+      "In a large bowl, combine salad greens, cherry tomatoes, cucumber, and red onion.",
+      "In a small bowl, whisk together olive oil, red wine vinegar, Dijon mustard, honey, salt, and pepper.",
+      "Drizzle the vinaigrette over the salad just before serving.",
+      "Toss gently to coat and serve immediately."
+    ]
+  },
+  {
+    "title": "Garlic Butter Roasted Broccoli",
+    "description": "Roasted broccoli florets tossed in garlicky brown butter.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "15 min",
+    "ingredients": [
+      "1.5 lbs broccoli florets",
+      "3 tbsp butter",
+      "3 cloves garlic, minced",
+      "2 tbsp olive oil",
+      "1/2 tsp red pepper flakes (optional)",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tbsp lemon juice"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss broccoli florets with olive oil, salt, and pepper, and spread in a single layer.",
+      "Roast for 12-15 minutes, until edges are crispy and browned.",
+      "Meanwhile, melt butter in a small saucepan over medium heat with garlic and red pepper flakes until fragrant, about 2 minutes.",
+      "Toss the roasted broccoli with the garlic butter and lemon juice, then serve warm."
+    ]
+  },
+  {
+    "title": "Herb-Roasted Cauliflower",
+    "description": "Whole roasted cauliflower florets seasoned with herbs and olive oil.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "25 min",
+    "ingredients": [
+      "1 large head cauliflower, cut into florets",
+      "3 tbsp olive oil",
+      "1 tsp dried thyme",
+      "1 tsp dried oregano",
+      "1/2 tsp garlic powder",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "2 tbsp fresh parsley, chopped"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss cauliflower florets with olive oil, thyme, oregano, garlic powder, salt, and pepper.",
+      "Spread florets in a single layer on the baking sheet.",
+      "Roast for 22-25 minutes, flipping halfway, until golden and tender.",
+      "Garnish with fresh parsley before serving."
+    ]
+  },
+  {
+    "title": "Sautéed Garlic Green Beans",
+    "description": "Quick-sautéed green beans with garlic and a touch of butter.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "5 min",
+    "cookTime": "10 min",
+    "ingredients": [
+      "1 lb fresh green beans, trimmed",
+      "2 tbsp butter",
+      "1 tbsp olive oil",
+      "3 cloves garlic, minced",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tbsp sliced almonds (optional)"
+    ],
+    "instructions": [
+      "Bring a pot of salted water to a boil and blanch green beans for 2-3 minutes, then drain and set aside.",
+      "Heat butter and olive oil in a large skillet over medium heat. Add garlic and cook until fragrant, about 30 seconds.",
+      "Add the blanched green beans and toss to coat, cooking for 4-5 minutes until tender-crisp.",
+      "Season with salt and pepper, and top with sliced almonds if using, before serving."
+    ]
+  },
+  {
+    "title": "Creamed Spinach",
+    "description": "Rich and creamy spinach with garlic and a touch of nutmeg.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "15 min",
+    "ingredients": [
+      "2 lbs fresh spinach (or 20 oz frozen, thawed and drained)",
+      "2 tbsp butter",
+      "2 cloves garlic, minced",
+      "2 tbsp flour",
+      "1 cup whole milk",
+      "1/4 cup grated parmesan cheese",
+      "1/4 tsp ground nutmeg",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper"
+    ],
+    "instructions": [
+      "If using fresh spinach, wilt it in a large pot over medium heat, then drain well and chop.",
+      "In a saucepan, melt butter over medium heat and cook garlic until fragrant, about 1 minute.",
+      "Whisk in flour and cook for 1 minute, then gradually whisk in milk until smooth and thickened, about 3-4 minutes.",
+      "Stir in parmesan, nutmeg, salt, and pepper, then fold in the spinach.",
+      "Cook for 2-3 minutes until heated through and serve warm."
+    ]
+  },
+  {
+    "title": "Sautéed Kale with Garlic and Lemon",
+    "description": "Quick sautéed kale brightened with garlic, lemon, and chili flakes.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "10 min",
+    "ingredients": [
+      "1 large bunch kale, stems removed and leaves torn",
+      "2 tbsp olive oil",
+      "3 cloves garlic, sliced",
+      "1/4 tsp red pepper flakes",
+      "1 lemon, juiced",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper"
+    ],
+    "instructions": [
+      "Heat olive oil in a large skillet over medium heat. Add garlic and red pepper flakes, cooking until fragrant, about 1 minute.",
+      "Add kale in batches, tossing to wilt slightly before adding more.",
+      "Cook for 6-8 minutes, stirring occasionally, until kale is tender.",
+      "Remove from heat and toss with lemon juice, salt, and pepper before serving."
+    ]
+  },
+  {
+    "title": "Honey Glazed Roasted Parsnips",
+    "description": "Sweet roasted parsnips with a honey and thyme glaze.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "30 min",
+    "ingredients": [
+      "2 lbs parsnips, peeled and cut into batons",
+      "3 tbsp olive oil",
+      "2 tbsp honey",
+      "1 tsp fresh thyme leaves",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss parsnips with olive oil, salt, and pepper, and spread in a single layer.",
+      "Roast for 20 minutes, then drizzle with honey and sprinkle with thyme.",
+      "Continue roasting for another 8-10 minutes, until golden and tender.",
+      "Serve warm."
+    ]
+  },
+  {
+    "title": "Grilled Zucchini and Summer Squash",
+    "description": "Charred zucchini and yellow squash with olive oil and herbs.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "10 min",
+    "ingredients": [
+      "2 medium zucchini, sliced lengthwise",
+      "2 medium yellow summer squash, sliced lengthwise",
+      "3 tbsp olive oil",
+      "2 cloves garlic, minced",
+      "1 tsp dried Italian herbs",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tbsp fresh basil, chopped"
+    ],
+    "instructions": [
+      "Preheat a grill or grill pan to medium-high heat.",
+      "Toss zucchini and squash slices with olive oil, garlic, Italian herbs, salt, and pepper.",
+      "Grill for 3-4 minutes per side, until tender and grill marks appear.",
+      "Transfer to a platter and garnish with fresh basil before serving."
+    ]
+  },
+  {
+    "title": "Balsamic Roasted Beets",
+    "description": "Earthy roasted beets tossed in a sweet balsamic glaze with fresh herbs.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "15 min",
+    "cookTime": "45 min",
+    "ingredients": [
+      "2 lbs beets, peeled and cut into wedges",
+      "3 tbsp olive oil",
+      "2 tbsp balsamic vinegar",
+      "1 tbsp honey",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "2 tbsp fresh dill or parsley, chopped",
+      "2 tbsp crumbled feta cheese (optional)"
+    ],
+    "instructions": [
+      "Preheat oven to 400°F and line a baking sheet with foil.",
+      "Toss beet wedges with olive oil, salt, and pepper, and spread in a single layer.",
+      "Roast for 35-40 minutes, until fork-tender.",
+      "Whisk together balsamic vinegar and honey, then toss with the roasted beets.",
+      "Garnish with fresh herbs and feta cheese, if using, before serving."
+    ]
+  },
+  {
+    "title": "Roasted Acorn Squash with Brown Butter",
+    "description": "Roasted acorn squash rings finished with nutty brown butter and sage.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "30 min",
+    "ingredients": [
+      "2 acorn squash, seeded and sliced into rings",
+      "3 tbsp olive oil",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "4 tbsp butter",
+      "6 fresh sage leaves",
+      "1 tbsp maple syrup"
+    ],
+    "instructions": [
+      "Preheat oven to 400°F and line a baking sheet with parchment paper.",
+      "Toss squash rings with olive oil, salt, and pepper, and arrange in a single layer.",
+      "Roast for 25-30 minutes, flipping halfway, until tender and caramelized.",
+      "Meanwhile, melt butter in a small saucepan over medium heat with sage leaves, cooking until butter turns golden brown and nutty, about 3-4 minutes.",
+      "Drizzle the brown butter and maple syrup over the roasted squash before serving."
+    ]
+  },
+  {
+    "title": "Sautéed Mushrooms with Garlic and Thyme",
+    "description": "Buttery sautéed mushrooms with garlic, thyme, and a splash of white wine.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "5 min",
+    "cookTime": "12 min",
+    "ingredients": [
+      "1.5 lbs cremini or button mushrooms, sliced",
+      "3 tbsp butter",
+      "3 cloves garlic, minced",
+      "1 tsp fresh thyme leaves",
+      "2 tbsp white wine or broth",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tbsp fresh parsley, chopped"
+    ],
+    "instructions": [
+      "Melt butter in a large skillet over medium-high heat. Add mushrooms and cook without stirring for 3-4 minutes to develop color.",
+      "Stir in garlic and thyme, cooking for 1 minute until fragrant.",
+      "Add white wine or broth and cook for 2-3 minutes, until mostly evaporated.",
+      "Season with salt and pepper, and garnish with fresh parsley before serving."
+    ]
+  },
+  {
+    "title": "Skillet Creamed Corn",
+    "description": "Sweet corn kernels simmered in a rich, buttery cream sauce.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "5 min",
+    "cookTime": "15 min",
+    "ingredients": [
+      "4 cups corn kernels (fresh, frozen, or canned and drained)",
+      "3 tbsp butter",
+      "2 tbsp flour",
+      "1 cup half and half",
+      "1 tbsp sugar",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "2 tbsp fresh chives, chopped"
+    ],
+    "instructions": [
+      "Melt butter in a large skillet over medium heat. Add corn and cook for 3-4 minutes.",
+      "Sprinkle flour over the corn and stir to coat, cooking for 1 minute.",
+      "Gradually stir in half and half, sugar, salt, and pepper.",
+      "Simmer for 6-8 minutes, stirring occasionally, until thickened and creamy.",
+      "Garnish with fresh chives before serving."
+    ]
+  },
+  {
+    "title": "Braised Red Cabbage",
+    "description": "Sweet and tangy braised red cabbage with apples and vinegar.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "40 min",
+    "ingredients": [
+      "1 small head red cabbage, thinly sliced",
+      "2 tbsp butter",
+      "1 apple, peeled and diced",
+      "1/4 cup apple cider vinegar",
+      "2 tbsp brown sugar",
+      "1/2 tsp ground cinnamon",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1/4 cup water"
+    ],
+    "instructions": [
+      "Melt butter in a large pot over medium heat. Add cabbage and apple, stirring to combine.",
+      "Add apple cider vinegar, brown sugar, cinnamon, salt, pepper, and water.",
+      "Cover and simmer over low heat for 35-40 minutes, stirring occasionally, until cabbage is tender.",
+      "Adjust seasoning to taste and serve warm."
+    ]
+  },
+  {
+    "title": "Roasted Radishes with Herb Butter",
+    "description": "Roasted radishes lose their bite and turn tender and mild, finished with herb butter.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "20 min",
+    "ingredients": [
+      "1.5 lbs radishes, trimmed and halved",
+      "2 tbsp olive oil",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "3 tbsp butter, softened",
+      "1 tbsp fresh chives, chopped",
+      "1 tbsp fresh parsley, chopped"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss radishes with olive oil, salt, and pepper, and spread in a single layer.",
+      "Roast for 18-20 minutes, until tender and lightly browned.",
+      "Mix softened butter with chives and parsley in a small bowl.",
+      "Toss the warm radishes with the herb butter until melted and evenly coated, then serve."
+    ]
+  },
+  {
+    "title": "Buttered Peas with Mint",
+    "description": "Sweet peas tossed in butter with fresh mint, a classic springtime side.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "5 min",
+    "cookTime": "8 min",
+    "ingredients": [
+      "3 cups frozen peas",
+      "3 tbsp butter",
+      "2 tbsp fresh mint, chopped",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "1 tsp lemon zest"
+    ],
+    "instructions": [
+      "Bring a pot of salted water to a boil and cook peas for 3-4 minutes, until tender.",
+      "Drain the peas and return them to the pot.",
+      "Add butter and toss until melted and coating the peas.",
+      "Stir in fresh mint, salt, pepper, and lemon zest before serving."
+    ]
+  },
+  {
+    "title": "Roasted Root Vegetable Medley",
+    "description": "A colorful mix of roasted carrots, parsnips, sweet potatoes, and red onion.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "15 min",
+    "cookTime": "35 min",
+    "ingredients": [
+      "2 carrots, peeled and cut into chunks",
+      "2 parsnips, peeled and cut into chunks",
+      "1 sweet potato, peeled and cut into chunks",
+      "1 red onion, cut into wedges",
+      "3 tbsp olive oil",
+      "1 tsp dried rosemary",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper"
+    ],
+    "instructions": [
+      "Preheat oven to 425°F and line a baking sheet with parchment paper.",
+      "Toss all vegetables with olive oil, rosemary, salt, and pepper.",
+      "Spread vegetables in a single layer on the baking sheet.",
+      "Roast for 30-35 minutes, stirring halfway through, until tender and caramelized.",
+      "Serve warm."
+    ]
+  },
+  {
+    "title": "Lemon Garlic Roasted Artichokes",
+    "description": "Halved artichokes roasted with lemon, garlic, and olive oil until tender.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "15 min",
+    "cookTime": "35 min",
+    "ingredients": [
+      "4 whole artichokes, trimmed and halved, chokes removed",
+      "1/4 cup olive oil",
+      "4 cloves garlic, minced",
+      "1 lemon, juiced and zested",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "2 tbsp fresh parsley, chopped"
+    ],
+    "instructions": [
+      "Preheat oven to 400°F.",
+      "Toss artichoke halves with olive oil, garlic, lemon juice, zest, salt, and pepper.",
+      "Place artichokes cut-side down in a baking dish and cover tightly with foil.",
+      "Roast for 30-35 minutes, until a leaf pulls away easily and the base is tender.",
+      "Garnish with fresh parsley before serving."
+    ]
+  },
+  {
+    "title": "Caprese Salad",
+    "description": "Fresh tomatoes, mozzarella, and basil drizzled with balsamic and olive oil.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "0 min",
+    "ingredients": [
+      "4 large tomatoes, sliced",
+      "8 oz fresh mozzarella, sliced",
+      "1/4 cup fresh basil leaves",
+      "3 tbsp olive oil",
+      "2 tbsp balsamic glaze",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper"
+    ],
+    "instructions": [
+      "Arrange alternating slices of tomato and mozzarella on a serving platter.",
+      "Tuck fresh basil leaves between the slices.",
+      "Drizzle with olive oil and balsamic glaze.",
+      "Season with salt and pepper, and serve immediately."
+    ]
+  },
+  {
+    "title": "Cucumber Tomato Salad with Red Wine Vinaigrette",
+    "description": "A refreshing salad of cucumbers, tomatoes, and red onion in a tangy vinaigrette.",
+    "cuisine": "American",
+    "category": "Sides",
+    "servings": "4",
+    "prepTime": "10 min",
+    "cookTime": "0 min",
+    "ingredients": [
+      "2 cucumbers, sliced",
+      "2 cups cherry tomatoes, halved",
+      "1/4 red onion, thinly sliced",
+      "3 tbsp olive oil",
+      "2 tbsp red wine vinegar",
+      "1 tsp dried oregano",
+      "1/2 tsp salt",
+      "1/4 tsp black pepper",
+      "2 tbsp crumbled feta cheese (optional)"
+    ],
+    "instructions": [
+      "Combine cucumbers, cherry tomatoes, and red onion in a large bowl.",
+      "Whisk together olive oil, red wine vinegar, oregano, salt, and pepper.",
+      "Pour the dressing over the salad and toss to combine.",
+      "Top with crumbled feta, if using, and serve chilled or at room temperature."
+    ]
+  }
+]
