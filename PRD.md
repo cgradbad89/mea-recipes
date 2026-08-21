@@ -483,6 +483,19 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
 
 ## Section 6 — Known Sharp Edges
 
+- **Firebase Storage is not provisioned for `malignant-metro`.** `lib/firebase.ts` declares
+  `storageBucket: "malignant-metro.firebasestorage.app"`, but as of 2026-08-21 that bucket does
+  not exist (`bucket.exists()` via the Admin SDK returns `false`), and neither does the legacy
+  `malignant-metro.appspot.com` naming. No code in the repo has ever successfully uploaded to
+  Storage — grep for `getStorage`/`getDownloadURL` turns up only `scripts/_lib.js`'s unused
+  `storage()` accessor (added for the AI-photo-generation script below) and its own existence
+  check. Enabling Storage requires a console/project-level step (Firebase Console → Storage →
+  Get started) and may have billing implications on this project, which is **shared across
+  multiple apps** — do not enable it from a script or CLI without the user's explicit go-ahead.
+  `scripts/generate-photos.js` (AI-generated fallback photos for the 18 recipes with no good
+  real-photo match — see the imageURL sharp edge above) is written and ready but has never been
+  run because of this.
+
 - **Firestore rules are console-only — do not version them here.** A `firestore.rules` file was
   briefly committed with the auto-nutrition-on-publish work and then removed: the `malignant-metro`
   database is **shared across multiple apps**, so a `firebase deploy` of rules from this repo would

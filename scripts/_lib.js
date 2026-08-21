@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * scripts/_lib.js — shared helpers for the Batch-4 canonical-staples dev tooling.
+ * scripts/_lib.js — shared helpers for dev/admin tooling under scripts/.
  *
- * READ-ONLY by intent. These helpers authenticate to the malignant-metro project
- * using the cert creds already in .env.local (no serviceAccountKey.json needed)
- * and mint a real Firebase ID token for hitting auth-gated API routes locally.
+ * These helpers authenticate to the malignant-metro project using the cert
+ * creds already in .env.local (no serviceAccountKey.json needed) and mint a
+ * real Firebase ID token for hitting auth-gated API routes locally.
  *
- * Nothing here writes to Firestore.
+ * Despite the original "read-only" framing (Batch-4 canonical-staples tooling),
+ * several callers now use getAdmin().firestore()/.storage() to write — e.g. the
+ * recipe photo backfill. Nothing in THIS file performs a write itself; it only
+ * hands back initialized clients.
  */
 
 const fs = require('fs')
@@ -47,11 +50,15 @@ let _admin = null
  * modular subpath entry points instead, but keeps the same call shape callers already
  * use: `getAdmin().firestore()` / `getAdmin().auth()`.
  */
+// Matches lib/firebase.ts's storageBucket — the project has exactly one bucket.
+const STORAGE_BUCKET = 'malignant-metro.firebasestorage.app'
+
 function getAdmin() {
   if (_admin) return _admin
   const { initializeApp, getApps, cert } = require('firebase-admin/app')
   const { getFirestore } = require('firebase-admin/firestore')
   const { getAuth } = require('firebase-admin/auth')
+  const { getStorage } = require('firebase-admin/storage')
 
   const app = getApps().length === 0
     ? initializeApp({
@@ -60,12 +67,14 @@ function getAdmin() {
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey: process.env.FIREBASE_PRIVATE_KEY,
         }),
+        storageBucket: STORAGE_BUCKET,
       })
     : getApps()[0]
 
   _admin = {
     firestore: () => getFirestore(app),
     auth: () => getAuth(app),
+    storage: () => getStorage(app).bucket(),
   }
   return _admin
 }
