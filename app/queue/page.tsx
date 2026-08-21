@@ -15,7 +15,7 @@ import RecipeImage from '@/components/RecipeImage'
 const CATEGORIES = [
   'Chicken & Poultry', 'Vegetarian Mains', 'Salads & Bowls',
   'Pasta, Noodles & Rice', 'Soups, Stews & Chili',
-  'Seafood', 'Beef & Pork', 'Breakfast, Snacks & Sides',
+  'Seafood', 'Beef & Pork', 'Sides', 'Breakfast, Snacks & Sides',
 ]
 
 function QueueCard({

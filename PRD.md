@@ -372,8 +372,10 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
     changing — review the dry-run diff before applying.
 20. **Day-based meal plan + main/side role** (Batch 5) — planned recipes carry a `day` (ISO date in
     the week, or `null` = Unscheduled) and a `role` (`main`/`side`). **Role defaulting** is auto-derived
-    from the recipe's `category` via `deriveRoleFromCategory`/`CATEGORY_ROLE` (`lib/userdata.ts`): only
-    **"Breakfast, Snacks & Sides" → `side`**; all mains (Chicken & Poultry, Beef & Pork, Seafood,
+    from the recipe's `category` via `deriveRoleFromCategory`/`CATEGORY_ROLE` (`lib/userdata.ts`): both
+    **"Sides" → `side`** and the legacy **"Breakfast, Snacks & Sides" → `side`** (the standalone "Sides"
+    category was added later; the legacy label is still set on existing recipes, so both map to `side`
+    and neither may be removed); all mains (Chicken & Poultry, Beef & Pork, Seafood,
     Vegetarian Mains, Pasta/Noodles & Rice) **and** the ambiguous categories (Salads & Bowls, Soups/Stews
     & Chili) → `main` (a missing side is less wrong than a missing main; unknown/empty category → `main`).
     The role used on `addRecipeToWeekPlan` is `resolveRecipeRole(recipe)` at every add site (recipe
@@ -578,6 +580,14 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
 - **Category label drift.** The AI prompt and some UI use unpunctuated category names (e.g.
   "Pasta Noodles & Rice"), while `types/recipe.ts` `Category` uses comma forms
   ("Pasta, Noodles & Rice"). Normalize when comparing.
+- **"Sides" is not yet in the `Category` union.** The standalone "Sides" category exists in the
+  queue picker (`app/queue/page.tsx` `CATEGORIES`) and in `CATEGORY_ROLE` (`lib/userdata.ts`), but
+  **not** in `types/recipe.ts` `Category`, and **not** in the ai-ingest `SYSTEM_PROMPT` category
+  list (`app/api/ai-ingest/route.ts`) — so the AI never assigns it on its own; it only arrives via
+  a manual pick or a direct write. Both call sites are loosely typed (`CATEGORIES` is a bare
+  `string[]`, `CATEGORY_ROLE` is `Record<string, PlannedRole>`), so this compiles today, but adding
+  "Sides" to the union — and to the prompt, if the AI should choose it — is the remaining work to
+  make it fully first-class.
 - **Cooking Mode wake lock is best-effort.** `components/CookingMode.tsx` uses the Screen Wake
   Lock API (`navigator.wakeLock.request('screen')`), re-acquiring on `visibilitychange`. Browsers
   without the API (notably iOS Safari historically) silently no-op — the screen may still sleep.

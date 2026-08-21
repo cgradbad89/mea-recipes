@@ -147,6 +147,9 @@ const CATEGORY_ROLE: Record<string, PlannedRole> = {
   'Pasta, Noodles & Rice': 'main',
   'Salads & Bowls': 'main',
   'Soups, Stews & Chili': 'main',
+  'Sides': 'side',
+  // Legacy category — pre-dates the standalone 'Sides' category above and is
+  // still set on existing recipes, so both must map to 'side'.
   'Breakfast, Snacks & Sides': 'side',
 }
 
