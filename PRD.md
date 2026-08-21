@@ -200,6 +200,11 @@ Staging area for AI-parsed/generated recipes before publishing into `recipes`. F
 `title, cuisine, category, ingredients[], instructions[], imageURL, sourceURL, description,
 servings, prepTime, cookTime, status('pending'|'published'), createdAt?`.
 `buildRecipeContent()` serializes the structured fields back into the flat `content` format.
+**`createdAt` must be a real Firestore Timestamp** (`serverTimestamp()`): `getQueue` reads with
+`orderBy('createdAt', 'desc')`, so a doc written with a string — or with the field omitted — sorts
+wrong or is **invisible in the queue UI entirely**. Bulk writers may add an extra `generatedBatch`
+tag (a string the app ignores) so a batch can be found and deleted as a unit; see
+`scripts/write-sides-batch.js`, which wrote the `sides-american-veg-2026-08` batch of 24 side dishes.
 
 ### `sharedWeekPlans/{weekID}/users/{uid}` — friends' published plans (`SharedPlanEntry`)
 Fields: `uid, displayName, photoURL, plannedRecipeIDs[], updatedAt?`. The Plan page can
@@ -638,6 +643,15 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
   `malignant-metro` GCP project (the single user is the test user) — these are Google Cloud Console config, not
   in this repo. The scope is requested only on the push, never on browse/sign-in. The app only ever
   updates/deletes event IDs it stored in `weekPlans.calendarEventIds` — **never** a calendar search-and-delete.
+
+- **`scripts/_lib.js` `getAdmin()` and `mintIdToken()` are broken under firebase-admin v14.** They use
+  the legacy namespaced API (`admin.apps`, `admin.credential`, `admin.auth()`), but v14's CJS root
+  export only provides app-level functions (`initializeApp`, `cert`, `getApps`, `applicationDefault`,
+  …) — so `getAdmin()` throws `Cannot read properties of undefined (reading 'length')` on
+  `admin.apps.length`. This affects `_verify-apply.js` (via `getAdmin`) and both
+  `run-canonical-{apply,dryrun}.js` (via `mintIdToken`). `loadEnv()` is unaffected and still fine to
+  reuse. New scripts should initialise via the modular subpaths (`firebase-admin/app`,
+  `firebase-admin/firestore`, `firebase-admin/auth`), as `scripts/write-sides-batch.js` does.
 
 ---
 
