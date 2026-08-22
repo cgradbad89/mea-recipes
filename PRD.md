@@ -520,8 +520,11 @@ retained as historical data and are not modified or deleted by this app.
     defects: USDA candidates must contain every food-identity token (with known contradiction guards),
     dried chickpeas cannot use the canned canonical record, quantity qualifiers before units are parsed,
     and comma-separated seasoning clauses cannot replace the food noun. The exact 13-recipe read-only
-    rerun classified **5 ready / 0 review / 8 blocked**; nutrition remains unapplied. See
-    `docs/audits/m04-nutrition-final-readiness-2026-08-22.md`.
+    rerun classified **5 ready / 0 review / 8 blocked**. Prompt 4E then backed up the exact five-ID
+    allowlist and safely applied two recipes with read-back verification; three were skipped when fresh
+    pre-write gates exposed new material unresolved ingredients or a material macro change. M-04 is
+    resolved for the safely remediable population; source/data-deficient recipes are explicitly deferred.
+    See `docs/audits/m04-final-nutrition-apply-2026-08-22.md`.
 
 ---
 

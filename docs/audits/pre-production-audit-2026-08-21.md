@@ -214,6 +214,18 @@ allowlist entry is `honey-sriracha-roasted-brussels-sprouts`, but PATH B was sel
 engine remediation and a fresh dry-run must precede any apply. Recipe and nutrition writes in Prompt 4C
 were zero. See `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
 
+**Prompt 4D.1 / 4E result (2026-08-22):** the nutrition-engine remediation closed the four confirmed
+residual defects and the exact final readiness review classified 5 `READY_FOR_APPLY`, 0 review-required,
+and 8 blocked. Prompt 4E backed up all five allowlisted documents, ran a fresh dry-run immediately before
+each possible write, and applied only two recipes that still passed the safety gate:
+`chicken-meatballs-with-peppers-and-orzo` and `honey-sriracha-roasted-brussels-sprouts`. Both writes were
+read back and verified with unrelated fields preserved. `spaghetti-carbonara`, `chinese-chili-oil`, and
+`intsa-punjabi-chole` were skipped after fresh runs exposed new material unresolved ingredients or a material
+macro change. The explicit denylist comparison found zero changed non-allowlisted documents, including Maple
+Pecans, `smoothies`, and all eight blocked recipes. M-04 is **resolved for the safely remediable population;
+source/data-deficient recipes are explicitly deferred**. See
+`docs/audits/m04-final-nutrition-apply-2026-08-22.md`.
+
 ### 5.4 Known race-condition status
 
 - `toggleFavorite` pre-load race: **still present, safe/non-blocking** because duplicate `setDoc` uses the recipe ID (`components/AppDataProvider.tsx:110-151`; `lib/userdata.ts:30-47`).
@@ -482,6 +494,6 @@ No new composite index was identified as required by this audit. Existing multi-
 3. Fix the category source of truth and AI punctuation; plan a reviewed migration for 51 legacy values and the standalone `Sides` decision.
 4. Harden grocery merge identity and add adversarial regression tests; keep the current review/apply UI.
 5. Convert week-plan array writers to transactions and add conflict tests.
-6. Complete M-04 with a controlled apply of only the Prompt 4D.1 allowlist in `docs/audits/m04-nutrition-final-readiness-2026-08-22.md`; leave the eight blocked recipes, maple pecans, and `smoothies` untouched.
+6. **M-04 nutrition:** resolved for the safely remediable population through the Prompt 4E controlled apply; two allowlisted recipes were applied and verified, while three were skipped by the finality safety gate. Leave the eight blocked recipes, maple pecans, and `smoothies` explicitly deferred.
 7. Add user-visible error/retry states and client telemetry across recipes, plan, grocery, nutrition, and queue.
 8. Resolve the six moderate dependency advisories without accepting npm’s suggested firebase-admin downgrade blindly.

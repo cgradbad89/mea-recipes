@@ -1,0 +1,395 @@
+{
+  "generatedAt": "2026-08-22T18:46:26.021Z",
+  "collection": "recipes",
+  "allowlist": [
+    "spaghetti-carbonara",
+    "chicken-meatballs-with-peppers-and-orzo",
+    "chinese-chili-oil",
+    "honey-sriracha-roasted-brussels-sprouts",
+    "intsa-punjabi-chole"
+  ],
+  "documents": [
+    {
+      "recipeID": "spaghetti-carbonara",
+      "title": "Spaghetti Carbonara",
+      "nutrition": {
+        "calories": 743,
+        "carbs_g": 91.8,
+        "computed_at": {
+          "__type": "Timestamp",
+          "seconds": "1781133571",
+          "nanoseconds": 278239000
+        },
+        "confidence": "medium",
+        "fat_g": 22.6,
+        "fiber_g": 12.7,
+        "protein_g": 40.3,
+        "serving_size": "1 of 4",
+        "servings": 4,
+        "source": "usda+ai",
+        "sugar_g": 4.6,
+        "total": {
+          "calories": 2972,
+          "carbs_g": 367.3,
+          "fat_g": 90.5,
+          "fiber_g": 50.8,
+          "protein_g": 161.3,
+          "sugar_g": 18.6
+        }
+      },
+      "nutritionStatus": null,
+      "servings": 4,
+      "modified": "Sun Apr 19 2026 10:00:00 GMT-0400 (Eastern Daylight Time)",
+      "nutrition_prev": "undefined",
+      "document": {
+        "category": "Pasta, Noodles & Rice",
+        "content": "https://cooking.nytimes.com/recipes/12965-spaghetti-carbonara\n\nINGREDIENTS (partial — from Keep note)\nYield: 4 servings\n1 pound spaghetti\n1 tablespoon kosher salt, plus more to taste\n4 ounces guanciale or pancetta, diced\n3 large eggs\n1 cup grated Pecorino Romano\nFreshly ground black pepper\n\nINSTRUCTIONS\nNot available — NYTimes Cooking paywall; instructions could not be fetched from the linked page.",
+        "created": "Sun Apr 19 2026 10:00:00 GMT-0400 (Eastern Daylight Time)",
+        "cuisine": "italian",
+        "hasImage": "false",
+        "id": "spaghetti-carbonara",
+        "imageURL": "https://live.staticflickr.com/23/34677096_e769ea905d_b.jpg",
+        "labels": "Recipes",
+        "modified": "Sun Apr 19 2026 10:00:00 GMT-0400 (Eastern Daylight Time)",
+        "nutrition": {
+          "calories": 743,
+          "carbs_g": 91.8,
+          "computed_at": {
+            "__type": "Timestamp",
+            "seconds": "1781133571",
+            "nanoseconds": 278239000
+          },
+          "confidence": "medium",
+          "fat_g": 22.6,
+          "fiber_g": 12.7,
+          "protein_g": 40.3,
+          "serving_size": "1 of 4",
+          "servings": 4,
+          "source": "usda+ai",
+          "sugar_g": 4.6,
+          "total": {
+            "calories": 2972,
+            "carbs_g": 367.3,
+            "fat_g": 90.5,
+            "fiber_g": 50.8,
+            "protein_g": 161.3,
+            "sugar_g": 18.6
+          }
+        },
+        "recipeID": "spaghetti-carbonara",
+        "servings": 4,
+        "sourceFile": "Spaghetti Carbonara.json",
+        "sourceURL": "https://cooking.nytimes.com/recipes/12965-spaghetti-carbonara",
+        "title": "Spaghetti Carbonara"
+      }
+    },
+    {
+      "recipeID": "chicken-meatballs-with-peppers-and-orzo",
+      "title": "Chicken Meatballs with Peppers and Orzo",
+      "nutrition": {
+        "calories": 695,
+        "carbs_g": 93.4,
+        "computed_at": {
+          "__type": "Timestamp",
+          "seconds": "1781133571",
+          "nanoseconds": 278347000
+        },
+        "confidence": "medium",
+        "fat_g": 15.7,
+        "fiber_g": 7.7,
+        "protein_g": 45.8,
+        "serving_size": "1 of 4",
+        "servings": 4,
+        "source": "usda+ai+recovered_servings",
+        "sugar_g": 9.4,
+        "total": {
+          "calories": 2780,
+          "carbs_g": 373.6,
+          "fat_g": 63,
+          "fiber_g": 30.8,
+          "protein_g": 183.2,
+          "sugar_g": 37.7
+        }
+      },
+      "nutritionStatus": null,
+      "servings": 4,
+      "modified": "Sun Jun 08 2025 10:33:50 GMT-0400 (Eastern Daylight Time)",
+      "nutrition_prev": "undefined",
+      "document": {
+        "addedBy": "eR9gJQK1eBflP9syhPRtPbiF6Kh2",
+        "category": "Chicken & Poultry",
+        "content": "https://pinchofyum.com/chicken-meatballs-with-peppers-and-orzo\nINGREDIENTS\n1 pound ground turkey or chicken\n1 egg\n1/2 cup panko\n1/2 cup grated Parmesan\n1/2 teaspoon each garlic powder, onion powder, and kosher salt\n2 large cloves garlic, minced\n1-2 cups sliced peppers (see notes)\n1/4 cup capers (optional)\none 14-ounce can plain tomato sauce\n1 teaspoon kosher salt (more or less to taste)\n8 ounces uncooked orzo\n1/4 cup of something creamy – I used mascarpone, but you could also use cream cheese, goat cheese, cream, or butter\nkosher salt, Parmesan, and parsley for finishing\nINSTRUCTIONS\nMix meatball ingredients together. Roll into meatballs. Heat a skillet over medium high heat. Add a swizzle of olive oil. Add meatballs and cook until browned on all sides. Remove from pan and set aside. (Alternatively, you can bake the meatballs – fresh or frozen – at 400 degrees for 25-30 minutes.)\nAdd peppers and garlic to the same pan, plus a little more oil if you need it. Get all the yummy browned bits off the bottom of the pan. Sauté for 5-10 minutes.\nAdd meatballs into the pan. Stir in tomato sauce and capers. Bring to a low simmer and let it hang out (add a little water if it gets too dry).\nCook orzo according to package directions. Drain and toss with something creamy. Season with salt, Parmesan, and parsley.\nPlate and serve! Top with more Parmesan and parsley because you are just that fancy.",
+        "cookTime": "25 min",
+        "created": "Sun Jun 08 2025 10:33:42 GMT-0400 (Eastern Daylight Time)",
+        "cuisine": "mediterranean",
+        "hasImage": "false",
+        "id": "chicken-meatballs-with-peppers-and-orzo",
+        "imageURL": "https://pinchofyum.com/tachyon/Chicken-Meatballs-w-Peppers-and-Orzo-Square.jpg",
+        "modified": "Sun Jun 08 2025 10:33:50 GMT-0400 (Eastern Daylight Time)",
+        "nutrition": {
+          "calories": 695,
+          "carbs_g": 93.4,
+          "computed_at": {
+            "__type": "Timestamp",
+            "seconds": "1781133571",
+            "nanoseconds": 278347000
+          },
+          "confidence": "medium",
+          "fat_g": 15.7,
+          "fiber_g": 7.7,
+          "protein_g": 45.8,
+          "serving_size": "1 of 4",
+          "servings": 4,
+          "source": "usda+ai+recovered_servings",
+          "sugar_g": 9.4,
+          "total": {
+            "calories": 2780,
+            "carbs_g": 373.6,
+            "fat_g": 63,
+            "fiber_g": 30.8,
+            "protein_g": 183.2,
+            "sugar_g": 37.7
+          }
+        },
+        "prepTime": "20 min",
+        "recipeID": "chicken-meatballs-with-peppers-and-orzo",
+        "servings": 4,
+        "sourceFile": "Chicken Meatballs with Peppers and Orzo.json",
+        "sourceURL": "https://pinchofyum.com/chicken-meatballs-with-peppers-and-orzo",
+        "title": "Chicken Meatballs with Peppers and Orzo"
+      }
+    },
+    {
+      "recipeID": "chinese-chili-oil",
+      "title": "Chinese Chili Oil",
+      "nutrition": {
+        "calories": 103,
+        "carbs_g": 2.6,
+        "computed_at": {
+          "__type": "Timestamp",
+          "seconds": "1781133571",
+          "nanoseconds": 280078000
+        },
+        "confidence": "medium",
+        "fat_g": 10.2,
+        "fiber_g": 0.7,
+        "protein_g": 1.2,
+        "serving_size": "1 of 24",
+        "servings": 24,
+        "source": "usda+ai+recovered_servings",
+        "sugar_g": 0.1,
+        "total": {
+          "calories": 2461,
+          "carbs_g": 62.9,
+          "fat_g": 244.9,
+          "fiber_g": 16.7,
+          "protein_g": 29.7,
+          "sugar_g": 3.5
+        }
+      },
+      "nutritionStatus": null,
+      "servings": 24,
+      "modified": "Sun Feb 05 2023 19:11:26 GMT-0500 (Eastern Standard Time)",
+      "nutrition_prev": "undefined",
+      "document": {
+        "addedBy": "eR9gJQK1eBflP9syhPRtPbiF6Kh2",
+        "category": "Breakfast, Snacks & Sides",
+        "content": "https://redhousespice.com/chinese-chilli-oil/\nINGREDIENTS\n¼ cup chili flakes\n1 tablespoon ground chili (see note 1 & 2)\n½ teaspoon salt\n2 tablespoon sesame seeds (toasted)\n1 teaspoon black rice vinegar (or soy sauce)\n1 cup cooking oil\n1 teaspoon whole Sichuan peppercorn (See note 3)\n1 teaspoon fennel seeds\n1 star anise\n1 piece cassia cinnamon (aka Chinese cinnamon)\n2 bay leaves\n1 Tsao-ko (aka Chinese black cardamom (optional))\n3 slices ginger\n2 stalks scallions (aka green onion, spring onion)\nINSTRUCTIONS\nIn a small bowl, mix chili flakes, ground chili, salt, sesame seeds and black rice vinegar (or soy sauce). Have another deep, dry, heat-proof bowl ready (see note 4). Place a fine mesh strainer over it.\nPour oil into a small pan/pot. Add all the spices and aromatics. Simmer over low heat. Watch attentively. Turn off the heat immediately when the scallions turn brown (It took me about 20 minutes). Test the temperature with a thermometer (it needs to reach 350°F/175°C). Alternatively, drop in a few chili flakes to test. The oil is hot enough if they bubble and spin immediately.\nPour the oil into the empty bowl through the strainer. Discard everything caught in the sieve.\nAdd half of the chili mixture to the oil. You should see it bubbling intensively. Add the remaining when the bubbling calms down. Stir well with a clean dry spoon.\nLeave to cool uncovered. Then transfer to a container of your choice. Wait for at least 12 hours before using it to allow all the flavors to combine.\nStorage: The lifespan of chili oil is about 2 months in the kitchen cupboard (dry, cool and away from direct sunlight) and about 6 months in the fridge.\nUsage: Both the oil and the chili flakes are for consumption. Use a clean spoon to stir well before serving. If your dish requires pure chili oil, use a strainer to filter out the chili and sesame seeds.",
+        "cookTime": "15 min",
+        "created": "Sun Feb 05 2023 11:41:15 GMT-0500 (Eastern Standard Time)",
+        "cuisine": "asian",
+        "hasImage": "false",
+        "id": "chinese-chili-oil",
+        "imageURL": "https://redhousespice.com/wp-content/uploads/2017/10/Chinese-chilli-oil-used-in-Liang-Pi-.jpg",
+        "labels": "Recipes",
+        "modified": "Sun Feb 05 2023 19:11:26 GMT-0500 (Eastern Standard Time)",
+        "nutrition": {
+          "calories": 103,
+          "carbs_g": 2.6,
+          "computed_at": {
+            "__type": "Timestamp",
+            "seconds": "1781133571",
+            "nanoseconds": 280078000
+          },
+          "confidence": "medium",
+          "fat_g": 10.2,
+          "fiber_g": 0.7,
+          "protein_g": 1.2,
+          "serving_size": "1 of 24",
+          "servings": 24,
+          "source": "usda+ai+recovered_servings",
+          "sugar_g": 0.1,
+          "total": {
+            "calories": 2461,
+            "carbs_g": 62.9,
+            "fat_g": 244.9,
+            "fiber_g": 16.7,
+            "protein_g": 29.7,
+            "sugar_g": 3.5
+          }
+        },
+        "prepTime": "10 min",
+        "recipeID": "chinese-chili-oil",
+        "servings": 24,
+        "sourceFile": "Chinese Chili Oil.json",
+        "sourceURL": "https://redhousespice.com/chinese-chilli-oil/",
+        "title": "Chinese Chili Oil"
+      }
+    },
+    {
+      "recipeID": "honey-sriracha-roasted-brussels-sprouts",
+      "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS",
+      "nutrition": {
+        "calories": 189,
+        "carbs_g": 30.7,
+        "computed_at": {
+          "__type": "Timestamp",
+          "seconds": "1781133571",
+          "nanoseconds": 279944000
+        },
+        "confidence": "medium",
+        "fat_g": 7.3,
+        "fiber_g": 7,
+        "protein_g": 6,
+        "serving_size": "1 of 4",
+        "servings": 4,
+        "source": "usda+recovered_servings",
+        "sugar_g": 17.5,
+        "total": {
+          "calories": 756,
+          "carbs_g": 122.7,
+          "fat_g": 29.2,
+          "fiber_g": 28.2,
+          "protein_g": 23.9,
+          "sugar_g": 70.1
+        }
+      },
+      "nutritionStatus": null,
+      "servings": 4,
+      "modified": "Sun Feb 15 2026 14:55:14 GMT-0500 (Eastern Standard Time)",
+      "nutrition_prev": "undefined",
+      "document": {
+        "addedBy": "eR9gJQK1eBflP9syhPRtPbiF6Kh2",
+        "category": "Breakfast, Snacks & Sides",
+        "content": "https://sharedappetite.com/recipes/honey-sriracha-roasted-brussels-sprouts/\nINGREDIENTS\n1 ½ pounds Brussels sprouts\n2 tablespoons olive oil\nKosher salt\n1 tablespoon sriracha\n3 tablespoons honey\n1 lime, juiced\nINSTRUCTIONS\nPreheat oven to 400°F.\nCutt off the stem end of the sprouts and pull off any yellow outer leaves. Cut large sprouts in half.\nPlace sprouts in a large bowl, drizzle with olive oil and season generously with Kosher salt. Toss to coat. Place in a single layer on an aluminum-foil lined baking sheet. Roast for 35-40 minutes, shaking the pan a few times throughout the cooking process, until crisp and golden brown on the outside and tender on the inside.\nMeanwhile, combine srircha, honey, and lime in a small bowl. Season with Kosher salt.\nRemove sprouts from oven, transfer to large bowl, and drizzle with sauce. Toss lightly to coat and serve immediately",
+        "cookTime": "25 min",
+        "created": "Fri Jun 08 2018 09:22:32 GMT-0400 (Eastern Daylight Time)",
+        "cuisine": "asian",
+        "hasImage": "false",
+        "id": "honey-sriracha-roasted-brussels-sprouts",
+        "imageURL": "https://sharedappetite.com/wp-content/uploads/2014/03/IMG_4150-17.jpg",
+        "labels": "Recipes",
+        "modified": "Sun Feb 15 2026 14:55:14 GMT-0500 (Eastern Standard Time)",
+        "nutrition": {
+          "calories": 189,
+          "carbs_g": 30.7,
+          "computed_at": {
+            "__type": "Timestamp",
+            "seconds": "1781133571",
+            "nanoseconds": 279944000
+          },
+          "confidence": "medium",
+          "fat_g": 7.3,
+          "fiber_g": 7,
+          "protein_g": 6,
+          "serving_size": "1 of 4",
+          "servings": 4,
+          "source": "usda+recovered_servings",
+          "sugar_g": 17.5,
+          "total": {
+            "calories": 756,
+            "carbs_g": 122.7,
+            "fat_g": 29.2,
+            "fiber_g": 28.2,
+            "protein_g": 23.9,
+            "sugar_g": 70.1
+          }
+        },
+        "prepTime": "5 min",
+        "recipeID": "honey-sriracha-roasted-brussels-sprouts",
+        "servings": 4,
+        "sourceFile": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS.json",
+        "sourceURL": "https://sharedappetite.com/recipes/honey-sriracha-roasted-brussels-sprouts/",
+        "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS"
+      }
+    },
+    {
+      "recipeID": "intsa-punjabi-chole",
+      "title": "Intsa Punjabi Chole",
+      "nutrition": {
+        "calories": 198,
+        "carbs_g": 31,
+        "computed_at": {
+          "__type": "Timestamp",
+          "seconds": "1781133571",
+          "nanoseconds": 281580000
+        },
+        "confidence": "high",
+        "fat_g": 5,
+        "fiber_g": 8,
+        "protein_g": 9,
+        "serving_size": "1 of 5",
+        "servings": 5,
+        "source": "source_site",
+        "sugar_g": 7,
+        "total": {
+          "calories": 990,
+          "carbs_g": 155,
+          "fat_g": 25,
+          "fiber_g": 40,
+          "protein_g": 45,
+          "sugar_g": 35
+        }
+      },
+      "nutritionStatus": null,
+      "servings": 5,
+      "modified": "Thu Sep 24 2020 09:23:21 GMT-0400 (Eastern Daylight Time)",
+      "nutrition_prev": "undefined",
+      "document": {
+        "addedBy": "eR9gJQK1eBflP9syhPRtPbiF6Kh2",
+        "category": "Vegetarian Mains",
+        "content": "https://spicecravings.com/punjabi-chole-chana-masala-chickpeas-curry\nINGREDIENTS\n2 teaspoons ghee (or olive oil for vegan)\n1 bay leaf\n1 cup finely chopped onion (1 medium onion)\n1 tablespoon minced ginger (1-inch ginger ground or grated)\n2 serrano green chiles (stems removed (or 1 jalapeno))\n1 roma tomato (de-seeded and finely chopped)\n1 teaspoon pink salt (kala namak) adjust to taste - see notes for substitute\n1 tablespoon coriander powder\n2 teaspoons garam masala (add more, depending on how strong yours is)\n2 teaspoons cumin powder\n1 teaspoon amchur (dry mango powder) - see notes for substitute\n1 teaspoon fennel powder (optional, adds flavor and for easy digestion)\n1 tablespoon julienned ginger (½-inch ginger peeled and thinly sliced)\n1 cup dried chickpeas (rinsed and soaked for 8-10 hours or 2 (14oz) cans chickpeas/garbanzo beans)\n1½ cups water (add more or less, depending on your consistency preference)\n¼ teaspoon baking soda (optional ingredient (for making chickpeas soft and creamy))\n1-2 black tea bags (for color (Indian Tea) - optional)\n1 teaspoon tamarind concentrate (or 1 teaspoon dry pomegranate powder (anardana))\n2 tablespoons chopped cilantro\n½-1 teaspoon chaat masala (optional but recommended)\nINSTRUCTIONS\nIf using dried chickpeas/garbanzo beans, rinse and soak them in 4 cups of water, overnight, or at least 8-10 hours. Strain and rinse them once again before cooking. Skip soaking if using canned chickpeas. Rinse and drain them as well.\nHeat ghee/oil for 30 seconds on Saute mode in the Instant Pot. Add bay leaf and chopped onions, and saute for 2 minutes.\nAdd minced ginger and serrano chiles and saute for another minute.\nAdd chopped tomatoes, salt, spices and saute another minute. Add a few tablespoons of water if spices start sticking to the bottom.\nAdd julienned ginger, rinsed chickpeas, water and baking soda, if using. Give it a stir. Add tea bags and gently push them under the liquid. Turn off saute.\nClose the lid, set vent to 'sealing', and pressure cook for 45 minutes at Bean or Pressure Cook/Manual mode. Adjust time to 60 minutes if using dried 'unsoaked' beans.\nWait for the pressure to release naturally for at least 10 minutes, then follow the quick release instructions of your cooker. Open the lid after the pin drops. Remove the tea bags.\nUsing a potato masher or a wooden spoon, mash up a few beans. This makes the curry creamy and thick. Turn on saute and stir in tamarind concentrate and chaat masala (if using). Simmer for 2 to 3 minutes and check for seasoning. Turn off saute.\nGarnish with cilantro and serve with bhatura, kulcha, puri, naan, basmati or cumin rice.\nFor the 30-minute canned-chickpea shortcut: rinse the canned chickpeas, follow the steps as written, then pressure cook everything for 5 minutes. Wait 10 minutes, release the remaining pressure manually, and open the lid after the pin drops.",
+        "cookTime": "30 min",
+        "created": "Thu Sep 24 2020 09:23:06 GMT-0400 (Eastern Daylight Time)",
+        "cuisine": "indian",
+        "hasImage": "false",
+        "id": "intsa-punjabi-chole",
+        "imageURL": "https://spicecravings.com/wp-content/uploads/2020/09/Punjabi-Chole-New-1.jpg",
+        "labels": "Insta",
+        "modified": "Thu Sep 24 2020 09:23:21 GMT-0400 (Eastern Daylight Time)",
+        "nutrition": {
+          "calories": 198,
+          "carbs_g": 31,
+          "computed_at": {
+            "__type": "Timestamp",
+            "seconds": "1781133571",
+            "nanoseconds": 281580000
+          },
+          "confidence": "high",
+          "fat_g": 5,
+          "fiber_g": 8,
+          "protein_g": 9,
+          "serving_size": "1 of 5",
+          "servings": 5,
+          "source": "source_site",
+          "sugar_g": 7,
+          "total": {
+            "calories": 990,
+            "carbs_g": 155,
+            "fat_g": 25,
+            "fiber_g": 40,
+            "protein_g": 45,
+            "sugar_g": 35
+          }
+        },
+        "prepTime": "10 min",
+        "recipeID": "intsa-punjabi-chole",
+        "servings": 5,
+        "sourceFile": "Intsa Punjabi Chole.json",
+        "sourceURL": "https://spicecravings.com/punjabi-chole-chana-masala-chickpeas-curry",
+        "title": "Intsa Punjabi Chole"
+      }
+    }
+  ],
+  "credentialScan": "No credentials or environment values included; recipe data only."
+}

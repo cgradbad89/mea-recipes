@@ -86,3 +86,26 @@ Firestore mutation: 0
 PATH C applies: engine remediation is closed for this population, and the five-item allowlist can proceed in a separate controlled apply prompt. The eight blocked recipes remain untouched pending their stated source, servings, or quantity decisions. Nutrition apply was not performed in Prompt 4D.1.
 
 Raw evidence: `docs/audits/m04-nutrition-final-raw-2026-08-22.json`.
+
+## Prompt 4E controlled apply outcome
+
+The exact five-ID allowlist was re-read from this report. A fresh dry-run ran immediately before each
+possible write, and the pre-write safety gate was applied independently per recipe. Two recipes passed and
+were written with `nutritionStatus: computed`, then read back and verified with unrelated fields preserved:
+
+| Recipe ID | Pre-write gate | Write | Read-back | Final status |
+|---|---|---|---|---|
+| `spaghetti-carbonara` | failed: guanciale/Pecorino became unresolved and macros materially changed | no | not applicable | `SKIPPED_CHANGED_RESULT` |
+| `chicken-meatballs-with-peppers-and-orzo` | passed | yes | verified | `APPLIED_VERIFIED` |
+| `chinese-chili-oil` | failed: ground chili and bay leaves became unresolved | no | not applicable | `SKIPPED_CHANGED_RESULT` |
+| `honey-sriracha-roasted-brussels-sprouts` | passed | yes | verified | `APPLIED_VERIFIED` |
+| `intsa-punjabi-chole` | failed: salt and tamarind became unresolved | no | not applicable | `SKIPPED_CHANGED_RESULT` |
+
+The denylist comparison reported zero changed non-allowlisted documents. Maple Pecans, Smoothies, and all
+eight final-readiness blocked recipes remained untouched. No recipe content, creates, deletes, canonical
+records, nutrition logs, or unrelated recipe fields were changed. Backup:
+`docs/audits/m04-final-nutrition-apply-backup-2026-08-22.json`. Machine results:
+`docs/audits/m04-final-nutrition-apply-results-2026-08-22.json`.
+
+M-04 status: **resolved for the safely remediable population; source/data-deficient recipes explicitly
+deferred**. Further nutrition-engine research is not recommended now.

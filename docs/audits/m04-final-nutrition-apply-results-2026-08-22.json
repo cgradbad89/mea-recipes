@@ -1,0 +1,357 @@
+{
+  "generatedAt": "2026-08-22T18:48:17.424Z",
+  "mode": "controlled apply",
+  "allowlist": [
+    "spaghetti-carbonara",
+    "chicken-meatballs-with-peppers-and-orzo",
+    "chinese-chili-oil",
+    "honey-sriracha-roasted-brussels-sprouts",
+    "intsa-punjabi-chole"
+  ],
+  "writes": 2,
+  "recipeCreates": 0,
+  "recipeDeletes": 0,
+  "nutritionWrites": 2,
+  "canonicalWrites": 0,
+  "nutritionLogWrites": 0,
+  "denylistChanged": [],
+  "results": [
+    {
+      "recipeId": "spaghetti-carbonara",
+      "title": "Spaghetti Carbonara",
+      "reviewed": {
+        "servings": 4,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 867,
+          "protein_g": 43.9,
+          "carbs_g": 87.5,
+          "fat_g": 37.3,
+          "fiber_g": 3.6,
+          "sugar_g": 3.7
+        },
+        "total": {
+          "calories": 3467,
+          "protein_g": 175.8,
+          "carbs_g": 349.8,
+          "fat_g": 149.1,
+          "fiber_g": 14.5,
+          "sugar_g": 14.7
+        }
+      },
+      "fresh": {
+        "servings": 4,
+        "confidence": "medium",
+        "source": "usda+canonical",
+        "perServing": {
+          "calories": 490,
+          "protein_g": 20.9,
+          "carbs_g": 85,
+          "fat_g": 6.3,
+          "fiber_g": 3.6,
+          "sugar_g": 3.3
+        },
+        "total": {
+          "calories": 1962,
+          "protein_g": 83.5,
+          "carbs_g": 340.2,
+          "fat_g": 25.3,
+          "fiber_g": 14.5,
+          "sugar_g": 13
+        }
+      },
+      "freshUnresolved": [
+        "4 ounces guanciale or pancetta, diced",
+        "1 cup grated Pecorino Romano"
+      ],
+      "newUnresolved": [
+        "4 ounces guanciale or pancetta, diced",
+        "1 cup grated Pecorino Romano"
+      ],
+      "gate": false,
+      "gateReasons": [
+        "new unresolved ingredients: 4 ounces guanciale or pancetta, diced; 1 cup grated Pecorino Romano",
+        "material macro change versus reviewed final evidence"
+      ],
+      "write": "NOT_AUTHORIZED",
+      "readBack": null,
+      "finalStatus": "SKIPPED_CHANGED_RESULT"
+    },
+    {
+      "recipeId": "chicken-meatballs-with-peppers-and-orzo",
+      "title": "Chicken Meatballs with Peppers and Orzo",
+      "reviewed": {
+        "servings": 4,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 451,
+          "protein_g": 36.9,
+          "carbs_g": 38.3,
+          "fat_g": 17.4,
+          "fiber_g": 5.5,
+          "sugar_g": 6.2
+        },
+        "total": {
+          "calories": 1805,
+          "protein_g": 147.6,
+          "carbs_g": 153.3,
+          "fat_g": 69.7,
+          "fiber_g": 22.1,
+          "sugar_g": 24.8
+        }
+      },
+      "fresh": {
+        "servings": 4,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 451,
+          "protein_g": 36.9,
+          "carbs_g": 38.3,
+          "fat_g": 17.4,
+          "fiber_g": 5.5,
+          "sugar_g": 6.2
+        },
+        "total": {
+          "calories": 1805,
+          "protein_g": 147.6,
+          "carbs_g": 153.3,
+          "fat_g": 69.7,
+          "fiber_g": 22.1,
+          "sugar_g": 24.8
+        }
+      },
+      "freshUnresolved": [
+        "kosher salt, Parmesan, and parsley for finishing"
+      ],
+      "newUnresolved": [],
+      "gate": true,
+      "gateReasons": [],
+      "write": "APPLIED",
+      "readBack": {
+        "servings": 4,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 451,
+          "protein_g": 36.9,
+          "carbs_g": 38.3,
+          "fat_g": 17.4,
+          "fiber_g": 5.5,
+          "sugar_g": 6.2
+        },
+        "total": {
+          "calories": 1805,
+          "protein_g": 147.6,
+          "carbs_g": 153.3,
+          "fat_g": 69.7,
+          "fiber_g": 22.1,
+          "sugar_g": 24.8
+        }
+      },
+      "finalStatus": "APPLIED_VERIFIED"
+    },
+    {
+      "recipeId": "chinese-chili-oil",
+      "title": "Chinese Chili Oil",
+      "reviewed": {
+        "servings": 24,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 98,
+          "protein_g": 0.7,
+          "carbs_g": 2.3,
+          "fat_g": 10.2,
+          "fiber_g": 1.4,
+          "sugar_g": 0.3
+        },
+        "total": {
+          "calories": 2342,
+          "protein_g": 16.9,
+          "carbs_g": 55.1,
+          "fat_g": 244,
+          "fiber_g": 32.9,
+          "sugar_g": 8.2
+        }
+      },
+      "fresh": {
+        "servings": 24,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 97,
+          "protein_g": 0.6,
+          "carbs_g": 2,
+          "fat_g": 10.2,
+          "fiber_g": 1,
+          "sugar_g": 0.2
+        },
+        "total": {
+          "calories": 2320,
+          "protein_g": 14,
+          "carbs_g": 47.3,
+          "fat_g": 243.6,
+          "fiber_g": 23.1,
+          "sugar_g": 4
+        }
+      },
+      "freshUnresolved": [
+        "1 tablespoon ground chili (see note 1 & 2)",
+        "1 star anise",
+        "1 piece cassia cinnamon (aka Chinese cinnamon)",
+        "2 bay leaves",
+        "3 slices ginger"
+      ],
+      "newUnresolved": [
+        "1 tablespoon ground chili (see note 1 & 2)",
+        "2 bay leaves"
+      ],
+      "gate": false,
+      "gateReasons": [
+        "new unresolved ingredients: 1 tablespoon ground chili (see note 1 & 2); 2 bay leaves"
+      ],
+      "write": "NOT_AUTHORIZED",
+      "readBack": null,
+      "finalStatus": "SKIPPED_CHANGED_RESULT"
+    },
+    {
+      "recipeId": "honey-sriracha-roasted-brussels-sprouts",
+      "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS",
+      "reviewed": {
+        "servings": 4,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 190,
+          "protein_g": 6,
+          "carbs_g": 30.7,
+          "fat_g": 7.4,
+          "fiber_g": 7,
+          "sugar_g": 17.5
+        },
+        "total": {
+          "calories": 759,
+          "protein_g": 23.9,
+          "carbs_g": 122.7,
+          "fat_g": 29.5,
+          "fiber_g": 28,
+          "sugar_g": 70.1
+        }
+      },
+      "fresh": {
+        "servings": 4,
+        "confidence": "high",
+        "source": "usda+canonical",
+        "perServing": {
+          "calories": 190,
+          "protein_g": 6,
+          "carbs_g": 30.7,
+          "fat_g": 7.4,
+          "fiber_g": 7,
+          "sugar_g": 17.5
+        },
+        "total": {
+          "calories": 759,
+          "protein_g": 23.9,
+          "carbs_g": 122.7,
+          "fat_g": 29.5,
+          "fiber_g": 28.2,
+          "sugar_g": 70.1
+        }
+      },
+      "freshUnresolved": [],
+      "newUnresolved": [],
+      "gate": true,
+      "gateReasons": [],
+      "write": "APPLIED",
+      "readBack": {
+        "servings": 4,
+        "confidence": "high",
+        "source": "usda+canonical",
+        "perServing": {
+          "calories": 190,
+          "protein_g": 6,
+          "carbs_g": 30.7,
+          "fat_g": 7.4,
+          "fiber_g": 7,
+          "sugar_g": 17.5
+        },
+        "total": {
+          "calories": 759,
+          "protein_g": 23.9,
+          "carbs_g": 122.7,
+          "fat_g": 29.5,
+          "fiber_g": 28.2,
+          "sugar_g": 70.1
+        }
+      },
+      "finalStatus": "APPLIED_VERIFIED"
+    },
+    {
+      "recipeId": "intsa-punjabi-chole",
+      "title": "Intsa Punjabi Chole",
+      "reviewed": {
+        "servings": 5,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 190,
+          "protein_g": 9,
+          "carbs_g": 27.9,
+          "fat_g": 5.3,
+          "fiber_g": 6.2,
+          "sugar_g": 5
+        },
+        "total": {
+          "calories": 952,
+          "protein_g": 44.9,
+          "carbs_g": 139.4,
+          "fat_g": 26.4,
+          "fiber_g": 30.8,
+          "sugar_g": 24.8
+        }
+      },
+      "fresh": {
+        "servings": 5,
+        "confidence": "medium",
+        "source": "usda+canonical+ai",
+        "perServing": {
+          "calories": 199,
+          "protein_g": 9.4,
+          "carbs_g": 28.7,
+          "fat_g": 5.7,
+          "fiber_g": 6.9,
+          "sugar_g": 4.6
+        },
+        "total": {
+          "calories": 995,
+          "protein_g": 47.1,
+          "carbs_g": 143.7,
+          "fat_g": 28.6,
+          "fiber_g": 34.5,
+          "sugar_g": 22.9
+        }
+      },
+      "freshUnresolved": [
+        "2 serrano green chiles (stems removed (or 1 jalapeno))",
+        "1 teaspoon pink salt (kala namak) adjust to taste - see notes for substitute",
+        "1 teaspoon tamarind concentrate (or 1 teaspoon dry pomegranate powder (anardana))",
+        "½-1 teaspoon chaat masala (optional but recommended)"
+      ],
+      "newUnresolved": [
+        "1 teaspoon pink salt (kala namak) adjust to taste - see notes for substitute",
+        "1 teaspoon tamarind concentrate (or 1 teaspoon dry pomegranate powder (anardana))"
+      ],
+      "gate": false,
+      "gateReasons": [
+        "new unresolved ingredients: 1 teaspoon pink salt (kala namak) adjust to taste - see notes for substitute; 1 teaspoon tamarind concentrate (or 1 teaspoon dry pomegranate powder (anardana))"
+      ],
+      "write": "NOT_AUTHORIZED",
+      "readBack": null,
+      "finalStatus": "SKIPPED_CHANGED_RESULT"
+    }
+  ]
+}
