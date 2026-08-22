@@ -11,6 +11,7 @@ import {
   Edit3, X, Save, Plus
 } from 'lucide-react'
 import RecipeImage from '@/components/RecipeImage'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 
 const CATEGORIES = [
   'Chicken & Poultry', 'Vegetarian Mains', 'Salads & Bowls',
@@ -38,24 +39,33 @@ function QueueCard({
   const [publishStage, setPublishStage] = useState<null | 'saving' | 'nutrition'>(null)
   const publishing = publishStage !== null
   const [saving, setSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [publishError, setPublishError] = useState('')
   const { user } = useAuth()
 
   const handleSaveEdit = async () => {
     setSaving(true)
-    await updateQueueItem(uid, item.id!, {
-      title,
-      cuisine,
-      category,
-      imageURL,
-      ingredients: ingredients.split('\n').map(l => l.trim()).filter(Boolean),
-      instructions: instructions.split('\n\n').map(l => l.trim()).filter(Boolean),
-    })
-    setSaving(false)
-    setEditing(false)
+    setEditError('')
+    try {
+      await updateQueueItem(uid, item.id!, {
+        title,
+        cuisine,
+        category,
+        imageURL,
+        ingredients: ingredients.split('\n').map(l => l.trim()).filter(Boolean),
+        instructions: instructions.split('\n\n').map(l => l.trim()).filter(Boolean),
+      })
+      setEditing(false)
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : 'Couldn’t save your changes. Please try again.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handlePublish = async () => {
     setPublishStage('saving')
+    setPublishError('')
     try {
       const updatedItem: QueuedRecipe = {
         ...item,
@@ -94,6 +104,7 @@ function QueueCard({
       onPublish(item.id!)
     } catch (err) {
       console.error('Publish error:', err)
+      setPublishError(err instanceof Error ? `Couldn’t publish this recipe: ${err.message}` : 'Couldn’t publish this recipe — try again.')
       setPublishStage(null)
     }
   }
@@ -150,12 +161,13 @@ function QueueCard({
                 {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}Save
               </button>
             </div>
+            {editError && <p role="alert" className="text-red-400 text-xs font-body">{editError}</p>}
           </div>
         ) : (
           <>
             <div className="flex items-start justify-between gap-3 mb-3">
               <h3 className="font-display text-2xl text-cream font-light leading-tight">{title}</h3>
-              <button onClick={() => setEditing(true)} className="text-faint hover:text-cream transition-colors shrink-0">
+              <button onClick={() => { setEditError(''); setEditing(true) }} className="text-faint hover:text-cream transition-colors shrink-0">
                 <Edit3 size={14} />
               </button>
             </div>
@@ -228,6 +240,7 @@ function QueueCard({
                   : 'Publish to collection'}
               </button>
             </div>
+            {publishError && <p role="alert" className="text-red-400 text-xs font-body">{publishError}</p>}
           </div>
         )}
       </div>
@@ -266,15 +279,24 @@ export default function QueuePage() {
   const { user } = useAuth()
   const [items, setItems] = useState<QueuedRecipe[]>([])
   const [loading, setLoading] = useState(true)
+  const [queueError, setQueueError] = useState('')
   const [bmIngesting, setBmIngesting] = useState(false)
+  const [bmError, setBmError] = useState('')
   const [toast, setToast] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
 
   const loadQueue = useCallback(async () => {
-    if (!user) return
+    if (!user) { setLoading(false); return }
     setLoading(true)
-    const q = await getQueue(user.uid)
-    setItems(q)
-    setLoading(false)
+    setQueueError('')
+    try {
+      const q = await getQueue(user.uid)
+      setItems(q)
+    } catch (error) {
+      setQueueError(error instanceof Error ? error.message : 'Failed to load your queue')
+    } finally {
+      setLoading(false)
+    }
   }, [user])
 
   useEffect(() => { loadQueue() }, [loadQueue])
@@ -288,40 +310,56 @@ export default function QueuePage() {
     // Clear the param from URL without reload
     window.history.replaceState({}, '', '/queue')
     setBmIngesting(true)
+    setBmError('')
     const bmImage = params.get('img') || ''
     const bmPrep = params.get('prep') || ''
     const bmCook = params.get('cook') || ''
-    user.getIdToken().then(token => {
-      fetch('/api/ai-ingest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook }),
-      }).then(r => r.json()).then(async data => {
-      if (data.error) { console.error('Ingest error:', data.error); return }
-      await addToQueue(user.uid, {
-        title: data.title || 'Untitled Recipe',
-        cuisine: data.cuisine || '',
-        category: data.category || '',
-        imageURL: data.imageURL || '',
-        description: data.description || '',
-        servings: data.servings || '',
-        prepTime: data.prepTime || '',
-        cookTime: data.cookTime || '',
-        ingredients: data.ingredients || [],
-        instructions: data.instructions || [],
-        sourceURL: ingestUrl,
-      })
-      loadQueue()
-    }).catch(console.error).finally(() => setBmIngesting(false))
-    })
+    let active = true
+    const ingest = async () => {
+      try {
+        const token = await user.getIdToken()
+        const response = await fetch('/api/ai-ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook }),
+        })
+        const data = await response.json()
+        if (!response.ok || data.error) throw new Error(data.error || 'Recipe parsing failed')
+        await addToQueue(user.uid, {
+          title: data.title || 'Untitled Recipe',
+          cuisine: data.cuisine || '',
+          category: data.category || '',
+          imageURL: data.imageURL || '',
+          description: data.description || '',
+          servings: data.servings || '',
+          prepTime: data.prepTime || '',
+          cookTime: data.cookTime || '',
+          ingredients: data.ingredients || [],
+          instructions: data.instructions || [],
+          sourceURL: ingestUrl,
+        })
+        await loadQueue()
+      } catch (error) {
+        if (active) setBmError(error instanceof Error ? error.message : 'Couldn’t import this recipe')
+      } finally {
+        if (active) setBmIngesting(false)
+      }
+    }
+    void ingest()
+    return () => { active = false }
   }, [user, loadQueue])
 
   const handleDiscard = async (id: string) => {
     if (!user) return
-    await deleteFromQueue(user.uid, id)
-    setItems(prev => prev.filter(i => i.id !== id))
-    setToast('Removed from queue')
-    setTimeout(() => setToast(null), 2000)
+    setActionError('')
+    try {
+      await deleteFromQueue(user.uid, id)
+      setItems(prev => prev.filter(i => i.id !== id))
+      setToast('Removed from queue')
+      setTimeout(() => setToast(null), 2000)
+    } catch {
+      setActionError('Couldn’t remove that recipe from the queue — try again.')
+    }
   }
 
   const handlePublish = (id: string) => {
@@ -353,11 +391,22 @@ export default function QueuePage() {
         </div>
       </div>
 
+      {actionError && (
+        <p role="alert" className="mb-6 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
+          {actionError}
+        </p>
+      )}
+
       {bmIngesting && (
         <div className="flex items-center gap-3 mb-6 p-4 bg-amber/5 border border-amber/20 rounded-2xl">
           <Loader2 size={16} className="animate-spin text-amber" />
           <p className="text-amber text-sm font-body">Parsing recipe from bookmarklet...</p>
         </div>
+      )}
+      {bmError && (
+        <p role="alert" className="mb-6 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
+          Couldn’t import the bookmarklet recipe. {bmError}
+        </p>
       )}
 
       {/* Bookmarklet setup */}
@@ -379,29 +428,32 @@ export default function QueuePage() {
         <BookmarkletCopy />
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="animate-spin text-amber" size={28} />
-        </div>
-      ) : items.length === 0 ? (
-        <div className="text-center py-24 border border-border rounded-2xl">
-          <ChefHat size={40} className="text-faint mx-auto mb-4" />
-          <p className="font-display text-2xl text-faint font-light mb-2">Queue is empty</p>
-          <p className="text-faint text-sm font-body">Add a recipe from the URL bar or paste text using the + button</p>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {items.map(item => (
-            <QueueCard
-              key={item.id}
-              item={item}
-              uid={user.uid}
-              onPublish={handlePublish}
-              onDiscard={handleDiscard}
-            />
-          ))}
-        </div>
-      )}
+      <LoadingErrorRetry
+        loading={loading}
+        error={queueError}
+        retry={() => { void loadQueue() }}
+        errorPrefix="Couldn’t load your recipe queue."
+      >
+        {items.length === 0 ? (
+          <div className="text-center py-24 border border-border rounded-2xl">
+            <ChefHat size={40} className="text-faint mx-auto mb-4" />
+            <p className="font-display text-2xl text-faint font-light mb-2">Queue is empty</p>
+            <p className="text-faint text-sm font-body">Add a recipe from the URL bar or paste text using the + button</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {items.map(item => (
+              <QueueCard
+                key={item.id}
+                item={item}
+                uid={user.uid}
+                onPublish={handlePublish}
+                onDiscard={handleDiscard}
+              />
+            ))}
+          </div>
+        )}
+      </LoadingErrorRetry>
     </div>
   )
 }

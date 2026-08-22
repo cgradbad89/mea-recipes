@@ -17,6 +17,7 @@ import CookingMode from '@/components/CookingMode'
 import StarRating from '@/components/StarRating'
 import NutritionSection from '@/components/NutritionSection'
 import RecipeImage from '@/components/RecipeImage'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 import { hasAdminAccessClaims } from '@/lib/admin'
@@ -43,11 +44,23 @@ export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { user } = useAuth()
-  const { metas, toggleFavorite: toggle, isFavorite, refetchMetas, refetchRecipes, refetchCookingHistory } = useAppData()
+  const {
+    metas,
+    metasError,
+    favoritesError,
+    toggleFavorite: toggle,
+    isFavorite,
+    refetchMetas,
+    refetchFavorites,
+    refetchRecipes,
+    refetchCookingHistory,
+  } = useAppData()
 
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const meta = id ? (metas[id as string] || null) : null
   const [loading, setLoading] = useState(true)
+  const [recipeError, setRecipeError] = useState('')
+  const [recipeLoadAttempt, setRecipeLoadAttempt] = useState(0)
   const [note, setNote] = useState('')
   const [rating, setRating] = useState(0)
   const [savingNote, setSavingNote] = useState(false)
@@ -76,8 +89,17 @@ export default function RecipeDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    getRecipeById(id).then(r => { setRecipe(r); setLoading(false) })
-  }, [id])
+    let active = true
+    setLoading(true)
+    setRecipeError('')
+    getRecipeById(id)
+      .then(result => { if (active) setRecipe(result) })
+      .catch(error => {
+        if (active) setRecipeError(error instanceof Error ? error.message : 'Failed to load recipe')
+      })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [id, recipeLoadAttempt])
 
   useEffect(() => {
     if (meta) {
@@ -260,6 +282,20 @@ export default function RecipeDetailPage() {
     )
   }
 
+  if (recipeError) {
+    return (
+      <LoadingErrorRetry
+        loading={false}
+        error={recipeError}
+        retry={() => setRecipeLoadAttempt(attempt => attempt + 1)}
+        errorPrefix="Couldn’t load this recipe."
+        className="max-w-3xl mx-auto mt-6"
+      >
+        {null}
+      </LoadingErrorRetry>
+    )
+  }
+
   if (!displayRecipe) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
@@ -343,6 +379,13 @@ export default function RecipeDetailPage() {
   ]
 
   return (
+    <LoadingErrorRetry
+      loading={false}
+      error={metasError || favoritesError}
+      retry={() => { void Promise.all([refetchMetas(), refetchFavorites()]) }}
+      errorPrefix="Couldn’t load your recipe details."
+      className="max-w-3xl mx-auto mt-6"
+    >
     <div className="max-w-3xl mx-auto px-4 py-6">
       {showUnsavedBanner && (
         <div className="bg-amber/10 border border-amber/20 rounded-xl p-3 mb-4 flex items-center justify-between gap-3 animate-fade-in">
@@ -764,5 +807,6 @@ export default function RecipeDetailPage() {
         />
       )}
     </div>
+    </LoadingErrorRetry>
   )
 }

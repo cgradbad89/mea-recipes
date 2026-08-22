@@ -33,10 +33,14 @@ export async function getFavoriteIDs(uid: string): Promise<Set<string>> {
   return new Set(snap.docs.map(d => d.id))
 }
 
-export function subscribeFavorites(uid: string, cb: (ids: Set<string>) => void): Unsubscribe {
+export function subscribeFavorites(
+  uid: string,
+  cb: (ids: Set<string>) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
   return onSnapshot(favoritesPath(uid), snap => {
     cb(new Set(snap.docs.map(d => d.id)))
-  })
+  }, onError)
 }
 
 export async function addFavorite(uid: string, recipeID: string): Promise<void> {
@@ -247,10 +251,15 @@ export async function getWeekPlan(uid: string, weekID: string): Promise<WeekPlan
   return snap.data() as WeekPlan
 }
 
-export function subscribeWeekPlan(uid: string, weekID: string, cb: (plan: WeekPlan | null) => void): Unsubscribe {
+export function subscribeWeekPlan(
+  uid: string,
+  weekID: string,
+  cb: (plan: WeekPlan | null) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
   return onSnapshot(doc(weekPlansPath(uid), weekID), snap => {
     cb(snap.exists() ? (snap.data() as WeekPlan) : null)
-  })
+  }, onError)
 }
 
 export async function getAllWeekPlans(uid: string): Promise<WeekPlan[]> {
@@ -462,7 +471,8 @@ export async function publishSharedPlan(
 export function subscribeSharedWeekPlans(
   weekID: string,
   currentUid: string,
-  cb: (plans: SharedPlanEntry[]) => void
+  cb: (plans: SharedPlanEntry[]) => void,
+  onError?: (error: Error) => void,
 ): Unsubscribe {
   return onSnapshot(
     collection(db, 'sharedWeekPlans', weekID, 'users'),
@@ -472,7 +482,8 @@ export function subscribeSharedWeekPlans(
           .map(d => d.data() as SharedPlanEntry)
           .filter(p => p.uid !== currentUid)
       )
-    }
+    },
+    onError,
   )
 }
 
@@ -490,7 +501,7 @@ export interface GroceryItem {
   isChecked: boolean
   isManual: boolean
   sourceRecipeIDs: string[]
-  manualSection?: string
+  manualSection?: GroceryCategory
   createdAt?: unknown
   updatedAt?: unknown
 }
@@ -508,7 +519,11 @@ function sanitizeDocId(id: string): string {
   return id.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 100)
 }
 
-export function subscribeGroceryItems(uid: string, cb: (items: GroceryItem[]) => void): Unsubscribe {
+export function subscribeGroceryItems(
+  uid: string,
+  cb: (items: GroceryItem[]) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
   return onSnapshot(groceryPath(uid), snap => {
     const items = snap.docs.map(d => d.data() as GroceryItem)
     items.sort((a, b) => {
@@ -516,7 +531,7 @@ export function subscribeGroceryItems(uid: string, cb: (items: GroceryItem[]) =>
       return a.name.localeCompare(b.name)
     })
     cb(items)
-  })
+  }, onError)
 }
 
 export async function addGroceryItem(uid: string, item: Omit<GroceryItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {

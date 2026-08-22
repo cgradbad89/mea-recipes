@@ -23,6 +23,7 @@ import { perServingForViewer } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
 import SignInOptions from '@/components/SignInOptions'
 import RecipeImage from '@/components/RecipeImage'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 
 function getWeekDates(weekID: string): string[] {
@@ -169,7 +170,17 @@ function CenteredOverlay({ children, onClose }: { children: ReactNode; onClose: 
 
 export default function PlanPage() {
   const { user } = useAuth()
-  const { recipes: allRecipes, recipesLoading: loadingRecipes, metas, refetchMetas, refetchCookingHistory } = useAppData()
+  const {
+    recipes: allRecipes,
+    recipesLoading: loadingRecipes,
+    recipesError,
+    metas,
+    metasError,
+    cookingHistoryError,
+    refetchRecipes,
+    refetchMetas,
+    refetchCookingHistory,
+  } = useAppData()
   
   const recipes = useMemo(() => {
     const map: Record<string, Recipe> = {}
@@ -204,6 +215,12 @@ export default function PlanPage() {
   // drag — desktop-only (the grid is `hidden lg:grid`); touch/mobile keep the picker.
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverKey, setDragOverKey] = useState<string | null>(null)
+  const [planActionError, setPlanActionError] = useState('')
+  const [sharedPublishError, setSharedPublishError] = useState('')
+  const [planSubscriptionError, setPlanSubscriptionError] = useState('')
+  const [friendPlansSubscriptionError, setFriendPlansSubscriptionError] = useState('')
+  const [planSubscriptionAttempt, setPlanSubscriptionAttempt] = useState(0)
+  const [friendPlansSubscriptionAttempt, setFriendPlansSubscriptionAttempt] = useState(0)
   const defaultCheckedRef = useRef(false)
 
   // First-mount: restore last-viewed week from sessionStorage OR auto-default to next week if current is empty
@@ -264,10 +281,16 @@ export default function PlanPage() {
 
   // Subscribe to week plan
   useEffect(() => {
-    if (!user) return
-    const unsub = subscribeWeekPlan(user.uid, weekID, setPlan)
+    if (!user) { setPlanSubscriptionError(''); return }
+    setPlanSubscriptionError('')
+    const unsub = subscribeWeekPlan(user.uid, weekID, nextPlan => {
+      setPlan(nextPlan)
+      setPlanSubscriptionError('')
+    }, error => {
+      setPlanSubscriptionError(error.message || 'The meal plan stopped updating')
+    })
     return unsub
-  }, [user, weekID])
+  }, [user, weekID, planSubscriptionAttempt])
 
 
   // Publish shared plan whenever local plan changes (mirror stays a flat ID list —
@@ -276,15 +299,26 @@ export default function PlanPage() {
     if (!user || !plan) return
     const displayName = user.displayName || user.email || 'Anonymous'
     const photoURL = user.photoURL || ''
+    setSharedPublishError('')
     publishSharedPlan(user.uid, displayName, photoURL, weekID, plan.plannedRecipeIDs || [])
+      .catch(error => {
+        console.error('Failed to publish shared plan:', error)
+        setSharedPublishError('Your plan is saved, but the shared view may be out of date.')
+      })
   }, [user, plan, weekID])
 
   // Subscribe to friends' shared plans
   useEffect(() => {
-    if (!user) return
-    const unsub = subscribeSharedWeekPlans(weekID, user.uid, setFriendPlans)
+    if (!user) { setFriendPlansSubscriptionError(''); return }
+    setFriendPlansSubscriptionError('')
+    const unsub = subscribeSharedWeekPlans(weekID, user.uid, nextPlans => {
+      setFriendPlans(nextPlans)
+      setFriendPlansSubscriptionError('')
+    }, error => {
+      setFriendPlansSubscriptionError(error.message || 'Friends’ plans stopped updating')
+    })
     return unsub
-  }, [user, weekID])
+  }, [user, weekID, friendPlansSubscriptionAttempt])
 
   const handleAddFriendRecipe = async (recipeID: string) => {
     if (!user) return
@@ -345,54 +379,76 @@ export default function PlanPage() {
 
   const handleMarkCooked = async (recipeID: string, isCooked: boolean) => {
     if (!user) return
-    if (!isCooked) {
-      // un-tick keeps its original behavior: plan-only, never touches the log
-      await markRecipeCooked(user.uid, weekID, recipeID, false)
-      return
+    setPlanActionError('')
+    try {
+      if (!isCooked) {
+        // un-tick keeps its original behavior: plan-only, never touches the log
+        await markRecipeCooked(user.uid, weekID, recipeID, false)
+        return
+      }
+      // Tick: if a cook-event was already logged today (e.g. via Cooking Mode),
+      // only update the plan — never create a duplicate log entry.
+      const existing = await getTodayCookEventForRecipe(user.uid, recipeID)
+      if (existing) {
+        await markRecipeCooked(user.uid, weekID, recipeID, true)
+        maybePromptRating(recipeID)
+        return
+      }
+      // Otherwise capture servings eaten first; the write happens on confirm.
+      setServingsPromptFor(recipeID)
+    } catch {
+      setPlanActionError('Couldn’t update the cooked status — try again.')
     }
-    // Tick: if a cook-event was already logged today (e.g. via Cooking Mode),
-    // only update the plan — never create a duplicate log entry.
-    const existing = await getTodayCookEventForRecipe(user.uid, recipeID)
-    if (existing) {
-      await markRecipeCooked(user.uid, weekID, recipeID, true)
-      maybePromptRating(recipeID)
-      return
-    }
-    // Otherwise capture servings eaten first; the write happens on confirm.
-    setServingsPromptFor(recipeID)
   }
 
   const handleServingsConfirm = async (recipeID: string, servingsEaten: number) => {
     if (!user) return
-    // Shared cooked-capture pathway (same as Cooking Mode): plan + one log entry.
-    await logCookEvent(user.uid, {
-      recipeId: recipeID,
-      recipeName: recipes[recipeID]?.title || recipeID,
-      // Override-aware: log the per-serving macros this user actually sees.
-      perServing: perServingForViewer(recipes[recipeID]?.nutrition, metas[recipeID]?.overrides?.servings),
-      servingsEaten,
-      weekID,
-    })
-    await refetchCookingHistory()
-    setServingsPromptFor(null)
-    maybePromptRating(recipeID)
+    setPlanActionError('')
+    try {
+      // Shared cooked-capture pathway (same as Cooking Mode): plan + one log entry.
+      await logCookEvent(user.uid, {
+        recipeId: recipeID,
+        recipeName: recipes[recipeID]?.title || recipeID,
+        // Override-aware: log the per-serving macros this user actually sees.
+        perServing: perServingForViewer(recipes[recipeID]?.nutrition, metas[recipeID]?.overrides?.servings),
+        servingsEaten,
+        weekID,
+      })
+      await refetchCookingHistory()
+      setServingsPromptFor(null)
+      maybePromptRating(recipeID)
+    } catch (error) {
+      setPlanActionError('Couldn’t log the cooked servings — try again.')
+      throw error
+    }
   }
 
   const handleServingsSkip = async (recipeID: string) => {
     if (!user) return
-    await markRecipeCooked(user.uid, weekID, recipeID, true)
-    await refetchCookingHistory()
-    setServingsPromptFor(null)
-    maybePromptRating(recipeID)
+    setPlanActionError('')
+    try {
+      await markRecipeCooked(user.uid, weekID, recipeID, true)
+      await refetchCookingHistory()
+      setServingsPromptFor(null)
+      maybePromptRating(recipeID)
+    } catch (error) {
+      setPlanActionError('Couldn’t mark this recipe cooked — try again.')
+      throw error
+    }
   }
 
   const handleRatingSave = async (recipeID: string, rating: number, note: string) => {
     if (!user) return
-    const data: Partial<RecipeMeta> = { rating }
-    if (note.trim()) data.note = note
-    await saveRecipeMeta(user.uid, recipeID, data)
-    await refetchMetas()
-    setRatingPromptFor(null)
+    setPlanActionError('')
+    try {
+      const data: Partial<RecipeMeta> = { rating }
+      if (note.trim()) data.note = note
+      await saveRecipeMeta(user.uid, recipeID, data)
+      await refetchMetas()
+      setRatingPromptFor(null)
+    } catch {
+      setPlanActionError('Couldn’t save your rating — try again.')
+    }
   }
 
   const handleRatingSkip = () => {
@@ -401,15 +457,25 @@ export default function PlanPage() {
 
   const handleRemove = async (recipeID: string) => {
     if (!user) return
-    await removeRecipeFromWeekPlan(user.uid, weekID, recipeID)
-    await refetchCookingHistory()
+    setPlanActionError('')
+    try {
+      await removeRecipeFromWeekPlan(user.uid, weekID, recipeID)
+      await refetchCookingHistory()
+    } catch {
+      setPlanActionError('Couldn’t remove that recipe from the plan — try again.')
+    }
   }
 
   const handleMoveToWeek = async (recipeID: string, targetWeekID: string, role: PlannedRole) => {
     if (!user) return
     setSheetFor(null)
-    await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID, role)
-    await refetchCookingHistory()
+    setPlanActionError('')
+    try {
+      await moveRecipeToWeek(user.uid, weekID, targetWeekID, recipeID, role)
+      await refetchCookingHistory()
+    } catch {
+      setPlanActionError('Couldn’t move that recipe to another week — try again.')
+    }
   }
 
   // Assign (or clear) a planned entry's day. Passes the entry's current role so a
@@ -417,15 +483,25 @@ export default function PlanPage() {
   const handleAssignDay = async (entry: PlannedEntry, day: string | null) => {
     if (!user) return
     setSheetFor(null)
-    await assignRecipeToDay(user.uid, weekID, entry.recipeID, day, entry.role)
-    await refetchCookingHistory()
+    setPlanActionError('')
+    try {
+      await assignRecipeToDay(user.uid, weekID, entry.recipeID, day, entry.role)
+      await refetchCookingHistory()
+    } catch {
+      setPlanActionError('Couldn’t assign that recipe to a day — try again.')
+    }
   }
 
   // Manual main/side override (persists on the entry; re-derivation won't clobber it).
   const handleToggleRole = async (entry: PlannedEntry) => {
     if (!user) return
-    await setPlannedRecipeRole(user.uid, weekID, entry.recipeID, entry.role === 'main' ? 'side' : 'main')
-    await refetchCookingHistory()
+    setPlanActionError('')
+    try {
+      await setPlannedRecipeRole(user.uid, weekID, entry.recipeID, entry.role === 'main' ? 'side' : 'main')
+      await refetchCookingHistory()
+    } catch {
+      setPlanActionError('Couldn’t change that recipe’s role — try again.')
+    }
   }
 
   // Drop a dragged tile onto a day (or null = Unscheduled) — same write path as the
@@ -436,8 +512,13 @@ export default function PlanPage() {
     setDraggingId(null)
     if (!user || !id) return
     const role = plannedEntries.find(e => e.recipeID === id)?.role ?? 'main'
-    await assignRecipeToDay(user.uid, weekID, id, day, role)
-    await refetchCookingHistory()
+    setPlanActionError('')
+    try {
+      await assignRecipeToDay(user.uid, weekID, id, day, role)
+      await refetchCookingHistory()
+    } catch {
+      setPlanActionError('Couldn’t move that recipe to the selected day — try again.')
+    }
   }
 
   const handleAddToGrocery = async (recipeID: string) => {
@@ -960,6 +1041,28 @@ export default function PlanPage() {
         </div>
       </div>
 
+      {planActionError && (
+        <p role="alert" className="mb-4 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
+          {planActionError}
+        </p>
+      )}
+      {sharedPublishError && (
+        <p role="status" className="mb-4 rounded-xl border border-amber/20 bg-amber/5 px-4 py-3 text-amber text-sm font-body">
+          {sharedPublishError}
+        </p>
+      )}
+      {planSubscriptionError && (
+        <LoadingErrorRetry
+          loading={false}
+          error={planSubscriptionError}
+          retry={() => setPlanSubscriptionAttempt(attempt => attempt + 1)}
+          errorPrefix="Your meal-plan view may be out of date."
+          className="mb-4"
+        >
+          {null}
+        </LoadingErrorRetry>
+      )}
+
       {/* Plan controls — rebuild grocery (existing) + add this week to calendar (Batch 6) */}
       {(plannedIDList.length > 0 || hasCalendarWork) && (
         <div className="mb-8 space-y-3">
@@ -1001,11 +1104,12 @@ export default function PlanPage() {
         </div>
       )}
 
-      {loadingRecipes ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="animate-spin text-amber" size={24} />
-        </div>
-      ) : (
+      <LoadingErrorRetry
+        loading={loadingRecipes}
+        error={recipesError || metasError || cookingHistoryError}
+        retry={() => { void Promise.all([refetchRecipes(), refetchMetas(), refetchCookingHistory()]) }}
+        errorPrefix="Couldn’t load your meal plan data."
+      >
         <>
           {/* Planned section — day view */}
           <section className="mb-10">
@@ -1162,6 +1266,17 @@ export default function PlanPage() {
             )}
 
             {/* Friends' plans section */}
+            {friendPlansSubscriptionError && (
+              <LoadingErrorRetry
+                loading={false}
+                error={friendPlansSubscriptionError}
+                retry={() => setFriendPlansSubscriptionAttempt(attempt => attempt + 1)}
+                errorPrefix="Friends’ plans may be out of date."
+                className="mt-10"
+              >
+                {null}
+              </LoadingErrorRetry>
+            )}
             {friendPlans.filter(fp => fp.plannedRecipeIDs.length > 0).length > 0 && (
               <section className="mt-10">
                 <h2 className="font-display text-xl text-cream font-light mb-4">
@@ -1240,7 +1355,7 @@ export default function PlanPage() {
             )}
           </div>
         </>
-      )}
+      </LoadingErrorRetry>
     </div>
   )
 }

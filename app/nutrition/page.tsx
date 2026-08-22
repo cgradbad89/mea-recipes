@@ -20,6 +20,7 @@ import GoalsModal from '@/components/GoalsModal'
 import LogFoodSheet from '@/components/LogFoodSheet'
 import InsightsTab from '@/components/InsightsTab'
 import CalorieBalance from '@/components/CalorieBalance'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import { getHealthMetricsForRange, type HealthMetric } from '@/lib/healthMetrics'
 import type { ConsumptionEntry, NutritionGoals, Meal } from '@/types/nutrition'
 import type { NutritionMacros } from '@/types/recipe'
@@ -100,6 +101,8 @@ export default function NutritionPage() {
   const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>([])
   const [goals, setGoals] = useState<NutritionGoals | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshError, setRefreshError] = useState('')
+  const [nutritionActionError, setNutritionActionError] = useState('')
   // The local-midnight key of the day `entries`/`goals` currently represent
   // (null before the first fetch). viewedDate flips synchronously on an arrow
   // click, but entries only update after the async fetch resolves — comparing
@@ -119,6 +122,7 @@ export default function NutritionPage() {
   const refresh = useCallback(async () => {
     if (!user) return
     const seq = ++fetchSeq.current
+    setRefreshError('')
     const { start, end } = dayBounds(viewedDate)
     const todayStart = startOfLocalDay(new Date())
     const viewingToday = start.getTime() === todayStart.getTime()
@@ -146,6 +150,7 @@ export default function NutritionPage() {
       console.error('Failed to refresh nutrition data:', err)
       if (seq !== fetchSeq.current) return
       setLoadedDate(start.getTime())
+      setRefreshError(err instanceof Error ? err.message : 'Failed to load nutrition data')
     }
   }, [user, viewedDate])
 
@@ -194,8 +199,14 @@ export default function NutritionPage() {
 
   const handleUpdateServings = async (entry: ConsumptionEntry, newServings: number) => {
     if (!user) return
-    const nutrition = await updateLogEntryServings(user.uid, entry, newServings)
-    setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, servings_eaten: newServings, nutrition } : e))
+    setNutritionActionError('')
+    try {
+      const nutrition = await updateLogEntryServings(user.uid, entry, newServings)
+      setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, servings_eaten: newServings, nutrition } : e))
+    } catch (error) {
+      setNutritionActionError(`Couldn’t update servings for “${entry.name}” — try again.`)
+      throw error
+    }
   }
 
   const goalsSet = !!goals && NUTRIENTS.some(n => (goals[n.key] || 0) > 0)
@@ -253,6 +264,12 @@ export default function NutritionPage() {
           </button>
         </div>
       </div>
+
+      {nutritionActionError && (
+        <p role="alert" className="mb-6 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
+          {nutritionActionError}
+        </p>
+      )}
 
       {/* MFP sync staleness warning — non-blocking, session-dismissible */}
       {mfpStale && !mfpBannerDismissed && (
@@ -321,32 +338,40 @@ export default function NutritionPage() {
         )}
       </div>
 
-      {showLoading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <Loader2 className="animate-spin text-amber" size={28} />
-        </div>
-      ) : tab === 'insights' ? (
-        <InsightsTab userId={user!.uid} goals={goals} />
-      ) : (
-        <TodayTab
-          goalsSet={goalsSet}
-          goals={goals}
-          totals={totals}
-          burnedCalories={burnedCalories}
-          baselineCalories={baselineCalories}
-          activeCalories={activeCalories}
-          hasActiveData={hasActiveData}
-          elapsed={elapsed}
-          byMeal={byMeal}
-          hasEntries={entries.length > 0}
-          isToday={isToday}
-          dayLabel={dayLabel}
-          onSetGoals={() => setShowGoals(true)}
-          onLogFood={() => setShowLogFood(true)}
-          onDelete={handleDelete}
-          onUpdateServings={handleUpdateServings}
-        />
-      )}
+      <LoadingErrorRetry
+        loading={showLoading}
+        error={tab === 'today' ? refreshError : null}
+        retry={() => {
+          setLoading(true)
+          void refresh().finally(() => setLoading(false))
+        }}
+        loadingLabel="Loading nutrition…"
+        errorPrefix={`Couldn’t load nutrition for ${dayLabel}.`}
+        className="min-h-[40vh]"
+      >
+        {tab === 'insights' ? (
+          <InsightsTab userId={user!.uid} goals={goals} />
+        ) : (
+          <TodayTab
+            goalsSet={goalsSet}
+            goals={goals}
+            totals={totals}
+            burnedCalories={burnedCalories}
+            baselineCalories={baselineCalories}
+            activeCalories={activeCalories}
+            hasActiveData={hasActiveData}
+            elapsed={elapsed}
+            byMeal={byMeal}
+            hasEntries={entries.length > 0}
+            isToday={isToday}
+            dayLabel={dayLabel}
+            onSetGoals={() => setShowGoals(true)}
+            onLogFood={() => setShowLogFood(true)}
+            onDelete={handleDelete}
+            onUpdateServings={handleUpdateServings}
+          />
+        )}
+      </LoadingErrorRetry>
 
       {showLogFood && <LogFoodSheet logDate={viewedDate} onClose={() => setShowLogFood(false)} onLogged={refresh} />}
       {showGoals && <GoalsModal onClose={() => setShowGoals(false)} onSaved={refresh} />}
@@ -479,6 +504,7 @@ function LogEntryRow({
   const [editing, setEditing] = useState(false)
   const [servingsInput, setServingsInput] = useState(String(entry.servings_eaten))
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const macros = entry.nutrition || ZERO
   const secondary = NUTRIENTS
@@ -486,16 +512,19 @@ function LogEntryRow({
     .map(n => `${n.label[0]} ${formatNutrient(n.key, macros[n.key])}${n.unit}`)
     .join(' · ')
 
-  const startEdit = () => { setServingsInput(String(entry.servings_eaten)); setEditing(true) }
+  const startEdit = () => { setServingsInput(String(entry.servings_eaten)); setSaveError(''); setEditing(true) }
 
   const save = async () => {
     const v = parseFloat(servingsInput)
     if (!Number.isFinite(v) || v <= 0) return
     if (v === entry.servings_eaten) { setEditing(false); return }
     setSaving(true)
+    setSaveError('')
     try {
       await onUpdateServings(entry, v)
       setEditing(false)
+    } catch {
+      setSaveError('Couldn’t save servings — try again.')
     } finally {
       setSaving(false)
     }
@@ -515,6 +544,7 @@ function LogEntryRow({
         </div>
 
         {editing ? (
+          <>
           <div className="flex items-center gap-2 mt-1.5">
             <input
               type="number"
@@ -543,6 +573,8 @@ function LogEntryRow({
               <X size={14} />
             </button>
           </div>
+          {saveError && <p role="alert" className="text-red-400 text-[11px] font-body mt-1.5">{saveError}</p>}
+          </>
         ) : (
           <p className="text-faint text-[11px] font-body mt-1">
             {entry.amount_label || `${entry.servings_eaten}×`} · {secondary}

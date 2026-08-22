@@ -8,6 +8,7 @@ import { useAppData } from '@/components/AppDataProvider'
 import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
@@ -67,7 +68,15 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
 
 export default function RecipesPage() {
   const { user } = useAuth()
-  const { metas, recipes, recipesLoading: loading } = useAppData()
+  const {
+    metas,
+    recipes,
+    recipesLoading: loading,
+    recipesError,
+    metasError,
+    refetchRecipes,
+    refetchMetas,
+  } = useAppData()
   const [search, setSearch] = useState(() => readLS('mea_recipes_search', ''))
   const [debouncedSearch, setDebouncedSearch] = useState(search)
   const [cuisine, setCuisine] = useState<string[]>(() => {
@@ -91,6 +100,8 @@ export default function RecipesPage() {
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
+  const [cookedRecentlyError, setCookedRecentlyError] = useState('')
+  const [cookedLoadAttempt, setCookedLoadAttempt] = useState(0)
 
   // Persist filters to localStorage
   useEffect(() => {
@@ -123,19 +134,27 @@ export default function RecipesPage() {
   // Lazy load cooked recently IDs when that filter is selected
   useEffect(() => {
     if (filter !== 'cookedRecently' || !user || cookedRecentlyIDs !== null) return
+    let active = true
     setLoadingCooked(true)
-    getAllWeekPlans(user.uid).then(plans => {
-      const fourWeeksAgo = new Date()
-      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
-      const cutoff = fourWeeksAgo.toISOString().split('T')[0]
-      const ids = new Set<string>()
-      plans
-        .filter(p => p.weekStartISO >= cutoff)
-        .forEach(p => p.cookedRecipeIDs.forEach(id => ids.add(id)))
-      setCookedRecentlyIDs(ids)
-      setLoadingCooked(false)
-    })
-  }, [filter, user, cookedRecentlyIDs])
+    setCookedRecentlyError('')
+    getAllWeekPlans(user.uid)
+      .then(plans => {
+        if (!active) return
+        const fourWeeksAgo = new Date()
+        fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28)
+        const cutoff = fourWeeksAgo.toISOString().split('T')[0]
+        const ids = new Set<string>()
+        plans
+          .filter(p => p.weekStartISO >= cutoff)
+          .forEach(p => p.cookedRecipeIDs.forEach(id => ids.add(id)))
+        setCookedRecentlyIDs(ids)
+      })
+      .catch(error => {
+        if (active) setCookedRecentlyError(error instanceof Error ? error.message : 'Failed to load cooking history')
+      })
+      .finally(() => { if (active) setLoadingCooked(false) })
+    return () => { active = false }
+  }, [filter, user, cookedRecentlyIDs, cookedLoadAttempt])
 
   const fuse = useMemo(() => new Fuse(recipes, {
     keys: [
@@ -171,8 +190,10 @@ export default function RecipesPage() {
         const total = getTotalTime(prepTime, cookTime).minutes
         if (total === 0 || total >= timeFilter) return false
       }
-      if (filter === 'cookedRecently' && cookedRecentlyIDs) {
-        if (!cookedRecentlyIDs.has(r.id)) return false
+      if (filter === 'cookedRecently') {
+        // Until the history request succeeds there is no valid filtered result.
+        // Never fall through to the full recipe list and mislabel it as filtered.
+        if (!cookedRecentlyIDs || !cookedRecentlyIDs.has(r.id)) return false
       }
 
       return matchCuisine && matchCategory && matchRating && matchSource
@@ -313,22 +334,33 @@ export default function RecipesPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-24">
-          <p className="font-display text-3xl text-faint font-light mb-2">No recipes found</p>
-          <p className="text-faint text-sm font-body">Try adjusting your filters</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-fade-in">
-          {filtered.map(recipe => (
-            <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} />
-          ))}
-        </div>
-      )}
+      <LoadingErrorRetry
+        loading={loading || (filter === 'cookedRecently' && loadingCooked)}
+        error={recipesError || metasError || (filter === 'cookedRecently' ? cookedRecentlyError : '')}
+        retry={() => {
+          if (cookedRecentlyError) setCookedLoadAttempt(attempt => attempt + 1)
+          else void Promise.all([refetchRecipes(), refetchMetas()])
+        }}
+        errorPrefix={cookedRecentlyError ? 'Couldn’t apply the Cooked recently filter.' : 'Couldn’t load your recipes.'}
+        loadingFallback={(
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        )}
+      >
+        {filtered.length === 0 ? (
+          <div className="text-center py-24">
+            <p className="font-display text-3xl text-faint font-light mb-2">No recipes found</p>
+            <p className="text-faint text-sm font-body">Try adjusting your filters</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-fade-in">
+            {filtered.map(recipe => (
+              <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} />
+            ))}
+          </div>
+        )}
+      </LoadingErrorRetry>
     </div>
   )
 }

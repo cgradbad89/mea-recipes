@@ -3,16 +3,17 @@
 import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, serverTimestamp
+  doc, updateDoc, deleteDoc, setDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil } from 'lucide-react'
-import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, type SavedGroceryItem } from '@/lib/userdata'
+import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from '@/lib/firestoreBatch'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 
 interface GroceryItem {
   id: string
@@ -75,6 +76,9 @@ export default function GroceryPage() {
   const { user } = useAuth()
   const [items, setItems] = useState<GroceryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [subscriptionError, setSubscriptionError] = useState('')
+  const [subscriptionAttempt, setSubscriptionAttempt] = useState(0)
+  const [groceryError, setGroceryError] = useState('')
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null)
   // Viewport-fixed coords for the category menu — it's portaled to <body> so the
@@ -114,6 +118,7 @@ export default function GroceryPage() {
     if (!user || !editingItemId) return
     const newName = editingItemName.trim()
     if (!newName) { cancelEditItem(); return }
+    setGroceryError('')
     try {
       const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', editingItemId)
       await updateDoc(ref, {
@@ -122,10 +127,10 @@ export default function GroceryPage() {
         unit: editingItemUnit.trim(),
         updatedAt: serverTimestamp(),
       })
+      cancelEditItem()
     } catch (e) {
       console.error('Failed to save item:', e)
-    } finally {
-      cancelEditItem()
+      setGroceryError('Couldn’t save the item changes — try again.')
     }
   }
 
@@ -143,15 +148,19 @@ export default function GroceryPage() {
   }, [confirmClearAll])
 
   useEffect(() => {
-    if (!user) { setLoading(false); return }
-    const ref = collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems')
-    const unsub = onSnapshot(ref, snap => {
-      const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as GroceryItem))
+    if (!user) { setLoading(false); setSubscriptionError(''); return }
+    setLoading(true)
+    setSubscriptionError('')
+    const unsub = subscribeGroceryItems(user.uid, data => {
       setItems(data)
+      setLoading(false)
+      setSubscriptionError('')
+    }, error => {
+      setSubscriptionError(error.message || 'The grocery list stopped updating')
       setLoading(false)
     })
     return unsub
-  }, [user])
+  }, [user, subscriptionAttempt])
 
   useEffect(() => {
     const stored = localStorage.getItem('mea-grocery-last-cleaned')
@@ -162,6 +171,7 @@ export default function GroceryPage() {
     if (!user) return
     getSavedGroceryItems(user.uid).then(setSavedItems).catch(e => {
       console.error('Failed to load saved grocery items:', e)
+      setGroceryError('Couldn’t load your previously added items.')
     })
   }, [user])
 
@@ -188,13 +198,23 @@ export default function GroceryPage() {
 
   const toggleItem = async (item: GroceryItem) => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
-    await updateDoc(ref, { isChecked: !item.isChecked })
+    setGroceryError('')
+    try {
+      const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
+      await updateDoc(ref, { isChecked: !item.isChecked })
+    } catch {
+      setGroceryError(`Couldn’t update “${item.name}” — try again.`)
+    }
   }
 
   const deleteItem = async (item: GroceryItem) => {
     if (!user || item.id.includes('/')) return
-    await deleteDoc(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+    setGroceryError('')
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+    } catch {
+      setGroceryError(`Couldn’t delete “${item.name}” — try again.`)
+    }
   }
 
   // Dismiss the category menu on scroll/resize/Escape or a click outside it — the
@@ -220,32 +240,49 @@ export default function GroceryPage() {
 
   const setManualCategory = async (itemId: string, category: GroceryCategory | null) => {
     if (!user) return
-    const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', itemId)
-    await updateDoc(ref, { manualSection: category || null })
-    setCategoryPickerFor(null)
+    setGroceryError('')
+    try {
+      const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', itemId)
+      await updateDoc(ref, { manualSection: category || null })
+      setCategoryPickerFor(null)
+    } catch {
+      setGroceryError('Couldn’t change that item’s category — try again.')
+    }
   }
 
   const clearChecked = async () => {
     if (!user) return
-    const operations = items
-      .filter(item => item.isChecked)
-      .map<FirestoreBatchOperation>(item => batch => {
-        batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
-      })
-    await commitFirestoreBatches(db, operations)
+    setGroceryError('')
+    try {
+      const operations = items
+        .filter(item => item.isChecked)
+        .map<FirestoreBatchOperation>(item => batch => {
+          batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+        })
+      await commitFirestoreBatches(db, operations)
+    } catch {
+      setGroceryError('Couldn’t clear the checked items — try again.')
+    }
   }
 
   const clearAll = async () => {
     if (!user) return
-    const operations = items.map<FirestoreBatchOperation>(item => batch => {
-      batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
-    })
-    await commitFirestoreBatches(db, operations)
+    setGroceryError('')
+    try {
+      const operations = items.map<FirestoreBatchOperation>(item => batch => {
+        batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+      })
+      await commitFirestoreBatches(db, operations)
+      setConfirmClearAll(false)
+    } catch {
+      setGroceryError('Couldn’t clear the grocery list — try again.')
+    }
   }
 
   const handleAICleanup = async () => {
     if (!user || !items.length) return
     setCleanupLoading(true)
+    setGroceryError('')
     try {
       const token = await user.getIdToken()
       const res = await fetch('/api/grocery-cleanup', {
@@ -258,6 +295,7 @@ export default function GroceryPage() {
       setCleanupChanges(Array.isArray(data) ? data : [])
     } catch (e: any) {
       console.error('Cleanup error:', e)
+      setGroceryError(e?.message || 'Couldn’t review the grocery list — try again.')
     } finally {
       setCleanupLoading(false)
     }
@@ -266,6 +304,7 @@ export default function GroceryPage() {
   const applyCleanup = async () => {
     if (!user || !cleanupChanges) return
     setApplyingCleanup(true)
+    setGroceryError('')
     try {
       const acceptedChanges = cleanupChanges.filter((_, i) => !rejectedChanges.has(i))
       const operations: FirestoreBatchOperation[] = []
@@ -317,6 +356,7 @@ export default function GroceryPage() {
       setRejectedChanges(new Set())
     } catch (e) {
       console.error('Apply cleanup error:', e)
+      setGroceryError('Couldn’t apply the cleanup changes — try again.')
     } finally {
       setApplyingCleanup(false)
     }
@@ -354,6 +394,7 @@ export default function GroceryPage() {
   const handleAddItem = async () => {
     if (!user || !newItemName.trim()) return
     setAddingItem(true)
+    setGroceryError('')
     const typedName = newItemName.trim()
     const typedQty = newItemQty.trim()
     const typedUnit = newItemUnit.trim()
@@ -417,6 +458,8 @@ export default function GroceryPage() {
       setShowAddItem(false)
     } catch (e) {
       console.error('Add item error:', e)
+      setGroceryError('Couldn’t add that item — try again.')
+      return
     } finally {
       setAddingItem(false)
     }
@@ -425,7 +468,10 @@ export default function GroceryPage() {
     upsertSavedGroceryItem(user.uid, finalName, category)
       .then(() => getSavedGroceryItems(user.uid))
       .then(setSavedItems)
-      .catch(e => console.error('Failed to save grocery item to saved list:', e))
+      .catch(e => {
+        console.error('Failed to save grocery item to saved list:', e)
+        setGroceryError('The item was added, but it couldn’t be saved for quick reuse.')
+      })
   }
 
   const toggleCollapse = (cat: string) => {
@@ -458,11 +504,18 @@ export default function GroceryPage() {
     )
   }
 
-  if (loading) {
+  if (loading || subscriptionError) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="animate-spin text-amber" size={28} />
-      </div>
+      <LoadingErrorRetry
+        loading={loading}
+        error={subscriptionError}
+        retry={() => setSubscriptionAttempt(attempt => attempt + 1)}
+        loadingLabel="Loading grocery list…"
+        errorPrefix="Couldn’t load your grocery list."
+        className="min-h-[60vh]"
+      >
+        {null}
+      </LoadingErrorRetry>
     )
   }
 
@@ -500,7 +553,7 @@ export default function GroceryPage() {
           {confirmClearAll && (
             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
               <span className="text-red-400 text-xs font-body">Are you sure? This cannot be undone.</span>
-              <button onClick={() => { clearAll(); setConfirmClearAll(false) }} className="text-red-400 text-xs font-body font-semibold hover:text-red-300">
+              <button onClick={() => { void clearAll() }} className="text-red-400 text-xs font-body font-semibold hover:text-red-300">
                 Yes, clear all
               </button>
               <button onClick={() => setConfirmClearAll(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
@@ -508,6 +561,12 @@ export default function GroceryPage() {
           )}
         </div>
       </div>
+
+      {groceryError && (
+        <p role="alert" className="text-red-400 text-xs font-body mb-4 rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2">
+          {groceryError}
+        </p>
+      )}
 
       {/* Rebuild grocery from plan */}
       {showRebuildConfirm ? (
@@ -643,6 +702,7 @@ export default function GroceryPage() {
                       <button
                         onClick={async () => {
                           if (!user) return
+                          setGroceryError('')
                           try {
                             const sanitizeId = (str: string) => str.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 80)
                             const quickId = sanitizeId(s.name.toLowerCase()) + '-' + Date.now()
@@ -661,11 +721,16 @@ export default function GroceryPage() {
                             })
                           } catch (e) {
                             console.error('Quick-add error:', e)
+                            setGroceryError(`Couldn’t quick-add “${s.name}” — try again.`)
+                            return
                           }
                           upsertSavedGroceryItem(user.uid, s.name, s.defaultCategory)
                             .then(() => getSavedGroceryItems(user.uid))
                             .then(setSavedItems)
-                            .catch(e => console.error('Failed to update saved item:', e))
+                            .catch(e => {
+                              console.error('Failed to update saved item:', e)
+                              setGroceryError('The item was added, but its saved shortcut couldn’t be refreshed.')
+                            })
                         }}
                         className="text-amber hover:text-amber/80 transition-colors shrink-0 p-1"
                         title="Add to list"
@@ -675,11 +740,13 @@ export default function GroceryPage() {
                       <button
                         onClick={async () => {
                           if (!user) return
+                          setGroceryError('')
                           try {
                             await deleteSavedGroceryItem(user.uid, s.id)
                             setSavedItems(prev => prev.filter(i => i.id !== s.id))
                           } catch (e) {
                             console.error('Failed to delete saved item:', e)
+                            setGroceryError(`Couldn’t remove “${s.name}” from saved items — try again.`)
                           }
                         }}
                         className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
@@ -837,6 +904,7 @@ export default function GroceryPage() {
                       {/* Checkbox */}
                       <button
                         onClick={() => toggleItem(item)}
+                        aria-label={item.isChecked ? `Mark ${item.name} unchecked` : `Mark ${item.name} checked`}
                         className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
                           item.isChecked
                             ? 'bg-amber border-amber'
