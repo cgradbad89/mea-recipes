@@ -269,35 +269,39 @@ export async function addRecipeToWeekPlan(
   role: PlannedRole = 'main',
 ): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      weekID,
-      weekStartISO: weekID,
-      plannedRecipeIDs: [{ recipeID, day: null, role }],
-      cookedRecipeIDs: [],
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) {
+      tx.set(ref, {
+        weekID,
+        weekStartISO: weekID,
+        plannedRecipeIDs: [{ recipeID, day: null, role }],
+        cookedRecipeIDs: [],
+        updatedAt: serverTimestamp(),
+      })
+      return
+    }
+    const plan = snap.data() as WeekPlan
+    const planned = plan.plannedRecipeIDs || []
+    // Idempotent (replaces arrayUnion's dedupe): if already planned in any shape,
+    // leave it untouched so an existing day/role is preserved.
+    if (planned.some(el => elementRecipeID(el) === recipeID)) return
+    tx.update(ref, {
+      plannedRecipeIDs: [...planned, { recipeID, day: null, role }],
       updatedAt: serverTimestamp(),
     })
-    return
-  }
-  const plan = snap.data() as WeekPlan
-  const planned = plan.plannedRecipeIDs || []
-  // Idempotent (replaces arrayUnion's dedupe): if already planned in any shape,
-  // leave it untouched so an existing day/role is preserved.
-  if (planned.some(el => elementRecipeID(el) === recipeID)) return
-  await updateDoc(ref, {
-    plannedRecipeIDs: [...planned, { recipeID, day: null, role }],
-    updatedAt: serverTimestamp(),
   })
 }
 
 export async function removeRecipeFromWeekPlan(uid: string, weekID: string, recipeID: string): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return
-  const plan = snap.data() as WeekPlan
-  const planned = (plan.plannedRecipeIDs || []).filter(el => elementRecipeID(el) !== recipeID)
-  await updateDoc(ref, { plannedRecipeIDs: planned, updatedAt: serverTimestamp() })
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const plan = snap.data() as WeekPlan
+    const planned = (plan.plannedRecipeIDs || []).filter(el => elementRecipeID(el) !== recipeID)
+    tx.update(ref, { plannedRecipeIDs: planned, updatedAt: serverTimestamp() })
+  })
 }
 
 export async function moveRecipeToWeek(
@@ -337,15 +341,17 @@ export async function moveRecipeToWeek(
 
 export async function markRecipeCooked(uid: string, weekID: string, recipeID: string, cooked: boolean): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return
-  const plan = snap.data() as WeekPlan
-  const cookedIDs = cooked
-    ? [...new Set([...(plan.cookedRecipeIDs || []), recipeID])]
-    : (plan.cookedRecipeIDs || []).filter(id => id !== recipeID)
-  // Only cooked[] changes; planned[] is left exactly as stored (cooked items need
-  // neither day nor role, and we avoid churning the planned array's element shapes).
-  await updateDoc(ref, { cookedRecipeIDs: cookedIDs, updatedAt: serverTimestamp() })
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const plan = snap.data() as WeekPlan
+    const cookedIDs = cooked
+      ? [...new Set([...(plan.cookedRecipeIDs || []), recipeID])]
+      : (plan.cookedRecipeIDs || []).filter(id => id !== recipeID)
+    // Only cooked[] changes; planned[] is left exactly as stored (cooked items need
+    // neither day nor role, and we avoid churning the planned array's element shapes).
+    tx.update(ref, { cookedRecipeIDs: cookedIDs, updatedAt: serverTimestamp() })
+  })
 }
 
 /**
@@ -362,21 +368,23 @@ export async function assignRecipeToDay(
   fallbackRole: PlannedRole = 'main',
 ): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return
-  const plan = snap.data() as WeekPlan
-  const planned = plan.plannedRecipeIDs || []
-  let found = false
-  const next: PlannedElement[] = planned.map(el => {
-    if (elementRecipeID(el) !== recipeID) return el
-    found = true
-    const role = typeof el !== 'string' && isPlannedRole(el.role) ? el.role : fallbackRole
-    const entry: PlannedEntry = { recipeID, day, role }
-    if (typeof el !== 'string' && el.slot !== undefined) entry.slot = el.slot
-    return entry
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const plan = snap.data() as WeekPlan
+    const planned = plan.plannedRecipeIDs || []
+    let found = false
+    const next: PlannedElement[] = planned.map(el => {
+      if (elementRecipeID(el) !== recipeID) return el
+      found = true
+      const role = typeof el !== 'string' && isPlannedRole(el.role) ? el.role : fallbackRole
+      const entry: PlannedEntry = { recipeID, day, role }
+      if (typeof el !== 'string' && el.slot !== undefined) entry.slot = el.slot
+      return entry
+    })
+    if (!found) next.push({ recipeID, day, role: fallbackRole })
+    tx.update(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
   })
-  if (!found) next.push({ recipeID, day, role: fallbackRole })
-  await updateDoc(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
 }
 
 /**
@@ -391,18 +399,20 @@ export async function setPlannedRecipeRole(
   role: PlannedRole,
 ): Promise<void> {
   const ref = doc(weekPlansPath(uid), weekID)
-  const snap = await getDoc(ref)
-  if (!snap.exists()) return
-  const plan = snap.data() as WeekPlan
-  const planned = plan.plannedRecipeIDs || []
-  const next: PlannedElement[] = planned.map(el => {
-    if (elementRecipeID(el) !== recipeID) return el
-    const day = typeof el === 'string' ? null : (el.day ?? null)
-    const entry: PlannedEntry = { recipeID, day, role }
-    if (typeof el !== 'string' && el.slot !== undefined) entry.slot = el.slot
-    return entry
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) return
+    const plan = snap.data() as WeekPlan
+    const planned = plan.plannedRecipeIDs || []
+    const next: PlannedElement[] = planned.map(el => {
+      if (elementRecipeID(el) !== recipeID) return el
+      const day = typeof el === 'string' ? null : (el.day ?? null)
+      const entry: PlannedEntry = { recipeID, day, role }
+      if (typeof el !== 'string' && el.slot !== undefined) entry.slot = el.slot
+      return entry
+    })
+    tx.update(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
   })
-  await updateDoc(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
 }
 
 /**

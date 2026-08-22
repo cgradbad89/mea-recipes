@@ -55,6 +55,7 @@ export default function RecipeDetailPage() {
   const [selectedWeek, setSelectedWeek] = useState('')
   const [addingToPlan, setAddingToPlan] = useState(false)
   const [planAddedLabel, setPlanAddedLabel] = useState('')
+  const [planAddError, setPlanAddError] = useState('')
   const [showEdit, setShowEdit] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -178,16 +179,23 @@ export default function RecipeDetailPage() {
     setSelectedWeek(weeks[1]?.weekID || weeks[0].weekID) // default to next week
     setShowPlanPicker(true)
     setPlanAddedLabel('')
+    setPlanAddError('')
   }
 
   const handleConfirmAddToPlan = async () => {
     if (!user || !recipe || !selectedWeek) return
     setAddingToPlan(true)
-    await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
-    await refetchCookingHistory()
-    setAddingToPlan(false)
-    setPlanAddedLabel(formatWeekLabel(selectedWeek))
-    setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)
+    setPlanAddError('')
+    try {
+      await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
+      await refetchCookingHistory()
+      setPlanAddedLabel(formatWeekLabel(selectedWeek))
+      setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)
+    } catch (e: any) {
+      setPlanAddError(e?.message || 'Failed to add to plan')
+    } finally {
+      setAddingToPlan(false)
+    }
   }
 
   // Set this recipe's explicit default main/side role on the SHARED doc. Optimistic;
@@ -501,6 +509,9 @@ export default function RecipeDetailPage() {
                         </button>
                       ))}
                     </div>
+                    {planAddError && (
+                      <p className="text-red-400 text-[11px] font-body px-4 pb-1">{planAddError}</p>
+                    )}
                     <div className="flex gap-2 px-4 pb-3">
                       <button onClick={() => setShowPlanPicker(false)} className="btn-ghost text-xs flex-1">Cancel</button>
                       <button
