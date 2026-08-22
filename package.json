@@ -2,6 +2,7 @@
   "name": "mea-recipes",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@11.19.0",
   "scripts": {
     "dev": "next dev",
     "dev:emulator": "concurrently \"NEXT_PUBLIC_USE_FIRESTORE_EMULATOR=true next dev\" \"firebase emulators:start --only firestore,auth --project malignant-metro\"",
@@ -12,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=26.0.0 <27"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.177",
@@ -49,6 +50,7 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
+    "uuid": "11.1.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "jwks-rsa": {

@@ -36,6 +36,11 @@ All data syncs with the iOS MEA app:
 
 ## Setup
 
+This project is pinned to Node.js 26.x and npm 11.19.0. Use the committed
+`.nvmrc` (for example, `nvm use`) before installing dependencies. The Node
+range is intentionally limited to the 26.x major so installs and Vercel builds
+do not silently move to a future Node major.
+
 ### 1. Clone and install
 
 ```bash

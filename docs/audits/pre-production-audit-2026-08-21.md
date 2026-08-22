@@ -26,7 +26,7 @@ The application builds cleanly, all 16 tests pass, the production deployment is 
 | L-01 | **Low — fixed** | Favorites state is owner-tagged, becomes empty or hydrates the real anonymous source on sign-out, and rejects late fetches from the prior uid; filter preferences remain intact. The known pre-load toggle race remains harmless/idempotent. | `components/AppDataProvider.tsx`; `tests/favoritesAuthState.test.tsx`; `lib/userdata.ts:23-47` |
 | L-02 | **Low** | Recipe search ignores one-character queries, cannot filter standalone/legacy categories, omits dietary tags, and turns recipe-load failures into “No recipes found.” | `app/recipes/page.tsx:130-194,305-319`; `components/RecipeFilters.tsx:14-24,63-95`; `components/AppDataProvider.tsx:62-72` |
 | L-03 | **Low — fixed** | README now documents the daily MFP cron plus optional manual trigger, and PRD explicitly documents the authenticated/admin-gated canonical `?apply=true` path used for Batch 4. | `README.md`; `vercel.json:7-11`; `PRD.md`; `app/api/nutrition-canonical-dryrun/route.ts:91-165` |
-| L-04 | **Low** | Production install reports six moderate transitive advisories through `firebase-admin`; the open-ended Node engine can silently jump major versions. | `package.json:14-32`; production build log for `dpl_A1rr3UmTmJJzY8xRn3zfRtiA8FNQ` |
+| L-04 | **Low — fixed** | Fresh checkout verification initially reproduced six moderate transitive advisories through `firebase-admin`; a scoped `uuid@11.1.1` override removes the chain without changing `firebase-admin`, and Node/npm are now pinned to an explicit runtime contract. | `package.json:4,15-16,52-59`; `.nvmrc`; `package-lock.json`; `README.md:38-42` |
 | L-05 | **Low — fixed** | Repository-wide import/export/call/test/script/route searches proved the legacy root-collection helper was unreferenced, so `lib/strava.ts` and its sole-use type were deleted. Active nutrition remains on uid-scoped health metrics. | deleted `lib/strava.ts`; `types/nutrition.ts`; `lib/healthMetrics.ts:23-46`; `app/nutrition/page.tsx:23,131-145` |
 | L-06 | **Low** | There are no repository-defined App Router error/loading boundaries or Vercel Analytics/Speed Insights instrumentation. | `app/layout.tsx`; absence of `app/error.tsx`, `app/global-error.tsx`, `app/loading.tsx`; `package.json:17-32` |
 
@@ -107,11 +107,21 @@ No custom App Router error/loading boundary files were found, so unexpected rend
 ### 4.4 Vercel deployment and observability
 
 - CLI access succeeded for project `prj_f5PLUXXwIhiMMddPJAa8mR2GxpbT`, linked by `.vercel/project.json:1`. Production deployment `dpl_A1rr3UmTmJJzY8xRn3zfRtiA8FNQ` is Ready and serves commit `ade6e35`.
-- The deployment build completed successfully: Next 16.3.1 compiled, TypeScript passed, and 26 static pages were generated. Warnings were: failed fetch of one or more git submodules; open-ended Node `>=22` may auto-upgrade majors (`package.json:14-16`); six moderate npm advisories; and three unreviewed install scripts.
+- The historical deployment build completed successfully: Next 16.3.1 compiled, TypeScript passed, and 26 static pages were generated. Its warnings included the now-resolved open-ended Node range and six moderate npm advisories; current local verification no longer reports either L-04 condition.
 - `vercel logs https://mea-recipes.vercel.app --level error --since 7d --json` returned no error events. This confirms no captured error-level runtime events in that window, not that swallowed client errors did not occur.
 - No `@vercel/analytics`, Speed Insights, or custom route error boundaries are installed (`package.json:17-32`; `app/layout.tsx`). AI usage logging exists (`lib/ai.ts:37-46`).
 
-### 4.5 Strava and MFP
+### 4.5 L-04 dependency and runtime hardening (2026-08-22)
+
+Fresh diagnostics from the current checkout reproduced the historical audit result: `npm audit` reported six moderate advisories, all in one production dependency chain:
+
+`firebase-admin@14.3.0` → `@google-cloud/storage@7.22.0` → `gaxios@6.7.1` / `teeny-request@9.0.0` → `uuid@9.0.1`.
+
+The audit tool's only whole-tree remediation was the incompatible major downgrade to `firebase-admin@10.3.0`. No compatible Firebase Admin patch was available in the registry at verification time. The repository therefore adds the narrow npm override `uuid@11.1.1`; it retains CommonJS support and the existing v3/v4/v5 API used by this transitive chain. `firebase-admin` remains `14.3.0`, and the resolved production tree reports zero vulnerabilities across all severities.
+
+The runtime contract is now explicit: Node `>=26.0.0 <27` in `package.json`, Node `26.7.0` in `.nvmrc`, and npm `11.19.0` in `package.json`'s `packageManager` field. This matches the current `@zxing/library@0.22.0` engine requirement (`>=24`) while preventing a future Node-major jump. `npm ci --ignore-scripts`, `npm ci --ignore-scripts --dry-run`, `npm audit`, dependency-tree inspection, typecheck, lint, tests, and build all passed under Node 26.7.0/npm 11.19.0. No residual L-04 advisory remains.
+
+### 4.6 Strava and MFP
 
 - **Strava helper cleanup resolved.** Nutrition queries `users/{uid}/healthMetrics` (`lib/healthMetrics.ts:28-46`; `app/nutrition/page.tsx:23,131-145`). The unreferenced helper that queried root `stravaActivities` and its sole-use `StravaActivity` type were deleted after repository-wide reference checks. Historical production documents were not touched.
 - **MFP runtime design and documentation are aligned.** The route checks a secret, validates both diary pages before any Firestore mutation, maps columns by header, uses deterministic IDs, and commits delete+replace atomically (`app/api/cron/sync-nutrition/route.ts:119-223,294-352`). The fail-closed secret fix is H-02. README now reflects Vercel's daily 06:00 UTC schedule and the optional authenticated manual trigger (`README.md`; `vercel.json:7-11`).
@@ -496,4 +506,4 @@ No new composite index was identified as required by this audit. Existing multi-
 5. Convert week-plan array writers to transactions and add conflict tests.
 6. **M-04 nutrition:** resolved for the safely remediable population through the Prompt 4E controlled apply; two allowlisted recipes were applied and verified, while three were skipped by the finality safety gate. Leave the eight blocked recipes, maple pecans, and `smoothies` explicitly deferred.
 7. Add user-visible error/retry states and client telemetry across recipes, plan, grocery, nutrition, and queue.
-8. Resolve the six moderate dependency advisories without accepting npm’s suggested firebase-admin downgrade blindly.
+8. **L-04 dependency/runtime hardening:** completed in the 2026-08-22 verification above; retain the scoped `uuid` override and Node 26.x contract until a supported Firebase Admin release removes the need for the override.
