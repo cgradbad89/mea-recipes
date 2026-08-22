@@ -508,11 +508,16 @@ retained as historical data and are not modified or deleted by this app.
     **73.2→14.8 g** total (per-serving 18.3→3.7), confidence low→high. **Revert:** every written doc has a
     `nutrition_prev` field = its exact pre-apply nutrition (read-only to the app — `docToRecipe` drops it),
     plus a backup manifest `batch4-apply-revert-manifest.json` (136 entries). See `batch4-apply-report.md`.
-    **M-04 remediation (in progress):** the narrow heading-recognition repair is complete. A read-only
-    rerun of the exact 15 records recovered the two decorated-heading recipes and Spaghetti Carbonara;
-    12 still return no ingredients and require reviewed shared recipe-data corrections before any nutrition
-    dry-run. `smoothies` must be split into three separate recipe records in that later data-repair batch.
-    See `docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`.
+    **M-04 remediation (partial; nutrition apply pending):** the narrow heading-recognition repair is
+    complete. Prompt 4B repaired 10 data-defective recipes (9 in-place updates plus one canonical-ID
+    migration) with exact backups and read-back validation, then completed a non-persistent nutrition
+    dry-run for those 10 plus the three code-only recoveries. `maple-roasted-candied-pecans` remains
+    blocked because its stored body is only `Source:` and no attributable source exists. The legacy
+    `smoothies` composite also remains: its three named ingredient lists contain no instructions, so the
+    approved split cannot be completed without inventing recipe content. Do not split or delete that
+    record until authoritative instructions are supplied. Nutrition was not applied; all dry-run rows
+    require Prompt 4C review, including observed USDA operational failures. See
+    `docs/audits/m04-recipe-data-remediation-2026-08-22.md`.
 
 ---
 

@@ -1,0 +1,2724 @@
+{
+  "generatedAt": "2026-08-22T17:08:45.141Z",
+  "endpoint": "/api/nutrition-canonical-dryrun?recipeId=<id>",
+  "applyParameterUsed": false,
+  "populationCount": 13,
+  "totalWritesReported": 0,
+  "rows": [
+    {
+      "recipeId": "hearthealthy-peanut-butter-protein-bars",
+      "title": "Heart-Healthy Peanut Butter Protein Bars",
+      "ingredientCount": 8,
+      "instructionCount": 5,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "hearthealthy-peanut-butter-protein-bars",
+        "title": "Heart-Healthy Peanut Butter Protein Bars",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 2,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+ai+default_servings",
+          "confidence": "low",
+          "servings": 4,
+          "total": {
+            "calories": 2436,
+            "protein_g": 121.6,
+            "carbs_g": 158.1,
+            "fat_g": 159.3,
+            "fiber_g": 42.5,
+            "sugar_g": 29
+          },
+          "perServing": {
+            "calories": 609,
+            "protein_g": 30.4,
+            "carbs_g": 39.5,
+            "fat_g": 39.8,
+            "fiber_g": 10.6,
+            "sugar_g": 7.3
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 2292,
+            "protein_g": 90.6,
+            "carbs_g": 144.4,
+            "fat_g": 162.8,
+            "fiber_g": 29.1,
+            "sugar_g": 10.2
+          },
+          "unresolvedCount": 2
+        },
+        "proposed": {
+          "source": "usda+canonical",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 2480,
+            "protein_g": 86.2,
+            "carbs_g": 165,
+            "fat_g": 177.2,
+            "fiber_g": 28.5,
+            "sugar_g": 41.1
+          },
+          "perServing": {
+            "calories": 620,
+            "protein_g": 21.6,
+            "carbs_g": 41.2,
+            "fat_g": 44.3,
+            "fiber_g": 7.1,
+            "sugar_g": 10.3
+          },
+          "unresolvedCount": 2,
+          "unresolved": [
+            "2 scoops protein powder (vanilla or chocolate)",
+            "Dash of cinnamon or cocoa powder"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": 188,
+          "protein_g": -4.4,
+          "carbs_g": 20.6,
+          "fat_g": 14.4,
+          "fiber_g": -0.6,
+          "sugar_g": 30.9
+        },
+        "canonicalHits": [
+          {
+            "name": "natural peanut butter",
+            "fdcId": 172470,
+            "description": "Peanut butter, smooth style, without salt"
+          },
+          {
+            "name": "rolled oats",
+            "fdcId": 2346396,
+            "description": "Oats, whole grain, rolled, old fashioned"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "natural peanut butter",
+            "grams": 256,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: natural peanut butter",
+              "calPer100g": 590,
+              "sugarPer100g": 4,
+              "fiberPer100g": 6
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 172470,
+              "description": "Peanut butter, smooth style, without salt",
+              "calPer100g": 598,
+              "sugarPer100g": 10.5,
+              "fiberPer100g": 5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "rolled oats",
+            "grams": 90,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Oats, whole grain, rolled, old fashioned",
+              "calPer100g": 382,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 2346396,
+              "description": "Oats, whole grain, rolled, old fashioned",
+              "calPer100g": 382,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": false
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "peanut-butter-oat-protein-shake",
+      "title": "Peanut Butter Oat Protein Shake",
+      "ingredientCount": 9,
+      "instructionCount": 10,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "peanut-butter-oat-protein-shake",
+        "title": "Peanut Butter Oat Protein Shake",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 3,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "source_site",
+          "confidence": "medium",
+          "servings": 1,
+          "total": {
+            "calories": 375,
+            "protein_g": 27.5,
+            "carbs_g": 36,
+            "fat_g": 13.5,
+            "fiber_g": 9,
+            "sugar_g": 7
+          },
+          "perServing": {
+            "calories": 375,
+            "protein_g": 27.5,
+            "carbs_g": 36,
+            "fat_g": 13.5,
+            "fiber_g": 9,
+            "sugar_g": 7
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 355,
+            "protein_g": 12.1,
+            "carbs_g": 45.8,
+            "fat_g": 19.3,
+            "fiber_g": 12.3,
+            "sugar_g": 12.5
+          },
+          "unresolvedCount": 2
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 1,
+          "total": {
+            "calories": 386,
+            "protein_g": 10.8,
+            "carbs_g": 48.2,
+            "fat_g": 18.5,
+            "fiber_g": 10.7,
+            "sugar_g": 11.8
+          },
+          "perServing": {
+            "calories": 386,
+            "protein_g": 10.8,
+            "carbs_g": 48.2,
+            "fat_g": 18.5,
+            "fiber_g": 10.7,
+            "sugar_g": 11.8
+          },
+          "unresolvedCount": 2,
+          "unresolved": [
+            "1 scoop protein powder",
+            "Water and ice to blend"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": 31,
+          "protein_g": -1.3,
+          "carbs_g": 2.4,
+          "fat_g": -0.8,
+          "fiber_g": -1.6,
+          "sugar_g": -0.7
+        },
+        "canonicalHits": [
+          {
+            "name": "peanut butter",
+            "fdcId": 172470,
+            "description": "Peanut butter, smooth style, without salt"
+          },
+          {
+            "name": "oats",
+            "fdcId": 2346396,
+            "description": "Oats, whole grain, rolled, old fashioned"
+          },
+          {
+            "name": "banana berries",
+            "fdcId": 173944,
+            "description": "Bananas, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "peanut butter",
+            "grams": 16,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Peanut butter with omega-3, creamy",
+              "calPer100g": 608,
+              "sugarPer100g": 3.11,
+              "fiberPer100g": 6.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 172470,
+              "description": "Peanut butter, smooth style, without salt",
+              "calPer100g": 598,
+              "sugarPer100g": 10.5,
+              "fiberPer100g": 5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "oats",
+            "grams": 22,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Oat bran, raw",
+              "calPer100g": 246,
+              "sugarPer100g": 1.45,
+              "fiberPer100g": 15.4
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 2346396,
+              "description": "Oats, whole grain, rolled, old fashioned",
+              "calPer100g": 382,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "banana berries",
+            "grams": 59,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Babyfood, banana with mixed berries, strained",
+              "calPer100g": 92,
+              "sugarPer100g": 15,
+              "fiberPer100g": 1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 173944,
+              "description": "Bananas, raw",
+              "calPer100g": 89,
+              "sugarPer100g": 12.2,
+              "fiberPer100g": 2.6
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "spaghetti-carbonara",
+      "title": "Spaghetti Carbonara",
+      "ingredientCount": 6,
+      "instructionCount": 1,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "spaghetti-carbonara",
+        "title": "Spaghetti Carbonara",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 2,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 2972,
+            "protein_g": 161.3,
+            "carbs_g": 367.3,
+            "fat_g": 90.5,
+            "fiber_g": 50.8,
+            "sugar_g": 18.6
+          },
+          "perServing": {
+            "calories": 743,
+            "protein_g": 40.3,
+            "carbs_g": 91.8,
+            "fat_g": 22.6,
+            "fiber_g": 12.7,
+            "sugar_g": 4.6
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 3110,
+            "protein_g": 276.7,
+            "carbs_g": 164.5,
+            "fat_g": 141.4,
+            "fiber_g": 8.2,
+            "sugar_g": 15
+          },
+          "unresolvedCount": 0
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 3614,
+            "protein_g": 170.1,
+            "carbs_g": 349.8,
+            "fat_g": 166.1,
+            "fiber_g": 14.5,
+            "sugar_g": 14.7
+          },
+          "perServing": {
+            "calories": 904,
+            "protein_g": 42.5,
+            "carbs_g": 87.5,
+            "fat_g": 41.5,
+            "fiber_g": 3.6,
+            "sugar_g": 3.7
+          },
+          "unresolvedCount": 0,
+          "unresolved": []
+        },
+        "canonicalDelta": {
+          "calories": 504,
+          "protein_g": -106.6,
+          "carbs_g": 185.3,
+          "fat_g": 24.7,
+          "fiber_g": 6.3,
+          "sugar_g": -0.3
+        },
+        "canonicalHits": [
+          {
+            "name": "spaghetti",
+            "fdcId": 169736,
+            "description": "Pasta, dry, enriched"
+          },
+          {
+            "name": "eggs",
+            "fdcId": 171287,
+            "description": "Egg, whole, raw, fresh"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "spaghetti",
+            "grams": 454,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: spaghetti",
+              "calPer100g": 157,
+              "sugarPer100g": 0.6,
+              "fiberPer100g": 1.8
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169736,
+              "description": "Pasta, dry, enriched",
+              "calPer100g": 371,
+              "sugarPer100g": 2.7,
+              "fiberPer100g": 3.2
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "eggs",
+            "grams": 195,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Egg, white, dried",
+              "calPer100g": 382,
+              "sugarPer100g": 5.4,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171287,
+              "description": "Egg, whole, raw, fresh",
+              "calPer100g": 143,
+              "sugarPer100g": 0.4,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "bread",
+      "title": "Bread!",
+      "ingredientCount": 4,
+      "instructionCount": 3,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "bread",
+        "title": "Bread!",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 1,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+default_servings",
+          "confidence": "low",
+          "servings": 4,
+          "total": {
+            "calories": 1424,
+            "protein_g": 41,
+            "carbs_g": 296.6,
+            "fat_g": 4.2,
+            "fiber_g": 13.5,
+            "sugar_g": 2.8
+          },
+          "perServing": {
+            "calories": 356,
+            "protein_g": 10.3,
+            "carbs_g": 74.2,
+            "fat_g": 1.1,
+            "fiber_g": 3.4,
+            "sugar_g": 0.7
+          }
+        },
+        "baseline": {
+          "source": "usda",
+          "confidence": "high",
+          "total": {
+            "calories": 1374,
+            "protein_g": 39.3,
+            "carbs_g": 287.5,
+            "fat_g": 3.7,
+            "fiber_g": 10.3,
+            "sugar_g": 1.1
+          },
+          "unresolvedCount": 0
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 1378,
+            "protein_g": 39.7,
+            "carbs_g": 288,
+            "fat_g": 3.9,
+            "fiber_g": 10.8,
+            "sugar_g": 1.1
+          },
+          "perServing": {
+            "calories": 344,
+            "protein_g": 9.9,
+            "carbs_g": 72,
+            "fat_g": 1,
+            "fiber_g": 2.7,
+            "sugar_g": 0.3
+          },
+          "unresolvedCount": 0,
+          "unresolved": []
+        },
+        "canonicalDelta": {
+          "calories": 4,
+          "protein_g": 0.4,
+          "carbs_g": 0.5,
+          "fat_g": 0.2,
+          "fiber_g": 0.5,
+          "sugar_g": 0
+        },
+        "canonicalHits": [
+          {
+            "name": "all purpose flour",
+            "fdcId": 169761,
+            "description": "Wheat flour, white, all-purpose, unenriched"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "all purpose flour",
+            "grams": 376,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Wheat flour, white, all-purpose, enriched, bleached",
+              "calPer100g": 364,
+              "sugarPer100g": 0.27,
+              "fiberPer100g": 2.7
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169761,
+              "description": "Wheat flour, white, all-purpose, unenriched",
+              "calPer100g": 364,
+              "sugarPer100g": 0.3,
+              "fiberPer100g": 2.7
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "chicken-chickpea-salad",
+      "title": "Chicken Chickpea Salad",
+      "ingredientCount": 23,
+      "instructionCount": 5,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "chicken-chickpea-salad",
+        "title": "Chicken Chickpea Salad",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 12,
+        "wouldWrite": false,
+        "written": false,
+        "skipReason": "no-stored-total",
+        "old": {
+          "source": null,
+          "confidence": null,
+          "servings": null,
+          "total": {
+            "calories": null,
+            "protein_g": null,
+            "carbs_g": null,
+            "fat_g": null,
+            "fiber_g": null,
+            "sugar_g": null
+          },
+          "perServing": {
+            "calories": null,
+            "protein_g": null,
+            "carbs_g": null,
+            "fat_g": null,
+            "fiber_g": null,
+            "sugar_g": null
+          }
+        },
+        "baseline": {
+          "source": "usda+ai+default_servings",
+          "confidence": "low",
+          "total": {
+            "calories": 3257,
+            "protein_g": 118.2,
+            "carbs_g": 363.7,
+            "fat_g": 147.8,
+            "fiber_g": 73.4,
+            "sugar_g": 72.4
+          },
+          "unresolvedCount": 4
+        },
+        "proposed": {
+          "source": "usda+canonical+ai+default_servings",
+          "confidence": "low",
+          "servings": 4,
+          "total": {
+            "calories": 2299,
+            "protein_g": 57.4,
+            "carbs_g": 229.2,
+            "fat_g": 134.5,
+            "fiber_g": 58.8,
+            "sugar_g": 46.3
+          },
+          "perServing": {
+            "calories": 575,
+            "protein_g": 14.3,
+            "carbs_g": 57.3,
+            "fat_g": 33.6,
+            "fiber_g": 14.7,
+            "sugar_g": 11.6
+          },
+          "unresolvedCount": 4,
+          "unresolved": [
+            "For the Green Harissa Dressing",
+            "For the Chickpeas",
+            "For the Salad",
+            "2 heaping cups boneless cooked chicken (such as rotisserie, grilled or poached), roughly chopped or torn and seasoned lightly with salt"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": -958,
+          "protein_g": -60.8,
+          "carbs_g": -134.5,
+          "fat_g": -13.3,
+          "fiber_g": -14.6,
+          "sugar_g": -26.1
+        },
+        "canonicalHits": [
+          {
+            "name": "Greek yogurt",
+            "fdcId": 170903,
+            "description": "Yogurt, Greek, plain, lowfat"
+          },
+          {
+            "name": "ground cumin",
+            "fdcId": 170923,
+            "description": "Spices, cumin seed"
+          },
+          {
+            "name": "extra-virgin olive oil",
+            "fdcId": 171413,
+            "description": "Oil, olive, salad or cooking"
+          },
+          {
+            "name": "garlic cloves",
+            "fdcId": 169230,
+            "description": "Garlic, raw"
+          },
+          {
+            "name": "lemon juice",
+            "fdcId": 167747,
+            "description": "Lemon juice, raw"
+          },
+          {
+            "name": "honey",
+            "fdcId": 169640,
+            "description": "Honey"
+          },
+          {
+            "name": "virgin olive oil",
+            "fdcId": 171413,
+            "description": "Oil, olive, salad or cooking"
+          },
+          {
+            "name": "chickpeas",
+            "fdcId": 173800,
+            "description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids"
+          },
+          {
+            "name": "ground cumin",
+            "fdcId": 170923,
+            "description": "Spices, cumin seed"
+          },
+          {
+            "name": "sweet paprika",
+            "fdcId": 171329,
+            "description": "Spices, paprika"
+          },
+          {
+            "name": "chile powder",
+            "fdcId": 171319,
+            "description": "Spices, chili powder"
+          },
+          {
+            "name": "torn cilantro leaves",
+            "fdcId": 169997,
+            "description": "Coriander (cilantro) leaves, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "Greek yogurt",
+            "grams": 60,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Yogurt, Greek, plain, lowfat",
+              "calPer100g": 73,
+              "sugarPer100g": 3.56,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170903,
+              "description": "Yogurt, Greek, plain, lowfat",
+              "calPer100g": 73,
+              "sugarPer100g": 3.6,
+              "fiberPer100g": 0
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "ground cumin",
+            "grams": 7,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Emu, ground, raw",
+              "calPer100g": 134,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170923,
+              "description": "Spices, cumin seed",
+              "calPer100g": 375,
+              "sugarPer100g": 2.3,
+              "fiberPer100g": 10.5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "extra-virgin olive oil",
+            "grams": 68,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171413,
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "garlic cloves",
+            "grams": 10,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169230,
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "lemon juice",
+            "grams": 30,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Lemon juice, raw",
+              "calPer100g": 22,
+              "sugarPer100g": 2.52,
+              "fiberPer100g": 0.3
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 167747,
+              "description": "Lemon juice, raw",
+              "calPer100g": 22,
+              "sugarPer100g": 2.5,
+              "fiberPer100g": 0.3
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "honey",
+            "grams": 4,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Honey",
+              "calPer100g": 304,
+              "sugarPer100g": 82.1,
+              "fiberPer100g": 0.2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169640,
+              "description": "Honey",
+              "calPer100g": 304,
+              "sugarPer100g": 82.1,
+              "fiberPer100g": 0.2
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "virgin olive oil",
+            "grams": 27,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171413,
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "chickpeas",
+            "grams": 397,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Chickpea flour (besan)",
+              "calPer100g": 387,
+              "sugarPer100g": 10.8,
+              "fiberPer100g": 10.8
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 173800,
+              "description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
+              "calPer100g": 139,
+              "sugarPer100g": 4,
+              "fiberPer100g": 6.4
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "ground cumin",
+            "grams": 5,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Emu, ground, raw",
+              "calPer100g": 134,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170923,
+              "description": "Spices, cumin seed",
+              "calPer100g": 375,
+              "sugarPer100g": 2.3,
+              "fiberPer100g": 10.5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "sweet paprika",
+            "grams": 5,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Sweet rolls, cheese",
+              "calPer100g": 360,
+              "sugarPer100g": 0,
+              "fiberPer100g": 1.2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171329,
+              "description": "Spices, paprika",
+              "calPer100g": 282,
+              "sugarPer100g": 10.3,
+              "fiberPer100g": 34.9
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "chile powder",
+            "grams": 1,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Baobab powder",
+              "calPer100g": 250,
+              "sugarPer100g": 0,
+              "fiberPer100g": 44.5
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171319,
+              "description": "Spices, chili powder",
+              "calPer100g": 282,
+              "sugarPer100g": 7.2,
+              "fiberPer100g": 34.8
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "torn cilantro leaves",
+            "grams": 14,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: torn cilantro leaves",
+              "calPer100g": 23,
+              "sugarPer100g": 0.87,
+              "fiberPer100g": 2.8
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169997,
+              "description": "Coriander (cilantro) leaves, raw",
+              "calPer100g": 23,
+              "sugarPer100g": 0.9,
+              "fiberPer100g": 2.8
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "chicken-meatballs-with-peppers-and-orzo",
+      "title": "Chicken Meatballs with Peppers and Orzo",
+      "ingredientCount": 13,
+      "instructionCount": 5,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "chicken-meatballs-with-peppers-and-orzo",
+        "title": "Chicken Meatballs with Peppers and Orzo",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 8,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+ai+recovered_servings",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 2780,
+            "protein_g": 183.2,
+            "carbs_g": 373.6,
+            "fat_g": 63,
+            "fiber_g": 30.8,
+            "sugar_g": 37.7
+          },
+          "perServing": {
+            "calories": 695,
+            "protein_g": 45.8,
+            "carbs_g": 93.4,
+            "fat_g": 15.7,
+            "fiber_g": 7.7,
+            "sugar_g": 9.4
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 2312,
+            "protein_g": 197.9,
+            "carbs_g": 257.5,
+            "fat_g": 55.6,
+            "fiber_g": 31.9,
+            "sugar_g": 21.1
+          },
+          "unresolvedCount": 1
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 2224,
+            "protein_g": 159.9,
+            "carbs_g": 235.9,
+            "fat_g": 72,
+            "fiber_g": 29.2,
+            "sugar_g": 22.5
+          },
+          "perServing": {
+            "calories": 556,
+            "protein_g": 40,
+            "carbs_g": 59,
+            "fat_g": 18,
+            "fiber_g": 7.3,
+            "sugar_g": 5.6
+          },
+          "unresolvedCount": 1,
+          "unresolved": [
+            "kosher salt, Parmesan, and parsley for finishing"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": -88,
+          "protein_g": -38,
+          "carbs_g": -21.6,
+          "fat_g": 16.4,
+          "fiber_g": -2.7,
+          "sugar_g": 1.4
+        },
+        "canonicalHits": [
+          {
+            "name": "ground turkey chicken",
+            "fdcId": 171505,
+            "description": "Turkey, Ground, raw"
+          },
+          {
+            "name": "egg",
+            "fdcId": 171287,
+            "description": "Egg, whole, raw, fresh"
+          },
+          {
+            "name": "panko",
+            "fdcId": 174928,
+            "description": "Bread, crumbs, dry, grated, plain"
+          },
+          {
+            "name": "Parmesan",
+            "fdcId": 170848,
+            "description": "Cheese, parmesan, hard"
+          },
+          {
+            "name": "each garlic powder",
+            "fdcId": 171325,
+            "description": "Spices, garlic powder"
+          },
+          {
+            "name": "cloves garlic",
+            "fdcId": 169230,
+            "description": "Garlic, raw"
+          },
+          {
+            "name": "one -ounce can plain tomato sauce",
+            "fdcId": 170054,
+            "description": "Tomato products, canned, sauce"
+          },
+          {
+            "name": "but you could also use cream cheese",
+            "fdcId": 173418,
+            "description": "Cheese, cream"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "ground turkey chicken",
+            "grams": 454,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Turkey, Ground, raw",
+              "calPer100g": 148,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171505,
+              "description": "Turkey, Ground, raw",
+              "calPer100g": 148,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "egg",
+            "grams": 50,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Egg, white, dried",
+              "calPer100g": 382,
+              "sugarPer100g": 5.4,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171287,
+              "description": "Egg, whole, raw, fresh",
+              "calPer100g": 143,
+              "sugarPer100g": 0.4,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "panko",
+            "grams": 53,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: panko",
+              "calPer100g": 366,
+              "sugarPer100g": 6.7,
+              "fiberPer100g": 4.3
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 174928,
+              "description": "Bread, crumbs, dry, grated, plain",
+              "calPer100g": 395,
+              "sugarPer100g": 6.2,
+              "fiberPer100g": 4.5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "Parmesan",
+            "grams": 53,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Parmesan cheese topping, fat free",
+              "calPer100g": 370,
+              "sugarPer100g": 1.5,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170848,
+              "description": "Cheese, parmesan, hard",
+              "calPer100g": 392,
+              "sugarPer100g": 0.1,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "each garlic powder",
+            "grams": 2,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: each garlic powder",
+              "calPer100g": 331,
+              "sugarPer100g": 2.43,
+              "fiberPer100g": 9
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171325,
+              "description": "Spices, garlic powder",
+              "calPer100g": 331,
+              "sugarPer100g": 2.4,
+              "fiberPer100g": 9
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "cloves garlic",
+            "grams": 13,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169230,
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "one -ounce can plain tomato sauce",
+            "grams": 123,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: one -ounce can plain tomato sauce",
+              "calPer100g": 29,
+              "sugarPer100g": 3.6,
+              "fiberPer100g": 1.5
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170054,
+              "description": "Tomato products, canned, sauce",
+              "calPer100g": 24,
+              "sugarPer100g": 3.6,
+              "fiberPer100g": 1.5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "but you could also use cream cheese",
+            "grams": 27,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: but you could also use cream cheese",
+              "calPer100g": 342,
+              "sugarPer100g": 3.2,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 173418,
+              "description": "Cheese, cream",
+              "calPer100g": 350,
+              "sugarPer100g": 3.8,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "chinese-chili-oil",
+      "title": "Chinese Chili Oil",
+      "ingredientCount": 14,
+      "instructionCount": 7,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "chinese-chili-oil",
+        "title": "Chinese Chili Oil",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 2,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+ai+recovered_servings",
+          "confidence": "medium",
+          "servings": 24,
+          "total": {
+            "calories": 2461,
+            "protein_g": 29.7,
+            "carbs_g": 62.9,
+            "fat_g": 244.9,
+            "fiber_g": 16.7,
+            "sugar_g": 3.5
+          },
+          "perServing": {
+            "calories": 103,
+            "protein_g": 1.2,
+            "carbs_g": 2.6,
+            "fat_g": 10.2,
+            "fiber_g": 0.7,
+            "sugar_g": 0.1
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 2220,
+            "protein_g": 13.6,
+            "carbs_g": 20,
+            "fat_g": 237.8,
+            "fiber_g": 8.3,
+            "sugar_g": 1.9
+          },
+          "unresolvedCount": 3
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 24,
+          "total": {
+            "calories": 2243,
+            "protein_g": 12.7,
+            "carbs_g": 30.3,
+            "fat_g": 238,
+            "fiber_g": 14.4,
+            "sugar_g": 2.9
+          },
+          "perServing": {
+            "calories": 93,
+            "protein_g": 0.5,
+            "carbs_g": 1.3,
+            "fat_g": 9.9,
+            "fiber_g": 0.6,
+            "sugar_g": 0.1
+          },
+          "unresolvedCount": 3,
+          "unresolved": [
+            "1 star anise",
+            "1 piece cassia cinnamon (aka Chinese cinnamon)",
+            "3 slices ginger"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": 23,
+          "protein_g": -0.9,
+          "carbs_g": 10.3,
+          "fat_g": 0.2,
+          "fiber_g": 6.1,
+          "sugar_g": 1
+        },
+        "canonicalHits": [
+          {
+            "name": "cooking oil",
+            "fdcId": 172370,
+            "description": "Oil, vegetable, soybean, refined"
+          },
+          {
+            "name": "scallions",
+            "fdcId": 170005,
+            "description": "Onions, spring or scallions (includes tops and bulb), raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "cooking oil",
+            "grams": 218,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 172370,
+              "description": "Oil, vegetable, soybean, refined",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "scallions",
+            "grams": 30,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Onions, spring or scallions (includes tops and bulb), raw",
+              "calPer100g": 32,
+              "sugarPer100g": 2.33,
+              "fiberPer100g": 2.6
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170005,
+              "description": "Onions, spring or scallions (includes tops and bulb), raw",
+              "calPer100g": 32,
+              "sugarPer100g": 2.3,
+              "fiberPer100g": 2.6
+            },
+            "changed": false
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "honey-sriracha-roasted-brussels-sprouts",
+      "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS",
+      "ingredientCount": 6,
+      "instructionCount": 5,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "honey-sriracha-roasted-brussels-sprouts",
+        "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 3,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+recovered_servings",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 756,
+            "protein_g": 23.9,
+            "carbs_g": 122.7,
+            "fat_g": 29.2,
+            "fiber_g": 28.2,
+            "sugar_g": 70.1
+          },
+          "perServing": {
+            "calories": 189,
+            "protein_g": 6,
+            "carbs_g": 30.7,
+            "fat_g": 7.3,
+            "fiber_g": 7,
+            "sugar_g": 17.5
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 755,
+            "protein_g": 23.8,
+            "carbs_g": 121.3,
+            "fat_g": 29.4,
+            "fiber_g": 26.6,
+            "sugar_g": 70.1
+          },
+          "unresolvedCount": 0
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 759,
+            "protein_g": 24.1,
+            "carbs_g": 123,
+            "fat_g": 29.5,
+            "fiber_g": 28.2,
+            "sugar_g": 70.1
+          },
+          "perServing": {
+            "calories": 190,
+            "protein_g": 6,
+            "carbs_g": 30.8,
+            "fat_g": 7.4,
+            "fiber_g": 7,
+            "sugar_g": 17.5
+          },
+          "unresolvedCount": 0,
+          "unresolved": []
+        },
+        "canonicalDelta": {
+          "calories": 4,
+          "protein_g": 0.3,
+          "carbs_g": 1.7,
+          "fat_g": 0.1,
+          "fiber_g": 1.6,
+          "sugar_g": 0
+        },
+        "canonicalHits": [
+          {
+            "name": "olive oil",
+            "fdcId": 171413,
+            "description": "Oil, olive, salad or cooking"
+          },
+          {
+            "name": "honey",
+            "fdcId": 169640,
+            "description": "Honey"
+          },
+          {
+            "name": "lime",
+            "fdcId": 168155,
+            "description": "Limes, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "olive oil",
+            "grams": 27,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: olive oil",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171413,
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "honey",
+            "grams": 63,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Honey",
+              "calPer100g": 304,
+              "sugarPer100g": 82.1,
+              "fiberPer100g": 0.2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169640,
+              "description": "Honey",
+              "calPer100g": 304,
+              "sugarPer100g": 82.1,
+              "fiberPer100g": 0.2
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "lime",
+            "grams": 67,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Lime juice, raw",
+              "calPer100g": 25,
+              "sugarPer100g": 1.69,
+              "fiberPer100g": 0.4
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 168155,
+              "description": "Limes, raw",
+              "calPer100g": 30,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 2.8
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "title": "Chopped Thai Shrimp Salad with Garlic Lime Dressing",
+      "ingredientCount": 18,
+      "instructionCount": 4,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+        "title": "Chopped Thai Shrimp Salad with Garlic Lime Dressing",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 8,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda+ai+recovered_servings",
+          "confidence": "medium",
+          "servings": 5,
+          "total": {
+            "calories": 3642,
+            "protein_g": 223.5,
+            "carbs_g": 203.6,
+            "fat_g": 235.6,
+            "fiber_g": 61,
+            "sugar_g": 60.9
+          },
+          "perServing": {
+            "calories": 728,
+            "protein_g": 44.7,
+            "carbs_g": 40.7,
+            "fat_g": 47.1,
+            "fiber_g": 12.2,
+            "sugar_g": 12.2
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 4195,
+            "protein_g": 77.4,
+            "carbs_g": 455,
+            "fat_g": 237.5,
+            "fiber_g": 55.1,
+            "sugar_g": 136.9
+          },
+          "unresolvedCount": 3
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 5,
+          "total": {
+            "calories": 2638,
+            "protein_g": 135.3,
+            "carbs_g": 184.7,
+            "fat_g": 158.2,
+            "fiber_g": 28.7,
+            "sugar_g": 39.2
+          },
+          "perServing": {
+            "calories": 528,
+            "protein_g": 27.1,
+            "carbs_g": 36.9,
+            "fat_g": 31.6,
+            "fiber_g": 5.7,
+            "sugar_g": 7.8
+          },
+          "unresolvedCount": 3,
+          "unresolved": [
+            "juice of two limes (lemons also work)",
+            "oil for the pan",
+            "fresh wonton wrappers + oil for frying if you want to REALLY take it over the top"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": -1557,
+          "protein_g": 57.9,
+          "carbs_g": -270.3,
+          "fat_g": -79.3,
+          "fiber_g": -26.4,
+          "sugar_g": -97.7
+        },
+        "canonicalHits": [
+          {
+            "name": "olive oil",
+            "fdcId": 171413,
+            "description": "Oil, olive, salad or cooking"
+          },
+          {
+            "name": "white wine vinegar",
+            "fdcId": 172237,
+            "description": "Vinegar, distilled"
+          },
+          {
+            "name": "honey",
+            "fdcId": 169640,
+            "description": "Honey"
+          },
+          {
+            "name": "garlic",
+            "fdcId": 169230,
+            "description": "Garlic, raw"
+          },
+          {
+            "name": "garlic",
+            "fdcId": 169230,
+            "description": "Garlic, raw"
+          },
+          {
+            "name": "shrimp",
+            "fdcId": 175179,
+            "description": "Crustaceans, shrimp, raw"
+          },
+          {
+            "name": "spinach other greens",
+            "fdcId": 168462,
+            "description": "Spinach, raw"
+          },
+          {
+            "name": "carrots",
+            "fdcId": 170393,
+            "description": "Carrots, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "olive oil",
+            "grams": 109,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: olive oil",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171413,
+              "description": "Oil, olive, salad or cooking",
+              "calPer100g": 884,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "white wine vinegar",
+            "grams": 60,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: white wine vinegar",
+              "calPer100g": 19,
+              "sugarPer100g": 0.4,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 172237,
+              "description": "Vinegar, distilled",
+              "calPer100g": 18,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "honey",
+            "grams": 21,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Honey",
+              "calPer100g": 304,
+              "sugarPer100g": 82.1,
+              "fiberPer100g": 0.2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169640,
+              "description": "Honey",
+              "calPer100g": 304,
+              "sugarPer100g": 82.1,
+              "fiberPer100g": 0.2
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "garlic",
+            "grams": 10,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: garlic",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169230,
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "garlic",
+            "grams": 15,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: garlic",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169230,
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "shrimp",
+            "grams": 454,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Snacks, shrimp cracker",
+              "calPer100g": 426,
+              "sugarPer100g": 21.4,
+              "fiberPer100g": 5.6
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 175179,
+              "description": "Crustaceans, shrimp, raw",
+              "calPer100g": 85,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "spinach other greens",
+            "grams": 114,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Spinach, raw",
+              "calPer100g": 23,
+              "sugarPer100g": 0.42,
+              "fiberPer100g": 2.2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 168462,
+              "description": "Spinach, raw",
+              "calPer100g": 23,
+              "sugarPer100g": 0.4,
+              "fiberPer100g": 2.2
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "carrots",
+            "grams": 317,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Carrots, raw",
+              "calPer100g": 41,
+              "sugarPer100g": 4.74,
+              "fiberPer100g": 2.8
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170393,
+              "description": "Carrots, raw",
+              "calPer100g": 41,
+              "sugarPer100g": 4.7,
+              "fiberPer100g": 2.8
+            },
+            "changed": false
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "intsa-punjabi-chole",
+      "title": "Intsa Punjabi Chole",
+      "ingredientCount": 20,
+      "instructionCount": 10,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "intsa-punjabi-chole",
+        "title": "Intsa Punjabi Chole",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 8,
+        "wouldWrite": false,
+        "written": false,
+        "skipReason": "would-downgrade",
+        "old": {
+          "source": "source_site",
+          "confidence": "high",
+          "servings": 5,
+          "total": {
+            "calories": 990,
+            "protein_g": 45,
+            "carbs_g": 155,
+            "fat_g": 25,
+            "fiber_g": 40,
+            "sugar_g": 35
+          },
+          "perServing": {
+            "calories": 198,
+            "protein_g": 9,
+            "carbs_g": 31,
+            "fat_g": 5,
+            "fiber_g": 8,
+            "sugar_g": 7
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 3221,
+            "protein_g": 162.6,
+            "carbs_g": 530.6,
+            "fat_g": 61.6,
+            "fiber_g": 152.4,
+            "sugar_g": 95.7
+          },
+          "unresolvedCount": 0
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 5,
+          "total": {
+            "calories": 1435,
+            "protein_g": 66.7,
+            "carbs_g": 222.7,
+            "fat_g": 39,
+            "fiber_g": 65.6,
+            "sugar_g": 38.2
+          },
+          "perServing": {
+            "calories": 287,
+            "protein_g": 13.3,
+            "carbs_g": 44.5,
+            "fat_g": 7.8,
+            "fiber_g": 13.1,
+            "sugar_g": 7.6
+          },
+          "unresolvedCount": 0,
+          "unresolved": []
+        },
+        "canonicalDelta": {
+          "calories": -1786,
+          "protein_g": -95.9,
+          "carbs_g": -307.9,
+          "fat_g": -22.6,
+          "fiber_g": -86.8,
+          "sugar_g": -57.5
+        },
+        "canonicalHits": [
+          {
+            "name": "onion",
+            "fdcId": 790646,
+            "description": "Onions, yellow, raw"
+          },
+          {
+            "name": "ginger",
+            "fdcId": 169231,
+            "description": "Ginger root, raw"
+          },
+          {
+            "name": "roma tomato",
+            "fdcId": 170457,
+            "description": "Tomatoes, red, ripe, raw, year round average"
+          },
+          {
+            "name": "coriander powder",
+            "fdcId": 170922,
+            "description": "Spices, coriander seed"
+          },
+          {
+            "name": "cumin powder",
+            "fdcId": 170923,
+            "description": "Spices, cumin seed"
+          },
+          {
+            "name": "julienned ginger",
+            "fdcId": 169231,
+            "description": "Ginger root, raw"
+          },
+          {
+            "name": "dried chickpeas cans chickpeas/garbanzo beans)",
+            "fdcId": 173800,
+            "description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids"
+          },
+          {
+            "name": "cilantro",
+            "fdcId": 169997,
+            "description": "Coriander (cilantro) leaves, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "onion",
+            "grams": 142,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Onions, raw",
+              "calPer100g": 40,
+              "sugarPer100g": 4.24,
+              "fiberPer100g": 1.7
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 790646,
+              "description": "Onions, yellow, raw",
+              "calPer100g": 38,
+              "sugarPer100g": 0,
+              "fiberPer100g": 1.9
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "ginger",
+            "grams": 15,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Ginger root, raw",
+              "calPer100g": 80,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169231,
+              "description": "Ginger root, raw",
+              "calPer100g": 80,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 2
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "roma tomato",
+            "grams": 62,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Tomato, roma",
+              "calPer100g": 22,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0.971
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170457,
+              "description": "Tomatoes, red, ripe, raw, year round average",
+              "calPer100g": 18,
+              "sugarPer100g": 2.6,
+              "fiberPer100g": 1.2
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "coriander powder",
+            "grams": 15,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Baobab powder",
+              "calPer100g": 250,
+              "sugarPer100g": 0,
+              "fiberPer100g": 44.5
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170922,
+              "description": "Spices, coriander seed",
+              "calPer100g": 298,
+              "sugarPer100g": 0,
+              "fiberPer100g": 41.9
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "cumin powder",
+            "grams": 10,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: cumin powder",
+              "calPer100g": 375,
+              "sugarPer100g": 2.3,
+              "fiberPer100g": 10.5
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170923,
+              "description": "Spices, cumin seed",
+              "calPer100g": 375,
+              "sugarPer100g": 2.3,
+              "fiberPer100g": 10.5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "julienned ginger",
+            "grams": 15,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Ginger root, raw",
+              "calPer100g": 80,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 2
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169231,
+              "description": "Ginger root, raw",
+              "calPer100g": 80,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 2
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "dried chickpeas cans chickpeas/garbanzo beans)",
+            "grams": 794,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: dried chickpeas cans chickpeas/garbanzo beans)",
+              "calPer100g": 364,
+              "sugarPer100g": 10.7,
+              "fiberPer100g": 17.4
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 173800,
+              "description": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
+              "calPer100g": 139,
+              "sugarPer100g": 4,
+              "fiberPer100g": 6.4
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "cilantro",
+            "grams": 4,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Coriander (cilantro) leaves, raw",
+              "calPer100g": 23,
+              "sugarPer100g": 0.87,
+              "fiberPer100g": 2.8
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169997,
+              "description": "Coriander (cilantro) leaves, raw",
+              "calPer100g": 23,
+              "sugarPer100g": 0.9,
+              "fiberPer100g": 2.8
+            },
+            "changed": false
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "rising-sun-mazcal",
+      "title": "Rising Sun - Mazcal",
+      "ingredientCount": 6,
+      "instructionCount": 0,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "rising-sun-mazcal",
+        "title": "Rising Sun - Mazcal",
+        "affected": true,
+        "changed": false,
+        "canonicalHitCount": 1,
+        "wouldWrite": false,
+        "written": false,
+        "skipReason": "no-canonical-effect",
+        "old": {
+          "source": "usda+ai+recovered_servings",
+          "confidence": "medium",
+          "servings": 1,
+          "total": {
+            "calories": 193,
+            "protein_g": 1.3,
+            "carbs_g": 41.9,
+            "fat_g": 0.3,
+            "fiber_g": 2,
+            "sugar_g": 34.4
+          },
+          "perServing": {
+            "calories": 193,
+            "protein_g": 1.3,
+            "carbs_g": 41.9,
+            "fat_g": 0.3,
+            "fiber_g": 2,
+            "sugar_g": 34.4
+          }
+        },
+        "baseline": {
+          "source": "usda",
+          "confidence": "medium",
+          "total": {
+            "calories": 17,
+            "protein_g": 0.3,
+            "carbs_g": 5.6,
+            "fat_g": 0,
+            "fiber_g": 0.3,
+            "sugar_g": 1.1
+          },
+          "unresolvedCount": 4
+        },
+        "proposed": {
+          "source": "usda+canonical",
+          "confidence": "medium",
+          "servings": 1,
+          "total": {
+            "calories": 17,
+            "protein_g": 0.3,
+            "carbs_g": 5.6,
+            "fat_g": 0.1,
+            "fiber_g": 0.3,
+            "sugar_g": 1.1
+          },
+          "perServing": {
+            "calories": 17,
+            "protein_g": 0.3,
+            "carbs_g": 5.6,
+            "fat_g": 0.1,
+            "fiber_g": 0.3,
+            "sugar_g": 1.1
+          },
+          "unresolvedCount": 4,
+          "unresolved": [
+            "1 1⁄2 oz. mezcal",
+            "3⁄4 oz. fresh grapefruit juice",
+            "1⁄2 oz. maraschino",
+            "Pinch of salt"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": 0,
+          "protein_g": 0,
+          "carbs_g": 0,
+          "fat_g": 0.1,
+          "fiber_g": 0,
+          "sugar_g": 0
+        },
+        "canonicalHits": [
+          {
+            "name": "⁄ lime juice",
+            "fdcId": 168156,
+            "description": "Lime juice, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "⁄ lime juice",
+            "grams": 67,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Lime juice, raw",
+              "calPer100g": 25,
+              "sugarPer100g": 1.69,
+              "fiberPer100g": 0.4
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 168156,
+              "description": "Lime juice, raw",
+              "calPer100g": 25,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 0.4
+            },
+            "changed": false
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "speget-with-fake-meat-meatballs",
+      "title": "Speget with fake meat meatballs",
+      "ingredientCount": 15,
+      "instructionCount": 0,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "speget-with-fake-meat-meatballs",
+        "title": "Speget with fake meat meatballs",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 7,
+        "wouldWrite": true,
+        "written": false,
+        "skipReason": null,
+        "old": {
+          "source": "usda",
+          "confidence": "medium",
+          "servings": 5,
+          "total": {
+            "calories": 3515,
+            "protein_g": 142.3,
+            "carbs_g": 394.9,
+            "fat_g": 147.7,
+            "fiber_g": 16,
+            "sugar_g": 250
+          },
+          "perServing": {
+            "calories": 703,
+            "protein_g": 28.5,
+            "carbs_g": 79,
+            "fat_g": 29.5,
+            "fiber_g": 3.2,
+            "sugar_g": 50
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 2744,
+            "protein_g": 194.7,
+            "carbs_g": 192.5,
+            "fat_g": 129,
+            "fiber_g": 11.9,
+            "sugar_g": 39.7
+          },
+          "unresolvedCount": 1
+        },
+        "proposed": {
+          "source": "usda+canonical",
+          "confidence": "medium",
+          "servings": 5,
+          "total": {
+            "calories": 3144,
+            "protein_g": 181.3,
+            "carbs_g": 191.2,
+            "fat_g": 179.8,
+            "fiber_g": 12.8,
+            "sugar_g": 39
+          },
+          "perServing": {
+            "calories": 629,
+            "protein_g": 36.3,
+            "carbs_g": 38.2,
+            "fat_g": 36,
+            "fiber_g": 2.6,
+            "sugar_g": 7.8
+          },
+          "unresolvedCount": 1,
+          "unresolved": [
+            "broccoli"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": 400,
+          "protein_g": -13.4,
+          "carbs_g": -1.3,
+          "fat_g": 50.8,
+          "fiber_g": 0.9,
+          "sugar_g": -0.7
+        },
+        "canonicalHits": [
+          {
+            "name": "panko bread crumbs",
+            "fdcId": 174928,
+            "description": "Bread, crumbs, dry, grated, plain"
+          },
+          {
+            "name": "onion",
+            "fdcId": 790646,
+            "description": "Onions, yellow, raw"
+          },
+          {
+            "name": "parsley leaves tender stems",
+            "fdcId": 170416,
+            "description": "Parsley, fresh"
+          },
+          {
+            "name": "garlic cloves",
+            "fdcId": 169230,
+            "description": "Garlic, raw"
+          },
+          {
+            "name": "tamari soy sauce",
+            "fdcId": 174278,
+            "description": "Soy sauce made from soy (tamari)"
+          },
+          {
+            "name": "dried oregano",
+            "fdcId": 171328,
+            "description": "Spices, oregano, dried"
+          },
+          {
+            "name": "plant-based vegan ground beef",
+            "fdcId": 174036,
+            "description": "Beef, ground, 80% lean meat / 20% fat, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "panko bread crumbs",
+            "grams": 53,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: panko bread crumbs",
+              "calPer100g": 360,
+              "sugarPer100g": 5,
+              "fiberPer100g": 3
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 174928,
+              "description": "Bread, crumbs, dry, grated, plain",
+              "calPer100g": 395,
+              "sugarPer100g": 6.2,
+              "fiberPer100g": 4.5
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "onion",
+            "grams": 35,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Onions, raw",
+              "calPer100g": 40,
+              "sugarPer100g": 4.24,
+              "fiberPer100g": 1.7
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 790646,
+              "description": "Onions, yellow, raw",
+              "calPer100g": 38,
+              "sugarPer100g": 0,
+              "fiberPer100g": 1.9
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "parsley leaves tender stems",
+            "grams": 7,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Parsley, fresh",
+              "calPer100g": 36,
+              "sugarPer100g": 0.85,
+              "fiberPer100g": 3.3
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 170416,
+              "description": "Parsley, fresh",
+              "calPer100g": 36,
+              "sugarPer100g": 0.9,
+              "fiberPer100g": 3.3
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "garlic cloves",
+            "grams": 15,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169230,
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "tamari soy sauce",
+            "grams": 15,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Soy sauce made from soy and wheat (shoyu)",
+              "calPer100g": 53,
+              "sugarPer100g": 0.4,
+              "fiberPer100g": 0.8
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 174278,
+              "description": "Soy sauce made from soy (tamari)",
+              "calPer100g": 60,
+              "sugarPer100g": 1.7,
+              "fiberPer100g": 0.8
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "dried oregano",
+            "grams": 2,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Spices, oregano, dried",
+              "calPer100g": 265,
+              "sugarPer100g": 4.09,
+              "fiberPer100g": 42.5
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171328,
+              "description": "Spices, oregano, dried",
+              "calPer100g": 265,
+              "sugarPer100g": 4.1,
+              "fiberPer100g": 42.5
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "plant-based vegan ground beef",
+            "grams": 680,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Beef, grass-fed, ground, raw",
+              "calPer100g": 198,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 174036,
+              "description": "Beef, ground, 80% lean meat / 20% fat, raw",
+              "calPer100g": 254,
+              "sugarPer100g": 0,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          }
+        ],
+        "prevCaptured": null
+      }
+    },
+    {
+      "recipeId": "yogurt-dill-sauce",
+      "title": "yogurt Dill sauce",
+      "ingredientCount": 7,
+      "instructionCount": 4,
+      "httpStatus": 200,
+      "dryRun": true,
+      "apply": false,
+      "writesPerformed": 0,
+      "error": null,
+      "diff": {
+        "recipeId": "yogurt-dill-sauce",
+        "title": "yogurt Dill sauce",
+        "affected": true,
+        "changed": true,
+        "canonicalHitCount": 3,
+        "wouldWrite": false,
+        "written": false,
+        "skipReason": "would-downgrade",
+        "old": {
+          "source": "source_site",
+          "confidence": "high",
+          "servings": 4,
+          "total": {
+            "calories": 248,
+            "protein_g": 0.8,
+            "carbs_g": 6.8,
+            "fat_g": 29.6,
+            "fiber_g": 0.8,
+            "sugar_g": 2
+          },
+          "perServing": {
+            "calories": 62,
+            "protein_g": 0.2,
+            "carbs_g": 1.7,
+            "fat_g": 7.4,
+            "fiber_g": 0.2,
+            "sugar_g": 0.5
+          }
+        },
+        "baseline": {
+          "source": "usda+ai",
+          "confidence": "medium",
+          "total": {
+            "calories": 101,
+            "protein_g": 2.7,
+            "carbs_g": 12.5,
+            "fat_g": 4.4,
+            "fiber_g": 1,
+            "sugar_g": 4.3
+          },
+          "unresolvedCount": 3
+        },
+        "proposed": {
+          "source": "usda+canonical+ai",
+          "confidence": "medium",
+          "servings": 4,
+          "total": {
+            "calories": 96,
+            "protein_g": 5.1,
+            "carbs_g": 11,
+            "fat_g": 4.1,
+            "fiber_g": 0.4,
+            "sugar_g": 6.4
+          },
+          "perServing": {
+            "calories": 24,
+            "protein_g": 1.3,
+            "carbs_g": 2.7,
+            "fat_g": 1,
+            "fiber_g": 0.1,
+            "sugar_g": 1.6
+          },
+          "unresolvedCount": 3,
+          "unresolved": [
+            "1 healthy pinch sea salt",
+            "1 pinch cayenne pepper",
+            "1 drizzle extra virgin olive oil"
+          ]
+        },
+        "canonicalDelta": {
+          "calories": -5,
+          "protein_g": 2.4,
+          "carbs_g": -1.5,
+          "fat_g": -0.3,
+          "fiber_g": -0.6,
+          "sugar_g": 2.1
+        },
+        "canonicalHits": [
+          {
+            "name": "plain dairy-free yogurt",
+            "fdcId": 171284,
+            "description": "Yogurt, plain, whole milk"
+          },
+          {
+            "name": "cloves garlic",
+            "fdcId": 169230,
+            "description": "Garlic, raw"
+          },
+          {
+            "name": "- lemon juice",
+            "fdcId": 167747,
+            "description": "Lemon juice, raw"
+          }
+        ],
+        "resolutionChanges": [
+          {
+            "ingredient": "plain dairy-free yogurt",
+            "grams": 121,
+            "before": {
+              "resolvedBy": "ai",
+              "description": "AI estimate: plain dairy-free yogurt",
+              "calPer100g": 65,
+              "sugarPer100g": 3,
+              "fiberPer100g": 0.5
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 171284,
+              "description": "Yogurt, plain, whole milk",
+              "calPer100g": 61,
+              "sugarPer100g": 4.7,
+              "fiberPer100g": 0
+            },
+            "changed": true
+          },
+          {
+            "ingredient": "cloves garlic",
+            "grams": 11,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 169230,
+              "description": "Garlic, raw",
+              "calPer100g": 149,
+              "sugarPer100g": 1,
+              "fiberPer100g": 2.1
+            },
+            "changed": false
+          },
+          {
+            "ingredient": "- lemon juice",
+            "grams": 23,
+            "before": {
+              "resolvedBy": "usda",
+              "description": "Lemon juice, raw",
+              "calPer100g": 22,
+              "sugarPer100g": 2.52,
+              "fiberPer100g": 0.3
+            },
+            "after": {
+              "resolvedBy": "canonical",
+              "fdcId": 167747,
+              "description": "Lemon juice, raw",
+              "calPer100g": 22,
+              "sugarPer100g": 2.5,
+              "fiberPer100g": 0.3
+            },
+            "changed": false
+          }
+        ],
+        "prevCaptured": null
+      }
+    }
+  ]
+}
