@@ -119,7 +119,8 @@ interface ParsedFoodItem {
 export async function GET(request: Request) {
   // Auth check using CRON_SECRET to prevent unauthorized public access
   const authHeader = request.headers.get('Authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
