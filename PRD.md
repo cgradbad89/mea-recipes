@@ -7,9 +7,10 @@
 
 ## Section 1 — App Overview
 
-**Purpose:** Personal recipe manager web app, part of the MEA ecosystem. Companion to an
-iOS MEA app — both share the same Firestore backend, so recipes, meal plans, favorites,
-and grocery lists stay in sync across web and iOS.
+**Purpose:** Personal recipe manager web app, part of the MEA ecosystem. MEA Recipes web
+is the only supported product. The former iOS client is deprecated and is not a product,
+schema, or grocery-category compatibility constraint. Historical Firestore values created
+while both clients existed remain valid data for the web app.
 
 **Intended user:** A single authenticated user (`folstromjohn@gmail.com`). The data model
 is per-user isolated, but in practice the app is used by one person. Friends' published
@@ -93,7 +94,8 @@ wrapped in a per-route `layout.tsx`.
 ## Section 3 — Data Model
 
 Firestore collections (paths defined in `lib/userdata.ts`, `lib/queue.ts`, `lib/recipes.ts`).
-All user data is keyed under `users/{uid}/…`. The web app mirrors the iOS app's structure.
+All user data is keyed under `users/{uid}/…`. Some paths originated when an iOS client
+shared this Firestore project, but MEA Recipes web now owns the supported data behavior.
 
 ### `recipes/{id}` — shared recipe catalog (`lib/recipes.ts`)
 Doc ID = slugified title. Fields (see `types/recipe.ts` → `Recipe`):
@@ -309,11 +311,16 @@ retained as historical data and are not modified or deleted by this app.
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
    prep + cook. Drives the time filter and time badges.
 9. **Grocery categorization** — `categorizeIngredient` (`lib/groceryCategories.ts`) maps an
-   ingredient name to one of 9 iOS-compatible categories by first-match keyword rules.
-   `Spices & Seasonings` (dried spices/chiles — chile, chili, chipotle, ancho, guajillo,
-   paprika, cumin, etc.) is matched before `Staples` and **is** manually selectable;
-   `Staples` remains **auto-assigned only** (excluded from `MANUAL_CATEGORIES`). Manual
-   override via `GroceryItem.manualSection`.
+   ingredient name to the current nine web-owned categories. Matching is deterministic and
+   token/phrase-aware: punctuation and hyphens form boundaries, ordinary alphabetic keywords
+   never match inside a larger word, and the longest matching purchase-identity phrase wins
+   before the original ordered-rule tie-breaker. Explicit processed forms (for example garlic
+   powder, dried herbs, tomato paste, plant/coconut milk, fish/oyster sauce, and broth/stock)
+   therefore outrank generic produce, dairy, or protein component words. `Spices & Seasonings`
+   remains manually selectable; `Staples` remains **auto-assigned only** (excluded from
+   `MANUAL_CATEGORIES`). `GroceryItem.manualSection` remains authoritative over automatic
+   classification. Phase 1 changes no category string, saved default, or persisted value, and
+   the deprecated iOS client is not a compatibility constraint.
 10. **AI grocery cleanup** — `POST /api/grocery-cleanup` sends the list through AI Gateway, which
     returns per-item actions (`keep` / `merge` / `normalize` / `remove`) with `mergedWith`
     indices and a category. The route imports `GROCERY_CATEGORIES` (no hand-duplicated list)
@@ -750,6 +757,8 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 |---|---|---|---|
 | Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Done | Setup UI at `/queue#bookmarklet`; captures page from logged-in browser |
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
+| Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
+| Grocery 11-category store taxonomy | Medium | Backlog | The corrected 216-recipe corpus still supports the audit's 11-category recommendation; migration, legacy saved/manual handling, and staple-status separation are separate future work. |
 | Recommendations trigger button (avoid charges) | Medium | Done | Recommendations/suggestions only fire on explicit button + are cached |
 | Manual grocery category assignment | Medium | Done | `GroceryItem.manualSection` + `MANUAL_CATEGORIES` (Staples excluded) |
 | Saved/remembered grocery items | Medium | Done | `savedGroceryItems` ranks by `timesUsed` for fast re-entry |

@@ -15,7 +15,11 @@ import path from 'node:path'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
-import { categorizeIngredient, GROCERY_CATEGORIES } from '../lib/groceryCategories.ts'
+import {
+  categorizeIngredient,
+  GROCERY_CATEGORIES,
+  matchGroceryCategory,
+} from '../lib/groceryCategories.ts'
 import { normalizeNoun, parseIngredient } from '../lib/ingredientParser.ts'
 import { parseRecipeContent } from '../lib/recipeContent.ts'
 
@@ -25,32 +29,9 @@ const { loadEnv, getAdmin } = require('./_lib.js')
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, '..')
 
-function readCurrentRules() {
-  const source = fs.readFileSync(path.join(repoRoot, 'lib/groceryCategories.ts'), 'utf8')
-  const rules = []
-  const blockPattern = /keywords:\s*\[([\s\S]*?)\],\s*category:\s*'([^']+)'/g
-  let block
-  while ((block = blockPattern.exec(source)) !== null) {
-    const keywords = []
-    const stringPattern = /'((?:\\.|[^'])*)'/g
-    let keyword
-    while ((keyword = stringPattern.exec(block[1])) !== null) {
-      keywords.push(keyword[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\'))
-    }
-    rules.push({ category: block[2], keywords })
-  }
-  return rules
-}
-
-const currentRules = readCurrentRules()
-
 function matchedCurrentRule(name) {
-  const lower = name.toLowerCase()
-  for (let ruleIndex = 0; ruleIndex < currentRules.length; ruleIndex += 1) {
-    const rule = currentRules[ruleIndex]
-    const keyword = rule.keywords.find(value => lower.includes(value))
-    if (keyword) return { ruleIndex, category: rule.category, keyword }
-  }
+  const match = matchGroceryCategory(name)
+  if (match) return { ruleIndex: match.ruleIndex, category: match.category, keyword: match.keyword }
   return { ruleIndex: -1, category: 'Other', keyword: null }
 }
 

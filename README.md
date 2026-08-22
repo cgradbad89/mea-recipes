@@ -17,8 +17,8 @@ A Next.js web app for your personal recipe collection, powered by Firebase Fires
 - Filter by cuisine and category
 - Full recipe detail with ingredients + instructions
 - Favorites (synced via Firestore when signed in)
-- Weekly meal planner (synced with iOS app)
-- Grocery list (shared with iOS app)
+- Weekly meal planner
+- Grocery list with deterministic store-category grouping
 - Add recipes via URL (auto-parses structured recipe sites) or paste
 - AI recipe generation, recommendations, meal-plan suggestions, grocery cleanup, and cooking assistant
 - Notes + ratings per recipe
@@ -26,7 +26,7 @@ A Next.js web app for your personal recipe collection, powered by Firebase Fires
 
 ## Firebase Collections Used
 
-All data syncs with the iOS MEA app:
+MEA Recipes web is the supported client for this data. The former iOS client is deprecated:
 
 - `recipes/{id}` — shared recipe catalog
 - `users/{uid}/recipes/root/favorites/{recipeID}` — favorites
