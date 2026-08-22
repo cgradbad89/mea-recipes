@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminToken, verifyAuthToken, getAdminDb } from '@/lib/firebaseAdmin'
 import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
+import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
 
 // ─── Canonical-staples recompute — DRY-RUN by default; ?apply=true WRITES ──────
 //
@@ -39,6 +41,7 @@ export const maxDuration = 60
 
 const DEFAULT_LIMIT = 25
 const MAX_LIMIT = 50
+const MAX_OFFSET = 10_000
 
 const MACRO_KEYS: (keyof NutritionMacros)[] = [
   'calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g',
@@ -98,10 +101,20 @@ export async function POST(req: NextRequest) {
       { status: apply ? 403 : 401 },
     )
   }
-  const scope = params.get('scope') === 'low' ? 'low' : 'all'
+  const abuseResponse = await enforceAbuseLimit(req, 'writeHeavy', uid)
+  if (abuseResponse) return abuseResponse
+  const rawScope = params.get('scope')
+  if (rawScope !== null && rawScope !== 'all' && rawScope !== 'low') {
+    return NextResponse.json({ error: 'Invalid scope.' }, { status: 400 })
+  }
+  const scope = rawScope === 'low' ? 'low' : 'all'
   const singleId = (params.get('recipeId') || '').trim()
-  const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(params.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))
-  const offset = Math.max(0, parseInt(params.get('offset') || '0', 10) || 0)
+  if (singleId.length > 256) return NextResponse.json({ error: 'Invalid recipeId.' }, { status: 400 })
+  const limit = parseBoundedInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT)
+  const offset = parseBoundedInteger(params.get('offset'), 0, 0, MAX_OFFSET)
+  if (limit === null || offset === null) {
+    return NextResponse.json({ error: 'Invalid pagination parameters.' }, { status: 400 })
+  }
 
   try {
     const db = getAdminDb()
@@ -194,7 +207,11 @@ export async function POST(req: NextRequest) {
         })
       } catch (e: any) {
         errorCount++; skipped.error++
-        diffs.push({ recipeId: id, title, error: e?.message || 'recompute failed', wouldWrite: false, written: false, skipReason: 'error', old: { source: old?.source ?? null, confidence: old?.confidence ?? null } })
+        console.error('[nutrition-canonical-dryrun] recomputation failed', {
+          recipeId: id,
+          error: safeErrorLogDetails(e),
+        })
+        diffs.push({ recipeId: id, title, error: 'Recomputation failed.', wouldWrite: false, written: false, skipReason: 'error', old: { source: old?.source ?? null, confidence: old?.confidence ?? null } })
       }
     }
 
@@ -218,8 +235,8 @@ export async function POST(req: NextRequest) {
       diffs,
     }
     return NextResponse.json(result)
-  } catch (err: any) {
-    console.error('nutrition-canonical-dryrun error:', err)
-    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
+  } catch (err) {
+    console.error('[nutrition-canonical-dryrun] request failed', { error: safeErrorLogDetails(err) })
+    return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
 }

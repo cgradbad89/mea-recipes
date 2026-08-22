@@ -3,6 +3,8 @@ import { verifyAdminToken, verifyAuthToken, getAdminDb } from '@/lib/firebaseAdm
 import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import { servingsAssumed } from '@/lib/nutrition'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
+import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
 
 // ─── Re-validate low-confidence recipe nutrition (DRY-RUN BY DEFAULT) ─────────
 //
@@ -28,6 +30,7 @@ import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 
 const DEFAULT_LIMIT = 25
 const MAX_LIMIT = 50
+const MAX_OFFSET = 10_000
 
 const MACRO_KEYS: (keyof NutritionMacros)[] = [
   'calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g', 'sugar_g',
@@ -68,11 +71,13 @@ export async function POST(req: NextRequest) {
       { status: apply ? 403 : 401 },
     )
   }
-  const limit = Math.min(
-    MAX_LIMIT,
-    Math.max(1, parseInt(params.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
-  )
-  const offset = Math.max(0, parseInt(params.get('offset') || '0', 10) || 0)
+  const abuseResponse = await enforceAbuseLimit(req, 'writeHeavy', uid)
+  if (abuseResponse) return abuseResponse
+  const limit = parseBoundedInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT)
+  const offset = parseBoundedInteger(params.get('offset'), 0, 0, MAX_OFFSET)
+  if (limit === null || offset === null) {
+    return NextResponse.json({ error: 'Invalid pagination parameters.' }, { status: 400 })
+  }
 
   try {
     const db = getAdminDb()
@@ -141,10 +146,14 @@ export async function POST(req: NextRequest) {
         })
       } catch (e: any) {
         errorCount++
+        console.error('[nutrition-revalidate] recomputation failed', {
+          recipeId: id,
+          error: safeErrorLogDetails(e),
+        })
         diffs.push({
           recipeId: id,
           title,
-          error: e?.message || 'recompute failed',
+          error: 'Recomputation failed.',
           old: { source: old?.source ?? null, confidence: old?.confidence ?? null },
         })
       }
@@ -168,9 +177,9 @@ export async function POST(req: NextRequest) {
     // Human-readable server-log summary (so a dry run is reviewable in dev logs).
     logSummary(result)
     return NextResponse.json(result)
-  } catch (err: any) {
-    console.error('nutrition-revalidate error:', err)
-    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
+  } catch (err) {
+    console.error('[nutrition-revalidate] request failed', { error: safeErrorLogDetails(err) })
+    return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
 }
 

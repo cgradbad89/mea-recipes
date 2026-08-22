@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { lookupFoodByBarcode } from '@/lib/nutritionEngine'
+import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
+import { z } from 'zod'
+
+const REQUEST_SCHEMA = z.object({ barcode: z.string() })
 
 // Barcode → packaged-product nutrition (see nutrition-tracker-spec / barcode session).
 //   POST { barcode: "<UPC/EAN>" }
@@ -16,9 +21,12 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const abuseResponse = await enforceAbuseLimit(req, 'externalLookup', uid)
+    if (abuseResponse) return abuseResponse
 
-    const body = await req.json().catch(() => null)
-    const barcode = typeof body?.barcode === 'string' ? body.barcode.replace(/\s+/g, '').trim() : ''
+    const requestResult = REQUEST_SCHEMA.safeParse(await readBoundedJson(req, 8_000))
+    if (!requestResult.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+    const barcode = requestResult.data.barcode.replace(/\s+/g, '').trim()
     if (!/^\d{6,14}$/.test(barcode)) {
       return NextResponse.json(
         { error: 'Body must be { barcode } — a 6–14 digit UPC/EAN number' },
@@ -32,8 +40,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ found: false })
     }
     return NextResponse.json({ found: true, ...product })
-  } catch (err: any) {
-    console.error('barcode-lookup error:', err)
-    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
+  } catch (err) {
+    if (err instanceof ApiRequestError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
+    console.error('[barcode-lookup] request failed', { error: safeErrorLogDetails(err) })
+    return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
 }

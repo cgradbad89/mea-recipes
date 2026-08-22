@@ -95,3 +95,17 @@ export async function readBoundedJson(
     throw invalidJson()
   }
 }
+
+/** Parse a query integer without accepting partial, negative, or unsafe values. */
+export function parseBoundedInteger(
+  value: string | null,
+  defaultValue: number,
+  min: number,
+  max: number,
+): number | null {
+  if (value === null || value === '') return defaultValue
+  if (!/^\d+$/.test(value)) return null
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed) || parsed < min || parsed > max) return null
+  return parsed
+}

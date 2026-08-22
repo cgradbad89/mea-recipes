@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
 import { safeFetchText, SafeFetchError } from '@/lib/safeFetch'
 
 export async function GET(req: NextRequest) {
+  const abuseResponse = await enforceAbuseLimit(req, 'publicFetch')
+  if (abuseResponse) return abuseResponse
+
   const url = req.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 })
 
@@ -22,8 +26,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ html, title })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch'
-    const status = error instanceof SafeFetchError ? error.status : 502
-    return NextResponse.json({ error: message }, { status })
+    if (error instanceof SafeFetchError) {
+      return NextResponse.json({ error: 'Could not fetch URL.' }, { status: error.status })
+    }
+    return NextResponse.json({ error: 'Could not fetch URL.' }, { status: 502 })
   }
 }

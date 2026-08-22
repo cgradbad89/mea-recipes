@@ -507,3 +507,94 @@ No new composite index was identified as required by this audit. Existing multi-
 6. **M-04 nutrition:** resolved for the safely remediable population through the Prompt 4E controlled apply; two allowlisted recipes were applied and verified, while three were skipped by the finality safety gate. Leave the eight blocked recipes, maple pecans, and `smoothies` explicitly deferred.
 7. Add user-visible error/retry states and client telemetry across recipes, plan, grocery, nutrition, and queue.
 8. **L-04 dependency/runtime hardening:** completed in the 2026-08-22 verification above; retain the scoped `uuid` override and Node 26.x contract until a supported Firebase Admin release removes the need for the override.
+
+---
+
+## 12. API Abuse-Resistance Review (Prompt 6, 2026-08-22)
+
+**Result: PASS WITH MANUAL SECURITY ACTION.** All 13 repository API routes were
+inventoried. Authentication occurs before rate checks and before the corresponding AI,
+provider, Admin SDK, or public URL work. `verifyAdminToken` remains required for both
+nutrition `?apply=true` paths; no Firestore rules, production data, secrets, or Vercel
+Firewall configuration were changed in this session.
+
+### Controls implemented
+
+- `lib/apiAbuse.ts` uses the official `@vercel/firewall` SDK rather than a process-local
+  map. Authenticated counters use only the server-verified Firebase uid; the public
+  fetch counter delegates identity to the Vercel request context and never parses
+  `X-Forwarded-For` or a client uid.
+- In Vercel production, a missing configured Firewall rule or an unavailable limit check
+  fails the affected endpoint closed with a generic 503. A configured-limit denial is
+  the stable generic 429 `{error:"Too many requests. Please try again later."}`.
+- The shared safe-fetch boundary remains the only arbitrary public URL path: HTTP(S),
+  no URL credentials, DNS/IP validation and address pinning on every redirect hop,
+  three redirects, eight-second deadline, and 2 MB response ceiling. DNS rebinding is
+  materially reduced by pinning the validated address; malicious control of DNS after a
+  connection is established or an upstream proxy outside this code remains a residual
+  infrastructure risk.
+- Calendar input is bounded to a 128 KB body, `primary` calendar, validated event shape,
+  and at most seven operations. Grocery cleanup is bounded to 256 KB / 100 items;
+  plan suggestions to 256 KB / 21 planned recipes / 500 titles; lookup and barcode
+  inputs are bounded. Nutrition batch limits and offsets now require bounded whole
+  integers instead of permissive `parseInt` coercion.
+- Provider and recomputation errors no longer return raw exception messages. Security
+  logs contain route/class/status/verified identifier context only; no body, bearer,
+  Google access token, credential, or provider diagnostic is emitted.
+
+### Final route matrix
+
+| Route | Auth | Rate / abuse control | Payload or batch bound | External cost | Residual risk |
+|---|---|---|---|---|---|
+| `/api/fetch-recipe` GET | Public | `publicFetch`, Vercel IP identity | URL + safe-fetch 2 MB / 3 redirects | Arbitrary public HTML fetch | **ACTION_REQUIRED** until rule is configured; SSRF residual noted above |
+| `/api/ai-ingest` POST | Firebase | `aiExpensive`, verified uid | 2 MB raw body; per-mode caps | AI; URL mode safe fetch | **ACTION_REQUIRED** until rule configured |
+| `/api/grocery-cleanup` POST | Firebase | `aiStandard`, verified uid | 256 KB; 100 items / 1,000-char line | AI | **ACTION_REQUIRED** until rule configured |
+| `/api/calendar/push` POST | Firebase | `writeHeavy`, verified uid | 128 KB; primary only; ≤7 ops | Google Calendar writes | **ACTION_REQUIRED** until rule configured; replay may repeat explicit updates/deletes but operations are scoped/idempotent where documented |
+| `/api/new-recipe-suggestions` POST | Firebase | `aiStandard`, verified uid | 256 KB; 500 strings per collection | AI | **ACTION_REQUIRED** until rule configured |
+| `/api/plan-suggestions` POST | Firebase | `aiStandard`, verified uid | 256 KB; 21 plan / 500 title entries | AI | **ACTION_REQUIRED** until rule configured |
+| `/api/recommendations` POST | Firebase | `aiStandard`, verified uid | 256 KB; 500 bounded entries | AI | **ACTION_REQUIRED** until rule configured |
+| `/api/recipe-assistant` POST | Firebase | `aiExpensive`, verified uid | 256 KB; 40 messages / 64k history / 16k recipe context | AI | **ACTION_REQUIRED** until rule configured |
+| `/api/nutrition-lookup` POST | Firebase | `externalLookup`, verified uid | 32 KB; bounded id/name | USDA, possible AI | **ACTION_REQUIRED** until rule configured |
+| `/api/barcode-lookup` POST | Firebase | `externalLookup`, verified uid | 8 KB; 6–14 digit barcode | Open Food Facts / USDA | **ACTION_REQUIRED** until rule configured |
+| `/api/nutrition-revalidate` POST | Firebase; admin for apply | `writeHeavy`, verified uid | limit 1–50; offset 0–10,000 | Firestore, USDA, possible AI, writes on apply | **ACTION_REQUIRED** until rule configured; authorized replay can recompute up to 50 records |
+| `/api/nutrition-canonical-dryrun` POST | Firebase; admin for apply | `writeHeavy`, verified uid | limit 1–50; offset 0–10,000 | Firestore, USDA, possible AI, writes on apply | **ACTION_REQUIRED** until rule configured; authorized replay is bounded |
+| `/api/cron/sync-nutrition` GET | Exact non-empty `CRON_SECRET` | Vercel scheduler secret boundary | Fixed two-day diary window | MFP and Firestore writes | **LOW**; secret rotation/scheduler delivery are operational concerns |
+
+### Required manual Vercel Firewall action — do not publish blindly
+
+Create five **`@vercel/firewall` SDK** rules in the project Firewall dashboard (or stage
+with the CLI), each using the exact ID below. Begin with **Log**, review the Firewall
+traffic view, then apply a 429 rate-limit action. Counts are deliberately conservative
+for a single interactive user and protect the expensive burst, not volumetric DDoS:
+
+| SDK rule ID | Intended route class | Proposed fixed window | Counting key |
+|---|---|---:|---|
+| `mea-public-fetch-v1` | `/api/fetch-recipe` GET | 6 requests / 10 min | Vercel IP |
+| `mea-ai-expensive-v1` | ingest and assistant | 10 requests / 10 min | verified Firebase uid passed by SDK |
+| `mea-ai-standard-v1` | cleanup, suggestions, recommendations | 20 requests / 10 min | verified Firebase uid passed by SDK |
+| `mea-external-lookup-v1` | nutrition and barcode lookups | 30 requests / 10 min | verified Firebase uid passed by SDK |
+| `mea-write-heavy-v1` | calendar and nutrition batch routes | 12 requests / 10 min | verified Firebase uid passed by SDK |
+
+For each rule: select **`@vercel/firewall`** as the condition and the matching ID,
+configure its limit/counting policy, save as a draft, inspect the diff and traffic,
+then publish only after confirmation. Do not use a header key for the authenticated
+limits: the SDK receives the UID only after Firebase verification. Vercel's automatic
+DDoS mitigation remains enabled independently. Bot challenge/BotID is not recommended
+for the pre-login fetch route at this stage because bookmarklet and browser imports are
+legitimate automation-adjacent traffic; the short public-fetch rate plus SSRF boundary
+is the safer initial control. Keep Attack Mode as an incident-response tool, not a
+normal rule.
+
+### Verification
+
+Fresh pre-change baseline: `npm test` **129 passed / 1 skipped**, typecheck passed,
+lint had **0 errors / 6 existing warnings**, and build passed. Focused Prompt 6 tests
+exercise distributed rate identity/denial/fail-closed behavior, public-fetch denial
+before outbound work, Calendar auth-before-work, and seven-operation bounds. Existing
+safe-fetch tests retain IP/scheme coverage; the implementation retains redirect, size,
+timeout, DNS, and address-pinning behavior.
+
+Unverifiable here: the live Vercel rule configuration, rule traffic, plan entitlement,
+and per-region counter behavior were not inspected or modified. Vercel rate counters
+are per region, so a multi-region attacker can exceed the nominal threshold across
+regions; that is accepted residual risk alongside platform DDoS mitigation.

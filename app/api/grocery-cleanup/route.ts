@@ -3,8 +3,13 @@ import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
 import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
 import { generateAIArray, generateAIObject } from '@/lib/ai'
-import { safeErrorLogDetails } from '@/lib/apiRequest'
-import { sanitizeGroceryCleanupChanges, type GroceryCleanupChange } from '@/lib/groceryCleanup'
+import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
+import {
+  sanitizeGroceryCleanupChanges,
+  type GroceryCleanupChange,
+  type GroceryCleanupItem,
+} from '@/lib/groceryCleanup'
 import { z } from 'zod'
 
 // Single source of truth for the allowed categories — imported from the shared
@@ -27,6 +32,20 @@ const PARSED_LINE_SCHEMA = z.object({
   name: z.string(),
 })
 
+const GROCERY_MAX_BODY_BYTES = 256_000
+const MAX_GROCERY_ITEMS = 100
+const MAX_GROCERY_ITEM_TEXT = 500
+const GROCERY_ITEM_SCHEMA = z.object({
+  name: z.string().max(MAX_GROCERY_ITEM_TEXT),
+  quantity: z.string().max(100).optional(),
+  unit: z.string().max(100).optional(),
+  manualSection: z.string().max(100).optional(),
+}).passthrough()
+const REQUEST_SCHEMA = z.union([
+  z.object({ mode: z.literal('parse-line'), line: z.string().max(1_000) }).passthrough(),
+  z.object({ items: z.array(GROCERY_ITEM_SCHEMA).max(MAX_GROCERY_ITEMS) }).passthrough(),
+])
+
 export async function POST(req: NextRequest) {
   let requestMetadata: {
     mode: 'unknown' | 'cleanup' | 'parse-line'
@@ -36,8 +55,20 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const abuseResponse = await enforceAbuseLimit(req, 'aiStandard', uid)
+    if (abuseResponse) return abuseResponse
 
-    const body = await req.json()
+    const requestResult = REQUEST_SCHEMA.safeParse(
+      await readBoundedJson(req, GROCERY_MAX_BODY_BYTES),
+    )
+    if (!requestResult.success) {
+      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+    }
+    const body = requestResult.data as {
+      mode?: 'parse-line'
+      line?: string
+      items?: GroceryCleanupItem[]
+    }
 
     // ── Per-item AI fallback (the grocery ADD path) ──────────────────────────
     // Splits ONE ambiguous line the deterministic parser was unsure about into
@@ -49,11 +80,14 @@ export async function POST(req: NextRequest) {
       return parseSingleLine(String(body.line || ''), uid)
     }
 
-    const { items } = body
+    const items = body.items
+    if (!items) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
     requestMetadata = {
       mode: 'cleanup',
       itemCount: Array.isArray(items) ? items.length : 0,
     }
+
+    if (items.length === 0) return NextResponse.json([])
 
     const prompt = `You are a grocery list organizer. Clean up this grocery list and return improved data.
 
@@ -101,7 +135,10 @@ Rules:
         element: GROCERY_CHANGE_SCHEMA,
       })
     } catch (err) {
-      console.error('AI Gateway cleanup error:', err)
+      console.error('[grocery-cleanup] AI request failed', {
+        error: safeErrorLogDetails(err),
+        ...requestMetadata,
+      })
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 
@@ -113,6 +150,9 @@ Rules:
       sanitizeGroceryCleanupChanges(items, parsedChanges as GroceryCleanupChange[]),
     )
   } catch (err) {
+    if (err instanceof ApiRequestError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
     console.error('[grocery-cleanup] request failed', {
       error: safeErrorLogDetails(err),
       ...requestMetadata,

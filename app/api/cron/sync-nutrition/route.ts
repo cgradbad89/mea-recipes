@@ -190,8 +190,7 @@ export async function GET(request: Request) {
       if (DEBUG) console.log(`DEBUG MFP RESPONSE for ${date}:`, { status: res.status, redirected: res.redirected, finalUrl: res.url })
 
       if (!res.ok) {
-        const errorText = await res.text()
-        console.error('MFP page error body (first 500 chars):', errorText.slice(0, 500))
+        console.error('MFP page error', { status: res.status })
         if (res.status === 401 || res.status === 403) {
           console.error(`MFP page error ${res.status}: session cookie likely expired.`)
         } else {

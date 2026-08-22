@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { computeRecipeNutrition, lookupFoodByName } from '@/lib/nutritionEngine'
+import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
+import { z } from 'zod'
+
+const EXTERNAL_LOOKUP_MAX_BODY_BYTES = 32_000
+const REQUEST_SCHEMA = z.union([
+  z.object({ type: z.literal('recipe'), recipeId: z.string().trim().min(1).max(256) }),
+  z.object({ type: z.literal('food'), name: z.string().trim().min(1).max(500) }),
+])
 
 // Shared nutrition lookup endpoint (see nutrition-tracker-spec.md).
 //   POST { type: "recipe", recipeId } → compute from the recipe's ingredients
@@ -11,20 +20,18 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const abuseResponse = await enforceAbuseLimit(req, 'externalLookup', uid)
+    if (abuseResponse) return abuseResponse
 
-    const body = await req.json().catch(() => null)
-    if (!body || (body.type !== 'recipe' && body.type !== 'food')) {
-      return NextResponse.json(
-        { error: 'Body must be { type: "recipe", recipeId } or { type: "food", name }' },
-        { status: 400 },
-      )
-    }
+    const requestResult = REQUEST_SCHEMA.safeParse(
+      await readBoundedJson(req, EXTERNAL_LOOKUP_MAX_BODY_BYTES),
+    )
+    if (!requestResult.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+    const body = requestResult.data
 
     if (body.type === 'recipe') {
-      const recipeId = typeof body.recipeId === 'string' ? body.recipeId.trim() : ''
-      if (!recipeId) return NextResponse.json({ error: 'Missing recipeId' }, { status: 400 })
       try {
-        const { nutrition, unresolved, flagged } = await computeRecipeNutrition(recipeId)
+        const { nutrition, unresolved, flagged } = await computeRecipeNutrition(body.recipeId)
         return NextResponse.json({
           nutrition,
           source: nutrition.source,
@@ -32,17 +39,15 @@ export async function POST(req: NextRequest) {
           unresolved,
           flagged,
         })
-      } catch (e: any) {
-        const msg = e?.message || 'Recipe lookup failed'
-        const status = /not found/i.test(msg) ? 404 : /no parseable/i.test(msg) ? 422 : 500
-        return NextResponse.json({ error: msg }, { status })
+      } catch (e) {
+        const message = e instanceof Error ? e.message : ''
+        const status = /not found/i.test(message) ? 404 : /no parseable/i.test(message) ? 422 : 500
+        return NextResponse.json({ error: status === 500 ? 'Recipe lookup failed.' : 'Recipe could not be processed.' }, { status })
       }
     }
 
     // type === 'food'
-    const name = typeof body.name === 'string' ? body.name.trim() : ''
-    if (!name) return NextResponse.json({ error: 'Missing name' }, { status: 400 })
-    const result = await lookupFoodByName(name)
+    const result = await lookupFoodByName(body.name)
     if (!result) {
       return NextResponse.json(
         { error: 'Could not resolve food — try manual entry' },
@@ -57,8 +62,11 @@ export async function POST(req: NextRequest) {
       servingGrams: result.servingGrams,
       ...(result.aiProvenance ? { aiProvenance: result.aiProvenance } : {}),
     })
-  } catch (err: any) {
-    console.error('nutrition-lookup error:', err)
-    return NextResponse.json({ error: err?.message || 'Unknown error' }, { status: 500 })
+  } catch (err) {
+    if (err instanceof ApiRequestError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
+    console.error('[nutrition-lookup] request failed', { error: safeErrorLogDetails(err) })
+    return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
 }

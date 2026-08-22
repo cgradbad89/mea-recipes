@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { getComplementaryIngredients } from '@/lib/flavorPairings'
 import { generateAIObject } from '@/lib/ai'
+import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
+import { enforceAbuseLimit } from '@/lib/apiAbuse'
 import { z } from 'zod'
+
+const AI_STANDARD_MAX_BODY_BYTES = 256_000
+const MAX_PLANNED_RECIPES = 21
+const MAX_EXISTING_RECIPE_TITLES = 500
+const MAX_TEXT_LENGTH = 2_000
+const MAX_INGREDIENTS_LENGTH = 4_000
 
 const PLAN_SUGGESTIONS_SCHEMA = z.object({
   existing: z.array(z.object({
@@ -24,21 +32,30 @@ interface PlannedRecipeIn {
   ingredients?: string
 }
 
+const PLANNED_RECIPE_SCHEMA: z.ZodType<PlannedRecipeIn> = z.object({
+  title: z.string().max(MAX_TEXT_LENGTH),
+  category: z.string().max(MAX_TEXT_LENGTH).optional(),
+  cuisine: z.string().max(MAX_TEXT_LENGTH).optional(),
+  ingredients: z.string().max(MAX_INGREDIENTS_LENGTH).optional(),
+})
+const REQUEST_SCHEMA = z.object({
+  mode: z.enum(['existing', 'new', 'both']),
+  plannedRecipes: z.array(PLANNED_RECIPE_SCHEMA).min(1).max(MAX_PLANNED_RECIPES),
+  existingRecipeTitles: z.array(z.string().max(MAX_TEXT_LENGTH)).max(MAX_EXISTING_RECIPE_TITLES),
+})
+
 export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const abuseResponse = await enforceAbuseLimit(req, 'aiStandard', uid)
+    if (abuseResponse) return abuseResponse
 
-    const { mode, plannedRecipes, existingRecipeTitles } = await req.json() as {
-      weekID: string
-      mode: 'existing' | 'new' | 'both'
-      plannedRecipes: PlannedRecipeIn[]
-      existingRecipeTitles: string[]
-    }
-
-    if (!plannedRecipes || !Array.isArray(plannedRecipes) || plannedRecipes.length === 0) {
-      return NextResponse.json({ error: 'No planned recipes provided' }, { status: 400 })
-    }
+    const requestResult = REQUEST_SCHEMA.safeParse(
+      await readBoundedJson(req, AI_STANDARD_MAX_BODY_BYTES),
+    )
+    if (!requestResult.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+    const { mode, plannedRecipes, existingRecipeTitles } = requestResult.data
 
     const plannedSummary = plannedRecipes.map((r, i) => {
       // Strip giant content blobs for prompt size — just take first ~400 chars
@@ -101,7 +118,7 @@ ${!wantExisting ? '- "existing" MUST be an empty array.\n' : ''}${!wantNew ? '- 
         schema: PLAN_SUGGESTIONS_SCHEMA,
       })
     } catch (err) {
-      console.error('AI Gateway error:', err)
+      console.error('[plan-suggestions] AI request failed', { error: safeErrorLogDetails(err) })
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
 
@@ -130,8 +147,11 @@ ${!wantExisting ? '- "existing" MUST be an empty array.\n' : ''}${!wantNew ? '- 
       existing: wantExisting ? existingResolved : [],
       new: wantNew ? newFiltered : [],
     })
-  } catch (err: any) {
-    console.error('plan-suggestions error:', err)
-    return NextResponse.json({ error: err.message || 'Unknown error' }, { status: 500 })
+  } catch (err) {
+    if (err instanceof ApiRequestError) {
+      return NextResponse.json({ error: err.message }, { status: err.status })
+    }
+    console.error('[plan-suggestions] request failed', { error: safeErrorLogDetails(err) })
+    return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
 }
