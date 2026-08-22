@@ -30,3 +30,5 @@
 ## Apply decision
 
 Nutrition was not applied. Review the raw ingredient-level resolutions and retain the existing apply block until each remaining semantic mismatch is resolved.
+
+Prompt 4D.1 supersedes this intermediate readiness snapshot with the final allowlist and blocker classification in `m04-nutrition-final-readiness-2026-08-22.md`.

@@ -260,6 +260,10 @@ const DESCRIPTOR_WORDS = new Set([
   'preferably', 'optional', 'taste', 'needed', 'serving', 'serve', 'garnish', 'whole', 'a', 'an',
   'the', 'of', 'or', 'and', 'with', 'without', 'your', 'favorite', 'good', 'quality', 'store-bought',
   'homemade', 'packed', 'loosely', 'loose', 'heaping', 'level', 'roomtemperature', 'room', 'temperature',
+  'cooked', 'uncooked', 'raw', 'dry', 'scant', 'generous', 'rounded', 'torn', 'seasoned', 'lightly',
+  'cup', 'cups', 'tablespoon', 'tablespoons', 'tbsp', 'teaspoon', 'teaspoons',
+  'tsp', 'ounce', 'ounces', 'oz', 'pound', 'pounds', 'lb', 'lbs', 'gram', 'grams',
+  'g', 'can', 'cans', 'jar', 'jars', 'package', 'packages',
 ])
 
 function stem(t: string): string {
@@ -278,6 +282,31 @@ function keyTokens(name: string): string[] {
     .map(stem)
 }
 
+// Preparation, serving, and dietary qualifiers are context, not food
+// identity. USDA selection must require every remaining identity token;
+// otherwise "uncooked orzo" can win on "uncooked" and return teff.
+const SEARCH_QUALIFIERS = new Set([
+  'a', 'an', 'and', 'as', 'black', 'canned', 'cooked', 'dairy', 'dried', 'dry',
+  'extra', 'free', 'fresh', 'frozen', 'ground', 'heaping', 'hot', 'large', 'low',
+  'medium', 'natural', 'non', 'plain', 'raw', 'red', 'roasted', 'salted', 'scant',
+  'small', 'smoked', 'spicy', 'to', 'uncooked', 'unsalted', 'unsweetened', 'vegan',
+  'vegetarian', 'white', 'whole', 'with', 'you', 'your',
+])
+
+function semanticCoreTokens(name: string): string[] {
+  return keyTokens(name).filter(token => !SEARCH_QUALIFIERS.has(token))
+}
+
+function candidateContradictsQuery(query: string, description: string): boolean {
+  const q = query.toLowerCase()
+  const d = description.toLowerCase()
+  if (/\balmond milk\b/.test(q) && /\bchocolate\b/.test(d) && !/\bchocolate\b/.test(q)) return true
+  if (/\b(chil(?:e|i)|pepper)s?\b/.test(q) && /\b(emu|beet greens?)\b/.test(d)) return true
+  if (/\borzo\b/.test(q) && /\bteff\b/.test(d)) return true
+  if (/\bshrimp\b/.test(q) && /\b(teff|lotus)\b/.test(d)) return true
+  return false
+}
+
 // ─── Ingredient line parser ──────────────────────────────────────────────────
 
 interface QtyUnit { grams: number | null }
@@ -287,6 +316,9 @@ function quantityToGrams(fragment: string, foodName: string): QtyUnit & { rest: 
   const q = parseLeadingQuantity(fragment)
   if (!q) return { grams: null, rest: fragment }
   let rest = q.rest.trim()
+  // Recipe prose often places a quantity qualifier before the unit
+  // ("2 heaping cups cooked chicken"). It must not hide the unit.
+  rest = rest.replace(/^(?:heaping|scant|packed|loosely packed|level|generous|rounded)\s+/i, '').trim()
 
   for (const [re, g] of WEIGHT_G) {
     const m = rest.match(re)
@@ -578,6 +610,9 @@ function matchCanonicalStaple(name: string): CanonicalStaple | null {
   let tied = false
   for (const { entry, aliasTokens } of FDC_ALIAS_TOKENS) {
     if (entry.guard && entry.guard.test(lower)) continue
+    // The curated chickpea entry is canned/drained. Do not let its generic
+    // "chickpeas" alias silently replace an explicitly dried ingredient.
+    if (/\b(dried|dry)\b/i.test(lower) && /\b(canned|drained)\b/i.test(entry.description)) continue
     // A generic canonical alias such as "yogurt", "parmesan", or "ground
     // beef" is not valid when the ingredient explicitly asks for a plant-
     // based/vegan/vegetarian or dairy-free substitute.
@@ -733,7 +768,8 @@ async function usdaSearch(
  */
 function pickValidated(queryName: string, cls: FoodClass, foods: UsdaSearchFood[]): { macros: NutritionMacros; description: string } | null {
   const qTokens = keyTokens(queryName)
-  if (qTokens.length === 0) return null
+  const qCoreTokens = semanticCoreTokens(queryName)
+  if (qTokens.length === 0 || qCoreTokens.length === 0) return null
   const [lo, hi] = KCAL_BANDS[cls]
   let best: { score: number; macros: NutritionMacros; description: string } | null = null
 
@@ -744,8 +780,12 @@ function pickValidated(queryName: string, cls: FoodClass, foods: UsdaSearchFood[
     if (macros.calories < lo || macros.calories > hi) continue
     // (a) token-stem overlap — matched name must share a key noun token
     const dTokens = keyTokens(f.description)
+    // Every food-identity token must survive candidate selection. Qualifier
+    // overlap alone is not evidence of a semantic match.
+    if (!qCoreTokens.every(t => dTokens.includes(t))) continue
     const overlap = qTokens.filter(t => dTokens.includes(t)).length
     if (overlap === 0) continue
+    if (candidateContradictsQuery(queryName, f.description)) continue
     // USDA frequently returns a prepared dish or restaurant item containing a
     // weakly overlapping ingredient phrase (e.g. ravioli for "marinara sauce").
     // Those extra dish nouns are semantic contradictions unless requested.
@@ -1031,8 +1071,11 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
       const macros = macrosFromSearchFood(f)
       if (!macros || macros.calories <= 0 || macros.calories > 950) continue
       const dTokens = keyTokens(f.description)
+      const qCoreTokens = semanticCoreTokens(name)
+      if (qCoreTokens.length === 0 || !qCoreTokens.every(t => dTokens.includes(t))) continue
       const overlap = qTokens.filter(t => dTokens.includes(t)).length
       if (overlap === 0) continue
+      if (candidateContradictsQuery(name, f.description)) continue
       const preparedDish = /\b(ravioli|sandwich|submarine|pizza|burger|casserole|entree|entrée|meal|restaurant|fast food|cookie|cake|pie)\b/i
       if (preparedDish.test(f.description) && !preparedDish.test(name)) continue
       let score = overlap * 10

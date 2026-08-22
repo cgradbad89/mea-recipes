@@ -113,6 +113,30 @@ describe('nutrition migration behavior', () => {
     }))
   })
 
+  it('parses quantity qualifiers before volume units', () => {
+    expect(parseIngredientLine('2 heaping cups boneless cooked chicken (such as rotisserie)')).toEqual(expect.objectContaining({
+      name: 'chicken',
+      grams: expect.closeTo(473.18, 1),
+    }))
+  })
+
+  it('does not replace the chicken noun with a comma-separated seasoning clause', () => {
+    expect(parseIngredientLine('2 heaping cups boneless cooked chicken, roughly chopped or torn and seasoned lightly with salt')).toEqual(expect.objectContaining({
+      name: 'chicken',
+      grams: expect.closeTo(473.18, 1),
+    }))
+  })
+
+  it('does not use a canned canonical chickpea record for dried chickpeas', async () => {
+    mocks.recipeData.content = 'INGREDIENTS\n1 cup dried chickpeas\nINSTRUCTIONS\nCook.'
+    mocks.generateAIObject.mockResolvedValueOnce({
+      calories: 360, protein_g: 20, carbs_g: 60, fat_g: 6, fiber_g: 17, sugar_g: 10,
+    })
+    const result = await computeRecipeNutrition('dried-chickpeas-test')
+    expect(result.canonicalHits).toEqual([])
+    expect(result.resolutions[0]?.resolvedBy).toBe('ai')
+  })
+
   it('does not resolve explicit plant-based meat as canonical beef', async () => {
     mocks.recipeData.content = 'INGREDIENTS\n1 pound plant-based vegan ground beef\nINSTRUCTIONS\nCook.'
     mocks.generateAIObject.mockResolvedValueOnce({
@@ -298,6 +322,26 @@ describe('USDA operational failure observability', () => {
     const result = await lookupFoodByName('marinara sauce')
     expect(result?.source).toBe('ai_estimate')
     expect(log).not.toHaveBeenCalled()
+  })
+
+  it('rejects USDA candidates that omit the ingredient identity', async () => {
+    mocks.generateAIObject.mockResolvedValueOnce(AI_FOOD_RESULT)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, {
+      foods: [usdaFood({ description: 'Teff, uncooked' })],
+    })))
+
+    const result = await lookupFoodByName('uncooked orzo')
+    expect(result?.source).toBe('ai_estimate')
+  })
+
+  it('rejects a contradictory chocolate match for almond milk', async () => {
+    mocks.generateAIObject.mockResolvedValueOnce(AI_FOOD_RESULT)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, {
+      foods: [usdaFood({ description: 'Candies, milk chocolate, with almonds' })],
+    })))
+
+    const result = await lookupFoodByName('unsweetened almond milk')
+    expect(result?.source).toBe('ai_estimate')
   })
 
   it('logs USDA detail failures while preserving the selected USDA result', async () => {
