@@ -136,3 +136,86 @@ This investigation did **not** modify recipe documents, recipe content, `nutriti
 ## Evidence limitations
 
 All current affected documents were inspected and classified. The final Batch 4 apply report stores the authoritative count and outcome totals but not the per-ID error rows; historical per-ID membership is therefore corroborated by the audit’s title list and the exact current 15-record reproduction, rather than by a checked-in final-apply row for each ID.
+
+## Prompt 4A validation — 2026-08-22
+
+### Parser remediation implemented
+
+`lib/recipeContent.ts` now derives a section-label comparison candidate without changing the original
+content line. It removes at most four leading pictographic graphemes from that candidate, then applies the
+existing exact, case-insensitive heading vocabulary. Ingredient headings additionally accept one nonempty,
+non-nested parenthetical qualifier containing at most 80 characters, with the existing optional trailing
+colon. Arbitrary prefix words, substring matches, unbalanced/nested qualifiers, overlong qualifiers, and
+trailing prose remain rejected.
+
+The first post-change population check revealed that `smoothies` would otherwise become a false fourth
+technical parse: its three `🧾 Ingredients:` headings were recognized, and the legacy ingredients-only
+fallback took the first 20 following lines despite the document containing three recipes and no instruction
+heading. A read-only catalog-wide check found `smoothies` was the only one of 216 records with multiple
+recognized top-level ingredient sections. Section discovery therefore conservatively rejects multiple
+ingredient sections as ambiguous under the existing single-recipe content model. This preserves the
+approved treatment rather than collapsing three recipes into one.
+
+### Regression and compatibility results
+
+- Pre-change focused parser-adjacent baseline: `tests/nutritionEngine.test.ts`, **14/14 passed**.
+- Pre-change full suite: **98/98 passed** across 20 files.
+- Post-change focused suite: `tests/recipeContent.test.ts` plus `tests/nutritionEngine.test.ts`, **30/30
+  passed** (16 new focused parser tests and 14 existing nutrition-engine tests).
+- Post-change full suite: **114/114 passed** across 21 files. Typecheck and production build passed; lint
+  completed with zero errors and six unchanged pre-existing warnings.
+- A read-only comparison of the legacy and remediated parsers across all 216 live catalog documents showed
+  all **201 previously valid recipes unchanged**. Only the three intended records changed from zero to
+  nonzero ingredient extraction; no previously valid ingredient or instruction array changed.
+
+Focused coverage includes plain and variant headings, the three observed pictographs, preserved bullet and
+sub-header text, instruction extraction and `Step N` handling, the 80/81-character qualifier boundary,
+empty/nested/unbalanced/trailing-prose rejection, bounded pictographic runs, emoji-containing prose, ordinary
+ingredient prose, and composite multi-section rejection.
+
+### Exact 15-recipe read-only rerun
+
+The same Admin SDK mechanism from the original investigation read each exact `recipes/{id}` document and ran
+the remediated local `parseRecipeContent` against its stored `content`. It called no mutation method, route,
+nutrition computation, USDA lookup, AI fallback, or `apply=true` path.
+
+| Recipe ID | Ingredient count | Instruction count | Result | Confirmed diagnosis / heading |
+|---|---:|---:|---|---|
+| `bread` | 0 | 0 | Data repair pending | Headerless ingredient list |
+| `chicken-chickpea-salad` | 0 | 28 | Data repair pending | Instructions precede unmarked ingredient groups |
+| `chicken-meatballs-with-peppers-and-orzo` | 0 | 0 | Data repair pending | URL-only content |
+| `chinese-chili-oil` | 0 | 0 | Data repair pending | URL-only content |
+| `hearthealthy-peanut-butter-protein-bars` | 8 | 5 | **Code-only recovery** | `🧾 Ingredients:` / `🥣 Instructions:` |
+| `honey-sriracha-roasted-brussels-sprouts` | 0 | 0 | Data repair pending | No section boundaries |
+| `httpspinchofyumcomchopped-thai-shrimp-salad-with-garlic-lime-dressing` | 0 | 1 | Data repair pending | Malformed URL title/content; no ingredients |
+| `intsa-punjabi-chole` | 0 | 0 | Data repair pending | URL-only content |
+| `maple-roasted-candied-pecans` | 0 | 0 | Data repair pending | Truncated `Source:` content |
+| `peanut-butter-oat-protein-shake` | 9 | 10 | **Code-only recovery** | `🧾 Ingredients:` / `🌀 Instructions:` |
+| `rising-sun-mazcal` | 0 | 0 | Data repair pending | Headerless ingredient list |
+| `smoothies` | 0 | 0 | Data repair pending | Three recipes / three ingredient sections in one document |
+| `spaghetti-carbonara` | 6 | 1 | **Code-only recovery** | `INGREDIENTS (partial — from Keep note)` |
+| `speget-with-fake-meat-meatballs` | 0 | 0 | Data repair pending | Headerless ingredient list |
+| `yogurt-dill-sauce` | 0 | 0 | Data repair pending | URL-only content |
+
+Final result: **3 code-only recoveries and 12 recipe-data/content failures**, matching the investigation
+prediction after the composite-section ambiguity guard.
+
+### Code-only recoveries
+
+| Recipe ID | Title | Old parse | New parse | Counts (ingredients / instructions) | Responsible heading pattern |
+|---|---|---|---|---:|---|
+| `hearthealthy-peanut-butter-protein-bars` | Heart-Healthy Peanut Butter Protein Bars | 0 / 0 | Recovered | 8 / 5 | `🧾 Ingredients:` and `🥣 Instructions:` |
+| `peanut-butter-oat-protein-shake` | Peanut Butter Oat Protein Shake | 0 / 0 | Recovered | 9 / 10 | `🧾 Ingredients:` and `🌀 Instructions:` |
+| `spaghetti-carbonara` | Spaghetti Carbonara | 0 / 1 | Recovered | 6 / 1 | `INGREDIENTS (partial — from Keep note)` |
+
+No recipe content changed. The remaining 12 diagnoses still match the original evidence table and were not
+repaired. The approved future treatment for `smoothies` is to split its current content into **three separate
+recipe records** in a later reviewed data-repair batch.
+
+### Non-mutation confirmation
+
+Prompt 4A performed code, tests, documentation, and read-only Firestore reads only. It did not create, edit,
+rename, split, or delete any recipe document; did not call `computeRecipeNutrition`; did not modify
+`nutrition`, `nutrition_prev`, servings, canonical staples, USDA behavior, or AI behavior; did not invoke a
+nutrition/canonical route or any `apply=true` path; and did not deploy Firebase, Firestore, or Vercel changes.
+M-04 remains open with parser remediation complete and recipe-data remediation pending.

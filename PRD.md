@@ -294,9 +294,14 @@ retained as historical data and are not modified or deleted by this app.
    → structured recipe → saved to `recipeQueue` (`status: 'pending'`) → reviewed in `/queue`
    → published into `recipes`. Client-provided `imageURL`/`prepTime`/`cookTime` (e.g. from the
    bookmarklet) take precedence over AI-parsed values.
-6. **Ingredient/instruction parsing** — `parseRecipeContent` (`lib/recipes.ts`) splits the flat
-   `content` string into ingredients/instructions by header keywords (`INGREDIENTS`,
-   `INSTRUCTIONS`, etc.) and strips `Step N` prefixes and yield/scale noise.
+6. **Ingredient/instruction parsing** — `parseRecipeContent` (`lib/recipeContent.ts`, re-exported by
+   `lib/recipes.ts`) splits the flat `content` string into ingredients/instructions by exact,
+   case-insensitive header keywords (`INGREDIENTS`, `INSTRUCTIONS`, etc.) and strips `Step N`
+   prefixes and yield/scale noise. For section-label comparison only, a heading may have up to four
+   leading pictographic decorations; the original content line is not rewritten. Ingredient headings
+   may carry one nonempty, non-nested parenthetical qualifier of at most 80 characters, optionally
+   followed by a colon. Multiple top-level ingredient sections are rejected as ambiguous under the
+   single-recipe content model; arbitrary prose containing heading words is not accepted.
 7. **Ingredient sub-header detection** — `detectIngredientHeader` flags lines that are section
    headers (colon-ending, markdown-bold, or keyword matches like "sauce", "marinade") for
    rendering as sub-headers inside the ingredient list.
@@ -503,10 +508,11 @@ retained as historical data and are not modified or deleted by this app.
     **73.2→14.8 g** total (per-serving 18.3→3.7), confidence low→high. **Revert:** every written doc has a
     `nutrition_prev` field = its exact pre-apply nutrition (read-only to the app — `docToRecipe` drops it),
     plus a backup manifest `batch4-apply-revert-manifest.json` (136 entries). See `batch4-apply-report.md`.
-    **M-04 investigation (remediation pending):** all 15 parse errors still reproduce before nutrition-line
-    parsing because `parseRecipeContent` returns no ingredients: 7 are recipe document/content defects and
-    8 are section-extraction failures. Three support narrow heading-recognition changes; 12 require reviewed
-    shared recipe-data corrections. See `docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`.
+    **M-04 remediation (in progress):** the narrow heading-recognition repair is complete. A read-only
+    rerun of the exact 15 records recovered the two decorated-heading recipes and Spaghetti Carbonara;
+    12 still return no ingredients and require reviewed shared recipe-data corrections before any nutrition
+    dry-run. `smoothies` must be split into three separate recipe records in that later data-repair batch.
+    See `docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`.
 
 ---
 
