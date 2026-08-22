@@ -75,14 +75,14 @@ wrapped in a per-route `layout.tsx`.
 
 | Route | Method | Auth | Summary |
 |---|---|---|---|
-| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). URL imports use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB cap). Calls the centrally configured Vercel AI Gateway model. |
+| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model. |
 | `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted by the same SSRF-safe public-URL boundary as AI ingest. |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; route calls the Calendar REST API against the user's **primary** calendar and returns one result per op. Has **no list/search** — only acts on the exact event IDs passed (the "no search-and-delete" safety invariant is structural). Token used transiently, never stored. |
-| `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from taste profile |
+| `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from the validated `{topCuisines,topCategories,recentTitles}` taste profile. Raw JSON is capped at 256,000 bytes; each collection is capped at 500 strings and each string at 2,000 characters; internal failures are sanitized. |
 | `/api/plan-suggestions` | POST | Bearer token (required) | AI suggests recipes to complete a week plan (FlavorGraph-informed) |
-| `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
-| `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls the centrally configured Vercel AI Gateway model. |
+| `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from validated recipe, cook-count, rating, and favorite collections. Raw JSON is capped at 256,000 bytes; each collection/map is capped at 500 entries and client recipe text at 2,000 characters; scoring/bucket semantics are unchanged and internal failures are sanitized. |
+| `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a validated single-recipe context (substitutions, scaling, dietary swaps, technique). Stateless; conversation history is passed per request and capped at 40 messages, 8,000 characters/message, and 64,000 aggregate characters; recipe context is capped at 16,000 characters and raw JSON at 256,000 bytes. Calls the centrally configured Vercel AI Gateway model and returns sanitized failures. |
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
 | `/api/nutrition-revalidate` | POST | Bearer token (required; admin for apply) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` requires `verifyAdminToken` and persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
 | `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute. Dry-run emits baseline vs proposed canonical deltas; explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
@@ -259,6 +259,14 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
    linking/changing is handled by a Google `reauthenticateWithPopup` + one retry. **Console
    prerequisite:** the Email/Password provider must be enabled in Firebase Auth or these calls throw
    `auth/operation-not-allowed` (see §6, §8).
+8. **Authenticated AI request boundaries are bounded and fail closed.** `/api/ai-ingest`,
+   `/api/new-recipe-suggestions`, `/api/recommendations`, and `/api/recipe-assistant` authenticate
+   with the existing Firebase Bearer-token helper, enforce a streaming raw-body byte ceiling before
+   JSON parsing, validate their known request fields and route-specific semantic limits before any AI
+   or URL-fetch work, and ignore unknown metadata. Malformed/invalid input returns a controlled 400,
+   an oversized raw body returns 413, and arbitrary Firebase, AI Gateway, provider, credential, or
+   internal exception messages are never returned to clients. Server logs use stable route identifiers
+   plus safe counts/lengths rather than bearer tokens or complete request content.
 
 ---
 

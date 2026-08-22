@@ -11,16 +11,22 @@ vi.mock('@/lib/ai', () => ({ generateAIArray: mocks.generateAIArray }))
 
 import { POST } from '@/app/api/new-recipe-suggestions/route'
 
-function request() {
+const validBody = {
+  topCuisines: ['italian'],
+  topCategories: ['Pasta Noodles & Rice'],
+  recentTitles: ['Cacio e Pepe'],
+}
+
+function request(body: BodyInit = JSON.stringify(validBody)) {
   return new NextRequest('http://localhost/api/new-recipe-suggestions', {
     method: 'POST',
     headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      topCuisines: ['italian'],
-      topCategories: ['Pasta Noodles & Rice'],
-      recentTitles: ['Cacio e Pepe'],
-    }),
+    body,
   })
+}
+
+function jsonRequest(body: unknown) {
+  return request(JSON.stringify(body))
 }
 
 describe('POST /api/new-recipe-suggestions', () => {
@@ -65,8 +71,48 @@ describe('POST /api/new-recipe-suggestions', () => {
     const response = await POST(request())
 
     expect(response.status).toBe(500)
-    await expect(response.json()).resolves.toEqual({
+    const data = await response.json()
+    expect(data).toEqual({
       error: 'AI request failed or could not parse response',
     })
+    expect(JSON.stringify(data)).not.toContain('gateway unavailable')
+  })
+
+  it('rejects malformed JSON before invoking AI', async () => {
+    const response = await POST(request('{'))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ error: 'Invalid request.' })
+    expect(mocks.generateAIArray).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid top-level, missing, and wrong-type request shapes', async () => {
+    for (const body of [null, [], {}, { ...validBody, topCuisines: [42] }]) {
+      const response = await POST(jsonRequest(body))
+      expect(response.status).toBe(400)
+      await expect(response.json()).resolves.toEqual({ error: 'Invalid request.' })
+    }
+    expect(mocks.generateAIArray).not.toHaveBeenCalled()
+  })
+
+  it('rejects oversized collections and free-text fields', async () => {
+    const invalidBodies = [
+      { ...validBody, recentTitles: Array.from({ length: 501 }, () => 'Recipe') },
+      { ...validBody, topCuisines: ['x'.repeat(2_001)] },
+    ]
+
+    for (const body of invalidBodies) {
+      const response = await POST(jsonRequest(body))
+      expect(response.status).toBe(400)
+    }
+    expect(mocks.generateAIArray).not.toHaveBeenCalled()
+  })
+
+  it('returns 413 for a raw body over 256,000 bytes', async () => {
+    const response = await POST(request(JSON.stringify({ padding: 'x'.repeat(256_000) })))
+
+    expect(response.status).toBe(413)
+    await expect(response.json()).resolves.toEqual({ error: 'Request payload is too large.' })
+    expect(mocks.generateAIArray).not.toHaveBeenCalled()
   })
 })
