@@ -3,6 +3,7 @@ import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
 import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
 import { generateAIArray, generateAIObject } from '@/lib/ai'
+import { safeErrorLogDetails } from '@/lib/apiRequest'
 import { sanitizeGroceryCleanupChanges, type GroceryCleanupChange } from '@/lib/groceryCleanup'
 import { z } from 'zod'
 
@@ -27,6 +28,11 @@ const PARSED_LINE_SCHEMA = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  let requestMetadata: {
+    mode: 'unknown' | 'cleanup' | 'parse-line'
+    itemCount: number
+  } = { mode: 'unknown', itemCount: 0 }
+
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,10 +45,15 @@ export async function POST(req: NextRequest) {
     // "AI Clean Up List" button does not send `mode`, so its behavior is
     // unchanged.
     if (body?.mode === 'parse-line') {
+      requestMetadata = { mode: 'parse-line', itemCount: 1 }
       return parseSingleLine(String(body.line || ''), uid)
     }
 
     const { items } = body
+    requestMetadata = {
+      mode: 'cleanup',
+      itemCount: Array.isArray(items) ? items.length : 0,
+    }
 
     const prompt = `You are a grocery list organizer. Clean up this grocery list and return improved data.
 
@@ -101,8 +112,12 @@ Rules:
     return NextResponse.json(
       sanitizeGroceryCleanupChanges(items, parsedChanges as GroceryCleanupChange[]),
     )
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    console.error('[grocery-cleanup] request failed', {
+      error: safeErrorLogDetails(err),
+      ...requestMetadata,
+    })
+    return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
 }
 

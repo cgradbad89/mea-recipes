@@ -77,7 +77,7 @@ wrapped in a per-route `layout.tsx`.
 |---|---|---|---|
 | `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model. |
 | `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted by the same SSRF-safe public-URL boundary as AI ingest. |
-| `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list |
+| `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. Unexpected internal failures return a sanitized generic error; successful mode behavior is unchanged. |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; route calls the Calendar REST API against the user's **primary** calendar and returns one result per op. Has **no list/search** — only acts on the exact event IDs passed (the "no search-and-delete" safety invariant is structural). Token used transiently, never stored. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from the validated `{topCuisines,topCategories,recentTitles}` taste profile. Raw JSON is capped at 256,000 bytes; each collection is capped at 500 strings and each string at 2,000 characters; internal failures are sanitized. |
 | `/api/plan-suggestions` | POST | Bearer token (required) | AI suggests recipes to complete a week plan (FlavorGraph-informed) |
@@ -85,7 +85,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a validated single-recipe context (substitutions, scaling, dietary swaps, technique). Stateless; conversation history is passed per request and capped at 40 messages, 8,000 characters/message, and 64,000 aggregate characters; recipe context is capped at 16,000 characters and raw JSON at 256,000 bytes. Calls the centrally configured Vercel AI Gateway model and returns sanitized failures. |
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
 | `/api/nutrition-revalidate` | POST | Bearer token (required; admin for apply) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` requires `verifyAdminToken` and persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
-| `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute. Dry-run emits baseline vs proposed canonical deltas; explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
+| `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute is dry-run by default, not dry-run-only. Explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`; this apply path was used for the documented Batch 4 apply. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
 | `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,serving_grams?,servings_per_container?,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g). `serving_grams?` (numeric grams in one declared serving) and `servings_per_container?` (≈ servings/pack, derived from OFF `product_quantity`/`serving_quantity` or USDA `packageWeight`) are present when derivable — they drive the servings/grams toggle and the serving-context lines in Scan. Server-side fetch sets OFF's courtesy User-Agent. Read-only. Fed by the **Scan** mode in `LogFoodSheet.tsx` (camera → BarcodeDetector or zxing fallback). |
 
 ---
@@ -215,10 +215,12 @@ owner's `PlannedEntry[]` down to bare IDs via `plannedRecipeIDList`, so friends 
 were planned but never the owner's private day/role assignments. The publish/Friends' feature is
 otherwise unchanged.
 
-### `stravaActivities/{id}` — synced Strava activities (`StravaActivity`)
-One doc per Strava activity. This is synced independently by an external process/webhook.
+### `stravaActivities/{id}` — historical/legacy synced Strava activities
+One doc per Strava activity, historically synced by an external process/webhook.
 Fields: `id, name, type, start_date_local (Timestamp), calories, moving_time_s`.
-Queried by `start_date_local` to compute burned calories. Burned calories are subtracted from consumed calories in the Nutrition insights and today views. Note: Requires standard user-scoped Firestore security rules.
+This root collection is not queried by active MEA Recipes code. Nutrition Today and Insights use
+owner-scoped `users/{uid}/healthMetrics/{YYYY-MM-DD}.move_calories`; legacy production documents are
+retained as historical data and are not modified or deleted by this app.
 
 ---
 
@@ -618,8 +620,10 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
   (`minced`, `fresh`, `whole`, `and`, `peeled`…), and guard on a token that survives `keyTokens`. The dry-run tool runs locally **without
   AI Gateway authentication**, so it computes baseline (canonical-off) and proposed (canonical-on) in the same
   AI-less runtime — the `canonicalΔ` is exact, but absolute totals for AI-dependent recipes read lower
-  than the stored `old`, and the high/medium confidence split is a local lower bound. **The Batch-4 diff
-  is review-only: stored `nutrition`/`servings`/`confidence` are unchanged until a separate apply step.**
+  than the stored `old`, and the high/medium confidence split is a local lower bound. **The locally generated
+  Batch-4 diff is review-only and performs no writes. The route's explicit authenticated/admin-gated
+  `?apply=true` path is the separate apply step; it conservatively writes only canonical-attributable,
+  material, non-confidence-downgrade results and was used for the documented Batch 4 apply.**
 - **Category label drift.** The AI prompt and some UI use unpunctuated category names (e.g.
   "Pasta Noodles & Rice"), while `types/recipe.ts` `Category` uses comma forms
   ("Pasta, Noodles & Rice"). Normalize when comparing.

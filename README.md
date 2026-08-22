@@ -124,7 +124,7 @@ in Vercel:
 6. Make sure `MFP_SYNC_UID` is set to your Firebase Authentication UID.
 7. Make sure `CRON_SECRET` matches between your Vercel env and the cron auth check.
 
-> **Trigger mode:** the sync route ships with **no cron schedule** in `vercel.json` — it is manual-trigger-only (call the route with the `Authorization: Bearer $CRON_SECRET` header) until idempotency has been confirmed. Add a `crons` entry to `vercel.json` only after verifying a double-trigger produces no duplicate entries.
+> **Trigger mode:** Vercel schedules `/api/cron/sync-nutrition` daily at 06:00 UTC via `vercel.json`. The same classic-diary HTML sync can also be triggered manually with the `Authorization: Bearer $CRON_SECRET` header; it is not manual-only.
 >
 > Optional: set `MFP_DEBUG=true` in Vercel to enable verbose troubleshooting logs (env-var presence flags, lengths, fetch URL and header keys — never secret values). Leave it unset for normal quiet operation.
 

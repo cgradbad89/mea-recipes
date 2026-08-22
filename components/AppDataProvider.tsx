@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
@@ -50,6 +50,7 @@ const AppDataContext = createContext<AppDataContextType>({
 })
 
 const LOCAL_FAV_KEY = 'mea-favorites'
+const EMPTY_FAVORITES = new Set<string>()
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth()
@@ -103,27 +104,62 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   // --- Favorites (User-scoped, + anon local storage) ---
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [favoritesState, setFavoritesState] = useState<{
+    ownerUid: string | null
+    ids: Set<string>
+  } | null>(null)
   const [favoritesLoading, setFavoritesLoading] = useState(true)
   const [favoritesError, setFavoritesError] = useState<string | null>(null)
+  const favoritesRequestRef = useRef(0)
+  const currentFavoritesOwnerUid = user?.uid ?? null
+  const currentFavoritesOwnerRef = useRef(currentFavoritesOwnerUid)
+
+  useEffect(() => {
+    currentFavoritesOwnerRef.current = currentFavoritesOwnerUid
+  }, [currentFavoritesOwnerUid])
+
+  // Never expose a previous uid's set while the current identity is changing.
+  // The auth-triggered refetch below replaces this with the signed-in user's
+  // Firestore data or the actual anonymous localStorage data.
+  const favorites = favoritesState?.ownerUid === currentFavoritesOwnerUid
+    ? favoritesState.ids
+    : EMPTY_FAVORITES
+  const currentFavoritesLoading = favoritesLoading
+    || favoritesState?.ownerUid !== currentFavoritesOwnerUid
 
   const refetchFavorites = useCallback(async () => {
-    if (!user) {
+    const ownerUid = user?.uid ?? null
+    if (currentFavoritesOwnerRef.current !== ownerUid) return
+    const requestId = ++favoritesRequestRef.current
+
+    setFavoritesError(null)
+
+    if (!ownerUid) {
+      let anonymousFavorites = new Set<string>()
       try {
         const stored = localStorage.getItem(LOCAL_FAV_KEY)
-        if (stored) setFavorites(new Set(JSON.parse(stored)))
+        if (stored) anonymousFavorites = new Set(JSON.parse(stored))
       } catch {}
+      if (favoritesRequestRef.current !== requestId
+        || currentFavoritesOwnerRef.current !== ownerUid) return
+      setFavoritesState({ ownerUid, ids: anonymousFavorites })
       setFavoritesLoading(false)
       return
     }
     try {
       setFavoritesLoading(true)
-      const ids = await getFavoriteIDs(user.uid)
-      setFavorites(ids)
+      const ids = await getFavoriteIDs(ownerUid)
+      if (favoritesRequestRef.current !== requestId
+        || currentFavoritesOwnerRef.current !== ownerUid) return
+      setFavoritesState({ ownerUid, ids })
       setFavoritesError(null)
     } catch (e: any) {
+      if (favoritesRequestRef.current !== requestId
+        || currentFavoritesOwnerRef.current !== ownerUid) return
       setFavoritesError(e.message)
     } finally {
+      if (favoritesRequestRef.current !== requestId
+        || currentFavoritesOwnerRef.current !== ownerUid) return
       setFavoritesLoading(false)
     }
   }, [user])
@@ -140,12 +176,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         alert('Failed to update favorite. Please try again.')
       }
     } else {
-      setFavorites(prev => {
-        const next = new Set(prev)
+      setFavoritesState(prev => {
+        const current = prev?.ownerUid === null ? prev.ids : EMPTY_FAVORITES
+        const next = new Set(current)
         if (next.has(id)) next.delete(id)
         else next.add(id)
         try { localStorage.setItem(LOCAL_FAV_KEY, JSON.stringify(Array.from(next))) } catch {}
-        return next
+        return { ownerUid: null, ids: next }
       })
     }
   }, [user, favorites, refetchFavorites])
@@ -193,7 +230,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       value={{
         recipes, recipesLoading, recipesError, refetchRecipes,
         metas, metasLoading, metasError, refetchMetas,
-        favorites, favoritesLoading, favoritesError, refetchFavorites, toggleFavorite, isFavorite,
+        favorites, favoritesLoading: currentFavoritesLoading, favoritesError, refetchFavorites, toggleFavorite, isFavorite,
         cookingHistory, cookingHistoryLoading, cookingHistoryError, refetchCookingHistory
       }}
     >
