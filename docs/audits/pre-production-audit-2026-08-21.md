@@ -19,10 +19,10 @@ The application builds cleanly, all 16 tests pass, the production deployment is 
 | M-01 | **Medium** | Category taxonomy is inconsistent: 51/216 live recipes are outside the union, `Sides` is absent from the type/filter/prompts, and AI prompts emit punctuation-stripped legacy values. | `types/recipe.ts:67-75`; `components/RecipeFilters.tsx:14-24`; `app/api/ai-ingest/route.ts:20-42`; `app/queue/page.tsx:15-19`; `lib/userdata.ts:138-157` |
 | M-02 | **Medium** | Grocery cleanup is protected from the historical delete-all bug, but the deterministic merge guard drops purchase-significant modifiers and uses subset matching, allowing false merges. | `lib/groceryCleanup.ts:20-27,51-67,99-189`; `tests/groceryCleanup.test.ts:23-75` |
 | M-03 | **Medium** | Plan add/remove/day/role writers use non-transactional read-modify-write and can lose concurrent updates; detail-page add failure can leave a permanent spinner. | `lib/userdata.ts:260-291,293-300,356-378`; `app/recipes/[id]/page.tsx:148-156` |
-| M-04 | **Medium** | Fifteen live recipes still have no parseable ingredient section, blocking nutrition recompute and producing empty plan-to-grocery additions. | `lib/recipeContent.ts:13-42`; `lib/nutritionEngine.ts:750-758`; `app/plan/page.tsx:443-465` |
+| M-04 | **Medium — investigated / remediation pending** | All 15 failures reproduce before nutrition-line parsing: 7 recipe document/content defects and 8 section-extraction failures. Three support narrow parser changes; 12 need reviewed shared recipe-data corrections. | `docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`; `lib/recipeContent.ts`; `lib/nutritionEngine.ts` |
 | M-05 | **Medium — fixed** | The four affected AI routes now enforce streaming raw-body ceilings, explicit request schemas, route-specific semantic bounds, AI/fetch short-circuiting on invalid input, and sanitized public failures. The adjacent `/api/grocery-cleanup` raw-exception follow-up is also sanitized. | `lib/apiRequest.ts`; `app/api/new-recipe-suggestions/route.ts`; `app/api/recommendations/route.ts`; `app/api/recipe-assistant/route.ts`; `app/api/ai-ingest/route.ts`; `app/api/grocery-cleanup/route.ts`; focused route tests |
 | M-06 | **Medium** | Major pages often log or swallow read/write errors without a user-visible retry/error state; some loaders can remain indefinitely. | `components/AppDataProvider.tsx:62-72,84-103,110-151`; `app/recipes/[id]/page.tsx:74-77`; `app/grocery/page.tsx:144-165,245-319,350-425`; `app/queue/page.tsx:272-315`; `app/nutrition/page.tsx:119-157` |
-| M-07 | **Medium** | USDA missing-key, 429, non-OK, timeout, and network outcomes all collapse to an empty result and silently spill into AI estimation, obscuring outages and cost/accuracy changes. | `lib/nutritionEngine.ts:571-603,718-731` |
+| M-07 | **Medium — fixed** | USDA search/detail operational failures now emit safe structured `[nutrition-usda]` events with stable failure codes and operation context; valid misses/rejections remain quiet and fallback semantics are unchanged. | `lib/nutritionEngine.ts`; `tests/nutritionEngine.test.ts` |
 | L-01 | **Low — fixed** | Favorites state is owner-tagged, becomes empty or hydrates the real anonymous source on sign-out, and rejects late fetches from the prior uid; filter preferences remain intact. The known pre-load toggle race remains harmless/idempotent. | `components/AppDataProvider.tsx`; `tests/favoritesAuthState.test.tsx`; `lib/userdata.ts:23-47` |
 | L-02 | **Low** | Recipe search ignores one-character queries, cannot filter standalone/legacy categories, omits dietary tags, and turns recipe-load failures into “No recipes found.” | `app/recipes/page.tsx:130-194,305-319`; `components/RecipeFilters.tsx:14-24,63-95`; `components/AppDataProvider.tsx:62-72` |
 | L-03 | **Low — fixed** | README now documents the daily MFP cron plus optional manual trigger, and PRD explicitly documents the authenticated/admin-gated canonical `?apply=true` path used for Batch 4. | `README.md`; `vercel.json:7-11`; `PRD.md`; `app/api/nutrition-canonical-dryrun/route.ts:91-165` |
@@ -96,7 +96,7 @@ No custom App Router error/loading boundary files were found, so unexpected rend
 
 - **PASS — key and ordering.** `USDA_API_KEY` remains server-only (`lib/nutritionEngine.ts:579-583`). Resolution is canonical table first (`:689-709`), then validated live USDA search (`:711-725`), then AI estimate (`:727-731`). Canonical hits directly use verified per-100g macros and skip fuzzy lookup.
 - **PASS with clarification — table count.** The verification seed list has 123 candidates, but the generated live table contains 122 entries because `rice vinegar` failed the SR Legacy/Foundation candidate constraints (`scripts/canonical-verify-log.json:1-6,1838-1850`; `lib/canonicalStaples.ts:1-16,42+`). PRD correctly calls it “122 live-verified entries” (`PRD.md:685`). Calling it a 123-entry table is inaccurate; it is a 123-seed verification set producing a 122-entry table.
-- **FAIL — M-07 failure observability.** Missing key, any non-OK response including 429, timeout, or network failure all return `[]` after one 300ms retry (`lib/nutritionEngine.ts:579-603`). The resolver then invokes AI (`:718-731`). Add structured status/retry-after logging and distinguish configuration/outage/rate-limit/no-match so an upstream outage cannot silently change accuracy and model spend.
+- **FIXED — M-07 failure observability.** USDA search and selected-food detail paths now emit structured `[nutrition-usda]` server events for missing configuration, non-OK HTTP responses, fetch/network failures, timeouts/aborts, malformed JSON, and structurally unusable success responses (`lib/nutritionEngine.ts`). Events carry stable codes and safe operation/status/data-type/query-preview/fdcId/fallback context without keys, credential-bearing URLs, response bodies, bearer tokens, or complete recipes. Valid zero results and semantic candidate rejection emit no failure event. The existing retry and canonical → USDA → AI behavior is unchanged and covered by focused tests (`tests/nutritionEngine.test.ts`).
 
 ### 4.3 Firebase client/auth/offline behavior
 
@@ -178,7 +178,12 @@ A read-only live catalog query re-applied the exact ingredient-section rules fro
 14. Speget with fake meat meatballs
 15. yogurt Dill sauce
 
-These records need content repair/reclassification in a separate, reviewed data session; broadening the parser until non-recipes parse would be unsafe.
+The 2026-08-22 read-only investigation reproduced all 15 at the same boundary: `parseRecipeContent`
+returns no ingredients and `computeRecipeNutrition` throws before `parseIngredientList`, quantities,
+canonical matching, USDA, or AI. Root causes are 7 recipe document/content defects and 8 section-extraction
+failures. Three records support narrow decorated/qualified-heading parser changes; 12 require reviewed shared
+recipe-data correction, with no overlap. Remediation remains pending; see
+`docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`. No recipe or nutrition data was changed.
 
 ### 5.4 Known race-condition status
 
@@ -385,7 +390,7 @@ Final verification:
 - [x] **Gemini → ChatGPT/Vercel AI migration:** **resolved** — active model is `openai/gpt-5.6-luna` everywhere through the shared gateway (`lib/aiConfig.ts:3-19`; `lib/ai.ts:49-85`); no active Gemini reference found.
 - [ ] **Standalone `Sides` category:** **still incomplete** — present only in queue editing/role mapping, absent from type union, filters, prompts, modals, and live data (`types/recipe.ts:67-75`; `app/queue/page.tsx:15-19`; `lib/userdata.ts:142-154`; `components/RecipeFilters.tsx:14-24`).
 - [x] **`nutrition_prev` 135-vs-136:** **changed/explained** — one manifest recipe (ID 193) no longer exists; every remaining backup maps to the manifest. No missing backup on a live applied document (`batch4-apply-revert-manifest.json:1-6`; `batch4-apply-report.md:7-20`).
-- [ ] **Canonical dry-run 15 parse errors:** **still present** — exact count remains 15 on the 216-document live catalog (`lib/recipeContent.ts:13-42`; `lib/nutritionEngine.ts:750-758`).
+- [ ] **Canonical dry-run 15 parse errors:** **investigated / remediation pending** — all 15 still reproduce on the 216-document live catalog; the root-cause distribution and Prompt 4 plan are documented in `docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`.
 - [ ] **`toggleFavorite` pre-load race:** **still present but safe/non-blocking** — duplicate add is an idempotent doc write (`components/AppDataProvider.tsx:110-151`; `lib/userdata.ts:30-47`).
 - [ ] **Recipe role-default race:** **still theoretically present but safe/non-blocking** — undefined recipe falls back to `main`; primary UI is recipe-loading gated (`app/plan/page.tsx:289-295,1004-1009`; `lib/userdata.ts:156-175`).
 - [x] **Strava permission failure on every page load:** **resolved and dead helper removed** — nutrition uses uid-scoped health metrics, and no active module queries the root collection (`lib/healthMetrics.ts:28-46`; deleted `lib/strava.ts`).
@@ -448,6 +453,6 @@ No new composite index was identified as required by this audit. Existing multi-
 3. Fix the category source of truth and AI punctuation; plan a reviewed migration for 51 legacy values and the standalone `Sides` decision.
 4. Harden grocery merge identity and add adversarial regression tests; keep the current review/apply UI.
 5. Convert week-plan array writers to transactions and add conflict tests.
-6. Repair/reclassify the 15 unparseable live records in a dedicated, reversible data session.
+6. Execute the M-04 Prompt 4 sequence: narrow heading-parser tests/fixes, read-only rerun, reviewed corrections for the remaining shared recipe records, then a nutrition dry-run before any apply review.
 7. Add user-visible error/retry states and client telemetry across recipes, plan, grocery, nutrition, and queue.
-8. Improve USDA failure classification/observability and resolve the six moderate dependency advisories without accepting npm’s suggested firebase-admin downgrade blindly.
+8. Resolve the six moderate dependency advisories without accepting npm’s suggested firebase-admin downgrade blindly.

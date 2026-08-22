@@ -465,6 +465,14 @@ retained as historical data and are not modified or deleted by this app.
     USDA search+validation → AI estimate**. On a canonical hit the engine uses the verified per-100g
     macros directly and skips the fuzzy matcher (the kcal-band check still runs as a *signal* — logged,
     not rejected). On no hit it falls through to the **existing matcher, unchanged** for non-staples.
+    **USDA operational observability (M-07):** search and selected-food detail failures emit structured
+    server logs with the stable `[nutrition-usda]` prefix, an operation, and a bounded failure code
+    (`http_error`, `network_error`, `timeout`, `invalid_json`, or `invalid_response`) plus safe context such
+    as status, data type, a ≤120-character query preview, or fdcId. A missing server key is distinguished as
+    `invalid_response` with `MissingUsdaApiKey`. Logs never contain the USDA key, a credential-bearing URL,
+    response body, bearer token, complete recipe, or ingredient array. A valid zero-result response and a
+    semantic candidate rejection remain normal no-match outcomes and produce no failure event. Resolution
+    order, retry behavior, confidence, and canonical → USDA → AI fallback semantics are unchanged.
     **Matching rule (conservative, in `matchCanonicalStaple`):** tokenize the name with `keyTokens`;
     an entry matches when one of its aliases' tokens are a subset of the ingredient's tokens; the
     most-specific (most-tokens) entry wins; **ties between different entries → no match (fall through)**;
@@ -495,6 +503,10 @@ retained as historical data and are not modified or deleted by this app.
     **73.2→14.8 g** total (per-serving 18.3→3.7), confidence low→high. **Revert:** every written doc has a
     `nutrition_prev` field = its exact pre-apply nutrition (read-only to the app — `docToRecipe` drops it),
     plus a backup manifest `batch4-apply-revert-manifest.json` (136 entries). See `batch4-apply-report.md`.
+    **M-04 investigation (remediation pending):** all 15 parse errors still reproduce before nutrition-line
+    parsing because `parseRecipeContent` returns no ingredients: 7 are recipe document/content defects and
+    8 are section-extraction failures. Three support narrow heading-recognition changes; 12 require reviewed
+    shared recipe-data corrections. See `docs/audits/m04-ingredient-parse-investigation-2026-08-22.md`.
 
 ---
 

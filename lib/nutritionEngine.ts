@@ -424,6 +424,49 @@ export function parseIngredientList(lines: string[]): { parsed: ParsedIngredient
 const USDA_SEARCH = 'https://api.nal.usda.gov/fdc/v1/foods/search'
 const USDA_DETAIL = 'https://api.nal.usda.gov/fdc/v1/food'
 
+type UsdaFailureCode =
+  | 'http_error'
+  | 'network_error'
+  | 'timeout'
+  | 'invalid_json'
+  | 'invalid_response'
+
+type UsdaOperation = 'ingredient-search' | 'food-search' | 'food-detail' | 'barcode-usda'
+
+interface UsdaFailureContext {
+  code: UsdaFailureCode
+  operation: UsdaOperation
+  status?: number
+  dataType?: string
+  queryPreview?: string
+  fdcId?: number
+  willFallbackToAI?: boolean
+  errorName?: string
+  attempt?: number
+}
+
+interface UsdaSearchContext {
+  operation: Exclude<UsdaOperation, 'food-detail'>
+  willFallbackToAI: boolean
+}
+
+function safeQueryPreview(query: string): string {
+  return query.replace(/\s+/g, ' ').trim().slice(0, 120)
+}
+
+function logUsdaFailure(context: UsdaFailureContext): void {
+  console.error('[nutrition-usda]', context)
+}
+
+function fetchFailureCode(error: unknown): 'network_error' | 'timeout' {
+  const name = error instanceof Error ? error.name : ''
+  return name === 'AbortError' || name === 'TimeoutError' ? 'timeout' : 'network_error'
+}
+
+function errorName(error: unknown): string | undefined {
+  return error instanceof Error && error.name ? error.name : undefined
+}
+
 // Canonical staples: foods USDA search mis-ranks. Checked before search.
 // Critical guards from the backfill: butter beans / butternut → never dairy butter.
 const CANONICAL_STAPLES: { re: RegExp; query: string; cls: FoodClass }[] = [
@@ -576,9 +619,25 @@ const DATATYPE_WEIGHT: Record<string, number> = {
  *    are post-filtered by `allow` instead.
  *  - one retry with a short backoff for residual transient failures.
  */
-async function usdaSearch(query: string, allow: string[], pageSize = 12): Promise<UsdaSearchFood[]> {
+async function usdaSearch(
+  query: string,
+  allow: string[],
+  pageSize = 12,
+  context: UsdaSearchContext,
+): Promise<UsdaSearchFood[]> {
+  const logBase = {
+    operation: context.operation,
+    dataType: allow.join(','),
+    queryPreview: safeQueryPreview(query),
+    willFallbackToAI: context.willFallbackToAI,
+  }
   const key = process.env.USDA_API_KEY
-  if (!key) return []
+  if (!key) {
+    // Keep the public failure taxonomy bounded: a missing server credential means
+    // no valid USDA response can be obtained, distinguished by the stable name.
+    logUsdaFailure({ ...logBase, code: 'invalid_response', errorName: 'MissingUsdaApiKey' })
+    return []
+  }
   const parensFree = allow.filter(t => !t.includes('('))
   const params = new URLSearchParams({ api_key: key, query, pageSize: String(pageSize) })
   if (parensFree.length === allow.length) {
@@ -587,17 +646,53 @@ async function usdaSearch(query: string, allow: string[], pageSize = 12): Promis
     params.set('pageSize', String(Math.max(pageSize, 25)))  // unfiltered → fetch more, filter below
   }
   const allowSet = new Set(allow)
-
   for (let attempt = 0; attempt < 2; attempt++) {
+    let res: Response
     try {
-      const res = await fetch(`${USDA_SEARCH}?${params}`, { signal: AbortSignal.timeout(10000) })
-      if (res.ok) {
-        const data = await res.json()
-        const foods: UsdaSearchFood[] = Array.isArray(data.foods) ? data.foods : []
-        return foods.filter(f => allowSet.has(f.dataType))
-      }
-    } catch { /* timeout / network — retry */ }
-    await new Promise(r => setTimeout(r, 300))
+      res = await fetch(`${USDA_SEARCH}?${params}`, { signal: AbortSignal.timeout(10000) })
+    } catch (error) {
+      logUsdaFailure({
+        ...logBase,
+        code: fetchFailureCode(error),
+        errorName: errorName(error),
+        attempt: attempt + 1,
+      })
+      await new Promise(r => setTimeout(r, 300))
+      continue
+    }
+
+    if (!res.ok) {
+      logUsdaFailure({ ...logBase, code: 'http_error', status: res.status, attempt: attempt + 1 })
+      await new Promise(r => setTimeout(r, 300))
+      continue
+    }
+
+    let data: unknown
+    try {
+      data = await res.json()
+    } catch (error) {
+      logUsdaFailure({
+        ...logBase,
+        code: 'invalid_json',
+        status: res.status,
+        errorName: errorName(error),
+        attempt: attempt + 1,
+      })
+      await new Promise(r => setTimeout(r, 300))
+      continue
+    }
+
+    if (!data || typeof data !== 'object' || !Array.isArray((data as { foods?: unknown }).foods)) {
+      logUsdaFailure({ ...logBase, code: 'invalid_response', status: res.status, attempt: attempt + 1 })
+      return []
+    }
+
+    const foods = (data as { foods: unknown[] }).foods
+    if (foods.some(food => !food || typeof food !== 'object')) {
+      logUsdaFailure({ ...logBase, code: 'invalid_response', status: res.status, attempt: attempt + 1 })
+      return []
+    }
+    return (foods as UsdaSearchFood[]).filter(f => allowSet.has(f.dataType))
   }
   return []
 }
@@ -719,7 +814,10 @@ async function resolveIngredient(name: string, opts: { useCanonical?: boolean } 
   try {
     // SR Legacy + Foundation cover raw ingredients and keep the dataType param
     // parens-free (the "Survey (FNDDS)" param value trips the USDA WAF)
-    const foods = await usdaSearch(query, ['SR Legacy', 'Foundation'])
+    const foods = await usdaSearch(query, ['SR Legacy', 'Foundation'], 12, {
+      operation: 'ingredient-search',
+      willFallbackToAI: true,
+    })
     const pick = pickValidated(query, cls, foods)
     if (pick) resolved = { per100g: pick.macros, matchedDescription: pick.description, resolvedBy: 'usda' }
   } catch { /* network failure → AI fallback */ }
@@ -836,18 +934,50 @@ async function usdaServingGrams(food: UsdaSearchFood): Promise<number | null> {
   // SR Legacy / FNDDS: portion weights only come back on the detail endpoint
   const key = process.env.USDA_API_KEY
   if (!key) return null
+  const logBase = {
+    operation: 'food-detail' as const,
+    dataType: food.dataType,
+    fdcId: food.fdcId,
+    willFallbackToAI: false,
+  }
+  let res: Response
   try {
-    const res = await fetch(`${USDA_DETAIL}/${food.fdcId}?api_key=${key}`, { signal: AbortSignal.timeout(10000) })
-    if (!res.ok) return null
-    const detail = await res.json()
-    const portions: any[] = detail.foodPortions || []
-    for (const p of portions) {
-      if (typeof p.gramWeight === 'number' && p.gramWeight > 0) return p.gramWeight
-    }
-    return null
-  } catch {
+    res = await fetch(`${USDA_DETAIL}/${food.fdcId}?api_key=${key}`, { signal: AbortSignal.timeout(10000) })
+  } catch (error) {
+    logUsdaFailure({ ...logBase, code: fetchFailureCode(error), errorName: errorName(error) })
     return null
   }
+  if (!res.ok) {
+    logUsdaFailure({ ...logBase, code: 'http_error', status: res.status })
+    return null
+  }
+
+  let detail: unknown
+  try {
+    detail = await res.json()
+  } catch (error) {
+    logUsdaFailure({
+      ...logBase,
+      code: 'invalid_json',
+      status: res.status,
+      errorName: errorName(error),
+    })
+    return null
+  }
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail)) {
+    logUsdaFailure({ ...logBase, code: 'invalid_response', status: res.status })
+    return null
+  }
+  const rawPortions = (detail as { foodPortions?: unknown }).foodPortions
+  if (rawPortions !== undefined && !Array.isArray(rawPortions)) {
+    logUsdaFailure({ ...logBase, code: 'invalid_response', status: res.status })
+    return null
+  }
+  const portions = (rawPortions || []) as { gramWeight?: unknown }[]
+  for (const p of portions) {
+    if (typeof p?.gramWeight === 'number' && p.gramWeight > 0) return p.gramWeight
+  }
+  return null
 }
 
 export async function lookupFoodByName(rawName: string): Promise<FoodLookupResult | null> {
@@ -856,7 +986,10 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
 
   try {
     // quick-food favors real-world items: survey + branded first, generic last
-    const foods = await usdaSearch(name, ['Survey (FNDDS)', 'Branded', 'SR Legacy', 'Foundation'], 15)
+    const foods = await usdaSearch(name, ['Survey (FNDDS)', 'Branded', 'SR Legacy', 'Foundation'], 15, {
+      operation: 'food-search',
+      willFallbackToAI: true,
+    })
     const qTokens = keyTokens(name)
     let best: { score: number; food: UsdaSearchFood; macros: NutritionMacros } | null = null
     for (const f of foods) {
@@ -1033,7 +1166,10 @@ function packageGrams(pw?: string): number | null {
 async function lookupUsdaBranded(barcode: string): Promise<BarcodeProduct | null> {
   let foods: UsdaSearchFood[]
   try {
-    foods = await usdaSearch(barcode, ['Branded'], 25)
+    foods = await usdaSearch(barcode, ['Branded'], 25, {
+      operation: 'barcode-usda',
+      willFallbackToAI: false,
+    })
   } catch {
     return null
   }
