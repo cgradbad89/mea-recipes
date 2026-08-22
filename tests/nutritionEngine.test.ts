@@ -72,6 +72,7 @@ describe('nutrition migration behavior', () => {
   })
 
   afterEach(() => {
+    mocks.recipeData.content = 'INGREDIENTS\n2 tablespoons olive oil\nINSTRUCTIONS\nMix well.'
     delete process.env.USDA_API_KEY
     vi.useRealTimers()
     vi.unstubAllGlobals()
@@ -84,6 +85,42 @@ describe('nutrition migration behavior', () => {
       grams: expect.closeTo(27.21, 1),
     }))
     expect(mocks.generateAIObject).not.toHaveBeenCalled()
+  })
+
+  it('normalizes nested parentheticals without leaking an orphan delimiter', () => {
+    const parsed = parseIngredientLine('1 serrano (optional (or jalapeño))')
+    expect(parsed?.name).toBe('serrano')
+    expect(parsed?.name).not.toContain(')')
+  })
+
+  it('supports the Unicode fraction slash used by copied recipes', () => {
+    expect(parseIngredientLine('1 ⁄ 2 cup olive oil')).toEqual(expect.objectContaining({
+      name: 'olive oil',
+      grams: expect.closeTo(108.831, 1),
+    }))
+  })
+
+  it('uses the primary package size when alternatives appear in parentheses', () => {
+    expect(parseIngredientLine('1 (15 oz) can chickpeas (or 2 8 oz cans)')).toEqual(expect.objectContaining({
+      name: 'chickpeas',
+      grams: expect.closeTo(425.25, 1),
+    }))
+  })
+
+  it('keeps the core food noun when comma segments are preparation alternatives', () => {
+    expect(parseIngredientLine('2 cups tomatoes, diced or crushed')).toEqual(expect.objectContaining({
+      name: 'tomatoes',
+    }))
+  })
+
+  it('does not resolve explicit plant-based meat as canonical beef', async () => {
+    mocks.recipeData.content = 'INGREDIENTS\n1 pound plant-based vegan ground beef\nINSTRUCTIONS\nCook.'
+    mocks.generateAIObject.mockResolvedValueOnce({
+      calories: 180, protein_g: 18, carbs_g: 8, fat_g: 8, fiber_g: 4, sugar_g: 1,
+    })
+    const result = await computeRecipeNutrition('plant-based-test')
+    expect(result.canonicalHits).toEqual([])
+    expect(result.resolutions[0]?.resolvedBy).toBe('ai')
   })
 
   it('keeps canonical staples ahead of USDA and AI fallbacks', async () => {
@@ -248,6 +285,18 @@ describe('USDA operational failure observability', () => {
       nutrition: expect.objectContaining({ calories: 52, fiber_g: 2.4 }),
     }))
     expect(mocks.generateAIObject).not.toHaveBeenCalled()
+    expect(log).not.toHaveBeenCalled()
+  })
+
+  it('rejects a prepared dish that only weakly overlaps a simple food query', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.generateAIObject.mockResolvedValueOnce(AI_FOOD_RESULT)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, {
+      foods: [usdaFood({ description: 'OLIVE GARDEN, cheese ravioli with marinara sauce' })],
+    })))
+
+    const result = await lookupFoodByName('marinara sauce')
+    expect(result?.source).toBe('ai_estimate')
     expect(log).not.toHaveBeenCalled()
   })
 

@@ -92,7 +92,9 @@ const NUMBER_WORDS: Record<string, number> = {
 
 /** "1½" / "1 ½" / "½" → decimal string; leaves other text alone. */
 function normalizeFractions(s: string): string {
-  let out = s
+  // U+2044 is commonly used in copied recipe fractions ("1 ⁄ 2"). Treat it
+  // exactly like the ASCII slash before applying the numeric fraction rules.
+  let out = s.replace(/⁄/g, '/')
   for (const [glyph, val] of Object.entries(UNICODE_FRACTIONS)) {
     // mixed number "1½" or "1 ½" → 1.5
     out = out.replace(new RegExp(`(\\d+)\\s*${glyph}`, 'g'), (_, n) => String(parseInt(n, 10) + val))
@@ -315,19 +317,38 @@ function quantityToGrams(fragment: string, foodName: string): QtyUnit & { rest: 
 /** Handle "(two 15-ounce cans)" / "1 (14.5 oz) can …" parenthetical sizing. */
 function canSizeGrams(line: string): number | null {
   const norm = normalizeFractions(line.toLowerCase())
-  // count inside or outside parens × per-can size
-  const m = norm.match(/(\d+(?:\.\d+)?|one|two|three|four|five|six)?\s*\(\s*(?:(one|two|three|four|five|six|\d+(?:\.\d+)?)\s+)?(\d+(?:\.\d+)?)\s*-?\s*(ounce|oz|gram|g|pound|lb)[^)]*(?:\/\s*(\d+(?:\.\d+)?)\s*-?\s*(gram|g))?[^)]*\)\s*(cans?|jars?|packages?|pkgs?|bottles?|boxes?|tins?)?/i)
+  // Read only the first package expression. Alternative sizes later in the
+  // line ("or 2 7.5-ounce cans") must never replace the primary quantity.
+  const counted = norm.match(/^\s*(\d+(?:\.\d+)?|one|two|three|four|five|six)?\s*\(\s*(one|two|three|four|five|six|\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)\s*-?\s*(ounce|oz|gram|g|pound|lb)[^)]*\)\s*(cans?|jars?|packages?|pkgs?|bottles?|boxes?|tins?)\b/i)
+  if (counted) {
+    const outerCount = counted[1] ? (NUMBER_WORDS[counted[1]] ?? parseFloat(counted[1])) : null
+    const innerCount = NUMBER_WORDS[counted[2]] ?? parseFloat(counted[2])
+    const size = parseFloat(counted[3])
+    const unit = counted[4]
+    const per = unit.startsWith('g') ? size : unit.startsWith('p') || unit.startsWith('lb') ? size * 453.59 : size * 28.35
+    return (outerCount ?? 1) * innerCount * per
+  }
+  const m = norm.match(/^\s*(\d+(?:\.\d+)?|one|two|three|four|five|six)?\s*(?:\(\s*(?:(one|two|three|four|five|six|\d+(?:\.\d+)?)\s*[x×]\s*)?(\d+(?:\.\d+)?)\s*-?\s*(ounce|oz|gram|g|pound|lb)[^)]*\)|(?:(\d+(?:\.\d+)?)\s*-?\s*(ounce|oz|gram|g|pound|lb)))\s*(cans?|jars?|packages?|pkgs?|bottles?|boxes?|tins?)\b/i)
   if (!m) return null
   const outerCount = m[1] ? (NUMBER_WORDS[m[1]] ?? parseFloat(m[1])) : null
   const innerCount = m[2] ? (NUMBER_WORDS[m[2]] ?? parseFloat(m[2])) : null
-  const size = parseFloat(m[3])
-  const unit = m[4]
-  const gramAlt = m[5] ? parseFloat(m[5]) : null
-  const isContainer = !!m[7] || /cans?|jars?|packages?|tins?/.test(norm)
-  if (!isContainer && !innerCount) return null
+  const size = parseFloat(m[3] ?? m[5])
+  const unit = m[4] ?? m[6]
   const count = outerCount ?? innerCount ?? 1
-  const per = gramAlt ?? (unit.startsWith('g') ? size : unit.startsWith('p') || unit.startsWith('lb') ? size * 453.59 : size * 28.35)
+  const per = unit.startsWith('g') ? size : unit.startsWith('p') || unit.startsWith('lb') ? size * 453.59 : size * 28.35
   return count * per
+}
+
+/** Remove nested parenthetical notes and any orphan closing delimiters. */
+function stripParentheticalContent(value: string): string {
+  let depth = 0
+  let out = ''
+  for (const char of value) {
+    if (char === '(') { depth++; continue }
+    if (char === ')') { if (depth > 0) depth--; continue }
+    if (depth === 0) out += char
+  }
+  return out.replace(/[()]/g, ' ')
 }
 
 /**
@@ -351,8 +372,7 @@ export function parseIngredientLine(raw: string): ParsedIngredient | null {
   const containerGrams = /\b(cans?|jars?|packages?|pkgs?|tins?)\b/i.test(work) ? canSizeGrams(work) : null
 
   // build the lookup name: strip parentheticals, quantities, units, descriptors
-  let base = work
-    .replace(/\([^)]*\)/g, ' ')
+  let base = stripParentheticalContent(work)
     .replace(/\b\d+(\.\d+)?\s*(kilograms?|kgs?|grams?|g|ounces?|oz|pounds?|lbs?|tablespoons?|tbsps?|tbs|teaspoons?|tsps?|cups?|fl\.?\s*oz|milliliters?|ml|liters?|l|pints?|quarts?|cans?|jars?|packages?|pkgs?|cloves?|strips?|slices?|stalks?|ribs?|heads?|leaves|leaf|sticks?|ears?|bunch(es)?|pinch(es)?|dash(es)?|handfuls?)\b\.?/gi, ' ')
     .replace(/\b\d+(\.\d+)?\b/g, ' ')
     .replace(/\s+/g, ' ')
@@ -365,7 +385,7 @@ export function parseIngredientLine(raw: string): ParsedIngredient | null {
   if (segments.length > 1) {
     let bestSeg = ''; let bestCount = -1
     for (const seg of segments) {
-      const count = seg.split(/\s+/).filter(w => w.length > 1 && !DESCRIPTOR_WORDS.has(w.toLowerCase())).length
+      const count = keyTokens(seg).length
       if (count > bestCount) { bestCount = count; bestSeg = seg }
     }
     name = bestSeg
@@ -391,7 +411,7 @@ export function parseIngredientLine(raw: string): ParsedIngredient | null {
     }
     grams = any ? sum : null
   } else {
-    const stripped = work.replace(/\([^)]*\)/g, ' ').trim()
+    const stripped = stripParentheticalContent(work).trim()
     grams = quantityToGrams(stripped, name).grams
   }
 
@@ -558,6 +578,13 @@ function matchCanonicalStaple(name: string): CanonicalStaple | null {
   let tied = false
   for (const { entry, aliasTokens } of FDC_ALIAS_TOKENS) {
     if (entry.guard && entry.guard.test(lower)) continue
+    // A generic canonical alias such as "yogurt", "parmesan", or "ground
+    // beef" is not valid when the ingredient explicitly asks for a plant-
+    // based/vegan/vegetarian or dairy-free substitute.
+    const nonAnimal = /\b(plant[- ]based|vegan|vegetarian|meatless|beyond|impossible)\b/i.test(lower)
+    const dairyFree = /\b(dairy[- ]free|non[- ]dairy|nondairy)\b/i.test(lower)
+    if ((nonAnimal && (entry.cls === 'meat' || entry.cls === 'cheese' || entry.cls === 'dairy')) ||
+        (dairyFree && (entry.cls === 'cheese' || entry.cls === 'dairy'))) continue
     let entryScore = 0
     for (const at of aliasTokens) {
       if (at.length > entryScore && at.every(t => toks.has(t))) entryScore = at.length
@@ -625,6 +652,9 @@ async function usdaSearch(
   pageSize = 12,
   context: UsdaSearchContext,
 ): Promise<UsdaSearchFood[]> {
+  // Keep provider queries syntactically safe even if a caller supplies a raw
+  // name rather than the parsed ingredient form.
+  query = query.replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim()
   const logBase = {
     operation: context.operation,
     dataType: allow.join(','),
@@ -716,6 +746,11 @@ function pickValidated(queryName: string, cls: FoodClass, foods: UsdaSearchFood[
     const dTokens = keyTokens(f.description)
     const overlap = qTokens.filter(t => dTokens.includes(t)).length
     if (overlap === 0) continue
+    // USDA frequently returns a prepared dish or restaurant item containing a
+    // weakly overlapping ingredient phrase (e.g. ravioli for "marinara sauce").
+    // Those extra dish nouns are semantic contradictions unless requested.
+    const preparedDish = /\b(ravioli|sandwich|submarine|pizza|burger|casserole|entree|entrée|meal|restaurant|fast food|cookie|cake|pie)\b/i
+    if (preparedDish.test(f.description) && !preparedDish.test(queryName)) continue
     // guard: a "butter" match for a non-butter query class is always wrong
     if (cls !== 'butter' && cls !== 'dairy' && /^butter\b/i.test(f.description) && !/bean|squash|nut\b|milk/i.test(f.description) && !/\bbutter\b/i.test(queryName)) continue
 
@@ -998,6 +1033,8 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
       const dTokens = keyTokens(f.description)
       const overlap = qTokens.filter(t => dTokens.includes(t)).length
       if (overlap === 0) continue
+      const preparedDish = /\b(ravioli|sandwich|submarine|pizza|burger|casserole|entree|entrée|meal|restaurant|fast food|cookie|cake|pie)\b/i
+      if (preparedDish.test(f.description) && !preparedDish.test(name)) continue
       let score = overlap * 10
       if (f.description.toLowerCase().includes(name.toLowerCase())) score += 15  // exact-phrase bonus
       score += f.dataType === 'Survey (FNDDS)' || f.dataType === 'SR Legacy' ? 3 : 0
