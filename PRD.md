@@ -516,10 +516,12 @@ retained as historical data and are not modified or deleted by this app.
     `smoothies` composite also remains: its three named ingredient lists contain no instructions, and the
     current product-owner decision is to leave that record as-is—do not split, replace, or delete it.
     Prompt 4C traced all 13 eligible recipes ingredient-by-ingredient and classified **1 ready / 1 review /
-    11 blocked**. It confirmed malformed trailing-parenthesis USDA queries, unsupported quantity shapes,
-    alternative-container precedence, comma-segment noun loss, insufficient canonical modifier guards,
-    and weak semantic USDA candidate acceptance. Nutrition was not applied; a focused engine-fix prompt
-    and another dry-run are required first. See `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
+    11 blocked**. Prompt 4D fixed broad parser/query/canonical defects. Prompt 4D.1 fixed four residual
+    defects: USDA candidates must contain every food-identity token (with known contradiction guards),
+    dried chickpeas cannot use the canned canonical record, quantity qualifiers before units are parsed,
+    and comma-separated seasoning clauses cannot replace the food noun. The exact 13-recipe read-only
+    rerun classified **5 ready / 0 review / 8 blocked**; nutrition remains unapplied. See
+    `docs/audits/m04-nutrition-final-readiness-2026-08-22.md`.
 
 ---
 
@@ -685,8 +687,13 @@ retained as historical data and are not modified or deleted by this app.
   Fix/sanitize the ingredient name before retrying deterministic 400s. The same investigation confirmed
   that weak token overlap and alias-subset matching can accept nutritionally material semantic mismatches
   (plant-based beef → real beef, edamame/orzo → teff, marinara → cheese ravioli). Do not apply affected
-  recomputes merely because confidence is medium or fallback produced a number; see
-  `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
+    recomputes merely because confidence is medium or fallback produced a number; see
+    `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
+- **USDA candidate semantic validation is identity-complete.** Token overlap alone is unsafe: validated
+  candidates must contain all non-qualifier food identity tokens, and known contradictions (e.g. chocolate
+  for almond milk, teff for orzo, emu/beet greens for chili/green chiles) are rejected. Dried ingredients
+  must not use a canned/drained canonical record. Quantity qualifiers before units and comma-separated prep
+  clauses are normalized so they do not hide the core noun.
 - **Barcode results carry a `basis`; never treat per-100g as a serving.** `/api/barcode-lookup`
   (`lib/nutritionEngine.ts` `lookupFoodByBarcode`) returns `basis: "per_serving" | "per_100g"`.
   Open Food Facts frequently provides only per-100g `nutriments`, and USDA branded `foodNutrients`
