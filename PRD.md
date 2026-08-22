@@ -311,7 +311,12 @@ retained as historical data and are not modified or deleted by this app.
    single-recipe content model; arbitrary prose containing heading words is not accepted.
 7. **Ingredient sub-header detection** — `detectIngredientHeader` flags lines that are section
    headers (colon-ending, markdown-bold, or keyword matches like "sauce", "marinade") for
-   rendering as sub-headers inside the ingredient list.
+   rendering as sub-headers inside the ingredient list. **Pending sharp edge:** this predicate is
+   presentation-only. `addRecipeIngredientsToGrocery` still parses every string returned by
+   `parseRecipeContent`, including detected headers. The 2026-08-22 source-contamination audit
+   found 62 such occurrences (53 true ingredient-group headers plus 9 other non-shopping labels)
+   and 31 additional true subheaders missed by the current predicate. A shared predicate at the
+   content-parser and grocery-add boundaries remains backlog work.
 8. **Cook/prep time normalization** — `parseTimeToMinutes` parses ISO-8601 (`PT30M`), `1 hr 15 min`,
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
    prep + cook. Drives the time filter and time badges.
@@ -611,8 +616,10 @@ retained as historical data and are not modified or deleted by this app.
   leaking which emails are registered.
 - **URL import can't reach paywalled sites.** `/api/ai-ingest` server-fetches the page with a
   generic User-Agent; paywalled/login-walled sites (e.g. NYT Cooking) return blocked content.
-  Fallback is the **bookmarklet** (set up in `/queue#bookmarklet`) which captures the page from
-  the user's logged-in browser, or pasting text directly.
+  Despite the current setup copy, the **bookmarklet** at `/queue#bookmarklet` sends the URL plus
+  image/time metadata; it does **not** send captured page DOM from the logged-in browser. AI ingest
+  therefore still server-fetches the blocked URL. Pasting recipe text directly is the current
+  reliable fallback. Authenticated DOM capture or corrected UI claims remain backlog work.
 - **Image display precedence.** Cards and detail prefer `meta.overrides.imageURL` over the
   catalog `recipe.imageURL` (`RecipeCard.tsx`, `RecipeEditModal.tsx`). A stale override will
   win over a corrected catalog image.
@@ -768,12 +775,12 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
-| Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Done | Setup UI at `/queue#bookmarklet`; captures page from logged-in browser |
+| Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Partial | Setup UI exists at `/queue#bookmarklet`, but it sends URL/image/time metadata rather than logged-in page DOM; paywalled server fetches remain blocked. |
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery staple-status / usually-on-hand feature | Medium | Backlog | Separate possession/preference concept; must not be reintroduced as a shopping category. |
-| Grocery corpus/source-content contamination cleanup | Medium | Backlog | Remove page chrome, subheaders, and non-recipe workflow prose at the source/content boundary rather than encoding taxonomy exceptions. |
+| Grocery corpus/source-content contamination cleanup | Medium | Backlog (investigated) | Discovery artifact: `docs/audits/ingredient-source-contamination-investigation-2026-08-22.md` (358 affected occurrences across 82 recipes; 173 reviewed false alarms). Implement narrow content-parser/header/grocery safeguards first, then a separately approved three-document source repair; do not encode taxonomy exceptions. |
 | Shared `prepareGroceryItem` pipeline | Medium | Backlog | Consolidate add-path preparation without changing current merge or rebuild semantics. |
 | Grocery unit conversion | Low | Backlog | Conversion remains separate from the current unit-aware parser and compatible-unit quantity merge. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
