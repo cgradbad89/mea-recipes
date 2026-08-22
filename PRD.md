@@ -508,16 +508,18 @@ retained as historical data and are not modified or deleted by this app.
     **73.2→14.8 g** total (per-serving 18.3→3.7), confidence low→high. **Revert:** every written doc has a
     `nutrition_prev` field = its exact pre-apply nutrition (read-only to the app — `docToRecipe` drops it),
     plus a backup manifest `batch4-apply-revert-manifest.json` (136 entries). See `batch4-apply-report.md`.
-    **M-04 remediation (partial; nutrition apply pending):** the narrow heading-recognition repair is
+    **M-04 remediation (partial; engine fix required before nutrition apply):** the narrow heading-recognition repair is
     complete. Prompt 4B repaired 10 data-defective recipes (9 in-place updates plus one canonical-ID
     migration) with exact backups and read-back validation, then completed a non-persistent nutrition
     dry-run for those 10 plus the three code-only recoveries. `maple-roasted-candied-pecans` remains
     blocked because its stored body is only `Source:` and no attributable source exists. The legacy
-    `smoothies` composite also remains: its three named ingredient lists contain no instructions, so the
-    approved split cannot be completed without inventing recipe content. Do not split or delete that
-    record until authoritative instructions are supplied. Nutrition was not applied; all dry-run rows
-    require Prompt 4C review, including observed USDA operational failures. See
-    `docs/audits/m04-recipe-data-remediation-2026-08-22.md`.
+    `smoothies` composite also remains: its three named ingredient lists contain no instructions, and the
+    current product-owner decision is to leave that record as-is—do not split, replace, or delete it.
+    Prompt 4C traced all 13 eligible recipes ingredient-by-ingredient and classified **1 ready / 1 review /
+    11 blocked**. It confirmed malformed trailing-parenthesis USDA queries, unsupported quantity shapes,
+    alternative-container precedence, comma-segment noun loss, insufficient canonical modifier guards,
+    and weak semantic USDA candidate acceptance. Nutrition was not applied; a focused engine-fix prompt
+    and another dry-run are required first. See `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
 
 ---
 
@@ -675,6 +677,16 @@ retained as historical data and are not modified or deleted by this app.
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
   parenthesized dataType: ingredient lookups use `SR Legacy,Foundation`; food-name lookups omit
   the param and post-filter results by dataType. Don't "simplify" this back.
+- **USDA ingredient search has an intermittent HTML-404 edge response, and malformed ingredient names can
+  trigger nginx 400s (M-04 Prompt 4C).** Repeating an identical valid `foods/search` GET can alternate
+  between an HTML app-shell 404 and JSON 200; the engine's single retry sometimes recovers, so a 404 is not
+  evidence of a stale FDC record. Separately, flat parenthetical removal can leave an unmatched `)` from a
+  nested ingredient alternative; those malformed names returned 400 whenever they reached the API backend.
+  Fix/sanitize the ingredient name before retrying deterministic 400s. The same investigation confirmed
+  that weak token overlap and alias-subset matching can accept nutritionally material semantic mismatches
+  (plant-based beef → real beef, edamame/orzo → teff, marinara → cheese ravioli). Do not apply affected
+  recomputes merely because confidence is medium or fallback produced a number; see
+  `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
 - **Barcode results carry a `basis`; never treat per-100g as a serving.** `/api/barcode-lookup`
   (`lib/nutritionEngine.ts` `lookupFoodByBarcode`) returns `basis: "per_serving" | "per_100g"`.
   Open Food Facts frequently provides only per-100g `nutriments`, and USDA branded `foodNutrients`

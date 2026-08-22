@@ -19,7 +19,7 @@ The application builds cleanly, all 16 tests pass, the production deployment is 
 | M-01 | **Medium** | Category taxonomy is inconsistent: 51/216 live recipes are outside the union, `Sides` is absent from the type/filter/prompts, and AI prompts emit punctuation-stripped legacy values. | `types/recipe.ts:67-75`; `components/RecipeFilters.tsx:14-24`; `app/api/ai-ingest/route.ts:20-42`; `app/queue/page.tsx:15-19`; `lib/userdata.ts:138-157` |
 | M-02 | **Medium** | Grocery cleanup is protected from the historical delete-all bug, but the deterministic merge guard drops purchase-significant modifiers and uses subset matching, allowing false merges. | `lib/groceryCleanup.ts:20-27,51-67,99-189`; `tests/groceryCleanup.test.ts:23-75` |
 | M-03 | **Medium** | Plan add/remove/day/role writers use non-transactional read-modify-write and can lose concurrent updates; detail-page add failure can leave a permanent spinner. | `lib/userdata.ts:260-291,293-300,356-378`; `app/recipes/[id]/page.tsx:148-156` |
-| M-04 | **Medium — partial; nutrition apply pending** | Parser remediation is complete. Prompt 4B repaired and read-back validated 10/12 data records (9 updates, one controlled ID migration); maple pecans and the instruction-free three-recipe `smoothies` composite are evidence-blocked. A 13-recipe nutrition dry-run completed with zero writes; all rows need Prompt 4C review. | `docs/audits/m04-recipe-data-remediation-2026-08-22.md`; `lib/recipeContent.ts`; `tests/m04Remediation.test.ts` |
+| M-04 | **Medium — partial; engine fix required before nutrition apply** | Parser remediation is complete. Prompt 4B repaired 10/12 data records; maple pecans remains source-blocked and `smoothies` is product-deferred/unchanged. Prompt 4C traced all 13 eligible recipes: **1 ready / 1 review / 11 blocked**. It confirmed malformed-query, quantity/parser, canonical-guard, and semantic-selection defects; no nutrition write occurred. | `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`; `docs/audits/m04-nutrition-diagnostic-raw-2026-08-22.json`; `lib/nutritionEngine.ts` |
 | M-05 | **Medium — fixed** | The four affected AI routes now enforce streaming raw-body ceilings, explicit request schemas, route-specific semantic bounds, AI/fetch short-circuiting on invalid input, and sanitized public failures. The adjacent `/api/grocery-cleanup` raw-exception follow-up is also sanitized. | `lib/apiRequest.ts`; `app/api/new-recipe-suggestions/route.ts`; `app/api/recommendations/route.ts`; `app/api/recipe-assistant/route.ts`; `app/api/ai-ingest/route.ts`; `app/api/grocery-cleanup/route.ts`; focused route tests |
 | M-06 | **Medium** | Major pages often log or swallow read/write errors without a user-visible retry/error state; some loaders can remain indefinitely. | `components/AppDataProvider.tsx:62-72,84-103,110-151`; `app/recipes/[id]/page.tsx:74-77`; `app/grocery/page.tsx:144-165,245-319,350-425`; `app/queue/page.tsx:272-315`; `app/nutrition/page.tsx:119-157` |
 | M-07 | **Medium — fixed** | USDA search/detail operational failures now emit safe structured `[nutrition-usda]` events with stable failure codes and operation context; valid misses/rejections remain quiet and fallback semantics are unchanged. | `lib/nutritionEngine.ts`; `tests/nutritionEngine.test.ts` |
@@ -190,7 +190,7 @@ pictographic decoration and one bounded ingredient-heading qualifier while retai
 heading grammar. The same read-only 15-ID rerun now returns ingredients for exactly Heart-Healthy Peanut
 Butter Protein Bars (8), Peanut Butter Oat Protein Shake (9), and Spaghetti Carbonara (6). The other 12,
 including the composite `smoothies` record, still return zero ingredients for their investigated content
-defects. `smoothies` is approved for a later split into three separate recipe records. M-04 remains open:
+defects. That prospective split is superseded by the current instruction to leave `smoothies` as-is. M-04 remains open:
 parser remediation is complete, recipe-data remediation and the subsequent explicit nutrition dry-run are
 pending. No recipe, nutrition, `nutrition_prev`, servings, or canonical data was written.
 
@@ -203,7 +203,16 @@ without invention. The dry-run-only canonical route processed the 3 Prompt 4A re
 4B repairs (13 total), returned HTTP 200 for each, and reported zero writes. USDA searches emitted operational
 HTTP 400/404 events for 12 rows and multiple results have unresolved ingredients or suspicious stored-to-
 proposed deltas, so none is ready for automatic apply. Nutrition has **not** been applied. M-04 remains open
-for the two blocked data records and Prompt 4C nutrition review/apply.
+for the two deferred data records and nutrition review/apply.
+
+**Prompt 4C result (2026-08-22):** a fresh, strictly non-persistent diagnostic traced all 13 recipes
+ingredient-by-ingredient and captured 59 USDA searches. It observed 23 intermittent HTML 404s and three
+400s caused by unmatched `)` characters in Punjabi Chole queries. The same trace found material unresolved
+ingredients and semantic mis-resolutions (including plant-based beef → real beef, edamame → teff, and
+marinara → cheese ravioli). Readiness is **1 READY_FOR_APPLY / 1 REVIEW_REQUIRED / 11 BLOCKED**. The sole
+allowlist entry is `honey-sriracha-roasted-brussels-sprouts`, but PATH B was selected: focused nutrition-
+engine remediation and a fresh dry-run must precede any apply. Recipe and nutrition writes in Prompt 4C
+were zero. See `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
 
 ### 5.4 Known race-condition status
 
@@ -473,6 +482,6 @@ No new composite index was identified as required by this audit. Existing multi-
 3. Fix the category source of truth and AI punctuation; plan a reviewed migration for 51 legacy values and the standalone `Sides` decision.
 4. Harden grocery merge identity and add adversarial regression tests; keep the current review/apply UI.
 5. Convert week-plan array writers to transactions and add conflict tests.
-6. Complete M-04: obtain authoritative content for maple pecans and instructions for the three smoothie recipes, then perform Prompt 4C review of the 13 completed dry-runs before any nutrition apply.
+6. Complete M-04: run the focused Prompt 4D nutrition-engine remediation documented by Prompt 4C, then re-run the exact 13-recipe non-persistent review before any apply. Maple pecans remains source-deferred; leave `smoothies` unchanged under the current product decision.
 7. Add user-visible error/retry states and client telemetry across recipes, plan, grocery, nutrition, and queue.
 8. Resolve the six moderate dependency advisories without accepting npm’s suggested firebase-admin downgrade blindly.

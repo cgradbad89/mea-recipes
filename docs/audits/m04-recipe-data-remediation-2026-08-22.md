@@ -64,9 +64,9 @@ The guarded script re-read all exact preconditions, checked the Thai-salad targe
 - Disposition: committed with the remediation because these are non-sensitive shared catalog records.
 - Credentials/secrets: absent (explicit scan passed).
 
-### Smoothies split
+### Smoothies split (superseded/deferred)
 
-The composite source identifies `Green Peanut Butter Power Shake`, `Green Detox Smoothie (Savory-Lite)`, and `Carrot Cake Protein Shake`, with prospective slugs `green-peanut-butter-power-shake`, `green-detox-smoothie`, and `carrot-cake-protein-shake`. It provides ingredient lists (approximately 8, 9, and 8 lines respectively) but **zero instructions for all three** and no attributable external source. The product decision requires three complete recipes with instruction sections. Therefore mutation stopped before collision checks or creates; the old `smoothies` document was not deleted, and its combined nutrition was not copied anywhere.
+The composite source identifies `Green Peanut Butter Power Shake`, `Green Detox Smoothie (Savory-Lite)`, and `Carrot Cake Protein Shake`, with prospective slugs `green-peanut-butter-power-shake`, `green-detox-smoothie`, and `carrot-cake-protein-shake`. It provides ingredient lists (approximately 8, 9, and 8 lines respectively) but **zero instructions for all three** and no attributable external source. The current product-owner instruction supersedes the earlier prospective split: leave the existing `smoothies` record as-is. No collision checks, creates, split, delete, or nutrition copy occurred.
 
 ### Field-preservation check
 
@@ -146,4 +146,4 @@ Nutrition apply is deferred to Prompt 4C. No nutrition, `nutrition_prev`, canoni
 
 ## M-04 status
 
-Parser remediation is **complete**. Recipe-data remediation is **partial**: 10/12 records are repaired; two are explicitly evidence-blocked. Nutrition dry-run is **complete for all 13 eligible recipes**, and nutrition apply was **not performed**. M-04 remains open for authoritative maple/smoothie source recovery and Prompt 4C nutrition review/apply.
+Parser remediation is **complete**. Recipe-data remediation is **partial**: 10/12 records are repaired; maple pecans remains source-blocked and `smoothies` is explicitly deferred/unchanged by product-owner instruction. Prompt 4C completed the 13-recipe apply-readiness investigation with **1 ready / 1 review / 11 blocked** and confirmed nutrition-engine defects that require a focused fix before apply. Nutrition apply was **not performed**. See `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md` and its raw diagnostic artifact.
