@@ -17,7 +17,10 @@ import {
   runTransaction } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Recipe } from '@/types/recipe'
-import type { GroceryCategory } from './groceryCategories'
+import {
+  normalizePersistedGroceryCategory,
+  type GroceryCategory,
+} from './groceryCategories'
 import { parseIngredient, normalizeNoun, mergeQuantities } from './ingredientParser'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from './firestoreBatch'
 
@@ -525,7 +528,14 @@ export function subscribeGroceryItems(
   onError?: (error: Error) => void,
 ): Unsubscribe {
   return onSnapshot(groceryPath(uid), snap => {
-    const items = snap.docs.map(d => d.data() as GroceryItem)
+    const items = snap.docs.map(d => {
+      const data = d.data() as Omit<GroceryItem, 'manualSection'> & { manualSection?: unknown }
+      if (data.manualSection == null) return data as GroceryItem
+      return {
+        ...data,
+        manualSection: normalizePersistedGroceryCategory(data.manualSection, data.name),
+      }
+    })
     items.sort((a, b) => {
       if (a.isChecked !== b.isChecked) return a.isChecked ? 1 : -1
       return a.name.localeCompare(b.name)
@@ -586,7 +596,13 @@ export function savedGroceryItemsPath(uid: string) {
 
 export async function getSavedGroceryItems(uid: string): Promise<SavedGroceryItem[]> {
   const snap = await getDocs(savedGroceryItemsPath(uid))
-  return snap.docs.map(d => d.data() as SavedGroceryItem)
+  return snap.docs.map(d => {
+    const data = d.data() as Omit<SavedGroceryItem, 'defaultCategory'> & { defaultCategory: unknown }
+    return {
+      ...data,
+      defaultCategory: normalizePersistedGroceryCategory(data.defaultCategory, data.name),
+    }
+  })
     .sort((a, b) => b.timesUsed - a.timesUsed)
 }
 

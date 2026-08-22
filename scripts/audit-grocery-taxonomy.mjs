@@ -384,6 +384,7 @@ function sectionCountStats(field) {
     medianSectionsPerRecipe: sectionCounts[Math.floor(sectionCounts.length / 2)] || 0,
     maximumSectionsPerRecipe: sectionCounts.at(-1) || 0,
     averageSectionsPerRecipe: Math.round((totalSections / rows.length) * 100) / 100,
+    recipesWithSingletonSections: rows.filter(row => row.singletonSectionCount > 0).length,
     singletonSectionCount: totalSingletons,
     singletonSectionSharePercent: roundedPercent(totalSingletons, totalSections),
   }

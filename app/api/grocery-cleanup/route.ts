@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
-import { GROCERY_CATEGORIES, categorizeIngredient } from '@/lib/groceryCategories'
+import {
+  GROCERY_CATEGORIES,
+  categorizeIngredient,
+  normalizePersistedGroceryCategory,
+} from '@/lib/groceryCategories'
 import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
 import { generateAIArray, generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
@@ -89,13 +93,13 @@ export async function POST(req: NextRequest) {
     const prompt = `You are a grocery list organizer. Clean up this grocery list and return improved data.
 
 GROCERY ITEMS:
-${items.map((item: any, i: number) => `${i}: "${item.name}" (qty: ${item.quantity || ''} ${item.unit || ''}) [category: ${item.manualSection || categorizeIngredient(item.name)}]`).join('\n')}
+${items.map((item: any, i: number) => `${i}: "${item.name}" (qty: ${item.quantity || ''} ${item.unit || ''}) [category: ${item.manualSection ? normalizePersistedGroceryCategory(item.manualSection, item.name) : categorizeIngredient(item.name)}]`).join('\n')}
 
 TASKS:
 1. Deduplicate similar items (e.g. "garlic cloves grated" + "4 cloves garlic" = "garlic")
 2. Normalize names (e.g. "CRUSH and mince the garlic" → "garlic", remove instruction text)
 3. Assign the best category from this exact list: ${CATEGORIES.join(', ')}
-4. Note: "Spices & Seasonings" = dried spices and chiles (e.g. chile, chili, chipotle, ancho, guajillo, chile powder, chili powder, paprika, cumin, cinnamon, turmeric, garam masala). "Staples" = oils, vinegars, sugars, flours, salts — things people usually have
+4. Shopping guidance: "Pantry & Dry Goods" = grains, pasta, dry legumes, broth/stock, baking goods, and sweeteners. "Canned & Jarred" = explicitly canned/jarred foods plus tomato paste and coconut milk. "Sauces & Condiments" = sauces, condiments, oils, vinegars, dressings, and pastes. "Spices & Seasonings" = salt, pepper, dried herbs, spices, and seasoning blends. "Nuts, Seeds & Nut Butters" includes tahini. Fresh herbs and peppers stay in Produce.
 
 Return ONLY a JSON array containing ONLY the items that require modification.
 An item requires modification if it needs to be merged, its name/quantity/unit should be normalized, or its current category is incorrect.

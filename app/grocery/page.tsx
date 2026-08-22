@@ -7,7 +7,13 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
-import { categorizeIngredient, GROCERY_CATEGORIES, MANUAL_CATEGORIES, GroceryCategory } from '@/lib/groceryCategories'
+import {
+  categorizeIngredient,
+  GROCERY_CATEGORIES,
+  MANUAL_CATEGORIES,
+  normalizePersistedGroceryCategory,
+  type GroceryCategory,
+} from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil } from 'lucide-react'
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
@@ -41,15 +47,19 @@ const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
   'Meat & Seafood': '🥩',
   'Dairy & Eggs': '🧀',
   'Bakery & Bread': '🍞',
-  'Canned / Jarred / Sauces': '🥫',
-  'Beverages': '🧃',
+  'Pantry & Dry Goods': '🍚',
+  'Canned & Jarred': '🥫',
+  'Sauces & Condiments': '🫙',
   'Spices & Seasonings': '🌶️',
-  'Staples': '🧂',
+  'Nuts, Seeds & Nut Butters': '🥜',
+  'Beverages': '🧃',
   'Other': '🛒',
 }
 
 function getCategory(item: GroceryItem): GroceryCategory {
-  if (item.manualSection) return item.manualSection
+  if (item.manualSection) {
+    return normalizePersistedGroceryCategory(item.manualSection, item.name)
+  }
   return categorizeIngredient(item.name)
 }
 

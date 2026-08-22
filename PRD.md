@@ -167,11 +167,16 @@ createdAt?, updatedAt?`. Per-user isolated (explicit comment in `userdata.ts`). 
 phrase, not the whole line. Auto-added (recipe) items are keyed `sanitize(normalizedNoun)` so the
 same ingredient across recipes lands on one doc (legacy `sanitize(recipeID-ingredient)` ids are
 still read/merged); manual items keyed `sanitize(name)-<timestamp>`. Existing items are never
-re-parsed — parsing is additive, on the add path only.
+re-parsed — parsing is additive, on the add path only. New `manualSection` writes use only the
+current 11-category grocery contract. Historical `Staples` and `Canned / Jarred / Sauces` values
+may remain in stored documents; they are deterministically reclassified from `name` at read time
+without writing the normalized category back.
 
 ### `users/{uid}/pantry/root/savedGroceryItems/{itemId}` — remembered grocery items (`SavedGroceryItem`)
 Fields: `id, name, defaultCategory, timesUsed, lastUsed`. Frequency-ranked memory of
-manually-added items + their chosen category, for faster re-entry.
+manually-added items + their chosen category, for faster re-entry. New writes use only the current
+11-category contract. Legacy `Staples` and `Canned / Jarred / Sauces` defaults normalize from the
+saved item name on read and are not automatically migrated in Firestore.
 
 ### `users/{uid}/nutrition/root/log/{entryId}` — consumption log (`ConsumptionEntry`, `lib/consumptionLog.ts`)
 One doc per consumed item (auto-ID; MFP-synced docs use deterministic `mfp-{date}-{foodEntryId}` IDs). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, recipe_id|null, name, servings_eaten, amount_label?, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'|'openfoodfacts'|'usda_branded'|'mfp'), created_at, userId`.
@@ -311,21 +316,29 @@ retained as historical data and are not modified or deleted by this app.
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
    prep + cook. Drives the time filter and time badges.
 9. **Grocery categorization** — `categorizeIngredient` (`lib/groceryCategories.ts`) maps an
-   ingredient name to the current nine web-owned categories. Matching is deterministic and
+   ingredient name to the web-owned, store-oriented 11-category contract, in display order:
+   `Produce`, `Meat & Seafood`, `Dairy & Eggs`, `Bakery & Bread`, `Pantry & Dry Goods`,
+   `Canned & Jarred`, `Sauces & Condiments`, `Spices & Seasonings`,
+   `Nuts, Seeds & Nut Butters`, `Beverages`, `Other`. Matching is deterministic and
    token/phrase-aware: punctuation and hyphens form boundaries, ordinary alphabetic keywords
    never match inside a larger word, and the longest matching purchase-identity phrase wins
    before the original ordered-rule tie-breaker. Explicit processed forms (for example garlic
    powder, dried herbs, tomato paste, plant/coconut milk, fish/oyster sauce, and broth/stock)
-   therefore outrank generic produce, dairy, or protein component words. `Spices & Seasonings`
-   remains manually selectable; `Staples` remains **auto-assigned only** (excluded from
-   `MANUAL_CATEGORIES`). `GroceryItem.manualSection` remains authoritative over automatic
-   classification. Phase 1 changes no category string, saved default, or persisted value, and
-   the deprecated iOS client is not a compatibility constraint.
+   therefore outrank generic produce, dairy, or protein component words. All 11 categories are
+   manually selectable, and a current `GroceryItem.manualSection` remains authoritative over
+   automatic classification. `Staples` is retired because usually-on-hand status is independent
+   from store location; a future staple-status feature must model that separately. The single
+   `normalizePersistedGroceryCategory` boundary preserves valid current values and reclassifies
+   either retired value (`Staples`, `Canned / Jarred / Sauces`) or an invalid stored string from
+   the item name. Grocery-item and saved-default readers use that boundary without a Firestore
+   write or background migration. The deprecated iOS client is not a compatibility constraint.
 10. **AI grocery cleanup** — `POST /api/grocery-cleanup` sends the list through AI Gateway, which
     returns per-item actions (`keep` / `merge` / `normalize` / `remove`) with `mergedWith`
     indices and a category. The route imports `GROCERY_CATEGORIES` (no hand-duplicated list)
     and validates each returned `category`; an off-list value falls back to the local
-    `categorizeIngredient` match. Model merge suggestions are deletion-safe only when purchase
+    `categorizeIngredient` match. Retired category strings are therefore rejected as new AI
+    output, while legacy input context is normalized before entering the prompt. Model merge
+    suggestions are deletion-safe only when purchase
     identity matches: normalized token sets must be equal except for a narrow count/container-unit
     allowance, while freshness/state, form, meat cut, and fat-percentage terms must match exactly.
     Apply operations are committed in sequential chunks of at most 450 writes. Last-run tracked in
@@ -758,9 +771,14 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Done | Setup UI at `/queue#bookmarklet`; captures page from logged-in browser |
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
-| Grocery 11-category store taxonomy | Medium | Backlog | The corrected 216-recipe corpus still supports the audit's 11-category recommendation; migration, legacy saved/manual handling, and staple-status separation are separate future work. |
+| Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
+| Grocery staple-status / usually-on-hand feature | Medium | Backlog | Separate possession/preference concept; must not be reintroduced as a shopping category. |
+| Grocery corpus/source-content contamination cleanup | Medium | Backlog | Remove page chrome, subheaders, and non-recipe workflow prose at the source/content boundary rather than encoding taxonomy exceptions. |
+| Shared `prepareGroceryItem` pipeline | Medium | Backlog | Consolidate add-path preparation without changing current merge or rebuild semantics. |
+| Grocery unit conversion | Low | Backlog | Conversion remains separate from the current unit-aware parser and compatible-unit quantity merge. |
+| Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
 | Recommendations trigger button (avoid charges) | Medium | Done | Recommendations/suggestions only fire on explicit button + are cached |
-| Manual grocery category assignment | Medium | Done | `GroceryItem.manualSection` + `MANUAL_CATEGORIES` (Staples excluded) |
+| Manual grocery category assignment | Medium | Done | `GroceryItem.manualSection` + the exact current 11-value `MANUAL_CATEGORIES`; retired values normalize on read and never appear as picker choices. |
 | Saved/remembered grocery items | Medium | Done | `savedGroceryItems` ranks by `timesUsed` for fast re-entry |
 | FlavorGraph-informed generation | Medium | Done | `getComplementaryIngredients` seeds Discover + plan-suggestions prompts |
 | Shared week plans (view friends' plans) | Low | Done | `sharedWeekPlans/{weekID}/users/{uid}` |

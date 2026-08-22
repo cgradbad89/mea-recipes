@@ -1,5 +1,9 @@
 # MEA Recipes — Grocery Category Taxonomy Audit — 2026-08-22
 
+> **Implementation status:** The approved 11-category recommendation was implemented in Phase 2.
+> See `docs/audits/grocery-category-taxonomy-migration-2026-08-22.md` for the final classifier,
+> legacy read-compatibility behavior, corrected-corpus movement review, and verification evidence.
+
 **Work type:** discovery · **production behavior changed:** no · **Firestore writes:** 0
 
 ## Executive summary

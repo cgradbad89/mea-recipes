@@ -4,6 +4,7 @@ import {
   sanitizeGroceryCleanupChanges,
   type GroceryCleanupChange,
 } from '@/lib/groceryCleanup'
+import { GROCERY_CATEGORIES, type GroceryCategory } from '@/lib/groceryCategories'
 
 const change = (
   originalIndex: number,
@@ -80,6 +81,36 @@ describe('grocery cleanup safety', () => {
     expect(result).toEqual([
       expect.objectContaining({ originalIndex: 0, action: 'normalize', name: 'cilantro' }),
       expect.objectContaining({ originalIndex: 2, action: 'remove' }),
+    ])
+  })
+
+  it('accepts every current category from the central contract', () => {
+    const items = GROCERY_CATEGORIES.map((_, index) => ({ name: `Original ${index}` }))
+    const changes = GROCERY_CATEGORIES.map((category, index) => ({
+      ...change(index, 'normalize', [], `Normalized ${index}`),
+      category,
+    }))
+
+    expect(sanitizeGroceryCleanupChanges(items, changes).map(item => item.category))
+      .toEqual(GROCERY_CATEGORIES)
+  })
+
+  it('rejects legacy and arbitrary AI categories in favor of deterministic classification', () => {
+    const items = [
+      { name: 'olive oil' },
+      { name: 'tomato paste' },
+      { name: 'rice' },
+    ]
+    const result = sanitizeGroceryCleanupChanges(items, [
+      { ...change(0, 'normalize', [], 'olive oil normalized'), category: 'Staples' as GroceryCategory },
+      { ...change(1, 'normalize', [], 'tomato paste normalized'), category: 'Canned / Jarred / Sauces' as GroceryCategory },
+      { ...change(2, 'normalize', [], 'rice normalized'), category: 'Not a category' as GroceryCategory },
+    ])
+
+    expect(result.map(item => item.category)).toEqual([
+      'Sauces & Condiments',
+      'Canned & Jarred',
+      'Pantry & Dry Goods',
     ])
   })
 })

@@ -1,11 +1,16 @@
-import { categorizeIngredient, GROCERY_CATEGORIES, type GroceryCategory } from './groceryCategories'
+import {
+  categorizeIngredient,
+  isGroceryCategory,
+  normalizePersistedGroceryCategory,
+  type GroceryCategory,
+} from './groceryCategories'
 import { normalizeNoun } from './ingredientParser'
 
 export interface GroceryCleanupItem {
   name: string
   quantity?: string
   unit?: string
-  manualSection?: GroceryCategory
+  manualSection?: string
 }
 
 export interface GroceryCleanupChange {
@@ -103,7 +108,7 @@ function normalizedChange(
   change: GroceryCleanupChange,
 ): GroceryCleanupChange {
   const item = items[change.originalIndex]
-  const category = GROCERY_CATEGORIES.includes(change.category)
+  const category = isGroceryCategory(change.category)
     ? change.category
     : categorizeIngredient(change.name || item.name)
 
@@ -121,7 +126,9 @@ function isActualNormalization(item: GroceryCleanupItem, change: GroceryCleanupC
   return change.name !== item.name ||
     change.quantity !== (item.quantity || '') ||
     change.unit !== (item.unit || '') ||
-    change.category !== (item.manualSection || categorizeIngredient(item.name))
+    change.category !== (item.manualSection
+      ? normalizePersistedGroceryCategory(item.manualSection, item.name)
+      : categorizeIngredient(item.name))
 }
 
 /**

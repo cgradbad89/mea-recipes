@@ -14,6 +14,7 @@ vi.mock('@/lib/ai', () => ({
 }))
 
 import { POST } from '@/app/api/grocery-cleanup/route'
+import { GROCERY_CATEGORIES } from '@/lib/groceryCategories'
 
 function request(body: unknown) {
   return new NextRequest('http://localhost/api/grocery-cleanup', {
@@ -73,6 +74,10 @@ describe('POST /api/grocery-cleanup', () => {
       feature: 'grocery-cleanup',
       userId: 'user-123',
     }))
+    const prompt = mocks.generateAIArray.mock.calls[0][0].prompt as string
+    expect(prompt).toContain(GROCERY_CATEGORIES.join(', '))
+    expect(prompt).not.toContain('Canned / Jarred / Sauces')
+    expect(prompt).not.toContain('"Staples" =')
   })
 
   it('preserves successful parse-line behavior', async () => {
