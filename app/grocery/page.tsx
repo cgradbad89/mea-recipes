@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  collection, onSnapshot, doc, updateDoc, deleteDoc, writeBatch, setDoc, serverTimestamp
+  collection, onSnapshot, doc, updateDoc, deleteDoc, setDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
@@ -12,6 +12,7 @@ import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp,
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
+import { commitFirestoreBatches, type FirestoreBatchOperation } from '@/lib/firestoreBatch'
 
 interface GroceryItem {
   id: string
@@ -226,20 +227,20 @@ export default function GroceryPage() {
 
   const clearChecked = async () => {
     if (!user) return
-    const batch = writeBatch(db)
-    items.filter(i => i.isChecked).forEach(i => {
-      batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', i.id))
-    })
-    await batch.commit()
+    const operations = items
+      .filter(item => item.isChecked)
+      .map<FirestoreBatchOperation>(item => batch => {
+        batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+      })
+    await commitFirestoreBatches(db, operations)
   }
 
   const clearAll = async () => {
     if (!user) return
-    const batch = writeBatch(db)
-    items.forEach(i => {
-      batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', i.id))
+    const operations = items.map<FirestoreBatchOperation>(item => batch => {
+      batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
     })
-    await batch.commit()
+    await commitFirestoreBatches(db, operations)
   }
 
   const handleAICleanup = async () => {
@@ -267,7 +268,7 @@ export default function GroceryPage() {
     setApplyingCleanup(true)
     try {
       const acceptedChanges = cleanupChanges.filter((_, i) => !rejectedChanges.has(i))
-      const batch = writeBatch(db)
+      const operations: FirestoreBatchOperation[] = []
       const toDelete = new Set<number>()
       const mergeSurvivors = new Set(
         acceptedChanges
@@ -290,11 +291,13 @@ export default function GroceryPage() {
         const item = items[change.originalIndex]
         if (!item || item.id.includes('/')) return
         const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
-        batch.update(ref, {
-          name: change.name,
-          quantity: change.quantity || '',
-          unit: change.unit || '',
-          manualSection: change.category,
+        operations.push(batch => {
+          batch.update(ref, {
+            name: change.name,
+            quantity: change.quantity || '',
+            unit: change.unit || '',
+            manualSection: change.category,
+          })
         })
       })
 
@@ -302,11 +305,12 @@ export default function GroceryPage() {
       toDelete.forEach(i => {
         const item = items[i]
         if (item && !item.id.includes('/')) {
-          batch.delete(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
+          const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
+          operations.push(batch => batch.delete(ref))
         }
       })
 
-      await batch.commit()
+      await commitFirestoreBatches(db, operations)
       localStorage.setItem('mea-grocery-last-cleaned', Date.now().toString())
       setLastCleaned(new Date())
       setCleanupChanges(null)

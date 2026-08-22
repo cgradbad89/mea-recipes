@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuthToken, getAdminDb } from '@/lib/firebaseAdmin'
+import { verifyAdminToken, verifyAuthToken, getAdminDb } from '@/lib/firebaseAdmin'
 import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 
@@ -30,7 +30,7 @@ import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 // IMPORTANT: run APPLY where AI Gateway authentication is present (Vercel) so the full
 // three-tier engine (canonical → USDA → AI) produces the real final values.
 //
-// Auth: Bearer token via verifyAuthToken, matching ai-ingest / nutrition-revalidate.
+// Auth: any signed-in user may dry-run; apply=true requires verifyAdminToken.
 
 // Recompute makes live USDA (+ AI on Vercel) calls per non-canonical ingredient, so
 // extend the serverless function timeout and keep apply batches small (the runner
@@ -89,11 +89,15 @@ function materialVsStored(proposed: NutritionMacros | undefined, stored: Partial
 }
 
 export async function POST(req: NextRequest) {
-  const uid = await verifyAuthToken(req)
-  if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const params = req.nextUrl.searchParams
   const apply = params.get('apply') === 'true'   // DEFAULT FALSE — dry-run unless explicit
+  const uid = apply ? await verifyAdminToken(req) : await verifyAuthToken(req)
+  if (!uid) {
+    return NextResponse.json(
+      { error: apply ? 'Admin access required' : 'Unauthorized' },
+      { status: apply ? 403 : 401 },
+    )
+  }
   const scope = params.get('scope') === 'low' ? 'low' : 'all'
   const singleId = (params.get('recipeId') || '').trim()
   const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(params.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT))

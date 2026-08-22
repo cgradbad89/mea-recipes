@@ -19,6 +19,7 @@ import NutritionSection from '@/components/NutritionSection'
 import RecipeImage from '@/components/RecipeImage'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
+import { hasAdminAccessClaims } from '@/lib/admin'
 
 function formatWeekLabel(weekID: string): string {
   const start = new Date(weekID + 'T12:00:00')
@@ -58,6 +59,7 @@ export default function RecipeDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [canDelete, setCanDelete] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showUnsavedBanner, setShowUnsavedBanner] = useState(false)
@@ -82,6 +84,39 @@ export default function RecipeDetailPage() {
       setRating(meta.rating || 0)
     }
   }, [meta])
+
+  useEffect(() => {
+    let active = true
+    if (!user) {
+      setCanDelete(false)
+      return () => { active = false }
+    }
+
+    const verifiedEmailAdmin = hasAdminAccessClaims({
+      email: user.email,
+      email_verified: user.emailVerified,
+    })
+    if (verifiedEmailAdmin) {
+      setCanDelete(true)
+      return () => { active = false }
+    }
+
+    setCanDelete(false)
+    user.getIdTokenResult()
+      .then(result => {
+        if (active) {
+          setCanDelete(hasAdminAccessClaims({
+            admin: result.claims.admin,
+            email: result.claims.email,
+            email_verified: result.claims.email_verified,
+          }))
+        }
+      })
+      .catch(() => {
+        if (active) setCanDelete(false)
+      })
+    return () => { active = false }
+  }, [user])
 
   // Warn on tab close if notes are unsaved
   const notesDirty = note !== (meta?.note || '') || rating !== (meta?.rating || 0)
@@ -173,6 +208,11 @@ export default function RecipeDetailPage() {
 
   const handleDelete = async () => {
     if (!user || !recipe) return
+    if (!canDelete) {
+      setConfirmDelete(false)
+      setDeleteError('Only a verified administrator can delete shared recipes.')
+      return
+    }
     setDeleting(true)
     setDeleteError('')
     try {
@@ -227,8 +267,6 @@ export default function RecipeDetailPage() {
   // its own "Your serving size" UI and shouldn't read as the recipe being edited.
   const hasOverrides = !!meta?.overrides &&
     Object.keys(meta.overrides).some(k => k !== 'servings')
-  const canDelete = !!user
-
   // Bulk "Add all to grocery" (Batch 9). REUSES addRecipeIngredientsToGrocery — the
   // SAME function the Plan→grocery rebuild calls — so the Batch-2 unit-aware parser and
   // exact-noun merge apply; we never reimplement parsing or grocery writes here. The
@@ -340,14 +378,14 @@ export default function RecipeDetailPage() {
             </button>
           )}
           {canDelete && !confirmDelete && (
-            <button onClick={() => setConfirmDelete(true)}
+            <button onClick={() => { setDeleteError(''); setConfirmDelete(true) }}
               aria-label="Delete recipe"
               className="w-10 h-10 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-red-400 hover:border-red-400/30 transition-all"
             >
               <Trash2 size={14} />
             </button>
           )}
-          {confirmDelete && (
+          {canDelete && confirmDelete && (
             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
               <span className="text-red-400 text-xs font-body">Delete?</span>
               <button onClick={handleDelete} disabled={deleting}
@@ -356,7 +394,6 @@ export default function RecipeDetailPage() {
                 {deleting ? <Loader2 size={12} className="animate-spin" /> : 'Yes'}
               </button>
               <button onClick={() => setConfirmDelete(false)} className="text-faint text-xs font-body hover:text-cream">No</button>
-              {deleteError && <span className="text-red-400 text-xs font-body">{deleteError}</span>}
             </div>
           )}
           <button onClick={() => toggle(displayRecipe.id)}
@@ -369,6 +406,9 @@ export default function RecipeDetailPage() {
           </button>
         </div>
       </div>
+      {deleteError && (
+        <p role="alert" className="text-red-400 text-xs font-body mb-3">{deleteError}</p>
+      )}
 
       {/* Tags */}
       <div className="flex flex-wrap gap-2 mb-3">

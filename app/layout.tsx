@@ -4,6 +4,8 @@ import './globals.css'
 import { AuthProvider } from '@/lib/AuthContext'
 import { AppDataProvider } from '@/components/AppDataProvider'
 import HubBanner from '@/components/HubBanner'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -33,6 +35,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </AppDataProvider>
         </AuthProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )

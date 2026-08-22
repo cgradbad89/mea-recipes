@@ -2,6 +2,7 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, Firestore } from 'firebase-admin/firestore'
 import { NextRequest } from 'next/server'
+import { hasAdminAccessClaims } from './admin'
 
 function getAdminApp() {
   if (getApps().length > 0) return getApps()[0]
@@ -19,15 +20,25 @@ export function getAdminDb(): Firestore {
   return getFirestore(getAdminApp())
 }
 
-export async function verifyAuthToken(req: NextRequest): Promise<string | null> {
+async function verifyDecodedToken(req: NextRequest) {
   try {
     const authHeader = req.headers.get('Authorization')
-    const token = authHeader?.split('Bearer ')[1]
+    const match = authHeader?.match(/^Bearer\s+(.+)$/i)
+    const token = match?.[1]?.trim()
     if (!token) return null
     getAdminApp()
-    const decoded = await getAuth().verifyIdToken(token)
-    return decoded.uid
+    return await getAuth().verifyIdToken(token)
   } catch {
     return null
   }
+}
+
+export async function verifyAuthToken(req: NextRequest): Promise<string | null> {
+  return (await verifyDecodedToken(req))?.uid || null
+}
+
+/** Verify identity and require either the admin custom claim or verified admin email. */
+export async function verifyAdminToken(req: NextRequest): Promise<string | null> {
+  const decoded = await verifyDecodedToken(req)
+  return decoded && hasAdminAccessClaims(decoded) ? decoded.uid : null
 }

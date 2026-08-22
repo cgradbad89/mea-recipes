@@ -34,6 +34,7 @@ credential **linked to the same account** (Batch 7; same uid/data, no separate a
 | Charts | recharts | ^2.12.0 |
 | Utility | clsx | ^2.1.1 |
 | AI | Vercel AI Gateway (`openai/gpt-5.6-luna`) | Vercel AI SDK + `@ai-sdk/gateway` |
+| Client telemetry | Vercel Analytics + Speed Insights | `@vercel/analytics` 2.x + `@vercel/speed-insights` 2.x |
 
 ### Project Identifiers
 
@@ -74,8 +75,8 @@ wrapped in a per-route `layout.tsx`.
 
 | Route | Method | Auth | Summary |
 |---|---|---|---|
-| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). Calls the centrally configured Vercel AI Gateway model. |
-| `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import) |
+| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). URL imports use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB cap). Calls the centrally configured Vercel AI Gateway model. |
+| `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted by the same SSRF-safe public-URL boundary as AI ingest. |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; route calls the Calendar REST API against the user's **primary** calendar and returns one result per op. Has **no list/search** — only acts on the exact event IDs passed (the "no search-and-delete" safety invariant is structural). Token used transiently, never stored. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from taste profile |
@@ -83,8 +84,8 @@ wrapped in a per-route `layout.tsx`.
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from cooking history + ratings |
 | `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a single recipe (substitutions, scaling, dietary swaps, technique). Stateless; conversation history passed per request. Calls the centrally configured Vercel AI Gateway model. |
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves an arbitrary food ("Big Mac") to per-serving macros via USDA Branded/Survey, AI fallback. Read-only — does not persist to the recipe doc. |
-| `/api/nutrition-revalidate` | POST | Bearer token (required) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
-| `/api/nutrition-canonical-dryrun` | POST | Bearer token (required) | **Canonical-staples recompute — DRY-RUN ONLY (Batch 4); there is no apply path in this route.** Recomputes catalog nutrition with the canonical-aware engine and emits a diff: per recipe **baseline** (`useCanonical:false`) vs **proposed** (`useCanonical:true`), so `canonicalΔ = proposed.total − baseline.total` isolates the table's effect; plus stored `old`, which ingredients newly resolved via the table, and old/new confidence. Never writes (no `apply` param exists). `?scope=low` restricts to `confidence==='low'` (Task-C projection); `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
+| `/api/nutrition-revalidate` | POST | Bearer token (required; admin for apply) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` requires `verifyAdminToken` and persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
+| `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute. Dry-run emits baseline vs proposed canonical deltas; explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
 | `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,serving_grams?,servings_per_container?,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g). `serving_grams?` (numeric grams in one declared serving) and `servings_per_container?` (≈ servings/pack, derived from OFF `product_quantity`/`serving_quantity` or USDA `packageWeight`) are present when derivable — they drive the servings/grams toggle and the serving-context lines in Scan. Server-side fetch sets OFF's courtesy User-Agent. Read-only. Fed by the **Scan** mode in `LogFoodSheet.tsx` (camera → BarcodeDetector or zxing fallback). |
 
 ---
@@ -223,17 +224,18 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
 
 ## Section 4 — Domain Invariants
 
-1. **Single admin user / HubBanner gating.** `components/HubBanner.tsx` renders the cross-app
-   MEA hub navigation **only** when `user.email === 'folstromjohn@gmail.com'`
-   (`ADMIN_EMAIL` constant). This is the one hard admin-email check in the app.
-2. **Auth required for all writes & AI.** Every API route except `/api/fetch-recipe` calls
-   `verifyAuthToken` (Firebase Admin `verifyIdToken`) and returns 401 without a valid Bearer
-   token. Client Firestore writes always pass `user.uid` from `useAuth()`.
-3. **Access enforcement is NOT email-restricted at the data layer.** The Firestore rules
-   (managed manually in the Firebase Console — **not** version-controlled here; see
-   **Firestore rules** below) allow **any** authenticated user to read `recipes` and
-   read/write their own `users/{uid}/**`. Single-user access is a product convention + the
-   HubBanner check, not a Firestore-enforced email allowlist.
+1. **Shared recipe-admin identity.** `lib/admin.ts` owns `ADMIN_EMAIL` and accepts either an
+   `admin === true` custom claim or the configured email with `email_verified === true`.
+   `verifyAdminToken` enforces that policy on Admin-SDK global writes; the recipe-detail delete
+   affordance mirrors it client-side. `HubBanner` reuses the same email constant for navigation.
+2. **Auth required for all writes & AI.** Every API route except intentionally pre-login
+   `/api/fetch-recipe` requires a valid Firebase Bearer token. Nutrition dry-runs require ordinary
+   auth; their `apply=true` global-write paths require `verifyAdminToken`. Client Firestore writes
+   always pass `user.uid` from `useAuth()`.
+3. **Shared recipe writes require a manual Console rule.** Firestore rules are managed manually in
+   the shared `malignant-metro` Firebase Console (never deployed from this repo). The required
+   `recipes/{recipeId}` rule restricts writes to the verified admin email; see **Firestore rules**
+   below. Admin-SDK routes bypass rules and are therefore protected separately in application code.
 4. **Week identity = Monday ISO date.** All meal-plan logic keys weeks by the Monday of the
    week as `YYYY-MM-DD` (`weekIDFromDate` in `lib/userdata.ts`).
 5. **Per-user data isolation.** Grocery, favorites, meta, week plans, saved items, and the
@@ -263,17 +265,16 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
 ## Section 5 — Key Calculations & Business Logic
 
 1. **Recipe list filtering & live count** — `app/recipes/page.tsx`. A `filtered` `useMemo`
-   recomputes on every change to search text, cuisine, category, min-rating, source, time
-   filter, and sort; the displayed count updates live (per keystroke). Search uses fuse.js.
+   recomputes on cuisine, category, min-rating, source, time filter, sort, and a 150 ms debounced
+   search term; the input itself remains immediate. Search uses fuse.js starting at one character.
 2. **Filter persistence** — `app/recipes/page.tsx` writes filter state to `localStorage` keys:
    `mea_recipes_search`, `mea_recipes_cuisine`, `mea_recipes_category`, `mea_recipes_minRating`,
    `mea_recipes_source`, `mea_recipes_sort`, `mea_recipes_filter`, `mea_recipes_timeFilter`.
    `app/favorites/page.tsx` mirrors the same controls with parallel `mea_favorites_*` keys so
    the two pages persist independently. Favorites does **not** apply the default "Added by me"
    source filter.
-3. **Default "Added by me" filter** — on first mount, if no remembered choice exists in
-   `sessionStorage` (`mea_recipes_default_mine_applied`) **and** the user is signed in, the
-   source filter defaults to `mine` once per session.
+3. **Default recipe source filter** — defaults to `all`; the user's explicit source selection
+   persists in `mea_recipes_source`. Sign-in does not auto-switch the list to "Added by me".
 4. **AI recipe generation flow** — Discover page: free-text dish name → `POST /api/ai-ingest`
    with `{ generate }` → AI Gateway returns schema-validated structured data → user reviews/edits → `saveRecipe`
    into `recipes`. Generation is **FlavorGraph-informed**: `getComplementaryIngredients` seeds
@@ -302,12 +303,17 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
     returns per-item actions (`keep` / `merge` / `normalize` / `remove`) with `mergedWith`
     indices and a category. The route imports `GROCERY_CATEGORIES` (no hand-duplicated list)
     and validates each returned `category`; an off-list value falls back to the local
-    `categorizeIngredient` match. Last-run tracked in `localStorage` `mea-grocery-last-cleaned`.
+    `categorizeIngredient` match. Model merge suggestions are deletion-safe only when purchase
+    identity matches: normalized token sets must be equal except for a narrow count/container-unit
+    allowance, while freshness/state, form, meat cut, and fat-percentage terms must match exactly.
+    Apply operations are committed in sequential chunks of at most 450 writes. Last-run tracked in
+    `localStorage` `mea-grocery-last-cleaned`.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) deletes
     non-manual/non-legacy items, then re-adds parsed ingredients from each planned recipe via
     `addRecipeIngredientsToGrocery`, which merges by normalized noun and unions `sourceRecipeIDs`
     (see §5.16). Idempotent: re-adding a recipe already in `sourceRecipeIDs` is a no-op, and the
-    delete-then-re-add means quantities never double-count across rebuilds.
+    delete-then-re-add means quantities never double-count across rebuilds. Rebuild deletes and
+    clear operations are committed in sequential chunks of at most 450 writes.
 12. **Flavor pairing scoring** — `getComplementaryIngredients` normalizes input ingredients
     (strips quantities/units/prep words), looks up pairings (exact → suffix → last word), and
     scores candidates by rank-weighted frequency, returning the top N not already present.
@@ -341,8 +347,9 @@ Queried by `start_date_local` to compute burned calories. Burned calories are su
     (`POST /api/grocery-cleanup {mode:'parse-line'}`, unit validated against the shared vocab,
     falls back to whole-line `name` if junk). **Add-merge** (decision: conservative): a new item
     merges into an existing one only on an **exact normalized-noun** match (`normalizeNoun` =
-    lowercase + strip punctuation/articles, **no stemming or modifier-drop**, so `"red onion"` ≠
-    `"onion"`); `mergeQuantities` **sums** compatible units (`"2 cups"+"1 cup"="3 cups"`) and
+    lowercase + strip punctuation/articles + conservative food singularization with uncountable
+    exceptions, so `"tomatoes"` = `"tomato"` but `"red onion"` ≠ `"onion"`); `mergeQuantities`
+    **sums** compatible units (`"2 cups"+"1 cup"="3 cups"`) and
     otherwise lists both side by side without dropping either (`"2 cups + 3 tbsp"`). Manual adds
     merge only into manual items and recipe adds only into recipe items (the pools stay separate
     to preserve the rebuild invariant in §5.11). The existing whole-list "AI Clean Up List" button
@@ -744,3 +751,18 @@ Firestore security rules for the shared malignant-metro database are managed man
 Firebase Console, NOT in this repo. Do not add a deployable firestore.rules file or run firebase
 deploy for rules — the database is shared across multiple apps and a deploy from here would
 overwrite the others' rules. When adding a new collection, update the rules in the console.
+
+Required recipe-catalog rule (paste manually after reviewing sibling-app impact):
+
+```firestore
+function isRecipeAdmin() {
+  return request.auth != null
+    && request.auth.token.email == "folstromjohn@gmail.com"
+    && request.auth.token.email_verified == true;
+}
+
+match /recipes/{recipeId} {
+  allow read: if true;
+  allow write: if isRecipeAdmin();
+}
+```

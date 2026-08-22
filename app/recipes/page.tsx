@@ -69,6 +69,7 @@ export default function RecipesPage() {
   const { user } = useAuth()
   const { metas, recipes, recipesLoading: loading } = useAppData()
   const [search, setSearch] = useState(() => readLS('mea_recipes_search', ''))
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
   const [cuisine, setCuisine] = useState<string[]>(() => {
     const val = readLS<string>('mea_recipes_cuisine', 'All')
     if (val === 'All' || !val) return []
@@ -105,6 +106,15 @@ export default function RecipesPage() {
     } catch {}
   }, [search, cuisine, category, minRating, source, sort, filter, timeFilter])
 
+  useEffect(() => {
+    if (!search.trim()) {
+      setDebouncedSearch('')
+      return
+    }
+    const timer = setTimeout(() => setDebouncedSearch(search), 150)
+    return () => clearTimeout(timer)
+  }, [search])
+
   // Source filter defaults to "All recipes". It initializes from localStorage
   // (fallback 'all') above, and the user's manual choice persists per browser.
   // Signed-in users are no longer auto-switched to "Added by me" on first load.
@@ -139,8 +149,9 @@ export default function RecipesPage() {
   }), [recipes])
 
   const filtered = useMemo(() => {
-    const baseList = search.length >= 2
-      ? fuse.search(search).map(r => r.item)
+    const searchTerm = debouncedSearch.trim()
+    const baseList = searchTerm.length >= 1
+      ? fuse.search(searchTerm).map(r => r.item)
       : recipes
 
     const f = baseList.filter(r => {
@@ -191,7 +202,7 @@ export default function RecipesPage() {
       })
     }
     return sorted
-  }, [recipes, search, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, fuse])
+  }, [recipes, debouncedSearch, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, fuse])
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: 'default', label: 'Default' },

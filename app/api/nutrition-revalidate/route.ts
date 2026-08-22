@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuthToken, getAdminDb } from '@/lib/firebaseAdmin'
+import { verifyAdminToken, verifyAuthToken, getAdminDb } from '@/lib/firebaseAdmin'
 import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import { servingsAssumed } from '@/lib/nutrition'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
@@ -24,7 +24,7 @@ import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 //  • Bounded batches (default 25) so we never spray USDA/AI calls; recipes are
 //    processed sequentially (the engine caches ingredient lookups in-process).
 //
-// Auth: Bearer token via verifyAuthToken, matching ai-ingest / grocery-cleanup.
+// Auth: any signed-in user may dry-run; apply=true requires verifyAdminToken.
 
 const DEFAULT_LIMIT = 25
 const MAX_LIMIT = 50
@@ -59,11 +59,15 @@ function matchedTier(source: string | undefined): string {
 }
 
 export async function POST(req: NextRequest) {
-  const uid = await verifyAuthToken(req)
-  if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   const params = req.nextUrl.searchParams
   const apply = params.get('apply') === 'true'
+  const uid = apply ? await verifyAdminToken(req) : await verifyAuthToken(req)
+  if (!uid) {
+    return NextResponse.json(
+      { error: apply ? 'Admin access required' : 'Unauthorized' },
+      { status: apply ? 403 : 401 },
+    )
+  }
   const limit = Math.min(
     MAX_LIMIT,
     Math.max(1, parseInt(params.get('limit') || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),

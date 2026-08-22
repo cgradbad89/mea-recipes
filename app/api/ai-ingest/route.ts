@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { getComplementaryIngredients } from '@/lib/flavorPairings'
 import { generateAIObject } from '@/lib/ai'
+import { safeFetchText } from '@/lib/safeFetch'
 import { z } from 'zod'
 
 const RECIPE_SCHEMA = z.object({
@@ -80,15 +81,14 @@ export async function POST(req: NextRequest) {
 
     if (url && !html && !text) {
       try {
-        const res = await fetch(url, {
+        const res = await safeFetchText(url, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (compatible; recipe-parser/1.0)',
             'Accept': 'text/html',
           },
-          signal: AbortSignal.timeout(8000),
         })
         if (res.ok) {
-          const rawHtml = await res.text()
+          const rawHtml = res.text
           const titleMatch = rawHtml.match(/<title[^>]*>([^<]+)<\/title>/i)
           fetchedTitle = titleMatch ? titleMatch[1].replace(' - ', ' | ').split(' | ')[0].trim() : ''
           content = rawHtml

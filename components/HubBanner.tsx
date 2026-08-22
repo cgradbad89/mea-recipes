@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
-
-const ADMIN_EMAIL = 'folstromjohn@gmail.com';
+import { ADMIN_EMAIL } from '@/lib/admin';
 
 const NAV_ITEMS = [
   { label: 'Hub',      href: 'https://my-hub-drab.vercel.app/' },

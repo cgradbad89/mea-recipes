@@ -22,8 +22,9 @@ const change = (
 
 describe('grocery cleanup safety', () => {
   it('recognizes preparation variants but not merely related ingredients', () => {
-    expect(areLikelySameGroceryItem('fresh lime juice, from one lime', 'lime juice, from 2 limes')).toBe(true)
-    expect(areLikelySameGroceryItem('large garlic cloves, roughly chopped', 'garlic, roughly chopped')).toBe(true)
+    expect(areLikelySameGroceryItem('fresh lime juice, from one lime', 'fresh lime juice, from 2 limes')).toBe(true)
+    expect(areLikelySameGroceryItem('fresh lime juice', 'lime juice')).toBe(false)
+    expect(areLikelySameGroceryItem('large garlic cloves, roughly chopped', 'large garlic, roughly chopped')).toBe(true)
     expect(areLikelySameGroceryItem('packed fresh cilantro leaves', 'lime juice')).toBe(false)
     expect(areLikelySameGroceryItem('whole limes', 'lime juice')).toBe(false)
   })
@@ -31,7 +32,7 @@ describe('grocery cleanup safety', () => {
   it('strips a self index and keeps one survivor for a merge', () => {
     const items = [
       { name: 'fresh lime juice, from one lime', quantity: '1', unit: 'tablespoon' },
-      { name: 'lime juice, from 2 limes', quantity: '1/4', unit: 'cup' },
+      { name: 'fresh lime juice, from 2 limes', quantity: '1/4', unit: 'cup' },
     ]
     const result = sanitizeGroceryCleanupChanges(items, [
       { ...change(0, 'merge', [0, 1], 'lime juice'), quantity: '1/4 cup + 1 tablespoon' },
@@ -41,10 +42,18 @@ describe('grocery cleanup safety', () => {
     expect(result[0]).toMatchObject({ originalIndex: 0, action: 'merge', mergedWith: [1] })
   })
 
+  it('enforces purchase identity across adversarial singular/plural and form cases', () => {
+    expect(areLikelySameGroceryItem('ground beef', 'beef tenderloin')).toBe(false)
+    expect(areLikelySameGroceryItem('fresh parsley', 'dried parsley')).toBe(false)
+    expect(areLikelySameGroceryItem('whole tomatoes', 'tomato sauce')).toBe(false)
+    expect(areLikelySameGroceryItem('tomato', 'tomatoes')).toBe(true)
+    expect(areLikelySameGroceryItem('garlic clove', 'garlic cloves')).toBe(true)
+  })
+
   it('collapses reciprocal merge suggestions instead of deleting both items', () => {
     const items = [
       { name: '4 large garlic cloves, roughly chopped' },
-      { name: '2 cloves garlic, roughly chopped' },
+      { name: '2 large cloves garlic, roughly chopped' },
     ]
     const result = sanitizeGroceryCleanupChanges(items, [
       change(0, 'merge', [1], 'garlic'),
