@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { computeRecipeNutrition, lookupFoodByName } from '@/lib/nutritionEngine'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
 import { z } from 'zod'
 
 const EXTERNAL_LOOKUP_MAX_BODY_BYTES = 32_000
@@ -18,10 +17,7 @@ const REQUEST_SCHEMA = z.union([
 
 export async function POST(req: NextRequest) {
   try {
-    const uid = await verifyAuthToken(req)
-    if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const abuseResponse = await enforceAbuseLimit(req, 'externalLookup', uid)
-    if (abuseResponse) return abuseResponse
+    if (!await verifyAuthToken(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const requestResult = REQUEST_SCHEMA.safeParse(
       await readBoundedJson(req, EXTERNAL_LOOKUP_MAX_BODY_BYTES),

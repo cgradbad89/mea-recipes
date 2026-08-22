@@ -166,7 +166,7 @@ app/
   grocery/          # Grocery list
   favorites/        # Saved recipes
   api/
-    fetch-recipe/   # Server-side URL fetcher
+    fetch-recipe/   # Firebase-authenticated server-side URL fetcher
 components/
   Navigation.tsx    # Sidebar + mobile nav
   RecipeCard.tsx    # Recipe grid card

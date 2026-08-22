@@ -13,7 +13,7 @@ The application builds cleanly, all 16 tests pass, the production deployment is 
 
 | ID | Severity | Finding | Location |
 |---|---|---|---|
-| C-01 | **Critical** | Unauthenticated SSRF and full-response proxying are live in `/api/fetch-recipe`; authenticated URL ingest repeats the unrestricted fetch primitive. | `app/api/fetch-recipe/route.ts:3-25`; `app/api/ai-ingest/route.ts:74-103` |
+| C-01 | **Critical — fixed** | `/api/fetch-recipe` and authenticated URL ingest now use the shared SSRF-safe fetch primitive; fetch-recipe additionally requires Firebase authentication before URL parsing or outbound work. | `app/api/fetch-recipe/route.ts`; `app/api/ai-ingest/route.ts`; `lib/safeFetch.ts` |
 | H-01 | **High** | Any Firebase-authenticated account can write/delete the shared catalog and invoke Admin-backed global nutrition apply paths; there is no admin allowlist. | `README.md:64-71`; `lib/AuthContext.tsx:83-93`; `lib/recipes.ts:84-93,132-135,222-224`; `app/api/nutrition-revalidate/route.ts:61-110`; `app/api/nutrition-canonical-dryrun/route.ts:91-165` |
 | H-02 | **High — fixed** | Missing `CRON_SECRET` previously accepted the literal header `Bearer undefined`. The route now requires a non-empty secret. | `app/api/cron/sync-nutrition/route.ts:119-125`; `tests/cronAuth.test.ts:1-22` |
 | M-01 | **Medium** | Category taxonomy is inconsistent: 51/216 live recipes are outside the union, `Sides` is absent from the type/filter/prompts, and AI prompts emit punctuation-stripped legacy values. | `types/recipe.ts:67-75`; `components/RecipeFilters.tsx:14-24`; `app/api/ai-ingest/route.ts:20-42`; `app/queue/page.tsx:15-19`; `lib/userdata.ts:138-157` |
@@ -34,9 +34,9 @@ The application builds cleanly, all 16 tests pass, the production deployment is 
 
 ### 2.1 API authentication and authorization
 
-- **PASS — token verification exists on all AI/write-oriented APIs.** Twelve routes call `verifyAuthToken`; the MFP route uses `CRON_SECRET`. `/api/fetch-recipe` is the sole unauthenticated route, matching the documented inventory (`PRD.md:78,229-231`). `verifyAuthToken` uses modular Admin Auth and cryptographically verifies the ID token (`lib/firebaseAdmin.ts:1-3,22-32`). Tightening its header parser to an exact `^Bearer <token>$` match would be prudent, but malformed tokens still fail verification.
-- **FAIL — C-01, unrestricted URL fetch.** `/api/fetch-recipe` accepts any string, follows redirects under the default `fetch` behavior, reads the whole response, and returns it to the caller without scheme, DNS/IP, redirect-hop, content-type, or byte-size controls (`app/api/fetch-recipe/route.ts:3-25`). A read-only production probe with `url=https://example.com` returned HTTP 200 and 608 bytes of proxied HTML without authentication. This can target loopback, RFC1918, link-local, IPv6-local, or cloud metadata endpoints and exfiltrate text/HTML responses. Auth-gated AI ingest repeats the same primitive (`app/api/ai-ingest/route.ts:81-103`); authentication reduces exposure but does not make SSRF safe.
-- **FAIL — H-01, authentication is mistaken for administration.** Google sign-in has no email allowlist (`lib/AuthContext.tsx:83-93`), while the documented rule permits any authenticated user to write `recipes` (`README.md:64-71`). Client helpers can save, set a shared role, and delete global recipes (`lib/recipes.ts:84-93,125-135,222-224`), and the detail page exposes deletion to any signed-in user (`app/recipes/[id]/page.tsx:174-186`). Admin-backed recompute routes similarly check only for any valid uid before optionally writing the global catalog (`app/api/nutrition-revalidate/route.ts:61-110`; `app/api/nutrition-canonical-dryrun/route.ts:91-165`). Because Admin SDK bypasses Firestore rules, both API-level and manually managed rule-level allowlists are required.
+- **PASS — token verification exists on every normal application API.** All 12 normal routes call `verifyAuthToken` before meaningful work (with `verifyAdminToken` for nutrition applies); the MFP route uses `CRON_SECRET`. `verifyAuthToken` uses modular Admin Auth and cryptographically verifies the ID token (`lib/firebaseAdmin.ts:1-3,22-32`).
+- **FIXED — C-01, safe authenticated URL fetch.** `/api/fetch-recipe` authenticates before URL parsing and calls `safeFetchText`, which restricts scheme, credentials, DNS/IP address class, redirect hops, timeout, and response bytes. Auth-gated AI ingest uses the same boundary.
+- **FIXED — H-01 API authorization boundary.** Nutrition recompute routes allow ordinary Firebase-authenticated dry-runs but require `verifyAdminToken` for `?apply=true` global writes (`app/api/nutrition-revalidate/route.ts`; `app/api/nutrition-canonical-dryrun/route.ts`). Firestore rules remain manually managed and separately protect direct client catalog writes.
 - **FIXED — H-02, cron fail-open.** The cron now reads `CRON_SECRET` into a local value and rejects when it is absent or mismatched (`app/api/cron/sync-nutrition/route.ts:119-125`). The exact missing-env attack is locked by `tests/cronAuth.test.ts:1-22`.
 
 ### 2.2 Input validation, error handling, and response shapes
@@ -430,7 +430,7 @@ Final verification:
 
 | Enhancement | Effort | Why it matters |
 |---|---|---|
-| Replace raw URL `fetch` with a shared safe-fetch helper: HTTP(S) only, DNS/IP private-range rejection, manual redirect validation, byte/content-type limits, timeout, auth/rate limit. | M | Closes C-01 in both URL-fetching routes. Validating only the initial hostname is insufficient because of DNS rebinding and redirects. |
+| Preserve the shared safe-fetch helper: HTTP(S) only, DNS/IP private-range rejection, manual redirect validation, byte/content-type limits, timeout, and Firebase authentication. | M | C-01 is closed in both URL-fetching routes. Validating only the initial hostname is insufficient because of DNS rebinding and redirects. |
 | Add an Admin/custom-claim allowlist for shared catalog/API mutation and manually tighten the recipe write rule. | M | Closes H-01 at both Admin API and client rule layers. |
 | Add per-route request Zod schemas, body/message limits, public error codes, and request IDs. | M | Prevents avoidable 500s, excessive model cost, and internal error leakage. |
 | Add a root error boundary plus Vercel Web Analytics/Speed Insights or equivalent client error telemetry. | S | Production runtime logs cannot see swallowed browser errors. |
@@ -454,7 +454,7 @@ Final verification:
 - Static review of all 13 API routes, central Firebase/AI/nutrition/data helpers, and major requested pages/components.
 - Read-only live Firestore Admin queries through the modular helper in `scripts/_lib.js:15-69`. Queried catalog/category/backup/content fields only; no writes.
 - Read-only production HTTP probes:
-  - `/api/fetch-recipe?url=https://example.com` → 200, proxied HTML (confirms C-01).
+  - Historical pre-remediation probe: `/api/fetch-recipe?url=https://example.com` → 200, proxied HTML (the former C-01 state; superseded by the current Firebase + safe-fetch boundary).
   - unauthenticated `POST /api/grocery-cleanup` → 401 (confirms auth gate).
 - Vercel CLI inspection of the active deployment, build log, and seven-day error-level runtime log.
 - Git-history comparison around grocery cleanup fix `a9e397f` to identify the historical prompt/server/client interaction.
@@ -485,7 +485,7 @@ match /recipes/{recipeId} {
 }
 ```
 
-This rule does **not** protect Admin SDK routes because Admin bypasses rules. Add a server helper that verifies the decoded token’s admin custom claim or verified email and use it on `nutrition-revalidate`, `nutrition-canonical-dryrun`, and any future global mutation route. Prefer a custom claim for durable authorization; if using email, require `email_verified` and return the full decoded token from a separate `verifyAdminToken` helper.
+This rule does **not** protect Admin SDK routes because Admin bypasses rules. The application now uses `verifyAdminToken` (admin custom claim or verified configured email) for `nutrition-revalidate` and `nutrition-canonical-dryrun` `?apply=true` operations; future global mutation routes must use the same boundary.
 
 No new composite index was identified as required by this audit. Existing multi-field MFP and range queries were not changed; if the Console reports an index error later, capture the exact generated specification and paste it manually after sibling-app review.
 
@@ -499,8 +499,8 @@ No new composite index was identified as required by this audit. Existing multi-
 
 ### 11.5 Recommended next implementation sequence
 
-1. **Block release:** close C-01 in both URL fetch sites and verify redirect/DNS/private-IP cases with automated tests.
-2. **Block release:** introduce Admin authorization for global mutation routes and manually tighten `recipes` writes after sibling-app rule review.
+1. Keep C-01 URL-fetch security coverage (including redirect/DNS/private-IP cases) green as safe-fetch changes.
+2. Retain Admin authorization for global mutation routes and manually tighten `recipes` writes after sibling-app rule review.
 3. Fix the category source of truth and AI punctuation; plan a reviewed migration for 51 legacy values and the standalone `Sides` decision.
 4. Harden grocery merge identity and add adversarial regression tests; keep the current review/apply UI.
 5. Convert week-plan array writers to transactions and add conflict tests.
@@ -510,91 +510,46 @@ No new composite index was identified as required by this audit. Existing multi-
 
 ---
 
-## 12. API Abuse-Resistance Review (Prompt 6, 2026-08-22)
+## 12. API Security Simplification (Prompt 6 follow-up, 2026-08-22)
 
-**Result: PASS WITH MANUAL SECURITY ACTION.** All 13 repository API routes were
-inventoried. Authentication occurs before rate checks and before the corresponding AI,
-provider, Admin SDK, or public URL work. `verifyAdminToken` remains required for both
-nutrition `?apply=true` paths; no Firestore rules, production data, secrets, or Vercel
-Firewall configuration were changed in this session.
+**Result: PASS — no manual security action required.** The product owner chose
+authentication gating instead of application rate limits. All normal API routes now
+verify Firebase authentication before meaningful work; nutrition `?apply=true` paths
+continue to require `verifyAdminToken`, and the cron route continues to require an exact
+non-empty `CRON_SECRET`.
 
-### Controls implemented
+`/api/fetch-recipe` is no longer public: it authenticates before reading its URL or
+performing DNS/fetch work. Its SSRF boundary is retained unchanged: HTTP(S) only, no URL
+credentials, public-IP DNS validation and address pinning on every hop, redirect
+revalidation, three redirects, eight-second deadline, and a 2 MB response limit.
 
-- `lib/apiAbuse.ts` uses the official `@vercel/firewall` SDK rather than a process-local
-  map. Authenticated counters use only the server-verified Firebase uid; the public
-  fetch counter delegates identity to the Vercel request context and never parses
-  `X-Forwarded-For` or a client uid.
-- In Vercel production, a missing configured Firewall rule or an unavailable limit check
-  fails the affected endpoint closed with a generic 503. A configured-limit denial is
-  the stable generic 429 `{error:"Too many requests. Please try again later."}`.
-- The shared safe-fetch boundary remains the only arbitrary public URL path: HTTP(S),
-  no URL credentials, DNS/IP validation and address pinning on every redirect hop,
-  three redirects, eight-second deadline, and 2 MB response ceiling. DNS rebinding is
-  materially reduced by pinning the validated address; malicious control of DNS after a
-  connection is established or an upstream proxy outside this code remains a residual
-  infrastructure risk.
-- Calendar input is bounded to a 128 KB body, `primary` calendar, validated event shape,
-  and at most seven operations. Grocery cleanup is bounded to 256 KB / 100 items;
-  plan suggestions to 256 KB / 21 planned recipes / 500 titles; lookup and barcode
-  inputs are bounded. Nutrition batch limits and offsets now require bounded whole
-  integers instead of permissive `parseInt` coercion.
-- Provider and recomputation errors no longer return raw exception messages. Security
-  logs contain route/class/status/verified identifier context only; no body, bearer,
-  Google access token, credential, or provider diagnostic is emitted.
+The Vercel Firewall SDK integration, its five SDK rule IDs, its 429/503 behavior, and
+the manual-rule instructions have been removed. No normal authenticated request depends
+on Firewall configuration. Platform-level Vercel DDoS mitigation remains separate;
+BotID remains unnecessary.
+
+Payload and operation controls remain: AI raw-body/schema/semantic limits, grocery
+256 KB/100-item and parse-line limits, Calendar 128 KB/primary-only/≤7 operations,
+nutrition bounded pagination, barcode and lookup input limits, and sanitized errors.
 
 ### Final route matrix
 
-| Route | Auth | Rate / abuse control | Payload or batch bound | External cost | Residual risk |
-|---|---|---|---|---|---|
-| `/api/fetch-recipe` GET | Public | `publicFetch`, Vercel IP identity | URL + safe-fetch 2 MB / 3 redirects | Arbitrary public HTML fetch | **ACTION_REQUIRED** until rule is configured; SSRF residual noted above |
-| `/api/ai-ingest` POST | Firebase | `aiExpensive`, verified uid | 2 MB raw body; per-mode caps | AI; URL mode safe fetch | **ACTION_REQUIRED** until rule configured |
-| `/api/grocery-cleanup` POST | Firebase | `aiStandard`, verified uid | 256 KB; 100 items / 1,000-char line | AI | **ACTION_REQUIRED** until rule configured |
-| `/api/calendar/push` POST | Firebase | `writeHeavy`, verified uid | 128 KB; primary only; ≤7 ops | Google Calendar writes | **ACTION_REQUIRED** until rule configured; replay may repeat explicit updates/deletes but operations are scoped/idempotent where documented |
-| `/api/new-recipe-suggestions` POST | Firebase | `aiStandard`, verified uid | 256 KB; 500 strings per collection | AI | **ACTION_REQUIRED** until rule configured |
-| `/api/plan-suggestions` POST | Firebase | `aiStandard`, verified uid | 256 KB; 21 plan / 500 title entries | AI | **ACTION_REQUIRED** until rule configured |
-| `/api/recommendations` POST | Firebase | `aiStandard`, verified uid | 256 KB; 500 bounded entries | AI | **ACTION_REQUIRED** until rule configured |
-| `/api/recipe-assistant` POST | Firebase | `aiExpensive`, verified uid | 256 KB; 40 messages / 64k history / 16k recipe context | AI | **ACTION_REQUIRED** until rule configured |
-| `/api/nutrition-lookup` POST | Firebase | `externalLookup`, verified uid | 32 KB; bounded id/name | USDA, possible AI | **ACTION_REQUIRED** until rule configured |
-| `/api/barcode-lookup` POST | Firebase | `externalLookup`, verified uid | 8 KB; 6–14 digit barcode | Open Food Facts / USDA | **ACTION_REQUIRED** until rule configured |
-| `/api/nutrition-revalidate` POST | Firebase; admin for apply | `writeHeavy`, verified uid | limit 1–50; offset 0–10,000 | Firestore, USDA, possible AI, writes on apply | **ACTION_REQUIRED** until rule configured; authorized replay can recompute up to 50 records |
-| `/api/nutrition-canonical-dryrun` POST | Firebase; admin for apply | `writeHeavy`, verified uid | limit 1–50; offset 0–10,000 | Firestore, USDA, possible AI, writes on apply | **ACTION_REQUIRED** until rule configured; authorized replay is bounded |
-| `/api/cron/sync-nutrition` GET | Exact non-empty `CRON_SECRET` | Vercel scheduler secret boundary | Fixed two-day diary window | MFP and Firestore writes | **LOW**; secret rotation/scheduler delivery are operational concerns |
+| Route | Auth boundary | Payload or batch bound |
+|---|---|---|
+| `/api/fetch-recipe` GET | Firebase | safe-fetch 2 MB / 3 redirects |
+| `/api/ai-ingest` POST | Firebase | 2 MB raw body; per-mode caps |
+| `/api/grocery-cleanup` POST | Firebase | 256 KB; 100 items / 1,000-char line |
+| `/api/calendar/push` POST | Firebase | 128 KB; primary only; ≤7 operations |
+| `/api/new-recipe-suggestions` POST | Firebase | 256 KB; 500 strings per collection |
+| `/api/plan-suggestions` POST | Firebase | 256 KB; 21 planned recipes / 500 titles |
+| `/api/recommendations` POST | Firebase | 256 KB; 500 bounded entries |
+| `/api/recipe-assistant` POST | Firebase | 256 KB; 40 messages / 64k history / 16k context |
+| `/api/nutrition-lookup` POST | Firebase | 32 KB; bounded id/name |
+| `/api/barcode-lookup` POST | Firebase | 8 KB; 6–14 digit barcode |
+| `/api/nutrition-revalidate` POST | Firebase; admin for apply | limit 1–50; offset 0–10,000 |
+| `/api/nutrition-canonical-dryrun` POST | Firebase; admin for apply | limit 1–50; offset 0–10,000 |
+| `/api/cron/sync-nutrition` GET | Exact non-empty `CRON_SECRET` | Fixed two-day diary window |
 
-### Required manual Vercel Firewall action — do not publish blindly
-
-Create five **`@vercel/firewall` SDK** rules in the project Firewall dashboard (or stage
-with the CLI), each using the exact ID below. Begin with **Log**, review the Firewall
-traffic view, then apply a 429 rate-limit action. Counts are deliberately conservative
-for a single interactive user and protect the expensive burst, not volumetric DDoS:
-
-| SDK rule ID | Intended route class | Proposed fixed window | Counting key |
-|---|---|---:|---|
-| `mea-public-fetch-v1` | `/api/fetch-recipe` GET | 6 requests / 10 min | Vercel IP |
-| `mea-ai-expensive-v1` | ingest and assistant | 10 requests / 10 min | verified Firebase uid passed by SDK |
-| `mea-ai-standard-v1` | cleanup, suggestions, recommendations | 20 requests / 10 min | verified Firebase uid passed by SDK |
-| `mea-external-lookup-v1` | nutrition and barcode lookups | 30 requests / 10 min | verified Firebase uid passed by SDK |
-| `mea-write-heavy-v1` | calendar and nutrition batch routes | 12 requests / 10 min | verified Firebase uid passed by SDK |
-
-For each rule: select **`@vercel/firewall`** as the condition and the matching ID,
-configure its limit/counting policy, save as a draft, inspect the diff and traffic,
-then publish only after confirmation. Do not use a header key for the authenticated
-limits: the SDK receives the UID only after Firebase verification. Vercel's automatic
-DDoS mitigation remains enabled independently. Bot challenge/BotID is not recommended
-for the pre-login fetch route at this stage because bookmarklet and browser imports are
-legitimate automation-adjacent traffic; the short public-fetch rate plus SSRF boundary
-is the safer initial control. Keep Attack Mode as an incident-response tool, not a
-normal rule.
-
-### Verification
-
-Fresh pre-change baseline: `npm test` **129 passed / 1 skipped**, typecheck passed,
-lint had **0 errors / 6 existing warnings**, and build passed. Focused Prompt 6 tests
-exercise distributed rate identity/denial/fail-closed behavior, public-fetch denial
-before outbound work, Calendar auth-before-work, and seven-operation bounds. Existing
-safe-fetch tests retain IP/scheme coverage; the implementation retains redirect, size,
-timeout, DNS, and address-pinning behavior.
-
-Unverifiable here: the live Vercel rule configuration, rule traffic, plan entitlement,
-and per-region counter behavior were not inspected or modified. Vercel rate counters
-are per region, so a multi-region attacker can exceed the nominal threshold across
-regions; that is accepted residual risk alongside platform DDoS mitigation.
+Residual risk: authenticated or stolen-token abuse is not application-rate-limited by
+product decision. SSRF protections reduce direct service access, but upstream proxy or
+post-connection DNS infrastructure behavior remains outside application code.

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
+import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { safeFetchText, SafeFetchError } from '@/lib/safeFetch'
 
 export async function GET(req: NextRequest) {
-  const abuseResponse = await enforceAbuseLimit(req, 'publicFetch')
-  if (abuseResponse) return abuseResponse
+  if (!await verifyAuthToken(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const url = req.nextUrl.searchParams.get('url')
   if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 })

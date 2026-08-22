@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
 import { z } from 'zod'
 
 // Batch 6 — Google Calendar push executor. Auth-gated by verifyAuthToken (Firebase
@@ -75,10 +74,7 @@ async function errText(res: Response): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const uid = await verifyAuthToken(req)
-  if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const abuseResponse = await enforceAbuseLimit(req, 'writeHeavy', uid)
-  if (abuseResponse) return abuseResponse
+  if (!await verifyAuthToken(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: z.infer<typeof REQUEST_SCHEMA>
   try {

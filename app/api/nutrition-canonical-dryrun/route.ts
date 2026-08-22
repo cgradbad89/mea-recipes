@@ -3,7 +3,6 @@ import { verifyAdminToken, verifyAuthToken, getAdminDb } from '@/lib/firebaseAdm
 import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
 
 // ─── Canonical-staples recompute — DRY-RUN by default; ?apply=true WRITES ──────
 //
@@ -94,15 +93,12 @@ function materialVsStored(proposed: NutritionMacros | undefined, stored: Partial
 export async function POST(req: NextRequest) {
   const params = req.nextUrl.searchParams
   const apply = params.get('apply') === 'true'   // DEFAULT FALSE — dry-run unless explicit
-  const uid = apply ? await verifyAdminToken(req) : await verifyAuthToken(req)
-  if (!uid) {
+  if (!(apply ? await verifyAdminToken(req) : await verifyAuthToken(req))) {
     return NextResponse.json(
       { error: apply ? 'Admin access required' : 'Unauthorized' },
       { status: apply ? 403 : 401 },
     )
   }
-  const abuseResponse = await enforceAbuseLimit(req, 'writeHeavy', uid)
-  if (abuseResponse) return abuseResponse
   const rawScope = params.get('scope')
   if (rawScope !== null && rawScope !== 'all' && rawScope !== 'low') {
     return NextResponse.json({ error: 'Invalid scope.' }, { status: 400 })

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { generateAIText } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
 import type { ModelMessage } from 'ai'
 import { z } from 'zod'
 
@@ -74,8 +73,6 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const abuseResponse = await enforceAbuseLimit(req, 'aiExpensive', uid)
-    if (abuseResponse) return abuseResponse
 
     const requestResult = REQUEST_SCHEMA.safeParse(
       await readBoundedJson(req, AI_STANDARD_MAX_BODY_BYTES),

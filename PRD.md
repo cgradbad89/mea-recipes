@@ -76,14 +76,14 @@ wrapped in a per-route `layout.tsx`.
 | Route | Method | Auth | Summary |
 |---|---|---|---|
 | `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model. |
-| `/api/fetch-recipe` | GET | None | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted by the shared SSRF-safe public-URL boundary and the distributed Vercel Firewall `publicFetch` rate-control class. |
-| `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters. It uses the authenticated `aiStandard` rate-control class and sanitized failures. |
-| `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; it is restricted to the user's **primary** calendar and at most seven operations (one weekly plan). It uses the authenticated `writeHeavy` control, has no list/search capability, and never stores the token. |
+| `/api/fetch-recipe` | GET | Bearer token (required) | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted to authenticated users and the shared SSRF-safe public-URL boundary. |
+| `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters; failures are sanitized. |
+| `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; it is restricted to the user's **primary** calendar and at most seven operations (one weekly plan), has no list/search capability, and never stores the token. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from the validated `{topCuisines,topCategories,recentTitles}` taste profile. Raw JSON is capped at 256,000 bytes; each collection is capped at 500 strings and each string at 2,000 characters; internal failures are sanitized. |
 | `/api/plan-suggestions` | POST | Bearer token (required) | FlavorGraph-informed AI suggestions for a week plan. Raw JSON is capped at 256 KB; request content is bounded to ≤21 planned recipes and ≤500 existing titles. |
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from validated recipe, cook-count, rating, and favorite collections. Raw JSON is capped at 256,000 bytes; each collection/map is capped at 500 entries and client recipe text at 2,000 characters; scoring/bucket semantics are unchanged and internal failures are sanitized. |
 | `/api/recipe-assistant` | POST | Bearer token (required) | Conversational cooking assistant for a validated single-recipe context (substitutions, scaling, dietary swaps, technique). Stateless; conversation history is passed per request and capped at 40 messages, 8,000 characters/message, and 64,000 aggregate characters; recipe context is capped at 16,000 characters and raw JSON at 256,000 bytes. Calls the centrally configured Vercel AI Gateway model and returns sanitized failures. |
-| `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves a bounded food name via USDA/AI. Read-only; uses the authenticated `externalLookup` control. |
+| `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves a bounded food name via USDA/AI. Read-only. |
 | `/api/nutrition-revalidate` | POST | Bearer token (required; admin for apply) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` requires `verifyAdminToken` and persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
 | `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute is dry-run by default, not dry-run-only. Explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`; this apply path was used for the documented Batch 4 apply. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
 | `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,serving_grams?,servings_per_container?,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g). `serving_grams?` (numeric grams in one declared serving) and `servings_per_container?` (≈ servings/pack, derived from OFF `product_quantity`/`serving_quantity` or USDA `packageWeight`) are present when derivable — they drive the servings/grams toggle and the serving-context lines in Scan. Server-side fetch sets OFF's courtesy User-Agent. Read-only. Fed by the **Scan** mode in `LogFoodSheet.tsx` (camera → BarcodeDetector or zxing fallback). |
@@ -230,10 +230,10 @@ retained as historical data and are not modified or deleted by this app.
    `admin === true` custom claim or the configured email with `email_verified === true`.
    `verifyAdminToken` enforces that policy on Admin-SDK global writes; the recipe-detail delete
    affordance mirrors it client-side. `HubBanner` reuses the same email constant for navigation.
-2. **Auth required for all writes & AI.** Every API route except intentionally pre-login
-   `/api/fetch-recipe` requires a valid Firebase Bearer token. Nutrition dry-runs require ordinary
-   auth; their `apply=true` global-write paths require `verifyAdminToken`. Client Firestore writes
-   always pass `user.uid` from `useAuth()`.
+2. **API authentication required.** Every normal application API route requires a valid Firebase
+   Bearer token before meaningful work. Nutrition dry-runs require ordinary auth; their `apply=true`
+   global-write paths require `verifyAdminToken`. Cron routes require their exact non-empty
+   `CRON_SECRET`. Client Firestore writes always pass `user.uid` from `useAuth()`.
 3. **Shared recipe writes require a manual Console rule.** Firestore rules are managed manually in
    the shared `malignant-metro` Firebase Console (never deployed from this repo). The required
    `recipes/{recipeId}` rule restricts writes to the verified admin email; see **Firestore rules**
@@ -796,24 +796,19 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | MyFitnessPal (nutrition sync) | Nightly-capable import of the food diary into `users/{uid}/nutrition/root/log` (`source: 'mfp'`). **No API** — `app/api/cron/sync-nutrition` scrapes the classic diary page HTML (`/food/diary/{MFP_USERNAME}?date=…`) with `cheerio`. | `MFP_SYNC_UID`, `MFP_SESSION_COOKIE`, `MFP_USER_AGENT`, `MFP_USERNAME`, `CRON_SECRET`; optional `MFP_DEBUG`. Session cookie expires periodically → refresh manually in Vercel. (`MFP_CSRF_TOKEN` is no longer used by code.) |
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |
 
-### API abuse resistance (Prompt 6)
+### API security boundaries
 
-`lib/apiAbuse.ts` centralizes five Vercel Firewall SDK classes: `publicFetch`,
-`aiExpensive`, `aiStandard`, `externalLookup`, and `writeHeavy`. Authenticated routes
-first verify the Firebase bearer token and then key the distributed counter by the
-server-verified Firebase uid; they never accept a client uid. The public fetch route
-does not parse forwarding headers and delegates its identity to Vercel Firewall's
-trusted request/IP context. In Vercel production, a missing or unavailable required
-Firewall rule fails the protected route closed with a generic 503; an actual limit is a
-generic 429. Local non-Vercel development intentionally does not emulate a distributed
-counter.
+Normal application APIs verify a Firebase Bearer token before request parsing, provider
+calls, model invocation, Admin SDK work, or outbound fetches. Global nutrition applies
+additionally require `verifyAdminToken`; the scheduler route instead requires an exact,
+non-empty `CRON_SECRET`. Application rate limits and Vercel Firewall SDK rules are not
+used by product decision, so missing Firewall configuration cannot produce a 503 for an
+authenticated request. Vercel's platform-level DDoS mitigation remains separate.
 
-The required manual Vercel Firewall configuration is documented in
-`docs/audits/pre-production-audit-2026-08-21.md`. Do not deploy until those five
-`@vercel/firewall` rules are configured and verified. This is separate from Vercel's
-platform-wide DDoS mitigation. Public URL fetches additionally retain scheme, DNS/IP,
-redirect-hop, timeout, and 2 MB response protections. Calendar requests are capped at
-seven operations; nutrition pagination only accepts bounded whole integers.
+Public URL fetches are restricted to authenticated users and retain HTTP(S)-only URLs,
+no credentials, DNS/IP validation and address pinning for every redirect hop, redirect,
+timeout, and 2 MB response bounds. Calendar requests are capped at seven operations;
+nutrition pagination only accepts bounded whole integers.
 
 AI model in use across all routes as of 2026-08-20: `openai/gpt-5.6-luna` through
 Vercel AI Gateway and the Vercel AI SDK. No retired Gemini or Anthropic provider SDK

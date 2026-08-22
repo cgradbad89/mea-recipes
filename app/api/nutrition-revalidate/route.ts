@@ -4,7 +4,6 @@ import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import { servingsAssumed } from '@/lib/nutrition'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
 
 // ─── Re-validate low-confidence recipe nutrition (DRY-RUN BY DEFAULT) ─────────
 //
@@ -64,15 +63,12 @@ function matchedTier(source: string | undefined): string {
 export async function POST(req: NextRequest) {
   const params = req.nextUrl.searchParams
   const apply = params.get('apply') === 'true'
-  const uid = apply ? await verifyAdminToken(req) : await verifyAuthToken(req)
-  if (!uid) {
+  if (!(apply ? await verifyAdminToken(req) : await verifyAuthToken(req))) {
     return NextResponse.json(
       { error: apply ? 'Admin access required' : 'Unauthorized' },
       { status: apply ? 403 : 401 },
     )
   }
-  const abuseResponse = await enforceAbuseLimit(req, 'writeHeavy', uid)
-  if (abuseResponse) return abuseResponse
   const limit = parseBoundedInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT)
   const offset = parseBoundedInteger(params.get('offset'), 0, 0, MAX_OFFSET)
   if (limit === null || offset === null) {

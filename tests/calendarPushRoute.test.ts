@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 const mocks = vi.hoisted(() => ({
   verifyAuthToken: vi.fn(),
-  enforceAbuseLimit: vi.fn(),
   fetch: vi.fn(),
 }))
 
 vi.mock('@/lib/firebaseAdmin', () => ({ verifyAuthToken: mocks.verifyAuthToken }))
-vi.mock('@/lib/apiAbuse', () => ({ enforceAbuseLimit: mocks.enforceAbuseLimit }))
 
 import { POST } from '@/app/api/calendar/push/route'
 
@@ -29,10 +27,8 @@ function request(operations: unknown = [operation(0)]) {
 describe('POST /api/calendar/push', () => {
   beforeEach(() => {
     mocks.verifyAuthToken.mockReset()
-    mocks.enforceAbuseLimit.mockReset()
     mocks.fetch.mockReset()
     mocks.verifyAuthToken.mockResolvedValue('verified-uid')
-    mocks.enforceAbuseLimit.mockResolvedValue(null)
     mocks.fetch.mockResolvedValue(new Response(null, { status: 204 }))
     globalThis.fetch = mocks.fetch
   })
@@ -41,22 +37,12 @@ describe('POST /api/calendar/push', () => {
     globalThis.fetch = originalFetch
   })
 
-  it('rejects an unauthenticated request before rate limiting or Calendar work', async () => {
+  it('rejects an unauthenticated request before Calendar work', async () => {
     mocks.verifyAuthToken.mockResolvedValueOnce(null)
 
     const response = await POST(request())
 
     expect(response.status).toBe(401)
-    expect(mocks.enforceAbuseLimit).not.toHaveBeenCalled()
-    expect(mocks.fetch).not.toHaveBeenCalled()
-  })
-
-  it('rejects a rate-limited caller before Calendar work', async () => {
-    mocks.enforceAbuseLimit.mockResolvedValueOnce(NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 }))
-
-    const response = await POST(request())
-
-    expect(response.status).toBe(429)
     expect(mocks.fetch).not.toHaveBeenCalled()
   })
 

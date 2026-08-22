@@ -4,7 +4,6 @@ import { getComplementaryIngredients } from '@/lib/flavorPairings'
 import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { safeFetchText } from '@/lib/safeFetch'
-import { enforceAbuseLimit } from '@/lib/apiAbuse'
 import { z } from 'zod'
 
 const AI_INGEST_MAX_BODY_BYTES = 2_000_000
@@ -83,8 +82,6 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const abuseResponse = await enforceAbuseLimit(req, 'aiExpensive', uid)
-    if (abuseResponse) return abuseResponse
 
     const requestResult = REQUEST_SCHEMA.safeParse(
       await readBoundedJson(req, AI_INGEST_MAX_BODY_BYTES),
