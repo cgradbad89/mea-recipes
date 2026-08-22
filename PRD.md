@@ -687,8 +687,8 @@ retained as historical data and are not modified or deleted by this app.
   Fix/sanitize the ingredient name before retrying deterministic 400s. The same investigation confirmed
   that weak token overlap and alias-subset matching can accept nutritionally material semantic mismatches
   (plant-based beef → real beef, edamame/orzo → teff, marinara → cheese ravioli). Do not apply affected
-    recomputes merely because confidence is medium or fallback produced a number; see
-    `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
+  recomputes merely because confidence is medium or fallback produced a number; see
+  `docs/audits/m04-nutrition-apply-readiness-2026-08-22.md`.
 - **USDA candidate semantic validation is identity-complete.** Token overlap alone is unsafe: validated
   candidates must contain all non-qualifier food identity tokens, and known contradictions (e.g. chocolate
   for almond milk, teff for orzo, emu/beet greens for chili/green chiles) are rejected. Dried ingredients
