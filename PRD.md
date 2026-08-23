@@ -304,19 +304,25 @@ retained as historical data and are not modified or deleted by this app.
 6. **Ingredient/instruction parsing** — `parseRecipeContent` (`lib/recipeContent.ts`, re-exported by
    `lib/recipes.ts`) splits the flat `content` string into ingredients/instructions by exact,
    case-insensitive header keywords (`INGREDIENTS`, `INSTRUCTIONS`, etc.) and strips `Step N`
-   prefixes and yield/scale noise. For section-label comparison only, a heading may have up to four
+   prefixes. Both the normal two-heading path and the capped ingredient-heading-only fallback apply
+   the same conservative content controls: anchored audited metadata values/labels, bare HTTP(S)
+   URLs, exact page controls, bounded rating-to-yield preambles, and exact terminal blocks (`Notes:`,
+   `PREP`, `ON THE STOVE`, and the audited newsletter/guide markers). These are deliberately not a
+   generic prose filter; no-quantity ingredients, category `Other`, alternatives, and optional foods
+   remain valid. For section-label comparison only, a heading may have up to four
    leading pictographic decorations; the original content line is not rewritten. Ingredient headings
    may carry one nonempty, non-nested parenthetical qualifier of at most 80 characters, optionally
    followed by a colon. Multiple top-level ingredient sections are rejected as ambiguous under the
    single-recipe content model; arbitrary prose containing heading words is not accepted.
-7. **Ingredient sub-header detection** — `detectIngredientHeader` flags lines that are section
-   headers (colon-ending, markdown-bold, or keyword matches like "sauce", "marinade") for
-   rendering as sub-headers inside the ingredient list. **Pending sharp edge:** this predicate is
-   presentation-only. `addRecipeIngredientsToGrocery` still parses every string returned by
-   `parseRecipeContent`, including detected headers. The 2026-08-22 source-contamination audit
-   found 62 such occurrences (53 true ingredient-group headers plus 9 other non-shopping labels)
-   and 31 additional true subheaders missed by the current predicate. A shared predicate at the
-   content-parser and grocery-add boundaries remains backlog work.
+7. **Ingredient sub-header detection** — `isIngredientSubheader(line): boolean` in the pure,
+   Firebase-free `lib/recipeContent.ts` module is authoritative for ingredient-group identity. It
+   preserves colon-ending, markdown-bold, and known group-keyword semantics and adds only the 27
+   exact audited labels covering the 31 formerly missed occurrences. `detectIngredientHeader`
+   remains a compatibility wrapper for recipe detail/Cooking Mode presentation; subheaders remain
+   in the presentation-oriented ingredient array so grouping is preserved. Grocery addition and
+   nutrition parsing use the same predicate and skip recognized subheaders, so all 84 audited true
+   subheaders are structural labels rather than purchase or nutrition inputs. Broad short-line,
+   capitalization, missing-quantity, and generic `for` heuristics are intentionally excluded.
 8. **Cook/prep time normalization** — `parseTimeToMinutes` parses ISO-8601 (`PT30M`), `1 hr 15 min`,
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
    prep + cook. Drives the time filter and time badges.
@@ -393,7 +399,9 @@ retained as historical data and are not modified or deleted by this app.
     otherwise lists both side by side without dropping either (`"2 cups + 3 tbsp"`). Manual adds
     merge only into manual items and recipe adds only into recipe items (the pools stay separate
     to preserve the rebuild invariant in §5.11). The existing whole-list "AI Clean Up List" button
-    (§5.10) is unchanged.
+    (§5.10) is unchanged. As a final recipe-add defense, recognized shared subheaders, empty parsed
+    names, and complete explicit HTTP(S) URLs are skipped before a write/merge. Missing quantity and
+    category `Other` are not rejection criteria; plain real-food noun phrases remain accepted.
 17. **Per-user servings override & effective-servings derivation** (Batch 3) — each viewer can set
     their own serving size on the recipe detail page (`NutritionSection` stepper/input), stored at
     `meta.overrides.servings` via `setServingsOverride` (`lib/userdata.ts`). Per-serving macros are
@@ -620,6 +628,13 @@ retained as historical data and are not modified or deleted by this app.
   image/time metadata; it does **not** send captured page DOM from the logged-in browser. AI ingest
   therefore still server-fetches the blocked URL. Pasting recipe text directly is the current
   reliable fallback. Authenticated DOM capture or corrected UI claims remain backlog work.
+- **Ingredient source-contamination cleanup is only at Phase 1.** The content parser now removes
+  the evidence-backed metadata/control/boundary classes and shared subheaders cannot become grocery
+  or nutrition inputs, while all 173 reviewed legitimate occurrences remain. The read-only Phase 1
+  corpus still contains 23 ingredient-parser artifacts plus the explicitly deferred `sasy-notes`,
+  `mole-poblano`, and `chipotle-tahini-bowls` source-data defects. AI-ingest semantic quarantine and
+  authenticated bookmarklet DOM capture are also not implemented; parser defenses reduce downstream
+  impact but do not make noisy persisted input impossible.
 - **Image display precedence.** Cards and detail prefer `meta.overrides.imageURL` over the
   catalog `recipe.imageURL` (`RecipeCard.tsx`, `RecipeEditModal.tsx`). A stale override will
   win over a corrected catalog image.
@@ -780,7 +795,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery staple-status / usually-on-hand feature | Medium | Backlog | Separate possession/preference concept; must not be reintroduced as a shopping category. |
-| Grocery corpus/source-content contamination cleanup | Medium | Backlog (investigated) | Discovery artifact: `docs/audits/ingredient-source-contamination-investigation-2026-08-22.md` (358 affected occurrences across 82 recipes; 173 reviewed false alarms). Implement narrow content-parser/header/grocery safeguards first, then a separately approved three-document source repair; do not encode taxonomy exceptions. |
+| Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Shared `prepareGroceryItem` pipeline | Medium | Backlog | Consolidate add-path preparation without changing current merge or rebuild semantics. |
 | Grocery unit conversion | Low | Backlog | Conversion remains separate from the current unit-aware parser and compatible-unit quantity merge. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

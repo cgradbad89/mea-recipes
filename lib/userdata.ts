@@ -22,6 +22,7 @@ import {
   type GroceryCategory,
 } from './groceryCategories'
 import { parseIngredient, normalizeNoun, mergeQuantities } from './ingredientParser'
+import { isExplicitUrl, isIngredientSubheader } from './recipeContent'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from './firestoreBatch'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
@@ -698,10 +699,15 @@ export async function addRecipeIngredientsToGrocery(
   let wrote = false
 
   for (const ingredient of ingredients) {
-    if (!ingredient.trim()) continue
+    const trimmedIngredient = ingredient.trim()
+    if (!trimmedIngredient || isIngredientSubheader(trimmedIngredient) || isExplicitUrl(trimmedIngredient)) continue
+
     const parsed = parseIngredient(ingredient)
-    const usable = parsed.confidence === 'high' && !!parsed.name
-    const name = usable ? parsed.name : ingredient.trim()
+    const parsedName = parsed.name.trim()
+    if (!parsedName || isExplicitUrl(parsedName)) continue
+
+    const usable = parsed.confidence === 'high'
+    const name = usable ? parsedName : trimmedIngredient
     const quantity = usable ? parsed.quantity : ''
     const unit = usable ? parsed.unit : ''
     const noun = normalizeNoun(name)

@@ -20,7 +20,7 @@ vi.mock('@/lib/firebaseAdmin', () => ({
 }))
 
 import { AI_PROVENANCE } from '@/lib/aiConfig'
-import { computeRecipeNutrition, lookupFoodByName, parseIngredientLine } from '@/lib/nutritionEngine'
+import { computeRecipeNutrition, lookupFoodByName, parseIngredientLine, parseIngredientList } from '@/lib/nutritionEngine'
 
 const AI_FOOD_RESULT = {
   calories: 240,
@@ -85,6 +85,17 @@ describe('nutrition migration behavior', () => {
       grams: expect.closeTo(27.21, 1),
     }))
     expect(mocks.generateAIObject).not.toHaveBeenCalled()
+  })
+
+  it('skips shared ingredient subheaders before nutrition parsing', () => {
+    const result = parseIngredientList([
+      'For the Chicken',
+      '2 tablespoons olive oil',
+    ])
+
+    expect(result.flagged).toEqual([])
+    expect(result.parsed).toHaveLength(1)
+    expect(result.parsed[0]).toEqual(expect.objectContaining({ name: 'olive oil' }))
   })
 
   it('normalizes nested parentheticals without leaking an orphan delimiter', () => {

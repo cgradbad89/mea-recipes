@@ -19,7 +19,7 @@
 //  - arbitrary food-name lookup (USDA Branded/Survey first) for quick-food.
 
 import { getAdminDb } from './firebaseAdmin'
-import { parseRecipeContent } from './recipeContent'
+import { isIngredientSubheader, parseRecipeContent } from './recipeContent'
 import { gramsFromServingLabel } from './nutrition'
 import { CANONICAL_STAPLES as FDC_STAPLES, type CanonicalStaple } from './canonicalStaples'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
@@ -458,6 +458,7 @@ export function parseIngredientList(lines: string[]): { parsed: ParsedIngredient
   const flagged: string[] = []
   let inNotes = false
   for (const raw of lines) {
+    if (isIngredientSubheader(raw)) continue
     if (/^notes?:?$/i.test(raw.trim())) { inNotes = true; continue }
     if (inNotes) continue
     const p = parseIngredientLine(raw)

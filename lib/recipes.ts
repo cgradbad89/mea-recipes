@@ -14,6 +14,7 @@ import { deleteDoc,
 import { db } from './firebase'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import { perServingFromTotal, servingSizeLabel } from './nutrition'
+import { isIngredientSubheader } from './recipeContent'
 
 const COLLECTION = 'recipes'
 
@@ -217,7 +218,7 @@ export function recipeUrl(id: string): string {
 // Parse ingredients and steps out of the raw content field.
 // Implementation lives in lib/recipeContent.ts (pure, firebase-free) so the
 // server-side nutrition engine can share it; re-exported here for back-compat.
-export { parseRecipeContent } from './recipeContent'
+export { isIngredientSubheader, parseRecipeContent } from './recipeContent'
 
 export async function deleteRecipe(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id))
@@ -265,15 +266,6 @@ export function formatMinutes(mins: number): string {
   return `${h} hr ${m} min`
 }
 
-// ─── Ingredient sub-header detection ────────────────────────────────────────
-const INGREDIENT_HEADER_KEYWORDS = new Set([
-  'sauce', 'sauces', 'garnish', 'garnishes', 'marinade', 'dressing',
-  'topping', 'toppings', 'filling', 'glaze', 'rub', 'spice mix',
-  'spice blend', 'seasoning', 'seasoning blend', 'to serve',
-  'to garnish', 'for serving', 'serving', 'dough', 'batter',
-  'crust', 'assembly', 'main', 'main dish', 'dish',
-])
-
 function cleanHeaderText(s: string): string {
   return s
     .replace(/^\*+|\*+$/g, '')
@@ -282,38 +274,9 @@ function cleanHeaderText(s: string): string {
 }
 
 export function detectIngredientHeader(line: string): { isHeader: boolean; text: string } {
-  if (!line) return { isHeader: false, text: line }
-  const trimmed = line.trim()
-  if (!trimmed) return { isHeader: false, text: line }
-
-  // Rule 1: Line ends with colon (and is short — no quantity-style content)
-  if (trimmed.endsWith(':')) {
-    const withoutColon = trimmed.slice(0, -1).trim()
-    if (!/\d/.test(withoutColon) && withoutColon.length < 60) {
-      return { isHeader: true, text: cleanHeaderText(withoutColon) }
-    }
-  }
-
-  // Rule 2: Full line is markdown bold (** or *)
-  const boldMatch = trimmed.match(/^(\*\*|\*)(.+?)\1$/)
-  if (boldMatch) {
-    return { isHeader: true, text: cleanHeaderText(boldMatch[2]) }
-  }
-
-  // Rule 3: Matches keyword list after normalization
-  const normalized = trimmed
-    .replace(/^\*+|\*+$/g, '')
-    .replace(/:$/, '')
-    .replace(/^for the\s+/i, '')
-    .replace(/^for\s+/i, '')
-    .trim()
-    .toLowerCase()
-
-  if (INGREDIENT_HEADER_KEYWORDS.has(normalized)) {
-    return { isHeader: true, text: cleanHeaderText(trimmed) }
-  }
-
-  return { isHeader: false, text: line }
+  return isIngredientSubheader(line)
+    ? { isHeader: true, text: cleanHeaderText(line.trim()) }
+    : { isHeader: false, text: line }
 }
 
 export function getTotalTime(

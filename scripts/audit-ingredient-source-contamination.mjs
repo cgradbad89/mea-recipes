@@ -17,45 +17,59 @@ import { createRequire } from 'node:module'
 
 import { categorizeIngredient } from '../lib/groceryCategories.ts'
 import { normalizeNoun, parseIngredient } from '../lib/ingredientParser.ts'
-import { parseRecipeContent } from '../lib/recipeContent.ts'
+import {
+  isExplicitUrl,
+  isIngredientSubheader,
+  parseRecipeContent,
+} from '../lib/recipeContent.ts'
 
 const require = createRequire(import.meta.url)
 const { loadEnv, getAdmin } = require('./_lib.js')
 
-// Exact mirror of lib/recipes.ts detectIngredientHeader, kept here so this
-// read-only Node script does not import the browser Firebase client bundle.
-const HEADER_KEYWORDS = new Set([
-  'sauce', 'sauces', 'garnish', 'garnishes', 'marinade', 'dressing',
-  'topping', 'toppings', 'filling', 'glaze', 'rub', 'spice mix',
-  'spice blend', 'seasoning', 'seasoning blend', 'to serve',
-  'to garnish', 'for serving', 'serving', 'dough', 'batter',
-  'crust', 'assembly', 'main', 'main dish', 'dish',
-])
+// Historical parser snapshot used only to reproduce the reviewed 3,190-line
+// baseline after production parsing changes. This is not an application parser
+// or a competing subheader predicate; current behavior always comes from the
+// imported pure production helpers above.
+const BASELINE_INGREDIENT_HEADING = /^(INGREDIENTS|WHAT YOU NEED|YOU WILL NEED|SHOPPING LIST)(?:[ \t]*\(([^()\r\n]{1,80})\)[ \t]*)?:?$/i
+const BASELINE_INSTRUCTION_HEADING = /^(INSTRUCTIONS|PREPARATION|DIRECTIONS|METHOD|STEPS|HOW TO MAKE):?$/i
+const BASELINE_HEADING_DECORATION = /^(?:\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*[ \t]*){1,4}/u
 
-function detectIngredientHeader(line) {
-  if (!line) return false
-  const trimmed = line.trim()
-  if (!trimmed) return false
-  if (trimmed.endsWith(':')) {
-    const withoutColon = trimmed.slice(0, -1).trim()
-    if (!/\d/.test(withoutColon) && withoutColon.length < 60) return true
-  }
-  if (/^(\*\*|\*)(.+?)\1$/.test(trimmed)) return true
-  const normalized = trimmed
-    .replace(/^\*+|\*+$/g, '')
-    .replace(/:$/, '')
-    .replace(/^for the\s+/i, '')
-    .replace(/^for\s+/i, '')
-    .trim()
-    .toLowerCase()
-  return HEADER_KEYWORDS.has(normalized)
+function baselineHeadingCandidate(line) {
+  return line.trimStart().replace(BASELINE_HEADING_DECORATION, '')
 }
 
-function candidateReasons(rawLine, parsedName, category, uiHeader) {
+function isBaselineIngredientHeading(line) {
+  const match = BASELINE_INGREDIENT_HEADING.exec(baselineHeadingCandidate(line))
+  return match !== null && (match[2] === undefined || match[2].trim().length > 0)
+}
+
+function isBaselineInstructionHeading(line) {
+  return BASELINE_INSTRUCTION_HEADING.test(baselineHeadingCandidate(line))
+}
+
+function parseRecipeContentBaseline(content) {
+  const lines = content.split('\n').map(line => line.trim()).filter(Boolean)
+  const ingredientHeadingIndexes = lines.flatMap((line, index) => isBaselineIngredientHeading(line) ? [index] : [])
+  const ingStart = ingredientHeadingIndexes.length === 1 ? ingredientHeadingIndexes[0] : -1
+  const instStart = lines.findIndex(isBaselineInstructionHeading)
+
+  let ingredients = []
+  if (ingStart !== -1 && instStart !== -1) {
+    ingredients = lines
+      .slice(ingStart + 1, instStart)
+      .filter(line => !line.match(/^(yield|step|total|prep|cook|rating|scale)/i) && line.length > 2)
+  } else if (ingStart !== -1) {
+    ingredients = lines.slice(ingStart + 1).filter(line => line.length > 2).slice(0, 20)
+  }
+
+  return { ingredients }
+}
+
+function candidateReasons(rawLine, parsedName, category, ingredientSubheader) {
   const value = `${rawLine} ${parsedName}`.normalize('NFKC')
   const lower = value.toLowerCase()
   const reasons = []
-  if (uiHeader) reasons.push('ui-recognized ingredient subheader')
+  if (ingredientSubheader) reasons.push('shared-recognized ingredient subheader')
   if (/https?:\/\//i.test(value)) reasons.push('url')
   if (/^(?:[-*•·]\s*)?(?:source|notes?|nutrition(?:al information)?|yield|serves?|servings?|scale|prep(?: time)?|cook(?: time)?|total(?: time)?|equipment|metric conversion|us customary|units? usm)\b/i.test(rawLine.trim())) reasons.push('metadata-like line')
   if (/\b(?:add (?:ingredients? )?to (?:your )?grocery list|shop ingredients? on instacart|email grocery list|save recipe|read \d+ comments?|our latest newsletter|get the guide|privacy policy|prevent your screen from going dark|featured in)\b/i.test(value)) reasons.push('page chrome')
@@ -210,11 +224,11 @@ function reviewOccurrence(occurrence) {
       reason: 'PREP and ON THE STOVE are understandable instruction boundaries, but the parser misses them and takes its 20-line ingredient fallback.',
     }
   }
-  if ((occurrence.uiRecognizedHeader && !UI_HEADER_FALSE_POSITIVE_KEYS.has(key)) || ADDITIONAL_SUBHEADER_KEYS.has(key)) {
+  if ((occurrence.sharedRecognizedHeader && !UI_HEADER_FALSE_POSITIVE_KEYS.has(key)) || ADDITIONAL_SUBHEADER_KEYS.has(key)) {
     return {
       classification: 'INGREDIENT_SUBHEADER',
-      reason: occurrence.uiRecognizedHeader
-        ? 'Ingredient-group label recognized by current recipe UI but still passed to grocery addition.'
+      reason: occurrence.sharedRecognizedHeader
+        ? 'Ingredient-group label recognized by the shared predicate and formerly passed to grocery addition.'
         : 'Manually confirmed ingredient-group label missed by current UI detection and passed to grocery addition.',
     }
   }
@@ -295,18 +309,25 @@ loadEnv()
 const snapshot = await getAdmin().firestore().collection('recipes').get()
 
 const occurrences = []
+const currentOccurrences = []
 const recipes = []
 const uniqueIdentities = new Set()
+const currentUniqueIdentities = new Set()
 let parseableRecipes = 0
 let rawIngredientLines = 0
+let currentParseableRecipes = 0
+let currentRawIngredientLines = 0
 
 for (const document of snapshot.docs) {
   const data = document.data()
   const content = typeof data.content === 'string' ? data.content : ''
-  const parsedContent = parseRecipeContent(content)
+  const parsedContent = parseRecipeContentBaseline(content)
+  const currentParsedContent = parseRecipeContent(content)
   const parseable = parsedContent.ingredients.length > 0
   if (parseable) parseableRecipes += 1
   rawIngredientLines += parsedContent.ingredients.length
+  if (currentParsedContent.ingredients.length > 0) currentParseableRecipes += 1
+  currentRawIngredientLines += currentParsedContent.ingredients.length
 
   const { rawLines, locations } = locateIngredientLines(content, parsedContent.ingredients)
   const recipeOccurrences = []
@@ -314,7 +335,7 @@ for (const document of snapshot.docs) {
     const parsed = parseIngredient(rawLine)
     const normalizedIdentity = normalizeNoun(parsed.name)
     const category = categorizeIngredient(normalizedIdentity)
-    const uiRecognizedHeader = detectIngredientHeader(rawLine)
+    const sharedRecognizedHeader = isIngredientSubheader(rawLine)
     const storedLineIndex = locations[ingredientIndex]
     const contextStart = storedLineIndex === -1 ? 0 : Math.max(0, storedLineIndex - 2)
     const contextEnd = storedLineIndex === -1 ? 0 : Math.min(rawLines.length, storedLineIndex + 3)
@@ -330,8 +351,8 @@ for (const document of snapshot.docs) {
       parserConfidence: parsed.confidence,
       normalizedIdentity,
       category,
-      uiRecognizedHeader,
-      candidateReasons: candidateReasons(rawLine, parsed.name, category, uiRecognizedHeader),
+      sharedRecognizedHeader,
+      candidateReasons: candidateReasons(rawLine, parsed.name, category, sharedRecognizedHeader),
       rawContext: storedLineIndex === -1 ? [] : rawLines.slice(contextStart, contextEnd),
     }
     occurrence.review = reviewOccurrence(occurrence)
@@ -340,14 +361,43 @@ for (const document of snapshot.docs) {
     recipeOccurrences.push(occurrence)
   })
 
+  const currentLocations = locateIngredientLines(content, currentParsedContent.ingredients).locations
+  currentParsedContent.ingredients.forEach((rawLine, ingredientIndex) => {
+    const parsed = parseIngredient(rawLine)
+    const normalizedIdentity = normalizeNoun(parsed.name)
+    const category = categorizeIngredient(normalizedIdentity)
+    const sharedRecognizedHeader = isIngredientSubheader(rawLine)
+    const parsedName = parsed.name.trim()
+    const groceryEligible = !sharedRecognizedHeader &&
+      !isExplicitUrl(rawLine) &&
+      parsedName.length > 0 &&
+      !isExplicitUrl(parsedName)
+    if (normalizedIdentity) currentUniqueIdentities.add(normalizedIdentity)
+    currentOccurrences.push({
+      recipeID: document.id,
+      title: typeof data.title === 'string' ? data.title : '',
+      ingredientIndex,
+      storedLineIndex: currentLocations[ingredientIndex],
+      rawLine,
+      parsedQuantity: parsed.quantity,
+      parsedUnit: parsed.unit,
+      parsedName: parsed.name,
+      parserConfidence: parsed.confidence,
+      normalizedIdentity,
+      category,
+      sharedRecognizedHeader,
+      groceryEligible,
+    })
+  })
+
   recipes.push({
     recipeID: document.id,
     title: typeof data.title === 'string' ? data.title : '',
     parseable,
     ingredientCount: parsedContent.ingredients.length,
-    instructionCount: parsedContent.instructions.length,
+    instructionCount: currentParsedContent.instructions.length,
     sourceURL: typeof data.sourceURL === 'string' ? data.sourceURL : '',
-    parsedSourceURL: parsedContent.sourceURL,
+    parsedSourceURL: currentParsedContent.sourceURL,
     sourceFile: typeof data.sourceFile === 'string' ? data.sourceFile : '',
     created: jsonValue(data.created),
     modified: jsonValue(data.modified),
@@ -369,7 +419,7 @@ const candidateOccurrences = occurrences.filter(item =>
   item.candidateReasons.length > 0 ||
   forcedReviewKeys.has(occurrenceKey(item.recipeID, item.ingredientIndex)),
 )
-const uiRecognizedHeaders = occurrences.filter(item => item.uiRecognizedHeader)
+const sharedRecognizedHeaders = occurrences.filter(item => item.sharedRecognizedHeader)
 const classificationCounts = Object.fromEntries(
   [...new Set(candidateOccurrences.map(item => item.review.classification))]
     .sort()
@@ -389,8 +439,65 @@ const confirmedClassifications = new Set([
 ])
 const confirmedOccurrences = candidateOccurrences.filter(item => confirmedClassifications.has(item.review.classification))
 
+const legitimateClassifications = new Set([
+  'LEGITIMATE_COMPOSITE_INGREDIENT',
+  'TAXONOMY_FALSE_SIGNAL',
+])
+const currentByStoredKey = new Map(currentOccurrences.map(item => [
+  occurrenceKey(item.recipeID, item.storedLineIndex),
+  item,
+]))
+const baselineStoredKeys = new Set(occurrences.map(item => occurrenceKey(item.recipeID, item.storedLineIndex)))
+const reviewedOutcomes = candidateOccurrences.map(item => {
+  const key = occurrenceKey(item.recipeID, item.storedLineIndex)
+  const current = currentByStoredKey.get(key)
+  return {
+    ...item,
+    retainedInCurrentExtraction: Boolean(current),
+    groceryEligible: current?.groceryEligible ?? false,
+  }
+})
+const reviewedLegitimateOccurrences = reviewedOutcomes.filter(item => legitimateClassifications.has(item.review.classification))
+const preservationFailures = reviewedLegitimateOccurrences.filter(item => !item.retainedInCurrentExtraction)
+const confirmedOutcomes = reviewedOutcomes.filter(item => confirmedClassifications.has(item.review.classification))
+const confirmedRawRemaining = confirmedOutcomes.filter(item => item.retainedInCurrentExtraction)
+const confirmedGroceryRemaining = confirmedOutcomes.filter(item => item.groceryEligible)
+const newlyExtractedOccurrences = currentOccurrences.filter(item =>
+  !baselineStoredKeys.has(occurrenceKey(item.recipeID, item.storedLineIndex)),
+)
+
+function countByClassification(items) {
+  return Object.fromEntries(
+    [...new Set(candidateOccurrences.map(item => item.review.classification))]
+      .sort()
+      .map(classification => [
+        classification,
+        items.filter(item => item.review.classification === classification).length,
+      ]),
+  )
+}
+
+function affectedRecipeCounts(items) {
+  return Object.fromEntries(
+    [...new Set(candidateOccurrences.map(item => item.review.classification))]
+      .sort()
+      .map(classification => [
+        classification,
+        new Set(items
+          .filter(item => item.review.classification === classification)
+          .map(item => item.recipeID)).size,
+      ]),
+  )
+}
+
 if (occurrences.length !== rawIngredientLines) {
   throw new Error(`Occurrence completeness failure: ${occurrences.length}/${rawIngredientLines}`)
+}
+if (currentOccurrences.length !== currentRawIngredientLines) {
+  throw new Error(`Current occurrence completeness failure: ${currentOccurrences.length}/${currentRawIngredientLines}`)
+}
+if (preservationFailures.length > 0) {
+  throw new Error(`Preservation failure: ${preservationFailures.length}/${reviewedLegitimateOccurrences.length} reviewed legitimate occurrences were removed`)
 }
 
 const artifact = {
@@ -402,14 +509,57 @@ const artifact = {
     recipesWithNoIngredientSection: snapshot.size - parseableRecipes,
     rawIngredientLines,
     uniqueNormalizedIdentities: uniqueIdentities.size,
+    otherOccurrences: occurrences.filter(item => item.category === 'Other').length,
     candidateOccurrences: candidateOccurrences.length,
     confirmedOccurrences: confirmedOccurrences.length,
     falseAlarmOccurrences: candidateOccurrences.length - confirmedOccurrences.length,
-    uiRecognizedHeaderOccurrences: uiRecognizedHeaders.length,
+    historicalUiRecognizedHeaderOccurrences: 62,
+    sharedRecognizedHeaderOccurrences: sharedRecognizedHeaders.length,
     classificationCounts,
+  },
+  phase1: {
+    current: {
+      parseableRecipes: currentParseableRecipes,
+      recipesWithNoIngredientSection: snapshot.size - currentParseableRecipes,
+      rawIngredientLines: currentRawIngredientLines,
+      uniqueNormalizedIdentities: currentUniqueIdentities.size,
+      groceryEligibleIngredientLines: currentOccurrences.filter(item => item.groceryEligible).length,
+      rawOtherOccurrences: currentOccurrences.filter(item => item.category === 'Other').length,
+      groceryEligibleOtherOccurrences: currentOccurrences.filter(item => item.groceryEligible && item.category === 'Other').length,
+    },
+    reviewed: {
+      confirmedBefore: confirmedOccurrences.length,
+      confirmedRawRemaining: confirmedRawRemaining.length,
+      confirmedGroceryRemaining: confirmedGroceryRemaining.length,
+      retainedByClassification: countByClassification(reviewedOutcomes.filter(item => item.retainedInCurrentExtraction)),
+      removedByClassification: countByClassification(reviewedOutcomes.filter(item => !item.retainedInCurrentExtraction)),
+      groceryRemainingByClassification: countByClassification(confirmedGroceryRemaining),
+      affectedRecipesRemovedByClassification: affectedRecipeCounts(reviewedOutcomes.filter(item => !item.retainedInCurrentExtraction)),
+      confirmedOtherRawRemaining: confirmedRawRemaining.filter(item => item.category === 'Other').length,
+      confirmedOtherGroceryRemaining: confirmedGroceryRemaining.filter(item => item.category === 'Other').length,
+    },
+    subheaders: {
+      confirmedBefore: classificationCounts.INGREDIENT_SUBHEADER,
+      retainedForPresentation: confirmedRawRemaining.filter(item => item.review.classification === 'INGREDIENT_SUBHEADER').length,
+      groceryLeaksAfter: confirmedGroceryRemaining.filter(item => item.review.classification === 'INGREDIENT_SUBHEADER').length,
+    },
+    preservation: {
+      reviewedLegitimateCases: reviewedLegitimateOccurrences.length,
+      retained: reviewedLegitimateOccurrences.length - preservationFailures.length,
+      accidentallyRemoved: preservationFailures.length,
+      failures: preservationFailures.map(item => ({
+        recipeID: item.recipeID,
+        ingredientIndex: item.ingredientIndex,
+        storedLineIndex: item.storedLineIndex,
+        rawLine: item.rawLine,
+        classification: item.review.classification,
+      })),
+    },
+    newlyExtractedOccurrences,
   },
   recipes,
   occurrences,
+  currentOccurrences,
   candidateOccurrences,
 }
 
@@ -456,8 +606,8 @@ function renderReport() {
     sourceFile: affectedRecipes.filter(recipe => recipe.sourceFile).length,
     addedBy: affectedRecipes.filter(recipe => recipe.addedBy).length,
   }
-  const trueUiHeaders = candidateOccurrences.filter(item => item.uiRecognizedHeader && item.review.classification === 'INGREDIENT_SUBHEADER').length
-  const safeUiHeaderRejects = candidateOccurrences.filter(item => item.uiRecognizedHeader && confirmedClassifications.has(item.review.classification)).length
+  const trueSharedHeaders = candidateOccurrences.filter(item => item.sharedRecognizedHeader && item.review.classification === 'INGREDIENT_SUBHEADER').length
+  const safeSharedHeaderRejects = candidateOccurrences.filter(item => item.sharedRecognizedHeader && confirmedClassifications.has(item.review.classification)).length
   const additionalHeaders = candidateOccurrences.filter(item => ADDITIONAL_SUBHEADER_KEYS.has(occurrenceKey(item.recipeID, item.ingredientIndex))).length
   const nonRecipeDocumentLines = confirmedOccurrences.filter(item => item.recipeID === 'sasy-notes').length
   const legitimateAfterCleanup = rawIngredientLines - (
@@ -481,7 +631,7 @@ function renderReport() {
     '',
     `Of the ${confirmedOccurrences.length}, **${confirmedOccurrences.length - classificationCounts.INGREDIENT_PARSER_ARTIFACT} are non-shopping raw lines** and **${classificationCounts.INGREDIENT_PARSER_ARTIFACT} are real ingredients whose parsed identity is damaged by a quantity/range artifact**. The first group needs boundary/filter protection; the second needs ingredient-parser improvement, not deletion.`,
     '',
-    `The dominant source is persisted legacy content: ${classificationCounts.STORED_CONTENT_CONTAMINATION} stored-content occurrences, including ${nonRecipeDocumentLines} lines from the non-recipe \`sasy-notes\` document. The next largest confirmed groups are ${classificationCounts.INGREDIENT_SUBHEADER} ingredient subheaders and ${classificationCounts.RECIPE_METADATA_LINE} metadata lines. The current recipe UI recognizes ${uiRecognizedHeaders.length} header occurrences, but grocery addition parses every ingredient string; ${safeUiHeaderRejects} recognized headers are safely rejectable non-shopping lines, including ${trueUiHeaders} true ingredient-group headers.`,
+    `The dominant source is persisted legacy content: ${classificationCounts.STORED_CONTENT_CONTAMINATION} stored-content occurrences, including ${nonRecipeDocumentLines} lines from the non-recipe \`sasy-notes\` document. The next largest confirmed groups are ${classificationCounts.INGREDIENT_SUBHEADER} ingredient subheaders and ${classificationCounts.RECIPE_METADATA_LINE} metadata lines. The shared predicate recognizes ${sharedRecognizedHeaders.length} header-like occurrences; ${safeSharedHeaderRejects} are reviewed non-shopping lines, including ${trueSharedHeaders} true ingredient-group headers.`,
     '',
     '## Corpus counts',
     '',
@@ -497,7 +647,7 @@ function renderReport() {
     `| Confirmed affected recipes | ${affectedRecipes.length} |`,
     `| Confirmed affected normalized identities | ${confirmedIdentities.size} |`,
     `| False-alarm occurrences retained | ${falseAlarms.length} |`,
-    `| UI-recognized header occurrences | ${uiRecognizedHeaders.length} |`,
+    `| Shared-predicate header occurrences | ${sharedRecognizedHeaders.length} |`,
     '',
     '## Classification summary',
     '',
@@ -535,7 +685,7 @@ function renderReport() {
     '',
     '| Candidate rule | Observed coverage | False-positive risk | Eligible? | Reason |',
     '|---|---:|---|---|---|',
-    `| At the grocery boundary, reject the existing UI header predicate | ${safeUiHeaderRejects} non-shopping lines (${trueUiHeaders} true subheaders) | Low in reviewed corpus: 0 shopping lines among ${uiRecognizedHeaders.length} matches | Yes | Reuse one shared predicate so render and mutation paths agree. |`,
+    `| At the grocery boundary, reject the shared header predicate | ${safeSharedHeaderRejects} non-shopping lines (${trueSharedHeaders} true subheaders) | Low in reviewed corpus: 0 shopping lines among ${sharedRecognizedHeaders.length} matches | Yes | Reuse one shared predicate so render and mutation paths agree. |`,
     `| Expand header recognition with conservative, short, no-digit group labels | ${additionalHeaders} additional true subheaders | Low only with an explicit vocabulary/shape guard | Yes | Do not classify arbitrary no-quantity lines as headers. |`,
     `| Recognize PREP / ON THE STOVE as terminal section boundaries in one-heading fallback | ${classificationCounts.SECTION_BOUNDARY_EXTRACTION} lines | Low for exact standalone markers | Yes | Fixes one deterministic extraction failure without altering stored content. |`,
     `| Filter exact/contextual metadata families in both parser paths | ${classificationCounts.RECIPE_METADATA_LINE} lines | Low for anchored labels; medium for bare words such as “serving” | Yes, anchored/contextual only | Cover scale, time, yield, nutrition, units, notes, conversion, rating, and byline patterns. |`,
