@@ -30,24 +30,55 @@ export interface QtyUnit {
 }
 
 // MEASUREMENT units (volume / weight): quantities in the same measurement unit
-// can be summed on merge ("2 cups" + "1 cup" = "3 cups"). Each canonical key
-// maps to the surface spellings we recognise. Single-letter abbreviations are
-// limited to the unambiguous metric ones (g, l) that recipes actually use.
-const MEASUREMENT_UNIT_GROUPS: Record<string, string[]> = {
-  cup:        ['cup', 'cups'],
-  tablespoon: ['tablespoon', 'tablespoons', 'tbsp', 'tbsps', 'tbs'],
-  teaspoon:   ['teaspoon', 'teaspoons', 'tsp', 'tsps'],
-  ounce:      ['ounce', 'ounces', 'oz'],
-  pound:      ['pound', 'pounds', 'lb', 'lbs'],
-  gram:       ['gram', 'grams', 'g'],
-  kilogram:   ['kilogram', 'kilograms', 'kg'],
-  milligram:  ['milligram', 'milligrams', 'mg'],
-  milliliter: ['milliliter', 'milliliters', 'millilitre', 'millilitres', 'ml'],
-  liter:      ['liter', 'liters', 'litre', 'litres', 'l'],
-  pint:       ['pint', 'pints', 'pt'],
-  quart:      ['quart', 'quarts', 'qt'],
-  gallon:     ['gallon', 'gallons', 'gal'],
+// can be summed on merge ("2 cups" + "1 cup" = "3 cups"), and quantities in
+// DIFFERENT-but-compatible measurement units (same dimension) can be converted
+// and summed ("1 cup" + "8 tbsp" = "1.5 cups" — see convertQuantity/mergeQuantities
+// below). Each canonical key maps to the surface spellings we recognise, its
+// measurement dimension ('volume' | 'mass'), and its conversion factor into that
+// dimension's base unit (mL for volume, g for mass) — a single base unit avoids
+// an O(n²) pairwise conversion table. Single-letter abbreviations are limited to
+// the unambiguous metric ones (g, l) that recipes actually use.
+//
+// Volume factors: US customary units use the exact US-cooking relationships
+// (1 tbsp = 3 tsp, 1 cup = 16 tbsp, 1 pt = 2 cups, 1 qt = 2 pt, 1 gal = 4 qt)
+// scaled off the exact US teaspoon-to-mL constant (4.92892159375 mL); metric
+// units use 1 L = 1000 mL. This also yields the correct practical US↔metric
+// cross-system conversions (e.g. 1 US cup = 236.5882365 mL) without a separate
+// table. Mass factors: 1 kg = 1000 g, 1 mg = 0.001 g, 1 oz = 28.349523125 g,
+// 1 lb = 16 oz = 453.59237 g — standard exact conversion constants.
+type MeasurementDimension = 'volume' | 'mass'
+
+interface MeasurementUnitDefinition {
+  dimension: MeasurementDimension
+  /** Multiply a quantity in this unit by `toBase` to get the dimension's base unit. */
+  toBase: number
+  variants: string[]
 }
+
+const TSP_TO_ML = 4.92892159375
+
+const MEASUREMENT_UNITS: Record<string, MeasurementUnitDefinition> = {
+  teaspoon:   { dimension: 'volume', toBase: TSP_TO_ML, variants: ['teaspoon', 'teaspoons', 'tsp', 'tsps'] },
+  tablespoon: { dimension: 'volume', toBase: TSP_TO_ML * 3, variants: ['tablespoon', 'tablespoons', 'tbsp', 'tbsps', 'tbs'] },
+  cup:        { dimension: 'volume', toBase: TSP_TO_ML * 3 * 16, variants: ['cup', 'cups'] },
+  pint:       { dimension: 'volume', toBase: TSP_TO_ML * 3 * 16 * 2, variants: ['pint', 'pints', 'pt'] },
+  quart:      { dimension: 'volume', toBase: TSP_TO_ML * 3 * 16 * 2 * 2, variants: ['quart', 'quarts', 'qt'] },
+  gallon:     { dimension: 'volume', toBase: TSP_TO_ML * 3 * 16 * 2 * 2 * 4, variants: ['gallon', 'gallons', 'gal'] },
+  milliliter: { dimension: 'volume', toBase: 1, variants: ['milliliter', 'milliliters', 'millilitre', 'millilitres', 'ml'] },
+  liter:      { dimension: 'volume', toBase: 1000, variants: ['liter', 'liters', 'litre', 'litres', 'l'] },
+
+  milligram:  { dimension: 'mass', toBase: 0.001, variants: ['milligram', 'milligrams', 'mg'] },
+  gram:       { dimension: 'mass', toBase: 1, variants: ['gram', 'grams', 'g'] },
+  kilogram:   { dimension: 'mass', toBase: 1000, variants: ['kilogram', 'kilograms', 'kg'] },
+  ounce:      { dimension: 'mass', toBase: 28.349523125, variants: ['ounce', 'ounces', 'oz'] },
+  pound:      { dimension: 'mass', toBase: 453.59237, variants: ['pound', 'pounds', 'lb', 'lbs'] },
+}
+
+// Back-compat view used elsewhere in this file (unit vocabulary lookups don't
+// need the dimension/factor metadata).
+const MEASUREMENT_UNIT_GROUPS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(MEASUREMENT_UNITS).map(([canon, def]) => [canon, def.variants]),
+)
 
 // COUNTABLE units: the unit IS the countable noun ("1 can black beans" → "can",
 // "4 ears shucked corn" → "ears"). Kept DISTINCT from measurements so they are
@@ -136,6 +167,53 @@ export function isKnownUnit(unit: string): boolean {
   return unitCanonical(unit) !== null
 }
 
+/**
+ * Full measurement metadata (dimension + base-unit factor) for a unit surface
+ * spelling, or null when `unit` is empty, unrecognised, or a COUNTABLE unit
+ * (can, jar, clove, …) rather than a measurement. Internal to this module's
+ * conversion logic — `unitCanonical`'s public string-key contract is unchanged.
+ */
+function measurementDefinition(unit: string): MeasurementUnitDefinition | null {
+  if (!unit) return null
+  const u = unit.toLowerCase().replace(/\.+$/, '').trim()
+  if (!u) return null
+  for (const def of Object.values(MEASUREMENT_UNITS)) {
+    if (def.variants.includes(u)) return def
+  }
+  return null
+}
+
+/** The measurement dimension ('volume' | 'mass') for a unit, or null if not a measurement unit. */
+export function measurementDimension(unit: string): MeasurementDimension | null {
+  return measurementDefinition(unit)?.dimension ?? null
+}
+
+/**
+ * Convert `quantity` from `fromUnit` to `toUnit`. Pure, deterministic, never
+ * throws. Returns:
+ *  - the unchanged quantity when both units share the same canonical unit;
+ *  - the converted number when both units are measurement units in the same
+ *    dimension (volume↔volume or mass↔mass);
+ *  - `null` for cross-dimension pairs, unknown units, countable units, or a
+ *    non-finite/invalid `quantity`.
+ * No ingredient/food identity is considered here — this is pure unit math.
+ */
+export function convertQuantity(quantity: number, fromUnit: string, toUnit: string): number | null {
+  if (!Number.isFinite(quantity)) return null
+
+  const fromCanon = unitCanonical(fromUnit)
+  const toCanon = unitCanonical(toUnit)
+  if (fromCanon !== null && fromCanon === toCanon) return quantity
+
+  const fromDef = measurementDefinition(fromUnit)
+  const toDef = measurementDefinition(toUnit)
+  if (!fromDef || !toDef) return null
+  if (fromDef.dimension !== toDef.dimension) return null
+
+  const result = (quantity * fromDef.toBase) / toDef.toBase
+  return Number.isFinite(result) ? result : null
+}
+
 const SINGULAR_EXCEPTIONS = new Set([
   'asparagus', 'bass', 'bison', 'bread', 'cheese', 'couscous', 'deer', 'fish',
   'hummus', 'molasses', 'moose', 'oats', 'rice', 'salmon', 'series', 'sheep',
@@ -219,12 +297,23 @@ function joinQtyUnit(qu: QtyUnit): string {
 }
 
 /**
- * Combine two quantities for an exact-noun merge (decision #4):
- *  - same/compatible unit (or both unitless) AND both numeric → SUM
+ * Combine two quantities for an exact-noun merge (decision #4). Note this only
+ * runs once grocery identity is already an exact normalized-noun match — unit
+ * compatibility never broadens WHICH items merge (see `normalizeNoun`), only
+ * how their quantities combine:
+ *  - same canonical unit (or both unitless) AND both numeric → SUM
  *    ("2 cups" + "1 cup" = "3 cups")
- *  - otherwise → list both side by side, never dropping a value
- *    ("2 cups + 3 tbsp", "a handful + 200 g"); the combined text lives in
- *    `quantity` with `unit` cleared so it renders verbatim.
+ *  - different but compatible MEASUREMENT units (same dimension: volume↔volume
+ *    or mass↔mass) AND both numeric → convert incoming into the EXISTING
+ *    item's unit, then sum ("1 cup" + "8 tbsp" = "1.5 cups"). The existing
+ *    unit's surface spelling is preserved — conversion is intentionally
+ *    directional/asymmetric (see convertQuantity); this keeps the list stable
+ *    as more recipes are added instead of reformatting on every merge.
+ *  - otherwise (incompatible dimensions, countable-vs-countable of a
+ *    different kind, non-numeric quantities, or ranges) → list both side by
+ *    side, never dropping a value ("2 cups + 3 tbsp", "a handful + 200 g",
+ *    "1 cup + 200 g"); the combined text lives in `quantity` with `unit`
+ *    cleared so it renders verbatim.
  */
 export function mergeQuantities(existing: QtyUnit, incoming: QtyUnit): QtyUnit {
   const eQ = (existing.quantity || '').trim()
@@ -241,11 +330,20 @@ export function mergeQuantities(existing: QtyUnit, incoming: QtyUnit): QtyUnit {
   const iNum = parseQtyNumber(iQ)
   const eCanon = unitCanonical(eU)
   const iCanon = unitCanonical(iU)
-  const unitsCompatible =
-    (eCanon !== null && eCanon === iCanon) || (eU === '' && iU === '')
+  const sameUnit = (eCanon !== null && eCanon === iCanon) || (eU === '' && iU === '')
 
-  if (eNum !== null && iNum !== null && unitsCompatible) {
-    return { quantity: formatNumber(eNum + iNum), unit: eU || iU }
+  if (eNum !== null && iNum !== null) {
+    if (sameUnit) {
+      return { quantity: formatNumber(eNum + iNum), unit: eU || iU }
+    }
+    // Case C — different but compatible measurement units. convertQuantity
+    // itself rejects countable units, cross-dimension pairs, and unknown
+    // units (returns null), so this only fires for true volume↔volume or
+    // mass↔mass conversions; anything else falls through to side-by-side.
+    const converted = convertQuantity(iNum, iU, eU)
+    if (converted !== null) {
+      return { quantity: formatNumber(eNum + converted), unit: eU }
+    }
   }
 
   return {

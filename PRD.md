@@ -394,14 +394,44 @@ retained as historical data and are not modified or deleted by this app.
     falls back to whole-line `name` if junk). **Add-merge** (decision: conservative): a new item
     merges into an existing one only on an **exact normalized-noun** match (`normalizeNoun` =
     lowercase + strip punctuation/articles + conservative food singularization with uncountable
-    exceptions, so `"tomatoes"` = `"tomato"` but `"red onion"` ≠ `"onion"`); `mergeQuantities`
-    **sums** compatible units (`"2 cups"+"1 cup"="3 cups"`) and
-    otherwise lists both side by side without dropping either (`"2 cups + 3 tbsp"`). Manual adds
-    merge only into manual items and recipe adds only into recipe items (the pools stay separate
-    to preserve the rebuild invariant in §5.11). The existing whole-list "AI Clean Up List" button
-    (§5.10) is unchanged. As a final recipe-add defense, recognized shared subheaders, empty parsed
-    names, and complete explicit HTTP(S) URLs are skipped before a write/merge. Missing quantity and
-    category `Other` are not rejection criteria; plain real-food noun phrases remain accepted.
+    exceptions, so `"tomatoes"` = `"tomato"` but `"red onion"` ≠ `"onion"`). **Compatible-unit
+    quantity merge** (2026-08-23): exact normalized grocery identities may combine numeric
+    quantities across explicitly compatible measurement units, not only identical ones. Every
+    measurement unit belongs to an explicit dimension — **volume** (teaspoon, tablespoon, cup,
+    milliliter, liter, pint, quart, gallon) or **mass** (milligram, gram, kilogram, ounce,
+    pound) — modeled internally in `ingredientParser.ts` as one base-unit conversion factor per
+    dimension (mL for volume, g for mass; no pairwise table). `mergeQuantities(existing, incoming)`:
+    (a) same canonical unit (or both unitless) + both numeric → **sum**, unchanged from before
+    (`"2 cups"+"1 cup"="3 cups"`); (b) different but same-dimension measurement units + both
+    numeric → the pure helper `convertQuantity(qty, fromUnit, toUnit)` converts the **incoming**
+    quantity into the **existing item's unit**, then sums (`"1 cup"+"8 tbsp"="1.5 cups"`,
+    `"1 kg"+"500 g"="1.5 kg"`) — intentionally **directional/asymmetric**: `"8 tbsp"+"1 cup"="24
+    tbsp"` is the same pair merged in the other order, because the existing item's unit is always
+    authoritative (keeps the list stable instead of reformatting on every add); (c) anything else
+    (cross-dimension — weight↔volume, volume↔count, weight↔count; different countable units;
+    ranges; non-numeric quantities) → **unchanged conservative behavior**, both listed side by side
+    without dropping either (`"1 cup + 200 g"`, `"1 can + 8 oz"`, `"1–2 cups + 1 cup"`). Countable
+    units (can, jar, bag, box, package, bunch, head, clove, ear, stalk, slice, piece, sprig, stick,
+    bottle, loaf) only ever sum on an exact same-unit match — never converted, even to another
+    countable unit. No food-density conversion exists or is planned (weight↔volume is not
+    computable without it). US↔metric volume uses the exact US customary constants (1 US cup =
+    236.5882365 mL, etc.), not a `1 cup ≈ 250 mL` approximation. `formatNumber` rounds once, at
+    the final formatted-quantity step, to at most 2 decimals (`1.50000000000002` never reaches the
+    UI). This merge upgrade required no change to `normalizeNoun`/grocery-identity matching — unit
+    compatibility only affects how an already-identity-matched pair's quantities combine. Manual
+    adds merge only into manual items and recipe adds only into recipe items (the pools stay
+    separate to preserve the rebuild invariant in §5.11); both paths call the same
+    `mergeQuantities`, so this upgrade applies identically to both. `SavedGroceryItem` has no
+    quantity/unit fields and does not participate in quantity merging. The whole-list "AI Clean Up
+    List" button (§5.10) computes its own free-text "combined quantity" via the AI prompt,
+    independent of `mergeQuantities`/`convertQuantity` — deterministic conversion is authoritative
+    only at the add-merge boundary described here; the AI cleanup path was not changed. Existing
+    Firestore grocery documents (including any historic `"1 cup + 8 tbsp"`-style compound
+    quantities from before this change) are **not migrated or re-parsed** — this merge behavior
+    only applies to future additions. As a final recipe-add defense, recognized shared subheaders,
+    empty parsed names, and complete explicit HTTP(S) URLs are skipped before a write/merge.
+    Missing quantity and category `Other` are not rejection criteria; plain real-food noun phrases
+    remain accepted.
 17. **Per-user servings override & effective-servings derivation** (Batch 3) — each viewer can set
     their own serving size on the recipe detail page (`NutritionSection` stepper/input), stored at
     `meta.overrides.servings` via `setServingsOverride` (`lib/userdata.ts`). Per-serving macros are
@@ -758,6 +788,14 @@ retained as historical data and are not modified or deleted by this app.
   `users/{uid}/**` fail PERMISSION_DENIED for custom-token sessions (with or without email
   claims), so client-SDK smoke tests of user-data writes can't run headless. Verify those flows
   in the live app; the admin SDK (API routes) bypasses rules as usual.
+- **Compatible-unit grocery merge is direction-asymmetric by design.** `mergeQuantities` always
+  converts the *incoming* quantity into the *existing* grocery item's unit before summing, so
+  `"1 cup"+"8 tbsp"="1.5 cups"` but the same two lines added in the other order give
+  `"8 tbsp"+"1 cup"="24 tbsp"` — whichever unit reached Firestore first wins and stays stable as
+  more recipes are added. This is intentional (§5.16), not a bug; do not "fix" it by picking a
+  canonical/prettier unit. Historic compound quantities already stored from before 2026-08-23
+  (e.g. a legacy `quantity: "1 cup + 8 tbsp"`, `unit: ""` row) are never re-parsed or migrated —
+  only new merges get the compatible-unit conversion.
 - **`.env.local` private key was paste-mangled once.** `FIREBASE_PRIVATE_KEY` had smart quotes
   (`“…”`) and clipped PEM dashes, making `verifyAuthToken` silently 401 ALL auth-gated routes in
   local dev (prod unaffected — Vercel env was clean). Fixed 2026-06-11. If local API routes 401
@@ -797,7 +835,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery staple-status / usually-on-hand feature | Medium | Backlog | Separate possession/preference concept; must not be reintroduced as a shopping category. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Shared `prepareGroceryItem` pipeline | Medium | Backlog | Consolidate add-path preparation without changing current merge or rebuild semantics. |
-| Grocery unit conversion | Low | Backlog | Conversion remains separate from the current unit-aware parser and compatible-unit quantity merge. |
+| Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
 | Recommendations trigger button (avoid charges) | Medium | Done | Recommendations/suggestions only fire on explicit button + are cached |
 | Manual grocery category assignment | Medium | Done | `GroceryItem.manualSection` + the exact current 11-value `MANUAL_CATEGORIES`; retired values normalize on read and never appear as picker choices. |
