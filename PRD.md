@@ -431,7 +431,28 @@ retained as historical data and are not modified or deleted by this app.
     only applies to future additions. As a final recipe-add defense, recognized shared subheaders,
     empty parsed names, and complete explicit HTTP(S) URLs are skipped before a write/merge.
     Missing quantity and category `Other` are not rejection criteria; plain real-food noun phrases
-    remain accepted.
+    remain accepted. **Shared preparation pipeline** (2026-08-23, behavior-preserving
+    consolidation): recipe-derived and manually entered grocery candidates pass through one shared
+    deterministic grocery-item preparation pipeline, `prepareGroceryItem` in
+    `lib/groceryItemPreparation.ts`, before identity lookup, quantity merging, and persistence. It
+    is pure/Firebase-free/AI-free and owns: calling `parseIngredient`, resolving the surface name
+    (with the historic confidence-gated raw-text fallback), computing `normalizedName` via
+    `normalizeNoun`, and assigning `category` (default `categorizeIngredient(name)`, or an explicit
+    `categoryOverride` when supplied — always authoritative). It does **not** own Firestore reads/
+    writes, the existing-item identity lookup, `mergeQuantities`/`convertQuantity`, `sourceRecipeIDs`,
+    timestamps, UI, or AI calls. `addRecipeIngredientsToGrocery` calls it with
+    `rejectContentArtifacts: true` (reproducing the subheader/URL/empty-name rejection exactly);
+    its computed `category` is intentionally unused there — recipe items still never store
+    `manualSection` at write time. `handleAddItem` (manual add) calls it with the caller's own
+    parse result passed via `parsedOverride` (so the async per-item AI fallback for an ambiguous
+    line, which must stay outside a pure function, is never re-parsed) plus the typed
+    quantity/unit/category fields as overrides — `rejectContentArtifacts` stays unset, preserving
+    manual add's historic behavior of never rejecting a typed line on subheader/URL/empty-name
+    grounds (a manually typed line is not scraped recipe content). Saved-item defaults
+    (`SavedGroceryItem`) become an active grocery item through this same `handleAddItem` call —
+    no separate preparation path. Verified behavior-preserving via a corpus equivalence audit
+    (0 differences across 3,071 grocery-eligible occurrences in 216 recipes) and manual-fixture/
+    component regression tests; see `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md`.
 17. **Per-user servings override & effective-servings derivation** (Batch 3) — each viewer can set
     their own serving size on the recipe detail page (`NutritionSection` stepper/input), stored at
     `meta.overrides.servings` via `setServingsOverride` (`lib/userdata.ts`). Per-serving macros are
@@ -834,7 +855,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery staple-status / usually-on-hand feature | Medium | Backlog | Separate possession/preference concept; must not be reintroduced as a shopping category. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Shared `prepareGroceryItem` pipeline | Medium | Backlog | Consolidate add-path preparation without changing current merge or rebuild semantics. |
+| Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
 | Recommendations trigger button (avoid charges) | Medium | Done | Recommendations/suggestions only fire on explicit button + are cached |

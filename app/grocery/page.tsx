@@ -18,6 +18,7 @@ import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp,
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
+import { prepareGroceryItem } from '@/lib/groceryItemPreparation'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from '@/lib/firestoreBatch'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 
@@ -410,25 +411,37 @@ export default function GroceryPage() {
     const typedUnit = newItemUnit.trim()
     const category = newItemCategory
 
-    // Parse what the user left implicit. Explicit qty/unit fields (Batch 1's
-    // manual inputs) always win — only blanks are filled from the parse. The AI
-    // fallback fires only when the deterministic parser is unsure AND the user
-    // didn't already supply both qty and unit.
+    // Parse what the user left implicit. The AI fallback (impure/async, so it
+    // stays here rather than in the shared pure helper) fires only when the
+    // deterministic parser is unsure AND the user didn't already supply both
+    // qty and unit. Its resolved result — or the untouched deterministic parse
+    // when AI doesn't fire — is handed to the shared preparation pipeline via
+    // parsedOverride so it is never re-parsed. Explicit qty/unit/category
+    // fields (Batch 1's manual inputs) always win there.
     let parsed = parseIngredient(typedName)
     if (parsed.confidence === 'low' && !(typedQty && typedUnit)) {
       const ai = await aiParseLine(typedName)
       if (ai) parsed = { ...ai, confidence: 'high' }
     }
-    const finalQuantity = typedQty || parsed.quantity || ''
-    const finalUnit = typedUnit || parsed.unit || ''
-    const finalName = parsed.confidence === 'high' && parsed.name ? parsed.name : typedName
+    const prepared = prepareGroceryItem({
+      raw: typedName,
+      parsedOverride: { quantity: parsed.quantity, unit: parsed.unit, name: parsed.name },
+      quantityOverride: typedQty,
+      unitOverride: typedUnit,
+      categoryOverride: category,
+    })
+    // typedName is already guaranteed non-empty (guarded above), so prepared
+    // is never null here — the fallback below is defensive only.
+    const finalQuantity = prepared?.quantity ?? ''
+    const finalUnit = prepared?.unit ?? ''
+    const finalName = prepared?.name ?? typedName
+    const noun = prepared?.normalizedName ?? normalizeNoun(finalName)
 
     try {
       // Conservative exact-noun merge into an existing MANUAL item only. Recipe
       // items are managed by rebuild and must not absorb manual quantities, so we
       // never merge across that boundary (a near-duplicate is safer than a lost
       // quantity). No exact match → add a new line.
-      const noun = normalizeNoun(finalName)
       const target = items.find(
         it => it.isManual && !it.id.includes('/') && normalizeNoun(it.name) === noun,
       )

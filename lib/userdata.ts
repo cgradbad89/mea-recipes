@@ -21,8 +21,8 @@ import {
   normalizePersistedGroceryCategory,
   type GroceryCategory,
 } from './groceryCategories'
-import { parseIngredient, normalizeNoun, mergeQuantities } from './ingredientParser'
-import { isExplicitUrl, isIngredientSubheader } from './recipeContent'
+import { normalizeNoun, mergeQuantities } from './ingredientParser'
+import { prepareGroceryItem } from './groceryItemPreparation'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from './firestoreBatch'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
@@ -699,18 +699,17 @@ export async function addRecipeIngredientsToGrocery(
   let wrote = false
 
   for (const ingredient of ingredients) {
-    const trimmedIngredient = ingredient.trim()
-    if (!trimmedIngredient || isIngredientSubheader(trimmedIngredient) || isExplicitUrl(trimmedIngredient)) continue
-
-    const parsed = parseIngredient(ingredient)
-    const parsedName = parsed.name.trim()
-    if (!parsedName || isExplicitUrl(parsedName)) continue
-
-    const usable = parsed.confidence === 'high'
-    const name = usable ? parsedName : trimmedIngredient
-    const quantity = usable ? parsed.quantity : ''
-    const unit = usable ? parsed.unit : ''
-    const noun = normalizeNoun(name)
+    // Shared deterministic preparation (lib/groceryItemPreparation.ts):
+    // subheader/URL/empty-name rejection, parseIngredient, and normalizeNoun.
+    // `rejectContentArtifacts: true` reproduces this path's historic
+    // subheader/URL/empty-parsed-name rejection exactly. `prepared.category`
+    // is intentionally unused here — recipe-sourced items have never stored a
+    // category at write time; it's derived from `name` at read time instead
+    // (see getCategory/normalizePersistedGroceryCategory), so leaving
+    // `manualSection` unset is unchanged behavior.
+    const prepared = prepareGroceryItem({ raw: ingredient, rejectContentArtifacts: true })
+    if (!prepared) continue
+    const { quantity, unit, name, normalizedName: noun } = prepared
 
     const target = noun ? byNoun.get(noun) : undefined
     if (target) {
