@@ -101,6 +101,12 @@ shared this Firestore project, but MEA Recipes web now owns the supported data b
 Doc ID = slugified title. Fields (see `types/recipe.ts` → `Recipe`):
 `recipeID, title, content, category, cuisine, imageURL, sourceURL, sourceFile, labels,
 hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutrition?, nutritionStatus?, defaultRole?`.
+- `prepTime` and `cookTime` are the only canonical recipe-time fields. `totalTime` is never
+  persisted; `getTotalTime` derives it at read time (§5.8). The 2026-08-24 catalog audit populated
+  both fields for all 234 usable production recipes (including explicit `cookTime: '0 min'` for
+  true no-cook recipes). Two incomplete documents remain intentionally unfilled because one is only
+  a `Source:` placeholder and the other explicitly has no instructions; see
+  `docs/audits/recipe-time-audit-2026-08-24.md`.
 - `content` is a single freeform string; ingredients/instructions are **parsed at runtime**
   (`parseRecipeContent`), not stored as arrays.
 - `addedBy` = uid of the web user who added it (used by the "Added by me" filter).
@@ -327,7 +333,11 @@ retained as historical data and are not modified or deleted by this app.
    capitalization, missing-quantity, and generic `for` heuristics are intentionally excluded.
 8. **Cook/prep time normalization** — `parseTimeToMinutes` parses ISO-8601 (`PT30M`), `1 hr 15 min`,
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
-   prep + cook. Drives the time filter and time badges.
+   prep + cook. Drives the time filter and time badges. No-cook recipes may store the explicit,
+   parse-compatible string `0 min`; a positive prep value still gives them a meaningful derived
+   total. Because there is no independent total field, imported pressure-cooker times must account
+   for pressure build/release and similar elapsed overhead within prep or cook when a source's
+   displayed prep + pressure setting would otherwise contradict its stated total.
 9. **Grocery categorization** — `categorizeIngredient` (`lib/groceryCategories.ts`) maps an
    ingredient name to the web-owned, store-oriented 11-category contract, in display order:
    `Produce`, `Meat & Seafood`, `Dairy & Eggs`, `Bakery & Bread`, `Pantry & Dry Goods`,
@@ -649,6 +659,16 @@ retained as historical data and are not modified or deleted by this app.
 
 ## Section 6 — Known Sharp Edges
 
+- **Recipe total time is derived, so source labels cannot be copied blindly.** Firestore stores only
+  `prepTime` and `cookTime`; `getTotalTime` sums whatever `parseTimeToMinutes` extracts. Range/prose
+  strings can therefore produce surprising values — for example the former Chicken Tikka
+  `20 minutes (plus 2-6 hours marinating)` prep string parsed as 6 hr 20 min — and pressure-cooker
+  sources often omit pressure build/release from their displayed “cook time” even when it is included
+  in their total. Store parser-compatible expected elapsed values, keep passive caveats in recipe
+  content, and verify the resulting derived total. The manifest-driven `update-recipe-times.js` is
+  dry-run by default, requires live preconditions/fingerprints for apply, and can write only
+  `prepTime`/`cookTime`; see `docs/audits/recipe-time-audit-2026-08-24.md`.
+
 - **Firebase Storage is not provisioned for `malignant-metro`.** `lib/firebase.ts` declares
   `storageBucket: "malignant-metro.firebasestorage.app"`, but as of 2026-08-21 that bucket does
   not exist (`bucket.exists()` via the Admin SDK returns `false`), and neither does the legacy
@@ -901,7 +921,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Shared week plans (view friends' plans) | Low | Done | `sharedWeekPlans/{weekID}/users/{uid}` |
 | Auth / PWA improvements | Medium | Partial | Standalone-mode detection uses `signInWithRedirect` vs popup (`AuthContext`) |
 | Commit Firestore rules to repo | Medium | Won't do | Reverted — the `malignant-metro` DB is shared across apps, so rules are managed manually in the Firebase Console only (a deploy from here would overwrite other apps' rules). See **Firestore rules** + Sharp Edges |
-| Export utilities | Low | Done (scripts) | `export-recipes.js`, `update-recipe-times.js` (Node scripts, not app routes) |
+| Export utilities | Low | Done (scripts) | `export-recipes.js`; `update-recipe-times.js` is now a manifest-driven, dry-run-default, atomic/preconditioned recipe-time audit/apply tool. Production audit applied 2026-08-24: 98 backfills + 9 conservative corrections, 234/234 usable recipes covered, zero `totalTime` fields. See `docs/audits/recipe-time-audit-2026-08-24.md`. |
 | Nutrition tracker (per-recipe macros + consumption log + insights) | High | Done | 5-surface design in `nutrition-tracker-spec.md`. Surface 1 (recipe detail display + editable servings) **Done**; backfill **Done** (202/205); shared lookup engine (`lib/nutritionEngine.ts` + `/api/nutrition-lookup`) **Done**; Surface 2 cooked capture (Cooking Mode finish + plan checkmark → `logCookEvent`, dedupe-guarded) **Done**; Surface 3 log-food sheet (`LogFoodSheet.tsx`) **Done**; Surface 4 Today view **Done**; Surface 5 Insights tab **Done**; **auto-nutrition-on-publish Done** (Surface 1b — see below) — all surfaces complete |
 | Canonical staples ingredient resolution (nutrition accuracy fix) | High | **Done (applied — 136 recipes)** | Batch 4 + 4-fix + 4-apply. Root-cause fix for implausible macros from USDA fuzzy mis-matches (e.g. Easy Spaghetti pasta → "Frozen yogurts"). `lib/canonicalStaples.ts` (122 live-verified entries, generated + linted by `scripts/verify-canonical-staples.js`) is the new first tier in `computeRecipeNutrition` (canonical → USDA validation → AI). Re-audit (`batch4-canonical-reaudit.md`) → matcher hardening + lint → v2 dry-run (16 regressions fixed, zero new) → **Batch 4-apply: 136 recipes WRITTEN** via `/api/nutrition-canonical-dryrun?apply=true` on Vercel (AI on), conservatively gated (canonical-attributable change, no confidence downgrade). Revert: `nutrition_prev` per doc + `batch4-apply-revert-manifest.json`. See §5 #22, §6, `batch4-apply-report.md`. |
 | Barcode-based packaged-food lookup | Medium | Done | Server-side lookup: `/api/barcode-lookup` + `lib/nutritionEngine.ts` `lookupFoodByBarcode` (Open Food Facts → USDA branded GTIN → miss), client helper `lookupBarcode` (`lib/nutrition.ts`), returns `basis` per_serving\|per_100g. Camera UI: **Scan** mode (4th tab) in `LogFoodSheet.tsx` — native `BarcodeDetector` where supported, lazy-loaded `@zxing/browser` fallback; EAN/UPC only; rear camera via getUserMedia; graceful permission-denied and not-found fallbacks route to Search. Dev panel (`BarcodeTestPanel.tsx`) removed. Reuses `saved_foods`/`consumption_log` — no new collection. Serving/grams amount entry **Done**: per-100g hits take grams directly, per-serving hits with a numeric serving size get a Servings⇄Grams toggle (engine now returns `serving_grams`/`servings_per_container`; entry records `amount_label`). |

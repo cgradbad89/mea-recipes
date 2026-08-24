@@ -1,0 +1,4305 @@
+{
+  "allowedWriteFields": [
+    "prepTime",
+    "cookTime"
+  ],
+  "backup": [
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "balsamic-roasted-beets",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509614698
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "black-lentil-and-harissa-roasted-veggie-bowl",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1784588618245
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "blackened-chicken-breasts",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477566756
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "braised-red-cabbage",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509588877
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "brown-butter-lentil-and-sweet-potato-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787323395875
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "buttered-peas-with-mint",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509563163
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "caprese-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509544660
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "charlie-bird-s-farro-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783530530971
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "charred-corn-and-chickpea-salad-with-lime-crema",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133589510
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "191",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477564823
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "chickpea-and-fennel-ratatouille",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477570600
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787418253136
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "158",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477559316
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "152",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477557978
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509538956
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "dan-dan-noodles",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783529674534
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "192",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477564980
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "162",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477559873
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "156",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477558419
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "159",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477559492
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "easy-spaghetti-with-meat-sauce",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477574301
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "garlic-bread",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787323395432
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "garlic-butter-roasted-broccoli",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509580725
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "176",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477562164
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "180",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477562837
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "garlic-parmesan-roasted-potatoes",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509566767
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "gochugaru-salmon-with-crispy-rice",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477575237
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "grilled-salmon",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133590054
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "grilled-zucchini-and-summer-squash",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509618468
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "herb-roasted-cauliflower",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509645154
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "honey-butter-glazed-carrots",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509659760
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "honey-glazed-roasted-parsnips",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509625434
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "199",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477566258
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "188",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477564356
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "190",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477564690
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "186",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477563830
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "187",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477564004
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "198",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477565875
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "189",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477564546
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "197",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477565738
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "185",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477563631
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "italian-sausage-and-white-bean-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477577145
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "jalape-o-cheddar-cornbread",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783530943704
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "kale-and-quinoa-salad-with-plums-and-herbs",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477577791
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "kimchi-ramen",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783530024216
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "lemon-garlic-roasted-artichokes",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509551097
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "maraq-misir-red-lentil-soup",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783529558399
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "mexican-roasted-cauliflower",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477579734
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "one-pan-farro-with-tomatoes-and-kale",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477580805
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "orzo-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477581868
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "166",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477561012
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "194",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477565468
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "184",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477563440
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "195",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477565609
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "queso-chicken-chili-with-roasted-corn-and-jalape-o",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1784864608679
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "radish-cucumber-and-white-bean-farro-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477583914
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "rainbow-quinoa-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783529847893
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "rice-pilaf",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509578103
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "roasted-acorn-squash-with-brown-butter",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509609450
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "roasted-asparagus-with-lemon",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509574715
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "roasted-brussels-sprouts-with-bacon",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509657556
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "roasted-radishes-with-herb-butter",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509587059
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "roasted-root-vegetable-medley",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509555810
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "sausage-rag",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477585427
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "saut-ed-garlic-green-beans",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509641688
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "saut-ed-kale-with-garlic-and-lemon",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509631556
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "schmancy-hot-smoked-salmon",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477585573
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "seared-broccoli-and-potato-soup",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783533151998
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "shakshuka-with-feta",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477586139
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "sheet-pan-bibimbap",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477586294
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "sheet-pan-kielbasa-with-cabbage-and-beans",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477586561
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "simple-house-salad-with-vinaigrette",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787509651287
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "171",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477561577
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "161",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477559694
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "155",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477558238
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "173",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477561973
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "164",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787323395016
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "168",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477561384
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "157",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477558611
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "167",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477561194
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "smashed-zucchini-with-chickpeas-and-peanuts",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477587940
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "179",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477562531
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "182",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477563260
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "178",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477562347
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "sticky-pineapple-ribs",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783530696376
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "taco-soup",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133587726
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "151",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477557782
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "toor-dal-split-yellow-pigeon-peas",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477590308
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "id": "tzatziki-chickpea-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1783529435145
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "id": "cucumber-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133586810
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "15 min"
+      },
+      "id": "hearthealthy-peanut-butter-protein-bars",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133573521
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "id": "peanut-butter-oat-protein-shake",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787323396646
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "id": "pesto",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477583113
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "id": "rising-sun-mazcal",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787418253795
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "id": "smoothies",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133572795
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "id": "tomato-avo-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477589981
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "id": "white-bean-caprese-salad",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477591139
+      }
+    },
+    {
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "id": "yogurt-dill-sauce",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787418254253
+      }
+    },
+    {
+      "before": {
+        "cookTime": "15-18 minutes",
+        "prepTime": "20 minutes (plus 2-6 hours marinating)"
+      },
+      "id": "chicken-tikka",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787323392978
+      }
+    },
+    {
+      "before": {
+        "cookTime": "6 hr",
+        "prepTime": "10 min"
+      },
+      "id": "chicken-wild-rice",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477570465
+      }
+    },
+    {
+      "before": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "id": "filipino-brased-chicken-tocino",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477574447
+      }
+    },
+    {
+      "before": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "id": "honey-sriracha-roasted-brussels-sprouts",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787424477394
+      }
+    },
+    {
+      "before": {
+        "cookTime": "20 min",
+        "prepTime": "5 min"
+      },
+      "id": "mexican-roasted-zucchini",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781133591037
+      }
+    },
+    {
+      "before": {
+        "cookTime": "2 hr",
+        "prepTime": "20 min"
+      },
+      "id": "original-texas-chili-con-carne",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1787323396146
+      }
+    },
+    {
+      "before": {
+        "cookTime": "4 hr",
+        "prepTime": "15 min"
+      },
+      "id": "pulled-pork",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477583655
+      }
+    },
+    {
+      "before": {
+        "cookTime": "8 hr",
+        "prepTime": "10 min"
+      },
+      "id": "slow-cooker-creamy-tomato-lentil-soup",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477587689
+      }
+    },
+    {
+      "before": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "id": "traditional-southern-butter-butter-beans-recipe",
+      "updateTime": {
+        "__type": "timestamp",
+        "millis": 1781477590434
+      }
+    }
+  ],
+  "canonicalTotalFieldPersisted": false,
+  "catalogCount": 236,
+  "catalogFingerprint": "e558f6aa7d1d658eef49ecf3218776649ada12b19f622a127f2a1adb26ca6b82",
+  "collection": "recipes",
+  "dryRunReport": "docs/audits/recipe-time-dry-run-2026-08-24.json",
+  "excluded": [
+    {
+      "id": "maple-roasted-candied-pecans",
+      "reason": "Unusable placeholder: content is only 'Source:' with no ingredients or method.",
+      "title": "Maple Roasted Candied Pecans"
+    },
+    {
+      "id": "spaghetti-carbonara",
+      "reason": "Unusable partial recipe: content explicitly says instructions are unavailable.",
+      "title": "Spaghetti Carbonara"
+    }
+  ],
+  "gateStatus": "PASSED",
+  "generatedAt": "2026-08-24T23:32:16.516Z",
+  "mode": "apply",
+  "postApplyVerified": [
+    {
+      "cookTime": "45 min",
+      "id": "balsamic-roasted-beets",
+      "prepTime": "15 min",
+      "total": {
+        "display": "1 hr",
+        "minutes": 60
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "black-lentil-and-harissa-roasted-veggie-bowl",
+      "prepTime": "15 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "blackened-chicken-breasts",
+      "prepTime": "5 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "braised-red-cabbage",
+      "prepTime": "10 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "brown-butter-lentil-and-sweet-potato-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "8 min",
+      "id": "buttered-peas-with-mint",
+      "prepTime": "5 min",
+      "total": {
+        "display": "13 min",
+        "minutes": 13
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "caprese-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "charlie-bird-s-farro-salad",
+      "prepTime": "15 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "charred-corn-and-chickpea-salad-with-lime-crema",
+      "prepTime": "10 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "191",
+      "prepTime": "10 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "1 hr 10 min",
+      "id": "chickpea-and-fennel-ratatouille",
+      "prepTime": "20 min",
+      "total": {
+        "display": "1 hr 30 min",
+        "minutes": 90
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "prepTime": "20 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "158",
+      "prepTime": "5 min",
+      "total": {
+        "display": "8 hr 5 min",
+        "minutes": 485
+      }
+    },
+    {
+      "cookTime": "6 hr",
+      "id": "152",
+      "prepTime": "15 min",
+      "total": {
+        "display": "6 hr 15 min",
+        "minutes": 375
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "dan-dan-noodles",
+      "prepTime": "10 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "192",
+      "prepTime": "15 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "6 hr",
+      "id": "162",
+      "prepTime": "30 min",
+      "total": {
+        "display": "6 hr 30 min",
+        "minutes": 390
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "156",
+      "prepTime": "15 min",
+      "total": {
+        "display": "8 hr 15 min",
+        "minutes": 495
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "159",
+      "prepTime": "20 min",
+      "total": {
+        "display": "8 hr 20 min",
+        "minutes": 500
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "easy-spaghetti-with-meat-sauce",
+      "prepTime": "10 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "garlic-bread",
+      "prepTime": "10 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "garlic-butter-roasted-broccoli",
+      "prepTime": "10 min",
+      "total": {
+        "display": "25 min",
+        "minutes": 25
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "176",
+      "prepTime": "30 min",
+      "total": {
+        "display": "1 hr 10 min",
+        "minutes": 70
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "180",
+      "prepTime": "10 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "35 min",
+      "id": "garlic-parmesan-roasted-potatoes",
+      "prepTime": "10 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "gochugaru-salmon-with-crispy-rice",
+      "prepTime": "5 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "grilled-salmon",
+      "prepTime": "5 min",
+      "total": {
+        "display": "25 min",
+        "minutes": 25
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "grilled-zucchini-and-summer-squash",
+      "prepTime": "10 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "herb-roasted-cauliflower",
+      "prepTime": "10 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "honey-butter-glazed-carrots",
+      "prepTime": "10 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "honey-glazed-roasted-parsnips",
+      "prepTime": "10 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "199",
+      "prepTime": "10 min",
+      "total": {
+        "display": "25 min",
+        "minutes": 25
+      }
+    },
+    {
+      "cookTime": "50 min",
+      "id": "188",
+      "prepTime": "20 min",
+      "total": {
+        "display": "1 hr 10 min",
+        "minutes": 70
+      }
+    },
+    {
+      "cookTime": "18 min",
+      "id": "190",
+      "prepTime": "2 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "186",
+      "prepTime": "15 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "1 hr 10 min",
+      "id": "187",
+      "prepTime": "20 min",
+      "total": {
+        "display": "1 hr 30 min",
+        "minutes": 90
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "198",
+      "prepTime": "15 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "189",
+      "prepTime": "5 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "197",
+      "prepTime": "5 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "45 min",
+      "id": "185",
+      "prepTime": "20 min",
+      "total": {
+        "display": "1 hr 5 min",
+        "minutes": 65
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "italian-sausage-and-white-bean-salad",
+      "prepTime": "15 min",
+      "total": {
+        "display": "25 min",
+        "minutes": 25
+      }
+    },
+    {
+      "cookTime": "50 min",
+      "id": "jalape-o-cheddar-cornbread",
+      "prepTime": "10 min",
+      "total": {
+        "display": "1 hr",
+        "minutes": 60
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "kale-and-quinoa-salad-with-plums-and-herbs",
+      "prepTime": "15 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "kimchi-ramen",
+      "prepTime": "5 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "35 min",
+      "id": "lemon-garlic-roasted-artichokes",
+      "prepTime": "15 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "45 min",
+      "id": "maraq-misir-red-lentil-soup",
+      "prepTime": "10 min",
+      "total": {
+        "display": "55 min",
+        "minutes": 55
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "mexican-roasted-cauliflower",
+      "prepTime": "10 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "one-pan-farro-with-tomatoes-and-kale",
+      "prepTime": "10 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "45 min",
+      "id": "orzo-salad",
+      "prepTime": "15 min",
+      "total": {
+        "display": "1 hr",
+        "minutes": 60
+      }
+    },
+    {
+      "cookTime": "9 hr",
+      "id": "166",
+      "prepTime": "10 min",
+      "total": {
+        "display": "9 hr 10 min",
+        "minutes": 550
+      }
+    },
+    {
+      "cookTime": "15 min",
+      "id": "194",
+      "prepTime": "30 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "184",
+      "prepTime": "25 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "195",
+      "prepTime": "25 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "queso-chicken-chili-with-roasted-corn-and-jalape-o",
+      "prepTime": "15 min",
+      "total": {
+        "display": "8 hr 15 min",
+        "minutes": 495
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "radish-cucumber-and-white-bean-farro-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "rainbow-quinoa-salad",
+      "prepTime": "5 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "rice-pilaf",
+      "prepTime": "5 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "roasted-acorn-squash-with-brown-butter",
+      "prepTime": "10 min",
+      "total": {
+        "display": "40 min",
+        "minutes": 40
+      }
+    },
+    {
+      "cookTime": "12 min",
+      "id": "roasted-asparagus-with-lemon",
+      "prepTime": "5 min",
+      "total": {
+        "display": "17 min",
+        "minutes": 17
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "roasted-brussels-sprouts-with-bacon",
+      "prepTime": "10 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "20 min",
+      "id": "roasted-radishes-with-herb-butter",
+      "prepTime": "10 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "35 min",
+      "id": "roasted-root-vegetable-medley",
+      "prepTime": "15 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "1 hr 40 min",
+      "id": "sausage-rag",
+      "prepTime": "20 min",
+      "total": {
+        "display": "2 hr",
+        "minutes": 120
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "saut-ed-garlic-green-beans",
+      "prepTime": "5 min",
+      "total": {
+        "display": "15 min",
+        "minutes": 15
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "saut-ed-kale-with-garlic-and-lemon",
+      "prepTime": "10 min",
+      "total": {
+        "display": "20 min",
+        "minutes": 20
+      }
+    },
+    {
+      "cookTime": "2 hr",
+      "id": "schmancy-hot-smoked-salmon",
+      "prepTime": "15 min",
+      "total": {
+        "display": "2 hr 15 min",
+        "minutes": 135
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "seared-broccoli-and-potato-soup",
+      "prepTime": "15 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "shakshuka-with-feta",
+      "prepTime": "10 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "sheet-pan-bibimbap",
+      "prepTime": "10 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "sheet-pan-kielbasa-with-cabbage-and-beans",
+      "prepTime": "10 min",
+      "total": {
+        "display": "35 min",
+        "minutes": 35
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "simple-house-salad-with-vinaigrette",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "10 hr",
+      "id": "171",
+      "prepTime": "15 min",
+      "total": {
+        "display": "10 hr 15 min",
+        "minutes": 615
+      }
+    },
+    {
+      "cookTime": "7 hr",
+      "id": "161",
+      "prepTime": "25 min",
+      "total": {
+        "display": "7 hr 25 min",
+        "minutes": 445
+      }
+    },
+    {
+      "cookTime": "5 hr 15 min",
+      "id": "155",
+      "prepTime": "15 min",
+      "total": {
+        "display": "5 hr 30 min",
+        "minutes": 330
+      }
+    },
+    {
+      "cookTime": "4 hr",
+      "id": "173",
+      "prepTime": "15 min",
+      "total": {
+        "display": "4 hr 15 min",
+        "minutes": 255
+      }
+    },
+    {
+      "cookTime": "7 hr",
+      "id": "164",
+      "prepTime": "15 min",
+      "total": {
+        "display": "7 hr 15 min",
+        "minutes": 435
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "168",
+      "prepTime": "15 min",
+      "total": {
+        "display": "8 hr 15 min",
+        "minutes": 495
+      }
+    },
+    {
+      "cookTime": "3 hr 30 min",
+      "id": "157",
+      "prepTime": "20 min",
+      "total": {
+        "display": "3 hr 50 min",
+        "minutes": 230
+      }
+    },
+    {
+      "cookTime": "5 hr",
+      "id": "167",
+      "prepTime": "25 min",
+      "total": {
+        "display": "5 hr 25 min",
+        "minutes": 325
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "smashed-zucchini-with-chickpeas-and-peanuts",
+      "prepTime": "5 min",
+      "total": {
+        "display": "15 min",
+        "minutes": 15
+      }
+    },
+    {
+      "cookTime": "30 min",
+      "id": "179",
+      "prepTime": "20 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "182",
+      "prepTime": "5 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "10 min",
+      "id": "178",
+      "prepTime": "20 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "2 hr 40 min",
+      "id": "sticky-pineapple-ribs",
+      "prepTime": "15 min",
+      "total": {
+        "display": "2 hr 55 min",
+        "minutes": 175
+      }
+    },
+    {
+      "cookTime": "1 hr",
+      "id": "taco-soup",
+      "prepTime": "15 min",
+      "total": {
+        "display": "1 hr 15 min",
+        "minutes": 75
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "151",
+      "prepTime": "10 min",
+      "total": {
+        "display": "50 min",
+        "minutes": 50
+      }
+    },
+    {
+      "cookTime": "1 hr 15 min",
+      "id": "toor-dal-split-yellow-pigeon-peas",
+      "prepTime": "1 hr",
+      "total": {
+        "display": "2 hr 15 min",
+        "minutes": 135
+      }
+    },
+    {
+      "cookTime": "5 min",
+      "id": "tzatziki-chickpea-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "15 min",
+        "minutes": 15
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "cucumber-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "hearthealthy-peanut-butter-protein-bars",
+      "prepTime": "15 min",
+      "total": {
+        "display": "15 min",
+        "minutes": 15
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "peanut-butter-oat-protein-shake",
+      "prepTime": "5 min",
+      "total": {
+        "display": "5 min",
+        "minutes": 5
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "pesto",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "rising-sun-mazcal",
+      "prepTime": "5 min",
+      "total": {
+        "display": "5 min",
+        "minutes": 5
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "smoothies",
+      "prepTime": "5 min",
+      "total": {
+        "display": "5 min",
+        "minutes": 5
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "tomato-avo-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "white-bean-caprese-salad",
+      "prepTime": "10 min",
+      "total": {
+        "display": "10 min",
+        "minutes": 10
+      }
+    },
+    {
+      "cookTime": "0 min",
+      "id": "yogurt-dill-sauce",
+      "prepTime": "5 min",
+      "total": {
+        "display": "5 min",
+        "minutes": 5
+      }
+    },
+    {
+      "cookTime": "15-18 minutes",
+      "id": "chicken-tikka",
+      "prepTime": "20 min",
+      "total": {
+        "display": "38 min",
+        "minutes": 38
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "chicken-wild-rice",
+      "prepTime": "10 min",
+      "total": {
+        "display": "8 hr 10 min",
+        "minutes": 490
+      }
+    },
+    {
+      "cookTime": "1 hr",
+      "id": "filipino-brased-chicken-tocino",
+      "prepTime": "15 min",
+      "total": {
+        "display": "1 hr 15 min",
+        "minutes": 75
+      }
+    },
+    {
+      "cookTime": "40 min",
+      "id": "honey-sriracha-roasted-brussels-sprouts",
+      "prepTime": "5 min",
+      "total": {
+        "display": "45 min",
+        "minutes": 45
+      }
+    },
+    {
+      "cookTime": "25 min",
+      "id": "mexican-roasted-zucchini",
+      "prepTime": "5 min",
+      "total": {
+        "display": "30 min",
+        "minutes": 30
+      }
+    },
+    {
+      "cookTime": "3 hr",
+      "id": "original-texas-chili-con-carne",
+      "prepTime": "20 min",
+      "total": {
+        "display": "3 hr 20 min",
+        "minutes": 200
+      }
+    },
+    {
+      "cookTime": "8 hr",
+      "id": "pulled-pork",
+      "prepTime": "15 min",
+      "total": {
+        "display": "8 hr 15 min",
+        "minutes": 495
+      }
+    },
+    {
+      "cookTime": "4 hr",
+      "id": "slow-cooker-creamy-tomato-lentil-soup",
+      "prepTime": "10 min",
+      "total": {
+        "display": "4 hr 10 min",
+        "minutes": 250
+      }
+    },
+    {
+      "cookTime": "3 hr",
+      "id": "traditional-southern-butter-butter-beans-recipe",
+      "prepTime": "10 min",
+      "total": {
+        "display": "3 hr 10 min",
+        "minutes": 190
+      }
+    }
+  ],
+  "projectId": "malignant-metro",
+  "proposedUpdates": [
+    {
+      "after": {
+        "cookTime": "45 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 45 min.",
+      "id": "balsamic-roasted-beets",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "45 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "1 hr",
+      "resultingTotalMinutes": 60,
+      "title": "Balsamic Roasted Beets"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Vegetable prep plus concurrent 25–30 minute lentil and roasting steps.",
+      "id": "black-lentil-and-harissa-roasted-veggie-bowl",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Black Lentil and Harissa-Roasted Veggie Bowl"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min and Cook 15 min.",
+      "id": "blackened-chicken-breasts",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Blackened Chicken Breasts"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 40 min.",
+      "id": "braised-red-cabbage",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "Braised Red Cabbage"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Parallel 15–25 minute roasting and lentil steps plus brief dressing prep fit the stated 35-minute elapsed time.",
+      "id": "brown-butter-lentil-and-sweet-potato-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Brown Butter Lentil and Sweet Potato Salad"
+    },
+    {
+      "after": {
+        "cookTime": "8 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min and Cook 8 min.",
+      "id": "buttered-peas-with-mint",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "8 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "13 min",
+      "resultingTotalMinutes": 13,
+      "title": "Buttered Peas with Mint"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 0 min; assembly-only recipe.",
+      "id": "caprese-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "Caprese Salad"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 minutes and Cook 30 minutes.",
+      "id": "charlie-bird-s-farro-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Charlie Bird's Farro Salad"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 10 min.",
+      "id": "charred-corn-and-chickpea-salad-with-lime-crema",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Charred Corn and Chickpea Salad With Lime Crema"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Source states a 40-minute total; cook includes sauté, pressure, release, shredding and warming overhead.",
+      "id": "191",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "Chicken Tinga Tacos"
+    },
+    {
+      "after": {
+        "cookTime": "1 hr 10 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation preserves the content's about-1½-hour elapsed estimate; method has extensive vegetable prep and largely unattended roasting.",
+      "id": "chickpea-and-fennel-ratatouille",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "1 hr 10 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "1 hr 30 min",
+      "resultingTotalMinutes": 90,
+      "title": "Chickpea and Fennel Ratatouille"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Dressing and fine vegetable prep dominate; shrimp cooks in a few minutes with handling/cooling allowance.",
+      "id": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Chopped Thai Shrimp Salad with Garlic Lime Dressing"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min and Cook 8 hours.",
+      "id": "158",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "8 hr",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "8 hr 5 min",
+      "resultingTotalMinutes": 485,
+      "title": "Creamy Crockpot White Chicken Chili"
+    },
+    {
+      "after": {
+        "cookTime": "6 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 6 hours.",
+      "id": "152",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "6 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "6 hr 15 min",
+      "resultingTotalMinutes": 375,
+      "title": "Crockpot Chicken Wild Rice Soup"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 0 min; assembly-only salad.",
+      "id": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "Cucumber Tomato Salad with Red Wine Vinaigrette"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 minutes and Cook 20 minutes.",
+      "id": "dan-dan-noodles",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Dan Dan Noodles"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Source states a 40-minute total; cook includes sauté, pressure, release and resting overhead omitted from the 6-minute pressure setting.",
+      "id": "192",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "Easy Instant Pot Vegetable Biryani"
+    },
+    {
+      "after": {
+        "cookTime": "6 hr",
+        "prepTime": "30 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 30 min and Cook 6 hours.",
+      "id": "162",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "6 hr",
+        "prepTime": "30 min"
+      },
+      "resultingTotal": "6 hr 30 min",
+      "resultingTotalMinutes": 390,
+      "title": "Easy Slow Cooker Chicken Pot Pie"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 mins and Cook 8 hrs.",
+      "id": "156",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "8 hr 15 min",
+      "resultingTotalMinutes": 495,
+      "title": "Easy Slow Cooker Pot Roast"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min and Cook 8 hours.",
+      "id": "159",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "8 hr",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "8 hr 20 min",
+      "resultingTotalMinutes": 500,
+      "title": "Easy Slow Cooker Turkey Chili"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches the stated 30-minute elapsed time and the parallel pasta/sauce method.",
+      "id": "easy-spaghetti-with-meat-sauce",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Easy Spaghetti With Meat Sauce"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Method has 20 minutes baking and fits the stated 30-minute elapsed time with assembly.",
+      "id": "garlic-bread",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Garlic Bread"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 15 min.",
+      "id": "garlic-butter-roasted-broccoli",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "25 min",
+      "resultingTotalMinutes": 25,
+      "title": "Garlic Butter Roasted Broccoli"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "30 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 30 min, Cook 40 min and Total 1 hour 10 min.",
+      "id": "176",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "40 min",
+        "prepTime": "30 min"
+      },
+      "resultingTotal": "1 hr 10 min",
+      "resultingTotalMinutes": 70,
+      "title": "Garlic Butter Roasted Chicken Thighs with Charred Lemon Salsa Verde + Asparagus"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min, Cook 20 min and Total 30 min.",
+      "id": "180",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Garlic Parmesan Kale Pasta"
+    },
+    {
+      "after": {
+        "cookTime": "35 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 35 min.",
+      "id": "garlic-parmesan-roasted-potatoes",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "35 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Garlic Parmesan Roasted Potatoes"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches the stated 20-minute elapsed time and sequential salmon/rice/glaze steps.",
+      "id": "gochugaru-salmon-with-crispy-rice",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Gochugaru Salmon With Crispy Rice"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 minutes and Cook 20 minutes.",
+      "id": "grilled-salmon",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "25 min",
+      "resultingTotalMinutes": 25,
+      "title": "Grilled Salmon"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 10 min.",
+      "id": "grilled-zucchini-and-summer-squash",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Grilled Zucchini and Summer Squash"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 25 min.",
+      "id": "herb-roasted-cauliflower",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Herb-Roasted Cauliflower"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 25 min.",
+      "id": "honey-butter-glazed-carrots",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Honey Butter Glazed Carrots"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 30 min.",
+      "id": "honey-glazed-roasted-parsnips",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "Honey Glazed Roasted Parsnips"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min, Cook 15 min and Total 25 min.",
+      "id": "199",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "25 min",
+      "resultingTotalMinutes": 25,
+      "title": "Hush Puppies"
+    },
+    {
+      "after": {
+        "cookTime": "50 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min, Cook 50 min and Total 1 hour 10 min.",
+      "id": "188",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "50 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "1 hr 10 min",
+      "resultingTotalMinutes": 70,
+      "title": "Instant Pot BBQ Pulled Pork"
+    },
+    {
+      "after": {
+        "cookTime": "18 min",
+        "prepTime": "2 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Source states a 20-minute total; cook includes pressure build/release overhead omitted from the 6-minute pressure setting.",
+      "id": "190",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "18 min",
+        "prepTime": "2 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Instant Pot Boiled Potatoes"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min, Cook 25 min and Total 40 min.",
+      "id": "186",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "Instant Pot Lemon Chicken Thighs"
+    },
+    {
+      "after": {
+        "cookTime": "1 hr 10 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min, Cook 1 hour 10 min and Total 1 hour 30 min.",
+      "id": "187",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "1 hr 10 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "1 hr 30 min",
+      "resultingTotalMinutes": 90,
+      "title": "Instant Pot Mississippi Pot Roast"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min, Cook 15 min and Total 30 min.",
+      "id": "198",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Instant Pot Orange Chicken"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min, Cook 15 min and Total 20 min.",
+      "id": "189",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Instant Pot Perfect Hard Boiled Eggs"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Source states a 30-minute total; cook includes pressure build/release, thickening and standing overhead omitted from the 4-minute pressure setting.",
+      "id": "197",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Instant Pot Pineapple Chicken"
+    },
+    {
+      "after": {
+        "cookTime": "45 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min, Cook 45 min and Total 1 hour 5 min.",
+      "id": "185",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "45 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "1 hr 5 min",
+      "resultingTotalMinutes": 65,
+      "title": "Instant Pot Red Beans and Rice"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 minutes and Cook 10 minutes.",
+      "id": "italian-sausage-and-white-bean-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "25 min",
+      "resultingTotalMinutes": 25,
+      "title": "Italian Sausage and White Bean Salad"
+    },
+    {
+      "after": {
+        "cookTime": "50 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 minutes and Cook 50 minutes.",
+      "id": "jalape-o-cheddar-cornbread",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "50 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "1 hr",
+      "resultingTotalMinutes": 60,
+      "title": "Jalapeño Cheddar Cornbread"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 45-minute elapsed time, including quinoa boil/rest and salad prep.",
+      "id": "kale-and-quinoa-salad-with-plums-and-herbs",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Kale and Quinoa Salad With Plums and Herbs"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 0h 5 min and Cook 0h 15 min; normalized to standard parseable strings.",
+      "id": "kimchi-ramen",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Kimchi Ramen"
+    },
+    {
+      "after": {
+        "cookTime": "35 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 35 min.",
+      "id": "lemon-garlic-roasted-artichokes",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "35 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "Lemon Garlic Roasted Artichokes"
+    },
+    {
+      "after": {
+        "cookTime": "45 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 minutes and Cook 45 minutes.",
+      "id": "maraq-misir-red-lentil-soup",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "45 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "55 min",
+      "resultingTotalMinutes": 55,
+      "title": "Maraq Misir (Red Lentil Soup)"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Cauliflower/spice prep plus explicit 25–30 minute roasting step.",
+      "id": "mexican-roasted-cauliflower",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "Mexican Roasted Cauliflower"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 30 min.",
+      "id": "one-pan-farro-with-tomatoes-and-kale",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "One-Pan Farro with Tomatoes and Kale"
+    },
+    {
+      "after": {
+        "cookTime": "45 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 45 min.",
+      "id": "orzo-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "45 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "1 hr",
+      "resultingTotalMinutes": 60,
+      "title": "Orzo Salad"
+    },
+    {
+      "after": {
+        "cookTime": "9 hr",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min, Cook 9 hours and Total 9 hours 10 min.",
+      "id": "166",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "9 hr",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "9 hr 10 min",
+      "resultingTotalMinutes": 550,
+      "title": "Overnight Oatmeal"
+    },
+    {
+      "after": {
+        "cookTime": "15 min",
+        "prepTime": "30 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 30 min, Cook 15 min and Total 45 min.",
+      "id": "194",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "15 min",
+        "prepTime": "30 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Pressure-Cooker Easy Pork Posole"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "25 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 25 min, Cook 10 min and Total 35 min.",
+      "id": "184",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "25 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Pressure-Cooker Spring-Thyme Chicken Stew"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "25 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 25 min, Cook 20 min and Total 45 min.",
+      "id": "195",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "25 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Pressure-Cooker White Bean Chicken Chili"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 mins and Cook 8 hours.",
+      "id": "queso-chicken-chili-with-roasted-corn-and-jalape-o",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "8 hr 15 min",
+      "resultingTotalMinutes": 495,
+      "title": "Queso Chicken Chili with Roasted Corn and Jalapeño"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 40 min.",
+      "id": "radish-cucumber-and-white-bean-farro-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "Radish, Cucumber and White Bean Farro Salad"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 35-minute elapsed time and explicit 20-minute boil plus 10–15 minute rest.",
+      "id": "rainbow-quinoa-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Rainbow Quinoa Salad"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min and Cook 25 min.",
+      "id": "rice-pilaf",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Rice Pilaf"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 30 min.",
+      "id": "roasted-acorn-squash-with-brown-butter",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "40 min",
+      "resultingTotalMinutes": 40,
+      "title": "Roasted Acorn Squash with Brown Butter"
+    },
+    {
+      "after": {
+        "cookTime": "12 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min and Cook 12 min.",
+      "id": "roasted-asparagus-with-lemon",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "12 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "17 min",
+      "resultingTotalMinutes": 17,
+      "title": "Roasted Asparagus with Lemon"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 25 min.",
+      "id": "roasted-brussels-sprouts-with-bacon",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Roasted Brussels Sprouts with Bacon"
+    },
+    {
+      "after": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 20 min.",
+      "id": "roasted-radishes-with-herb-butter",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "20 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Roasted Radishes with Herb Butter"
+    },
+    {
+      "after": {
+        "cookTime": "35 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 35 min.",
+      "id": "roasted-root-vegetable-medley",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "35 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "Roasted Root Vegetable Medley"
+    },
+    {
+      "after": {
+        "cookTime": "1 hr 40 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation preserves the stated about-2-hour elapsed time across vegetable prep, long caramelization, simmer and pasta finish.",
+      "id": "sausage-rag",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "1 hr 40 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "2 hr",
+      "resultingTotalMinutes": 120,
+      "title": "Sausage Ragù"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min and Cook 10 min.",
+      "id": "saut-ed-garlic-green-beans",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "15 min",
+      "resultingTotalMinutes": 15,
+      "title": "Sautéed Garlic Green Beans"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 10 min.",
+      "id": "saut-ed-kale-with-garlic-and-lemon",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "20 min",
+      "resultingTotalMinutes": 20,
+      "title": "Sautéed Kale with Garlic and Lemon"
+    },
+    {
+      "after": {
+        "cookTime": "2 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Brine/glaze setup is brief active prep; smoking is explicitly 1½–2 hours. Passive brining/pellicle time remains documented in content.",
+      "id": "schmancy-hot-smoked-salmon",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "2 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "2 hr 15 min",
+      "resultingTotalMinutes": 135,
+      "title": "Schmancy Hot Smoked Salmon"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 45-minute elapsed time and repeated searing/simmering steps.",
+      "id": "seared-broccoli-and-potato-soup",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Seared Broccoli and Potato Soup"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 50-minute elapsed time and explicit 20-minute sauté, 10-minute simmer and 7–10 minute bake.",
+      "id": "shakshuka-with-feta",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "Shakshuka With Feta"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 35-minute elapsed time and concurrent 20–25 minute vegetable roast.",
+      "id": "sheet-pan-bibimbap",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Sheet-Pan Bibimbap"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 35-minute elapsed time and explicit 25–30 minute roast.",
+      "id": "sheet-pan-kielbasa-with-cabbage-and-beans",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "25 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "35 min",
+      "resultingTotalMinutes": 35,
+      "title": "Sheet-Pan Kielbasa With Cabbage and Beans"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 min and Cook 0 min; assembly-only salad.",
+      "id": "simple-house-salad-with-vinaigrette",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "Simple House Salad with Vinaigrette"
+    },
+    {
+      "after": {
+        "cookTime": "10 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 10 hours.",
+      "id": "171",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "10 hr 15 min",
+      "resultingTotalMinutes": 615,
+      "title": "Slow Cooker Beef Brisket with BBQ Sauce"
+    },
+    {
+      "after": {
+        "cookTime": "7 hr",
+        "prepTime": "25 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 25 min and Cook 7 hours.",
+      "id": "161",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "7 hr",
+        "prepTime": "25 min"
+      },
+      "resultingTotal": "7 hr 25 min",
+      "resultingTotalMinutes": 445,
+      "title": "Slow Cooker Beef Stew"
+    },
+    {
+      "after": {
+        "cookTime": "5 hr 15 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min, Cook 5 hours 15 min and Total 5 hours 30 min.",
+      "id": "155",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "5 hr 15 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "5 hr 30 min",
+      "resultingTotalMinutes": 330,
+      "title": "Slow Cooker Carnitas (Mexican Pulled Pork)"
+    },
+    {
+      "after": {
+        "cookTime": "4 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 4 hours.",
+      "id": "173",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "4 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "4 hr 15 min",
+      "resultingTotalMinutes": 255,
+      "title": "Slow Cooker Chicken Ropa Vieja"
+    },
+    {
+      "after": {
+        "cookTime": "7 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 mins and Cook 7 hrs.",
+      "id": "164",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "7 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "7 hr 15 min",
+      "resultingTotalMinutes": 435,
+      "title": "Slow Cooker Chicken Taco Soup"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 8 hours.",
+      "id": "168",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "8 hr 15 min",
+      "resultingTotalMinutes": 495,
+      "title": "Slow Cooker Garlic Butter Chicken Pasta"
+    },
+    {
+      "after": {
+        "cookTime": "3 hr 30 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min, Cook 3 hours 30 min and Total 3 hours 50 min.",
+      "id": "157",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "3 hr 30 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "3 hr 50 min",
+      "resultingTotalMinutes": 230,
+      "title": "Slow Cooker Minnesota Pork Chop Casserole"
+    },
+    {
+      "after": {
+        "cookTime": "5 hr",
+        "prepTime": "25 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 25 min and Cook 5 hours.",
+      "id": "167",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "5 hr",
+        "prepTime": "25 min"
+      },
+      "resultingTotal": "5 hr 25 min",
+      "resultingTotalMinutes": 325,
+      "title": "Slow Cooker Pumpkin Applesauce"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Allocation matches stated 15-minute elapsed time and explicit 5–10 minute chickpea cook.",
+      "id": "smashed-zucchini-with-chickpeas-and-peanuts",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "15 min",
+      "resultingTotalMinutes": 15,
+      "title": "Smashed Zucchini With Chickpeas and Peanuts"
+    },
+    {
+      "after": {
+        "cookTime": "30 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min, Cook 30 min and Total 50 min.",
+      "id": "179",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "30 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "Spicy Fish Taco Bowls with Cilantro Lime Slaw"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 5 min, Cook 40 min and Total 45 min.",
+      "id": "182",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "40 min",
+        "prepTime": "5 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "Spicy Quinoa with Sweet Potatoes"
+    },
+    {
+      "after": {
+        "cookTime": "10 min",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 20 min, Cook 10 min and Total 30 min.",
+      "id": "178",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "10 min",
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Spicy Shrimp Tacos with Garlic Cilantro Lime Slaw"
+    },
+    {
+      "after": {
+        "cookTime": "2 hr 40 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 0h 15 min and Cook 2h 40 min; normalized to standard parseable strings.",
+      "id": "sticky-pineapple-ribs",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "2 hr 40 min",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "2 hr 55 min",
+      "resultingTotalMinutes": 175,
+      "title": "Sticky Pineapple Ribs"
+    },
+    {
+      "after": {
+        "cookTime": "1 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 15 min and Cook 1h.",
+      "id": "taco-soup",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "1 hr",
+        "prepTime": "15 min"
+      },
+      "resultingTotal": "1 hr 15 min",
+      "resultingTotalMinutes": 75,
+      "title": "Taco Soup"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 minutes, Cook 40 minutes and Total 50 minutes.",
+      "id": "151",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "40 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "50 min",
+      "resultingTotalMinutes": 50,
+      "title": "The BEST Black Bean Chili"
+    },
+    {
+      "after": {
+        "cookTime": "1 hr 15 min",
+        "prepTime": "1 hr"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 1 hour soaking and Cook 1¼ hours; normalized to parser-compatible strings.",
+      "id": "toor-dal-split-yellow-pigeon-peas",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "1 hr 15 min",
+        "prepTime": "1 hr"
+      },
+      "resultingTotal": "2 hr 15 min",
+      "resultingTotalMinutes": 135,
+      "title": "Toor Dal (Split Yellow Pigeon Peas)"
+    },
+    {
+      "after": {
+        "cookTime": "5 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": null
+      },
+      "evidence": "Content states Prep 10 minutes and Cook 5 minutes.",
+      "id": "tzatziki-chickpea-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "5 min",
+        "prepTime": "10 min"
+      },
+      "resultingTotal": "15 min",
+      "resultingTotalMinutes": 15,
+      "title": "Tzatziki Chickpea Salad"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "evidence": "No-cook salad; content only slices, mixes and chills.",
+      "id": "cucumber-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "Cucumber Salad"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "15 min"
+      },
+      "evidence": "No-bake bars; content mixes, presses and chills.",
+      "id": "hearthealthy-peanut-butter-protein-bars",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "15 min",
+      "resultingTotalMinutes": 15,
+      "title": "Heart-Healthy Peanut Butter Protein Bars"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "evidence": "Blended shake with no cooking step.",
+      "id": "peanut-butter-oat-protein-shake",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "5 min",
+      "resultingTotalMinutes": 5,
+      "title": "Peanut Butter Oat Protein Shake"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "evidence": "Raw blended sauce with no cooking step.",
+      "id": "pesto",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "Pesto"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "evidence": "Mixed cocktail with no cooking step.",
+      "id": "rising-sun-mazcal",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "5 min",
+      "resultingTotalMinutes": 5,
+      "title": "Rising Sun - Mazcal"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "evidence": "Blended smoothie variations with no cooking step.",
+      "id": "smoothies",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "5 min",
+      "resultingTotalMinutes": 5,
+      "title": "Smoothies"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "evidence": "Raw assembled salad with no cooking step.",
+      "id": "tomato-avo-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "tomato avo salad"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "10 min"
+      },
+      "evidence": "Assembled bean and caprese salad with no cooking step.",
+      "id": "white-bean-caprese-salad",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "10 min",
+      "resultingTotalMinutes": 10,
+      "title": "White Bean Caprese Salad"
+    },
+    {
+      "after": {
+        "cookTime": "0 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": null,
+        "prepTime": "5 min"
+      },
+      "evidence": "Cold mixed sauce with no cooking step.",
+      "id": "yogurt-dill-sauce",
+      "kind": "backfill",
+      "patch": {
+        "cookTime": "0 min"
+      },
+      "resultingTotal": "5 min",
+      "resultingTotalMinutes": 5,
+      "title": "yogurt Dill sauce"
+    },
+    {
+      "after": {
+        "cookTime": "15-18 minutes",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": "15-18 minutes",
+        "prepTime": "20 minutes (plus 2-6 hours marinating)"
+      },
+      "evidence": "Existing prep string parses as 6 hr 20 min under app semantics; active prep is 20 min and passive marination remains in content.",
+      "id": "chicken-tikka",
+      "kind": "correction",
+      "patch": {
+        "prepTime": "20 min"
+      },
+      "resultingTotal": "38 min",
+      "resultingTotalMinutes": 38,
+      "title": "Chicken Tikka"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": "6 hr",
+        "prepTime": "10 min"
+      },
+      "evidence": "Method explicitly cooks on low for 7–8 hours; 6 hours is clearly short.",
+      "id": "chicken-wild-rice",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "8 hr"
+      },
+      "resultingTotal": "8 hr 10 min",
+      "resultingTotalMinutes": 490,
+      "title": "chicken wild rice"
+    },
+    {
+      "after": {
+        "cookTime": "1 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": "30 min",
+        "prepTime": "15 min"
+      },
+      "evidence": "Method explicitly simmers chicken for 1 hour before reduction and searing; 30 minutes is impossible.",
+      "id": "filipino-brased-chicken-tocino",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "1 hr"
+      },
+      "resultingTotal": "1 hr 15 min",
+      "resultingTotalMinutes": 75,
+      "title": "Filipino Brased Chicken Tocino"
+    },
+    {
+      "after": {
+        "cookTime": "40 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "evidence": "Method explicitly roasts for 35–40 minutes; 25 minutes is clearly short.",
+      "id": "honey-sriracha-roasted-brussels-sprouts",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "40 min"
+      },
+      "resultingTotal": "45 min",
+      "resultingTotalMinutes": 45,
+      "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS"
+    },
+    {
+      "after": {
+        "cookTime": "25 min",
+        "prepTime": "5 min"
+      },
+      "before": {
+        "cookTime": "20 min",
+        "prepTime": "5 min"
+      },
+      "evidence": "Method explicitly roasts for 25 minutes.",
+      "id": "mexican-roasted-zucchini",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "25 min"
+      },
+      "resultingTotal": "30 min",
+      "resultingTotalMinutes": 30,
+      "title": "Mexican Roasted Zucchini"
+    },
+    {
+      "after": {
+        "cookTime": "3 hr",
+        "prepTime": "20 min"
+      },
+      "before": {
+        "cookTime": "2 hr",
+        "prepTime": "20 min"
+      },
+      "evidence": "Method explicitly simmers until tender for about 3 hours; 2 hours is clearly short.",
+      "id": "original-texas-chili-con-carne",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "3 hr"
+      },
+      "resultingTotal": "3 hr 20 min",
+      "resultingTotalMinutes": 200,
+      "title": "Original Texas Chili Con Carne"
+    },
+    {
+      "after": {
+        "cookTime": "8 hr",
+        "prepTime": "15 min"
+      },
+      "before": {
+        "cookTime": "4 hr",
+        "prepTime": "15 min"
+      },
+      "evidence": "Method explicitly slow-cooks on low for 6–8 hours; 4 hours is clearly short.",
+      "id": "pulled-pork",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "8 hr"
+      },
+      "resultingTotal": "8 hr 15 min",
+      "resultingTotalMinutes": 495,
+      "title": "Pulled pork"
+    },
+    {
+      "after": {
+        "cookTime": "4 hr",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": "8 hr",
+        "prepTime": "10 min"
+      },
+      "evidence": "Method explicitly cooks on high for 4 hours; 8 hours doubles the actual recipe time.",
+      "id": "slow-cooker-creamy-tomato-lentil-soup",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "4 hr"
+      },
+      "resultingTotal": "4 hr 10 min",
+      "resultingTotalMinutes": 250,
+      "title": "Slow Cooker Creamy Tomato Lentil Soup"
+    },
+    {
+      "after": {
+        "cookTime": "3 hr",
+        "prepTime": "10 min"
+      },
+      "before": {
+        "cookTime": "30 min",
+        "prepTime": "10 min"
+      },
+      "evidence": "Method explicitly simmers about 3 hours; 30 minutes is clearly wrong.",
+      "id": "traditional-southern-butter-butter-beans-recipe",
+      "kind": "correction",
+      "patch": {
+        "cookTime": "3 hr"
+      },
+      "resultingTotal": "3 hr 10 min",
+      "resultingTotalMinutes": 190,
+      "title": "Traditional Southern Butter Butter Beans Recipe"
+    }
+  ],
+  "summary": {
+    "backfills": 98,
+    "changedCookFields": 106,
+    "changedPrepFields": 90,
+    "changedRecipes": 107,
+    "corrections": 9
+  },
+  "updateFingerprint": "fb9b985948889ef85f1a1c94a100e8e3a02b101a0f60a79dba69b1869120bc2b",
+  "usableRecipeCount": 234,
+  "writesPerformed": 107
+}
