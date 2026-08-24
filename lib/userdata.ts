@@ -589,6 +589,7 @@ export interface SavedGroceryItem {
   defaultCategory: GroceryCategory
   timesUsed: number
   lastUsed: unknown
+  usuallyOnHand?: boolean
 }
 
 export function savedGroceryItemsPath(uid: string) {
@@ -598,13 +599,30 @@ export function savedGroceryItemsPath(uid: string) {
 export async function getSavedGroceryItems(uid: string): Promise<SavedGroceryItem[]> {
   const snap = await getDocs(savedGroceryItemsPath(uid))
   return snap.docs.map(d => {
-    const data = d.data() as Omit<SavedGroceryItem, 'defaultCategory'> & { defaultCategory: unknown }
+    const data = d.data() as Omit<SavedGroceryItem, 'defaultCategory' | 'usuallyOnHand'> & {
+      defaultCategory: unknown
+      usuallyOnHand?: unknown
+    }
     return {
       ...data,
       defaultCategory: normalizePersistedGroceryCategory(data.defaultCategory, data.name),
+      usuallyOnHand:
+        data.usuallyOnHand === true ? true :
+        data.usuallyOnHand === false ? false :
+        undefined,
     }
   })
     .sort((a, b) => b.timesUsed - a.timesUsed)
+}
+
+async function savedGroceryDocumentsForIdentity(uid: string, name: string) {
+  const identity = normalizeNoun(name)
+  if (!identity) return []
+  const snap = await getDocs(savedGroceryItemsPath(uid))
+  return snap.docs.filter(savedDocument => {
+    const data = savedDocument.data() as { name?: unknown }
+    return typeof data.name === 'string' && normalizeNoun(data.name) === identity
+  })
 }
 
 export async function upsertSavedGroceryItem(
@@ -612,17 +630,19 @@ export async function upsertSavedGroceryItem(
   name: string,
   category: GroceryCategory
 ): Promise<void> {
-  const id = sanitizeDocId(name.toLowerCase())
-  const ref = doc(savedGroceryItemsPath(uid), id)
-  const existing = await getDoc(ref)
-  if (existing.exists()) {
+  const existingMatches = await savedGroceryDocumentsForIdentity(uid, name)
+  const existing = existingMatches.sort((a, b) => a.id.localeCompare(b.id))[0]
+  if (existing) {
     const data = existing.data() as SavedGroceryItem
+    const ref = doc(savedGroceryItemsPath(uid), existing.id)
     await updateDoc(ref, {
-      timesUsed: data.timesUsed + 1,
+      timesUsed: (typeof data.timesUsed === 'number' ? data.timesUsed : 0) + 1,
       lastUsed: serverTimestamp(),
       defaultCategory: category,
     })
   } else {
+    const id = sanitizeDocId(name.toLowerCase())
+    const ref = doc(savedGroceryItemsPath(uid), id)
     await setDoc(ref, {
       id,
       name: name.trim(),
@@ -631,6 +651,46 @@ export async function upsertSavedGroceryItem(
       lastUsed: serverTimestamp(),
     })
   }
+}
+
+/**
+ * Persist the reusable Usually On Hand preference for one exact normalized
+ * grocery identity. Existing saved metadata is untouched. When historical
+ * raw-name IDs produced duplicate documents for the same normalized identity,
+ * every exact match receives the same preference so reads stay deterministic.
+ * Creating preference-only identity memory starts at zero uses; marking an
+ * item is not itself a grocery use and must not inflate frequency ranking.
+ */
+export async function setSavedGroceryItemUsuallyOnHand(
+  uid: string,
+  name: string,
+  category: GroceryCategory,
+  usuallyOnHand: boolean,
+): Promise<SavedGroceryItem> {
+  const existingMatches = await savedGroceryDocumentsForIdentity(uid, name)
+
+  if (existingMatches.length > 0) {
+    await Promise.all(existingMatches.map(savedDocument =>
+      updateDoc(doc(savedGroceryItemsPath(uid), savedDocument.id), { usuallyOnHand }),
+    ))
+    const first = existingMatches.sort((a, b) => a.id.localeCompare(b.id))[0]
+    const data = first.data() as SavedGroceryItem
+    return { ...data, id: data.id || first.id, usuallyOnHand }
+  }
+
+  const trimmedName = name.trim()
+  const id = sanitizeDocId(trimmedName.toLowerCase())
+  const lastUsed = serverTimestamp()
+  const savedItem: SavedGroceryItem = {
+    id,
+    name: trimmedName,
+    defaultCategory: category,
+    timesUsed: 0,
+    lastUsed,
+    usuallyOnHand,
+  }
+  await setDoc(doc(savedGroceryItemsPath(uid), id), savedItem)
+  return savedItem
 }
 
 export async function deleteSavedGroceryItem(uid: string, itemId: string): Promise<void> {

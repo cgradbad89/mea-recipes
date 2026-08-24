@@ -8,17 +8,23 @@ import {
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import {
-  categorizeIngredient,
   GROCERY_CATEGORIES,
   MANUAL_CATEGORIES,
-  normalizePersistedGroceryCategory,
   type GroceryCategory,
 } from '@/lib/groceryCategories'
-import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil } from 'lucide-react'
-import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
+import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil, House } from 'lucide-react'
+import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 import { prepareGroceryItem } from '@/lib/groceryItemPreparation'
+import {
+  USUALLY_ON_HAND_SECTION,
+  buildSavedGroceryIdentityLookup,
+  deriveGrocerySections,
+  effectiveGroceryCategory,
+  groceryIdentity,
+  isUsuallyOnHand,
+} from '@/lib/groceryUsuallyOnHand'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from '@/lib/firestoreBatch'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 
@@ -58,10 +64,7 @@ const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
 }
 
 function getCategory(item: GroceryItem): GroceryCategory {
-  if (item.manualSection) {
-    return normalizePersistedGroceryCategory(item.manualSection, item.name)
-  }
-  return categorizeIngredient(item.name)
+  return effectiveGroceryCategory(item)
 }
 
 // Measurement/countable unit vocabulary is the SHARED source in
@@ -90,7 +93,9 @@ export default function GroceryPage() {
   const [subscriptionError, setSubscriptionError] = useState('')
   const [subscriptionAttempt, setSubscriptionAttempt] = useState(0)
   const [groceryError, setGroceryError] = useState('')
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set([USUALLY_ON_HAND_SECTION]),
+  )
   const [categoryPickerFor, setCategoryPickerFor] = useState<string | null>(null)
   // Viewport-fixed coords for the category menu — it's portaled to <body> so the
   // category tile's overflow-hidden can't clip it (small tiles cut it off before).
@@ -117,6 +122,7 @@ export default function GroceryPage() {
   const [editingItemQuantity, setEditingItemQuantity] = useState('')
   const [editingItemUnit, setEditingItemUnit] = useState('')
   const [showCheckedItems, setShowCheckedItems] = useState(false)
+  const [updatingUsuallyOnHand, setUpdatingUsuallyOnHand] = useState<Set<string>>(new Set())
 
   const startEditItem = (item: GroceryItem) => {
     setEditingItemId(item.id)
@@ -186,22 +192,21 @@ export default function GroceryPage() {
     })
   }, [user])
 
-  const grouped = useMemo(() => {
-    const groups: Record<string, GroceryItem[]> = {}
-    GROCERY_CATEGORIES.forEach(cat => { groups[cat] = [] })
-    const visibleItems = showCheckedItems ? items : items.filter(item => !item.isChecked)
-    visibleItems.forEach(item => {
-      const cat = getCategory(item)
-      if (!groups[cat]) groups[cat] = []
-      groups[cat].push(item)
-    })
-    Object.keys(groups).forEach(cat => {
-      groups[cat].sort((a, b) => {
+  const savedIdentityLookup = useMemo(
+    () => buildSavedGroceryIdentityLookup(savedItems),
+    [savedItems],
+  )
+
+  const { categories: grouped, usuallyOnHand: usuallyOnHandItems } = useMemo(() => {
+    const sections = deriveGrocerySections(items, savedItems, showCheckedItems)
+    const allSections = [...Object.values(sections.categories), sections.usuallyOnHand]
+    allSections.forEach(sectionItems => {
+      sectionItems.sort((a, b) => {
         return extractIngredientName(a.name).toLowerCase().localeCompare(extractIngredientName(b.name).toLowerCase())
       })
     })
-    return groups
-  }, [items, showCheckedItems])
+    return sections
+  }, [items, savedItems, showCheckedItems])
 
   const uncheckedCount = items.filter(i => !i.isChecked).length
   const checkedCount = items.filter(i => i.isChecked).length
@@ -225,6 +230,42 @@ export default function GroceryPage() {
       await deleteDoc(doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id))
     } catch {
       setGroceryError(`Couldn’t delete “${item.name}” — try again.`)
+    }
+  }
+
+  const updateUsuallyOnHandPreference = async (item: GroceryItem) => {
+    if (!user) return
+    const identity = groceryIdentity(item.name)
+    if (!identity || updatingUsuallyOnHand.has(identity)) return
+    const nextValue = !isUsuallyOnHand(item, savedIdentityLookup)
+    setGroceryError('')
+    setUpdatingUsuallyOnHand(previous => new Set(previous).add(identity))
+
+    try {
+      const savedItem = await setSavedGroceryItemUsuallyOnHand(
+        user.uid,
+        item.name,
+        getCategory(item),
+        nextValue,
+      )
+      setSavedItems(previous => {
+        let found = false
+        const updated = previous.map(candidate => {
+          if (groceryIdentity(candidate.name) !== identity) return candidate
+          found = true
+          return { ...candidate, usuallyOnHand: nextValue }
+        })
+        return found ? updated : [...updated, savedItem]
+      })
+    } catch (error) {
+      console.error('Failed to update Usually On Hand preference:', error)
+      setGroceryError(`Couldn’t update “${item.name}” — try again.`)
+    } finally {
+      setUpdatingUsuallyOnHand(previous => {
+        const next = new Set(previous)
+        next.delete(identity)
+        return next
+      })
     }
   }
 
@@ -893,25 +934,37 @@ export default function GroceryPage() {
 
       {/* Grouped items */}
       <div className="space-y-4">
-        {GROCERY_CATEGORIES.map(category => {
-          const catItems = grouped[category] || []
+        {[...GROCERY_CATEGORIES, USUALLY_ON_HAND_SECTION].map(section => {
+          const isUsuallyOnHandSection = section === USUALLY_ON_HAND_SECTION
+          const catItems = isUsuallyOnHandSection
+            ? usuallyOnHandItems
+            : grouped[section as GroceryCategory]
           if (!catItems.length) return null
-          const isCollapsed = collapsed.has(category)
+          const isCollapsed = collapsed.has(section)
           const checkedInCat = catItems.filter(i => i.isChecked).length
 
           return (
-            <div key={category} className="bg-surface border border-border rounded-2xl overflow-hidden">
+            <div key={section} className="bg-surface border border-border rounded-2xl overflow-hidden">
               {/* Category header */}
               <button
-                onClick={() => toggleCollapse(category)}
+                onClick={() => toggleCollapse(section)}
+                aria-expanded={!isCollapsed}
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-card/50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="text-base">{CATEGORY_EMOJI[category]}</span>
-                  <span className="font-body font-medium text-cream text-sm">{category}</span>
-                  <span className="text-faint text-xs font-body">
-                    {showCheckedItems && checkedInCat > 0 ? `${checkedInCat}/${catItems.length}` : catItems.length}
+                  {isUsuallyOnHandSection
+                    ? <House size={16} className="text-amber" />
+                    : <span className="text-base">{CATEGORY_EMOJI[section as GroceryCategory]}</span>}
+                  <span className="font-body font-medium text-cream text-sm">
+                    {isUsuallyOnHandSection
+                      ? `${USUALLY_ON_HAND_SECTION} (${catItems.length})`
+                      : section}
                   </span>
+                  {!isUsuallyOnHandSection && (
+                    <span className="text-faint text-xs font-body">
+                      {showCheckedItems && checkedInCat > 0 ? `${checkedInCat}/${catItems.length}` : catItems.length}
+                    </span>
+                  )}
                 </div>
                 {isCollapsed ? <ChevronDown size={14} className="text-faint" /> : <ChevronUp size={14} className="text-faint" />}
               </button>
@@ -996,6 +1049,33 @@ export default function GroceryPage() {
                               : item.name}
                           </p>
                         </div>
+                      )}
+
+                      {/* Persistent ingredient preference */}
+                      {editingItemId !== item.id && (
+                        <button
+                          onClick={() => { void updateUsuallyOnHandPreference(item) }}
+                          disabled={updatingUsuallyOnHand.has(groceryIdentity(item.name))}
+                          aria-label={
+                            isUsuallyOnHand(item, savedIdentityLookup)
+                              ? `Remove ${item.name} from Usually On Hand`
+                              : `Mark ${item.name} as Usually On Hand`
+                          }
+                          title={
+                            isUsuallyOnHand(item, savedIdentityLookup)
+                              ? 'Remove from Usually On Hand'
+                              : 'Mark as Usually On Hand'
+                          }
+                          className={`transition-colors shrink-0 p-1 disabled:opacity-40 ${
+                            isUsuallyOnHand(item, savedIdentityLookup)
+                              ? 'text-amber hover:text-amber/80'
+                              : 'text-faint hover:text-amber'
+                          }`}
+                        >
+                          {updatingUsuallyOnHand.has(groceryIdentity(item.name))
+                            ? <Loader2 size={12} className="animate-spin" />
+                            : <House size={12} />}
+                        </button>
                       )}
 
                       {/* Edit button */}

@@ -173,10 +173,12 @@ may remain in stored documents; they are deterministically reclassified from `na
 without writing the normalized category back.
 
 ### `users/{uid}/pantry/root/savedGroceryItems/{itemId}` — remembered grocery items (`SavedGroceryItem`)
-Fields: `id, name, defaultCategory, timesUsed, lastUsed`. Frequency-ranked memory of
-manually-added items + their chosen category, for faster re-entry. New writes use only the current
-11-category contract. Legacy `Staples` and `Canned / Jarred / Sauces` defaults normalize from the
-saved item name on read and are not automatically migrated in Firestore.
+Fields: `id, name, defaultCategory, timesUsed, lastUsed, usuallyOnHand?`. Frequency-ranked memory of
+manually-added items + their chosen category, for faster re-entry, plus the optional persistent
+per-grocery-identity `usuallyOnHand` preference. Missing/false means not usually on hand; no
+backfill is required. New writes use only the current 11-category contract. Legacy `Staples` and
+`Canned / Jarred / Sauces` defaults normalize from the saved item name on read and are not
+automatically migrated in Firestore.
 
 ### `users/{uid}/nutrition/root/log/{entryId}` — consumption log (`ConsumptionEntry`, `lib/consumptionLog.ts`)
 One doc per consumed item (auto-ID; MFP-synced docs use deterministic `mfp-{date}-{foodEntryId}` IDs). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, recipe_id|null, name, servings_eaten, amount_label?, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'|'openfoodfacts'|'usda_branded'|'mfp'), created_at, userId`.
@@ -610,6 +612,20 @@ retained as historical data and are not modified or deleted by this app.
     resolved for the safely remediable population; source/data-deficient recipes are explicitly deferred.
     See `docs/audits/m04-final-nutrition-apply-2026-08-22.md`.
 
+23. **Usually On Hand grocery preference (Phase 1)** — `SavedGroceryItem.usuallyOnHand?` is a
+    durable, owner-scoped preference for one exact `normalizeNoun` grocery identity. It is
+    independent of category: an active preferred item renders in the separate derived
+    `Usually On Hand` section while retaining its effective shopping category and any authoritative
+    `manualSection` override. The section is after the 11 normal shopping sections, hidden when
+    empty, shows a count, and is collapsed by default. Mark/unmark updates only saved identity
+    memory; it never changes/recreates/deletes the active grocery document, checks an item, or
+    changes quantity/unit/source-recipe data. Missing/false is the historical-compatible default,
+    there are no automatic staple defaults, and matching is exact normalized identity only (no
+    fuzzy/substrings). Recipe/manual additions and quantity merging are unchanged; they inherit the
+    preference at render time after the active item exists. Phase 1 intentionally has no temporary
+    `Need This Trip` override. See
+    `docs/audits/usually-on-hand-foundation-2026-08-24.md`.
+
 ---
 
 ## Section 6 — Known Sharp Edges
@@ -853,7 +869,8 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
-| Grocery staple-status / usually-on-hand feature | Medium | Backlog | Separate possession/preference concept; must not be reintroduced as a shopping category. |
+| Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
+| Usually On Hand — temporary Need This Trip override | Medium | Backlog (Phase 2) | Temporary active-list exception; must survive recipe-item deletion/recreation during plan rebuild without becoming a future-list saved default. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
