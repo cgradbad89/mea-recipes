@@ -13,7 +13,7 @@ import {
   type GroceryCategory,
 } from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil, House } from 'lucide-react'
-import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
+import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setGroceryItemNeedThisTrip, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 import { prepareGroceryItem } from '@/lib/groceryItemPreparation'
@@ -37,6 +37,7 @@ interface GroceryItem {
   manualSection?: GroceryCategory
   isManual?: boolean
   sourceRecipeIDs?: string[]
+  needThisTrip?: boolean
 }
 
 interface CleanupChange {
@@ -123,6 +124,7 @@ export default function GroceryPage() {
   const [editingItemUnit, setEditingItemUnit] = useState('')
   const [showCheckedItems, setShowCheckedItems] = useState(false)
   const [updatingUsuallyOnHand, setUpdatingUsuallyOnHand] = useState<Set<string>>(new Set())
+  const [updatingNeedThisTrip, setUpdatingNeedThisTrip] = useState<Set<string>>(new Set())
 
   const startEditItem = (item: GroceryItem) => {
     setEditingItemId(item.id)
@@ -242,6 +244,16 @@ export default function GroceryPage() {
     setUpdatingUsuallyOnHand(previous => new Set(previous).add(identity))
 
     try {
+      // Marking the durable preference means "normally have this", so clear
+      // any stale trip exception first. If the preference write then fails,
+      // the item remains an ordinary shopping item and no visible state is
+      // corrupted.
+      if (nextValue) {
+        await setGroceryItemNeedThisTrip(user.uid, item.id, false)
+        setItems(previous => previous.map(candidate =>
+          candidate.id === item.id ? { ...candidate, needThisTrip: false } : candidate,
+        ))
+      }
       const savedItem = await setSavedGroceryItemUsuallyOnHand(
         user.uid,
         item.name,
@@ -257,6 +269,21 @@ export default function GroceryPage() {
         })
         return found ? updated : [...updated, savedItem]
       })
+
+      // Once the persistent preference is removed, a trip exception is inert.
+      // Clear it second so a partial cleanup failure cannot put the item in the
+      // wrong visible section: usuallyOnHand=false remains authoritative.
+      if (!nextValue && item.needThisTrip === true) {
+        try {
+          await setGroceryItemNeedThisTrip(user.uid, item.id, false)
+          setItems(previous => previous.map(candidate =>
+            candidate.id === item.id ? { ...candidate, needThisTrip: false } : candidate,
+          ))
+        } catch (error) {
+          console.error('Failed to clear inactive Need This Trip metadata:', error)
+          setGroceryError(`“${item.name}” is no longer Usually On Hand, but its inactive trip marker couldn’t be cleared.`)
+        }
+      }
     } catch (error) {
       console.error('Failed to update Usually On Hand preference:', error)
       setGroceryError(`Couldn’t update “${item.name}” — try again.`)
@@ -264,6 +291,27 @@ export default function GroceryPage() {
       setUpdatingUsuallyOnHand(previous => {
         const next = new Set(previous)
         next.delete(identity)
+        return next
+      })
+    }
+  }
+
+  const updateNeedThisTrip = async (item: GroceryItem, needThisTrip: boolean) => {
+    if (!user || updatingNeedThisTrip.has(item.id)) return
+    setGroceryError('')
+    setUpdatingNeedThisTrip(previous => new Set(previous).add(item.id))
+    try {
+      await setGroceryItemNeedThisTrip(user.uid, item.id, needThisTrip)
+      setItems(previous => previous.map(candidate =>
+        candidate.id === item.id ? { ...candidate, needThisTrip } : candidate,
+      ))
+    } catch (error) {
+      console.error('Failed to update Need This Trip:', error)
+      setGroceryError(`Couldn’t update “${item.name}” — try again.`)
+    } finally {
+      setUpdatingNeedThisTrip(previous => {
+        const next = new Set(previous)
+        next.delete(item.id)
         return next
       })
     }
@@ -495,9 +543,11 @@ export default function GroceryPage() {
         await updateDoc(ref, {
           quantity: merged.quantity,
           unit: merged.unit,
+          ...(target.needThisTrip === true ? { needThisTrip: true } : {}),
           updatedAt: serverTimestamp(),
         })
-        // name / isChecked / manualSection on the surviving item are left intact.
+        // name / isChecked / manualSection and trip intent on the surviving
+        // item are left intact.
       } else {
         const sanitizeId = (s: string) => s.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 80)
         const newId = sanitizeId(finalName.toLowerCase()) + '-' + Date.now()
@@ -1075,6 +1125,25 @@ export default function GroceryPage() {
                           {updatingUsuallyOnHand.has(groceryIdentity(item.name))
                             ? <Loader2 size={12} className="animate-spin" />
                             : <House size={12} />}
+                        </button>
+                      )}
+
+                      {/* Temporary active-list exception. It is available only
+                          while the durable Usually On Hand preference is true. */}
+                      {editingItemId !== item.id && isUsuallyOnHand(item, savedIdentityLookup) && (
+                        <button
+                          onClick={() => { void updateNeedThisTrip(item, item.needThisTrip !== true) }}
+                          disabled={updatingNeedThisTrip.has(item.id)}
+                          aria-label={
+                            item.needThisTrip === true
+                              ? `Usually Have ${item.name}`
+                              : `Need ${item.name} This Trip`
+                          }
+                          className="shrink-0 rounded-lg border border-amber/20 px-2 py-1 text-[10px] font-body text-amber hover:bg-amber/10 transition-colors disabled:opacity-40"
+                        >
+                          {updatingNeedThisTrip.has(item.id)
+                            ? <Loader2 size={11} className="animate-spin" />
+                            : item.needThisTrip === true ? 'Usually Have This' : 'Need This Trip'}
                         </button>
                       )}
 

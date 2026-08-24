@@ -41,6 +41,7 @@ vi.mock('@/lib/userdata', () => ({
   rebuildGroceryFromPlan: vi.fn(),
   getSavedGroceryItems: vi.fn().mockResolvedValue([]),
   upsertSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
+  setGroceryItemNeedThisTrip: vi.fn().mockResolvedValue(undefined),
   setSavedGroceryItemUsuallyOnHand: vi.fn().mockResolvedValue(undefined),
   deleteSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
 }))

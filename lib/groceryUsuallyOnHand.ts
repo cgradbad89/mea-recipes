@@ -13,6 +13,7 @@ export interface GroceryDisplayItem {
   name: string
   isChecked?: boolean
   manualSection?: GroceryCategory
+  needThisTrip?: boolean
 }
 
 export function groceryIdentity(name: string): string {
@@ -74,7 +75,7 @@ export function deriveGrocerySections<T extends GroceryDisplayItem>(
 
   for (const item of items) {
     if (!includeChecked && item.isChecked) continue
-    if (isUsuallyOnHand(item, savedLookup)) {
+    if (isUsuallyOnHand(item, savedLookup) && item.needThisTrip !== true) {
       usuallyOnHand.push(item)
       continue
     }

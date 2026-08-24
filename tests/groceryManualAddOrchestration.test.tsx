@@ -42,6 +42,7 @@ vi.mock('@/lib/userdata', () => ({
   rebuildGroceryFromPlan: vi.fn(),
   getSavedGroceryItems: vi.fn().mockResolvedValue([]),
   upsertSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
+  setGroceryItemNeedThisTrip: vi.fn().mockResolvedValue(undefined),
   setSavedGroceryItemUsuallyOnHand: vi.fn().mockResolvedValue(undefined),
   deleteSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
 }))
@@ -133,6 +134,19 @@ describe('manual add — compatible-unit merge', () => {
     await waitFor(() => expect(mocks.updateDoc).toHaveBeenCalled())
     const [, written] = mocks.updateDoc.mock.calls[0]
     expect(written).toMatchObject({ quantity: '1.5', unit: 'cup' })
+  })
+
+  it('preserves Need This Trip while merging compatible quantities', async () => {
+    mocks.items = [{
+      id: 'chicken-broth', name: 'chicken broth', quantity: '1', unit: 'cup', isChecked: false,
+      isManual: true, manualSection: 'Pantry & Dry Goods', sourceRecipeIDs: [], needThisTrip: true,
+    }]
+    await openAddForm()
+    fillAndSubmit({ name: '8 tbsp chicken broth' })
+
+    await waitFor(() => expect(mocks.updateDoc).toHaveBeenCalled())
+    const [, written] = mocks.updateDoc.mock.calls[0]
+    expect(written).toMatchObject({ quantity: '1.5', unit: 'cup', needThisTrip: true })
   })
 })
 

@@ -64,7 +64,7 @@ wrapped in a per-route `layout.tsx`.
 | Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence |
 | Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers**) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
-| Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup |
+| Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup, persistent Usually On Hand preferences, and per-list Need This Trip overrides |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
 | Favorites | `/favorites` (`app/favorites/page.tsx`) | Done | Grid of favorited recipes; sign-in gated; same search/filter/sort controls as `/recipes`, scoped to favorites |
@@ -161,7 +161,7 @@ here — never a calendar search. Survives reads because WeekPlan is read as raw
 whitelist; `normalizePlanned` only touches `plannedRecipeIDs[]`). See §5.21.
 
 ### `users/{uid}/pantry/root/groceryItems/{docId}` — grocery list (`GroceryItem`)
-Fields: `id, name, quantity, unit, isChecked, isManual, sourceRecipeIDs[], manualSection?,
+Fields: `id, name, quantity, unit, isChecked, isManual, sourceRecipeIDs[], manualSection?, needThisTrip?,
 createdAt?, updatedAt?`. Per-user isolated (explicit comment in `userdata.ts`). `quantity`/`unit`/
 `name` are populated by the shared parser at add time (see §5.16) — `name` holds the bare noun
 phrase, not the whole line. Auto-added (recipe) items are keyed `sanitize(normalizedNoun)` so the
@@ -356,10 +356,14 @@ retained as historical data and are not modified or deleted by this app.
     allowance, while freshness/state, form, meat cut, and fat-percentage terms must match exactly.
     Apply operations are committed in sequential chunks of at most 450 writes. Last-run tracked in
     `localStorage` `mea-grocery-last-cleaned`.
-11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) deletes
+11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) captures exact
+    normalized identities of non-manual items whose temporary `needThisTrip` flag is true, deletes
     non-manual/non-legacy items, then re-adds parsed ingredients from each planned recipe via
     `addRecipeIngredientsToGrocery`, which merges by normalized noun and unions `sourceRecipeIDs`
-    (see §5.16). Idempotent: re-adding a recipe already in `sourceRecipeIDs` is a no-op, and the
+    (see §5.16). It finally reapplies the flag only to recreated non-manual exact-identity matches;
+    unmatched overrides expire and fuzzy/substring reassignment is never attempted. Manual items
+    survive in place with their active metadata unchanged. Idempotent: re-adding a recipe already
+    in `sourceRecipeIDs` is a no-op, and the
     delete-then-re-add means quantities never double-count across rebuilds. Rebuild deletes and
     clear operations are committed in sequential chunks of at most 450 writes.
 12. **Flavor pairing scoring** — `getComplementaryIngredients` normalizes input ingredients
@@ -626,6 +630,21 @@ retained as historical data and are not modified or deleted by this app.
     `Need This Trip` override. See
     `docs/audits/usually-on-hand-foundation-2026-08-24.md`.
 
+24. **Need This Trip temporary override (Usually On Hand Phase 2)** —
+    `GroceryItem.needThisTrip?: boolean` is transient active-list metadata and is never copied to
+    `SavedGroceryItem`. Historical absence and false are equivalent. The authoritative display rule
+    in `deriveGrocerySections` is `usuallyOnHand === true && needThisTrip !== true` → derived
+    `Usually On Hand`; every other combination → the item's effective normal category (including an
+    authoritative `manualSection`). Preferred items expose **Need This Trip**; overridden items expose
+    **Usually Have This** to clear the exception. The toggle changes no category, identity, quantity,
+    unit, sources, persistent preference, or checked state. Recipe and manual quantity merges retain a
+    true override. Plan rebuild preserves it only for recreated exact `normalizeNoun` identities as
+    described in §5.11; clearing/deleting the active item expires it naturally. Marking an ordinary
+    item Usually On Hand explicitly clears trip intent before enabling the preference. Removing the
+    durable preference clears the now-inert trip marker after the preference write, so partial cleanup
+    failure cannot place the item in the wrong visible section. No migration or production backfill is
+    required. See `docs/audits/usually-on-hand-need-this-trip-2026-08-24.md`.
+
 ---
 
 ## Section 6 — Known Sharp Edges
@@ -870,7 +889,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
-| Usually On Hand — temporary Need This Trip override | Medium | Backlog (Phase 2) | Temporary active-list exception; must survive recipe-item deletion/recreation during plan rebuild without becoming a future-list saved default. |
+| Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |

@@ -506,6 +506,7 @@ export interface GroceryItem {
   isManual: boolean
   sourceRecipeIDs: string[]
   manualSection?: GroceryCategory
+  needThisTrip?: boolean
   createdAt?: unknown
   updatedAt?: unknown
 }
@@ -558,6 +559,22 @@ export async function addGroceryItem(uid: string, item: Omit<GroceryItem, 'id' |
 export async function toggleGroceryItem(uid: string, itemId: string, checked: boolean): Promise<void> {
   await updateDoc(doc(groceryPath(uid), itemId), {
     isChecked: checked,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+/**
+ * Set the temporary exception for one active grocery item. This partial write
+ * deliberately cannot change the durable SavedGroceryItem preference or any
+ * quantity, category, source, or checked-state fields.
+ */
+export async function setGroceryItemNeedThisTrip(
+  uid: string,
+  itemId: string,
+  needThisTrip: boolean,
+): Promise<void> {
+  await updateDoc(doc(groceryPath(uid), itemId), {
+    needThisTrip,
     updatedAt: serverTimestamp(),
   })
 }
@@ -705,8 +722,17 @@ export async function rebuildGroceryFromPlan(
   parseContent: (content: string) => { ingredients: string[]; instructions: string[]; description: string },
   metas?: Record<string, { overrides?: { content?: string } }>,
 ): Promise<void> {
-  // Step 1: Delete non-manual, non-legacy items
+  // Step 1: Capture the temporary intent on recipe items that this rebuild is
+  // about to replace, then delete those items. Manual items survive in place,
+  // so their active-document metadata needs no special handling.
   const snap = await getDocs(groceryPath(uid))
+  const overriddenRecipeIdentities = new Set<string>()
+  snap.docs.forEach(item => {
+    const data = item.data() as GroceryItem
+    if (data.isManual || item.id.includes('/') || data.needThisTrip !== true) return
+    const identity = normalizeNoun(data.name)
+    if (identity) overriddenRecipeIdentities.add(identity)
+  })
   const deleteOperations = snap.docs
     .filter(item => {
       const data = item.data() as GroceryItem
@@ -723,6 +749,23 @@ export async function rebuildGroceryFromPlan(
     const effectiveContent = metas?.[recipeID]?.overrides?.content || recipe.content
     const { ingredients } = parseContent(effectiveContent)
     await addRecipeIngredientsToGrocery(uid, recipeID, ingredients)
+  }
+
+  // Step 3: Reapply only to recreated recipe items with the exact same
+  // normalized identity. Missing identities expire naturally and fuzzy or
+  // substring reassignment is intentionally impossible.
+  if (overriddenRecipeIdentities.size > 0) {
+    const rebuilt = await getDocs(groceryPath(uid))
+    const reapplyOperations = rebuilt.docs
+      .filter(item => {
+        const data = item.data() as GroceryItem
+        return !data.isManual && overriddenRecipeIdentities.has(normalizeNoun(data.name))
+      })
+      .map<FirestoreBatchOperation>(item => batch => batch.update(item.ref, {
+        needThisTrip: true,
+        updatedAt: serverTimestamp(),
+      }))
+    await commitFirestoreBatches(db, reapplyOperations)
   }
 }
 
@@ -785,6 +828,7 @@ export async function addRecipeIngredientsToGrocery(
         quantity: merged.quantity,
         unit: merged.unit,
         sourceRecipeIDs: newSources,
+        ...(data.needThisTrip === true ? { needThisTrip: true } : {}),
         updatedAt: serverTimestamp(),
       })
       // Reflect the merge in-memory so later same-noun lines fold in too.

@@ -85,6 +85,25 @@ describe('addRecipeIngredientsToGrocery — compatible-unit merge (Case C)', () 
       expect.objectContaining({ quantity: '1.5', unit: 'cup' }),
     )
   })
+
+  it('preserves Need This Trip while merging and appending recipe sources', async () => {
+    mockExisting([{
+      id: 'chicken-broth',
+      data: {
+        id: 'chicken-broth', name: 'chicken broth', quantity: '1', unit: 'cup',
+        isManual: false, sourceRecipeIDs: ['recipe-0'], needThisTrip: true,
+      },
+    }])
+
+    await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['8 tbsp chicken broth'])
+
+    expect(firestore.batch.update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        quantity: '1.5', unit: 'cup', sourceRecipeIDs: ['recipe-0', 'recipe-1'], needThisTrip: true,
+      }),
+    )
+  })
 })
 
 describe('addRecipeIngredientsToGrocery — incompatible-unit merge (Case D, side-by-side)', () => {

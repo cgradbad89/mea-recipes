@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 const mocks = vi.hoisted(() => ({
   updateDoc: vi.fn().mockResolvedValue(undefined),
+  setNeedThisTrip: vi.fn().mockResolvedValue(undefined),
   setPreference: vi.fn(),
   getSaved: vi.fn(),
   user: { uid: 'user-1' },
@@ -36,6 +37,7 @@ vi.mock('@/lib/userdata', () => ({
   rebuildGroceryFromPlan: vi.fn(),
   getSavedGroceryItems: mocks.getSaved,
   upsertSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
+  setGroceryItemNeedThisTrip: mocks.setNeedThisTrip,
   setSavedGroceryItemUsuallyOnHand: mocks.setPreference,
   deleteSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
 }))
@@ -97,6 +99,7 @@ beforeEach(() => {
     lastUsed: null,
     usuallyOnHand,
   }))
+  mocks.setNeedThisTrip.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -129,7 +132,7 @@ describe('Usually On Hand section UI', () => {
     expect(screen.getByText('2 tbsp olive oil')).toBeTruthy()
   })
 
-  it('marks an active item and moves it without writing the active grocery document', async () => {
+  it('marks an active item, clears trip intent, and moves it without changing other active fields', async () => {
     mocks.items = [activeItem()]
     render(<GroceryPage />)
     const mark = await screen.findByRole('button', { name: 'Mark olive oil as Usually On Hand' })
@@ -140,7 +143,69 @@ describe('Usually On Hand section UI', () => {
     expect(mocks.setPreference).toHaveBeenCalledWith(
       'user-1', 'olive oil', 'Sauces & Condiments', true,
     )
+    expect(mocks.setNeedThisTrip).toHaveBeenCalledWith('user-1', 'olive-oil', false)
     expect(screen.queryByText('Sauces & Condiments')).toBeNull()
+    expect(mocks.updateDoc).not.toHaveBeenCalled()
+  })
+
+  it('moves a preferred item into its normal category for this trip and exposes the reverse action', async () => {
+    mocks.items = [activeItem()]
+    mocks.saved = [savedItem()]
+    render(<GroceryPage />)
+
+    const header = await screen.findByRole('button', { name: 'Usually On Hand (1)' })
+    fireEvent.click(header)
+    fireEvent.click(screen.getByRole('button', { name: 'Need olive oil This Trip' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Usually On Hand (1)' })).toBeNull())
+    expect(screen.getByText('Sauces & Condiments')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Usually Have olive oil' })).toBeTruthy()
+    expect(mocks.setNeedThisTrip).toHaveBeenCalledWith('user-1', 'olive-oil', true)
+    expect(mocks.setPreference).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usually Have olive oil' }))
+    await screen.findByRole('button', { name: 'Usually On Hand (1)' })
+    expect(mocks.setNeedThisTrip).toHaveBeenLastCalledWith('user-1', 'olive-oil', false)
+    expect(mocks.setPreference).not.toHaveBeenCalled()
+  })
+
+  it('removes the persistent preference before clearing an overridden item’s inert trip marker', async () => {
+    mocks.items = [activeItem({ needThisTrip: true })]
+    mocks.saved = [savedItem()]
+    render(<GroceryPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove olive oil from Usually On Hand' }))
+
+    await waitFor(() => expect(mocks.setPreference).toHaveBeenCalledWith(
+      'user-1', 'olive oil', 'Sauces & Condiments', false,
+    ))
+    expect(mocks.setNeedThisTrip).toHaveBeenCalledWith('user-1', 'olive-oil', false)
+    expect(mocks.setPreference.mock.invocationCallOrder[0])
+      .toBeLessThan(mocks.setNeedThisTrip.mock.invocationCallOrder[0])
+    expect(screen.getByText('Sauces & Condiments')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Usually Have olive oil' })).toBeNull()
+  })
+
+  it('restores a manual category and leaves checked state untouched', async () => {
+    mocks.items = [activeItem({
+      id: 'oat-milk',
+      name: 'oat milk',
+      isChecked: true,
+      isManual: true,
+      manualSection: 'Dairy & Eggs',
+      sourceRecipeIDs: [],
+    })]
+    mocks.saved = [savedItem({ name: 'oat milk', defaultCategory: 'Beverages' })]
+    render(<GroceryPage />)
+
+    const showCheckedButtons = await screen.findAllByRole('button', { name: /Show checked/ })
+    fireEvent.click(showCheckedButtons[0])
+    const header = await screen.findByRole('button', { name: 'Usually On Hand (1)' })
+    fireEvent.click(header)
+    fireEvent.click(screen.getByRole('button', { name: 'Need oat milk This Trip' }))
+
+    await screen.findByText('Dairy & Eggs')
+    expect(screen.getByRole('button', { name: 'Mark oat milk unchecked' })).toBeTruthy()
     expect(mocks.updateDoc).not.toHaveBeenCalled()
   })
 

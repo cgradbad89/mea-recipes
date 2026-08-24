@@ -82,6 +82,39 @@ describe('derived grocery sections', () => {
     expect(sections.categories['Pantry & Dry Goods'].map(item => item.name)).toEqual(['rice'])
   })
 
+  it.each([
+    { usually: true, needThisTrip: false, destination: USUALLY_ON_HAND_SECTION },
+    { usually: true, needThisTrip: true, destination: 'Sauces & Condiments' },
+    { usually: false, needThisTrip: true, destination: 'Sauces & Condiments' },
+    { usually: false, needThisTrip: false, destination: 'Sauces & Condiments' },
+  ])('derives usually=$usually and needThisTrip=$needThisTrip into $destination', ({ usually, needThisTrip, destination }) => {
+    const item = { name: 'olive oil', isChecked: false, needThisTrip }
+    const sections = deriveGrocerySections([item], [saved('olive oil', usually)], false)
+
+    if (destination === USUALLY_ON_HAND_SECTION) {
+      expect(sections.usuallyOnHand).toEqual([item])
+      expect(sections.categories['Sauces & Condiments']).toEqual([])
+    } else {
+      expect(sections.usuallyOnHand).toEqual([])
+      expect(sections.categories['Sauces & Condiments']).toEqual([item])
+    }
+  })
+
+  it('excludes overridden items from the count source and leaves the section empty when all are overridden', () => {
+    const items = [
+      { name: 'olive oil', needThisTrip: true },
+      { name: 'black pepper', needThisTrip: true },
+    ]
+    const sections = deriveGrocerySections(items, [
+      saved('olive oil', true),
+      saved('black pepper', true),
+    ], false)
+
+    expect(sections.usuallyOnHand).toHaveLength(0)
+    expect(sections.categories['Sauces & Condiments']).toEqual([items[0]])
+    expect(sections.categories['Spices & Seasonings']).toEqual([items[1]])
+  })
+
   it('preserves a manual category override through preference mark and unmark', () => {
     const oatMilk = { name: 'oat milk', manualSection: 'Dairy & Eggs' as const, isChecked: false }
     const marked = deriveGrocerySections([oatMilk], [saved('oat milk', true, 'Dairy & Eggs')], false)
@@ -91,6 +124,20 @@ describe('derived grocery sections', () => {
     expect(effectiveGroceryCategory(oatMilk)).toBe('Dairy & Eggs')
     expect(unmarked.categories['Dairy & Eggs']).toEqual([oatMilk])
     expect(unmarked.categories.Beverages).toEqual([])
+  })
+
+  it('restores the effective manual category for a temporary override', () => {
+    const oatMilk = {
+      name: 'oat milk',
+      manualSection: 'Dairy & Eggs' as const,
+      isChecked: false,
+      needThisTrip: true,
+    }
+    const sections = deriveGrocerySections([oatMilk], [saved('oat milk', true, 'Beverages')], false)
+
+    expect(sections.usuallyOnHand).toEqual([])
+    expect(sections.categories['Dairy & Eggs']).toEqual([oatMilk])
+    expect(sections.categories.Beverages).toEqual([])
   })
 
   it('keeps checked state independent and follows the existing checked-item visibility', () => {
