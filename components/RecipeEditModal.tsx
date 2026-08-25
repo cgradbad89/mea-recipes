@@ -55,6 +55,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   const [resetting, setResetting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [showDiscardWarning, setShowDiscardWarning] = useState(false)
+  const currentCategoryIsListed = !category || CATEGORIES.includes(category)
 
   // Initial values for dirty check
   const initTitle = overrides.title || recipe.title
@@ -174,6 +175,8 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
             <div>
               <label className="text-faint text-xs font-body uppercase tracking-widest mb-1.5 block">Category</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className="input-field">
+                <option value="" disabled>Select category</option>
+                {!currentCategoryIsListed && <option value={category}>{category}</option>}
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
