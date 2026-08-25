@@ -12,6 +12,7 @@ import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
 import SignInOptions from '@/components/SignInOptions'
 import type { Recipe } from '@/types/recipe'
+import { normalizeRecipeCategory } from '@/lib/recipeCategories'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
 type TimeFilter = 0 | 30 | 45 | 60
@@ -46,7 +47,10 @@ export default function FavoritesPage() {
     }
     return [val]
   })
-  const [category, setCategory] = useState(() => readLS('mea_favorites_category', 'All'))
+  const [category, setCategory] = useState(() => {
+    const stored = readLS('mea_favorites_category', 'All')
+    return stored === 'All' ? stored : (normalizeRecipeCategory(stored) ?? 'All')
+  })
   const [minRating, setMinRating] = useState(() => readLS<number>('mea_favorites_minRating', 0, v => parseInt(v, 10) || 0))
   const [source, setSource] = useState<SourceFilter>(() => readLS<SourceFilter>('mea_favorites_source', 'all', v => (v as SourceFilter)))
   const [sort, setSort] = useState<SortOption>(() => readLS<SortOption>('mea_favorites_sort', 'default', v => (v as SortOption)))
@@ -112,7 +116,8 @@ export default function FavoritesPage() {
 
     const f = baseList.filter(r => {
       const matchCuisine = cuisine.length === 0 || cuisine.some(c => r.cuisine.toLowerCase() === c.toLowerCase())
-      const matchCategory = category === 'All' || r.category === category
+      const rawCategory = metas[r.id]?.overrides?.category ?? r.category
+      const matchCategory = category === 'All' || normalizeRecipeCategory(rawCategory, r.id) === category
       const recipeRating = metas[r.id]?.rating || 0
       const matchRating = minRating === 0 || recipeRating >= minRating
       const matchSource = source === 'all' ||

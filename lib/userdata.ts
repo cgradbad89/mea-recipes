@@ -24,6 +24,7 @@ import {
 import { normalizeNoun, mergeQuantities } from './ingredientParser'
 import { prepareGroceryItem } from './groceryItemPreparation'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from './firestoreBatch'
+import { normalizeRecipeCategory } from './recipeCategories'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
 // users/{uid}/recipes/root/favorites/{recipeID}
@@ -144,26 +145,15 @@ export interface PlannedEntry {
  */
 export type PlannedElement = string | PlannedEntry
 
-// Recipe category → default role. Only "Breakfast, Snacks & Sides" defaults to a
-// side; mains and the ambiguous Salads/Soups categories default to 'main' (a
-// missing side is less wrong than a missing main — the user can demote per entry).
-// Unknown/empty category → 'main'. Category values mirror types/recipe.ts `Category`.
-const CATEGORY_ROLE: Record<string, PlannedRole> = {
-  'Chicken & Poultry': 'main',
-  'Beef & Pork': 'main',
-  'Seafood': 'main',
-  'Vegetarian Mains': 'main',
-  'Pasta, Noodles & Rice': 'main',
-  'Salads & Bowls': 'main',
-  'Soups, Stews & Chili': 'main',
-  'Sides': 'side',
-  // Legacy category — pre-dates the standalone 'Sides' category above and is
-  // still set on existing recipes, so both must map to 'side'.
-  'Breakfast, Snacks & Sides': 'side',
-}
-
-export function deriveRoleFromCategory(category?: string | null): PlannedRole {
-  return (category && CATEGORY_ROLE[category]) || 'main'
+// Category-derived defaults normalize legacy read values first. Only the two
+// canonical accompaniment categories are sides; unresolved values fail safely
+// to main. An optional recipe ID enables exact heterogeneous legacy mappings.
+export function deriveRoleFromCategory(
+  category?: string | null,
+  recipeID?: string,
+): PlannedRole {
+  const canonical = normalizeRecipeCategory(category, recipeID)
+  return canonical === 'Sides' || canonical === 'Sauces & Condiments' ? 'side' : 'main'
 }
 
 function isPlannedRole(v: unknown): v is PlannedRole {
@@ -177,10 +167,17 @@ function isPlannedRole(v: unknown): v is PlannedRole {
  * that week's specific instance. Used by every addRecipeToWeekPlan call site.
  */
 export function resolveRecipeRole(
-  recipe: { defaultRole?: PlannedRole | null; category?: string | null } | null | undefined,
+  recipe: {
+    id?: string
+    recipeID?: string
+    defaultRole?: PlannedRole | null
+    category?: string | null
+  } | null | undefined,
 ): PlannedRole {
   const d = recipe?.defaultRole
-  return isPlannedRole(d) ? d : deriveRoleFromCategory(recipe?.category)
+  return isPlannedRole(d)
+    ? d
+    : deriveRoleFromCategory(recipe?.category, recipe?.id || recipe?.recipeID)
 }
 
 function elementRecipeID(el: PlannedElement): string {
@@ -198,12 +195,14 @@ export function normalizePlannedEntry(
   resolveCategory?: (recipeID: string) => string | null | undefined,
 ): PlannedEntry {
   if (typeof el === 'string') {
-    return { recipeID: el, day: null, role: deriveRoleFromCategory(resolveCategory?.(el)) }
+    return { recipeID: el, day: null, role: deriveRoleFromCategory(resolveCategory?.(el), el) }
   }
   const entry: PlannedEntry = {
     recipeID: el.recipeID,
     day: el.day ?? null,
-    role: isPlannedRole(el.role) ? el.role : deriveRoleFromCategory(resolveCategory?.(el.recipeID)),
+    role: isPlannedRole(el.role)
+      ? el.role
+      : deriveRoleFromCategory(resolveCategory?.(el.recipeID), el.recipeID),
   }
   if (el.slot !== undefined) entry.slot = el.slot
   return entry

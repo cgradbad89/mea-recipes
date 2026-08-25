@@ -9,11 +9,12 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/firebaseAdmin', () => ({ verifyAuthToken: mocks.verifyAuthToken }))
 vi.mock('@/lib/ai', () => ({ generateAIArray: mocks.generateAIArray }))
 
-import { POST } from '@/app/api/new-recipe-suggestions/route'
+import { POST, NEW_SUGGESTION_SCHEMA } from '@/app/api/new-recipe-suggestions/route'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const validBody = {
   topCuisines: ['italian'],
-  topCategories: ['Pasta Noodles & Rice'],
+  topCategories: ['Pasta, Noodles & Rice'],
   recentTitles: ['Cacio e Pepe'],
 }
 
@@ -48,7 +49,7 @@ describe('POST /api/new-recipe-suggestions', () => {
     const suggestions = [{
       title: 'Pasta alla Norma',
       cuisine: 'italian',
-      category: 'Pasta Noodles & Rice',
+      category: 'Pasta, Noodles & Rice',
       description: 'A classic Sicilian pasta.',
       searchQuery: 'pasta alla norma recipe',
     }]
@@ -76,6 +77,25 @@ describe('POST /api/new-recipe-suggestions', () => {
       error: 'AI request failed or could not parse response',
     })
     expect(JSON.stringify(data)).not.toContain('gateway unavailable')
+  })
+
+  it('builds the prompt from all exact canonical category values', async () => {
+    mocks.generateAIArray.mockResolvedValueOnce([])
+    await POST(request())
+    const prompt = mocks.generateAIArray.mock.calls[0][0].prompt as string
+
+    RECIPE_CATEGORIES.forEach(category => expect(prompt).toContain(category))
+    expect(prompt).not.toContain('Pasta Noodles & Rice')
+    expect(prompt).not.toContain('Breakfast Snacks & Sides')
+  })
+
+  it('validates new suggestions with the canonical enum', () => {
+    const suggestion = {
+      title: 'Test', cuisine: 'test', description: 'Test.', searchQuery: 'test recipe',
+    }
+    expect(NEW_SUGGESTION_SCHEMA.safeParse({ ...suggestion, category: 'Sides' }).success).toBe(true)
+    expect(NEW_SUGGESTION_SCHEMA.safeParse({ ...suggestion, category: 'Soups, Stews & Chili' }).success).toBe(true)
+    expect(NEW_SUGGESTION_SCHEMA.safeParse({ ...suggestion, category: 'Soups Stews & Chili' }).success).toBe(false)
   })
 
   it('rejects malformed JSON before invoking AI', async () => {

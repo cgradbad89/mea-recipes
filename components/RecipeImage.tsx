@@ -1,22 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import {
+  normalizeRecipeCategory,
+  type RecipeCategory,
+} from '@/lib/recipeCategories'
 
 // Recipe-category → emoji, shared so every image fallback looks the same.
-const CATEGORY_ICONS: Record<string, string> = {
+const CATEGORY_ICONS: Record<RecipeCategory, string> = {
   'Chicken & Poultry': '🍗',
-  'Vegetarian Mains': '🥦',
-  'Salads & Bowls': '🥗',
-  'Pasta, Noodles & Rice': '🍝',
-  'Soups, Stews & Chili': '🍲',
-  'Seafood': '🐟',
   'Beef & Pork': '🥩',
-  'Breakfast, Snacks & Sides': '🍳',
+  'Seafood': '🐟',
+  'Vegetarian Mains': '🥦',
+  'Pasta, Noodles & Rice': '🍝',
+  'Salads & Bowls': '🥗',
+  'Soups, Stews & Chili': '🍲',
+  Breakfast: '🍳',
+  Snacks: '🥨',
+  Drinks: '🥤',
+  'Sauces & Condiments': '🫙',
+  Sides: '🥕',
 }
 
-export function getCategoryIcon(category?: string): string {
-  if (!category) return '🍽️'
-  return CATEGORY_ICONS[category] || '🍽️'
+export function getCategoryIcon(category?: string, recipeID?: string): string {
+  const canonical = normalizeRecipeCategory(category, recipeID)
+  return canonical ? CATEGORY_ICONS[canonical] : '🍽️'
 }
 
 interface RecipeImageProps {
@@ -24,6 +32,8 @@ interface RecipeImageProps {
   alt: string
   /** Recipe category — picks the fallback emoji. Omit for a generic 🍽️. */
   category?: string
+  /** Recipe ID enables exact compatibility for heterogeneous legacy categories. */
+  recipeID?: string
   /** Sizing/shape classes, applied to both the <img> and the fallback. */
   className?: string
   /** Size class for the fallback emoji, e.g. "text-4xl". */
@@ -41,6 +51,7 @@ export default function RecipeImage({
   src,
   alt,
   category,
+  recipeID,
   className = '',
   emojiClassName = 'text-2xl',
   loading = 'lazy',
@@ -53,7 +64,7 @@ export default function RecipeImage({
   if (!src || errored) {
     return (
       <div className={`flex items-center justify-center bg-card ${className}`} aria-hidden="true">
-        <span className={`opacity-30 ${emojiClassName}`}>{getCategoryIcon(category)}</span>
+        <span className={`opacity-30 ${emojiClassName}`}>{getCategoryIcon(category, recipeID)}</span>
       </div>
     )
   }

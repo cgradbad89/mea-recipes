@@ -109,6 +109,13 @@ hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutritio
   `docs/audits/recipe-time-audit-2026-08-24.md`.
 - `content` is a single freeform string; ingredients/instructions are **parsed at runtime**
   (`parseRecipeContent`), not stored as arrays.
+- `category` has one canonical ordered 12-value write contract (`RECIPE_CATEGORIES` in
+  `lib/recipeCategories.ts`): `Chicken & Poultry`, `Beef & Pork`, `Seafood`,
+  `Vegetarian Mains`, `Pasta, Noodles & Rice`, `Salads & Bowls`, `Soups, Stews & Chili`,
+  `Breakfast`, `Snacks`, `Drinks`, `Sauces & Condiments`, `Sides`. Every new shared
+  recipe write must use one of these exact values. Historical Firestore strings remain
+  unchanged until the approved migration; readers use deterministic aliases plus a small
+  exact-recipe-ID compatibility map and never write normalization back.
 - `addedBy` = uid of the web user who added it (used by the "Added by me" filter).
 - `defaultRole?` (`'main' | 'side'`, Batch 5.1) is the recipe's explicit meal-plan role, shared on
   the dish doc. Set from the recipe-detail "Meal-plan default" control via `setRecipeDefaultRole`
@@ -138,6 +145,9 @@ per-user servings override (Batch 3): when set, this user's per-serving macros d
 the shared `nutrition.total ÷ servings`; written/cleared by `setServingsOverride` via a
 deep-merge that touches only that nested field (other overrides + the shared doc untouched).
 See §5.17.
+Historical `overrides.category` strings remain tolerated and are canonicalized at read time
+after override precedence is applied. They are not deleted or rewritten by the code contract;
+the approved personal-override cleanup is a separate migration step.
 
 ### `users/{uid}/pantry/root/weekPlans/{weekID}` — meal plans (`WeekPlan`)
 `weekID` = ISO date of the **Monday** of the week (`weekIDFromDate`). Per-user (keyed per uid).
@@ -216,6 +226,8 @@ Staging area for AI-parsed/generated recipes before publishing into `recipes`. F
 `title, cuisine, category, ingredients[], instructions[], imageURL, sourceURL, description,
 servings, prepTime, cookTime, status('pending'|'published'), createdAt?`.
 `buildRecipeContent()` serializes the structured fields back into the flat `content` format.
+Queue category strings intentionally remain tolerant (`blank`/legacy/invalid) because this is
+the review boundary, but publishing to `recipes/{id}` requires an explicit canonical category.
 **`createdAt` must be a real Firestore Timestamp** (`serverTimestamp()`): `getQueue` reads with
 `orderBy('createdAt', 'desc')`, so a doc written with a string — or with the field omitted — sorts
 wrong or is **invisible in the queue UI entirely**. Bulk writers may add an extra `generatedBatch`
@@ -284,6 +296,10 @@ retained as historical data and are not modified or deleted by this app.
    an oversized raw body returns 413, and arbitrary Firebase, AI Gateway, provider, credential, or
    internal exception messages are never returned to clients. Server logs use stable route identifiers
    plus safe counts/lengths rather than bearer tokens or complete request content.
+9. **Canonical recipe categories on new shared writes.** All new `recipes/{id}` writes use the
+   single ordered 12-category contract in `lib/recipeCategories.ts`. Legacy stored recipe and
+   personal-override strings are compatibility inputs only, never valid new shared outputs;
+   missing, combined, arbitrary, or unknown values fail before the Firestore write.
 
 ---
 
@@ -292,6 +308,10 @@ retained as historical data and are not modified or deleted by this app.
 1. **Recipe list filtering & live count** — `app/recipes/page.tsx`. A `filtered` `useMemo`
    recomputes on cuisine, category, min-rating, source, time filter, sort, and a 150 ms debounced
    search term; the input itself remains immediate. Search uses fuse.js starting at one character.
+   Recipes and Favorites expose the same exact 12 canonical category filters. Category matching
+   applies the already-loaded personal override before the shared value, then uses
+   `normalizeRecipeCategory(raw, recipeID)`, so deterministic legacy aliases and mixed legacy
+   recipe IDs land under their canonical filter without N+1 reads. Unknown values remain unresolved.
 2. **Filter persistence** — `app/recipes/page.tsx` writes filter state to `localStorage` keys:
    `mea_recipes_search`, `mea_recipes_cuisine`, `mea_recipes_category`, `mea_recipes_minRating`,
    `mea_recipes_source`, `mea_recipes_sort`, `mea_recipes_filter`, `mea_recipes_timeFilter`.
@@ -305,6 +325,9 @@ retained as historical data and are not modified or deleted by this app.
    into `recipes`. Generation is **FlavorGraph-informed**: `getComplementaryIngredients` seeds
    the prompt with scientifically complementary ingredients (`lib/flavorPairings.ts` +
    `lib/flavor-pairings.json`).
+   All recipe-category-producing AI prompts are built from `RECIPE_CATEGORIES`, and generated
+   category fields use a Zod enum derived from that same tuple. Noncanonical output fails the
+   route's existing safe validation/error path; it is never replaced with the first category.
 5. **AI recipe import flow** — Add modal / Queue: URL or pasted text → `POST /api/ai-ingest`
    → structured recipe → saved to `recipeQueue` (`status: 'pending'`) → reviewed in `/queue`
    → published into `recipes`. Client-provided `imageURL`/`prepTime`/`cookTime` (e.g. from the
@@ -499,12 +522,12 @@ retained as historical data and are not modified or deleted by this app.
     changing — review the dry-run diff before applying.
 20. **Day-based meal plan + main/side role** (Batch 5) — planned recipes carry a `day` (ISO date in
     the week, or `null` = Unscheduled) and a `role` (`main`/`side`). **Role defaulting** is auto-derived
-    from the recipe's `category` via `deriveRoleFromCategory`/`CATEGORY_ROLE` (`lib/userdata.ts`): both
-    **"Sides" → `side`** and the legacy **"Breakfast, Snacks & Sides" → `side`** (the standalone "Sides"
-    category was added later; the legacy label is still set on existing recipes, so both map to `side`
-    and neither may be removed); all mains (Chicken & Poultry, Beef & Pork, Seafood,
-    Vegetarian Mains, Pasta/Noodles & Rice) **and** the ambiguous categories (Salads & Bowls, Soups/Stews
-    & Chili) → `main` (a missing side is less wrong than a missing main; unknown/empty category → `main`).
+    from the recipe's category via `deriveRoleFromCategory` (`lib/userdata.ts`), after read-time
+    normalization: canonical **Sides** and **Sauces & Condiments** → `side`; every other canonical
+    category (including Breakfast, Snacks, and Drinks) → `main`; unknown/empty → `main` (a missing
+    side is less wrong than a missing main). Recipe-specific legacy compatibility is used when the
+    recipe ID is already available. Cook-event adds pass the caller's already-resolved role and add
+    no Firestore read.
     The role used on `addRecipeToWeekPlan` is `resolveRecipeRole(recipe)` at every add site (recipe
     detail, RecipeCard, Discover, Friends' "add to my plan"). A user can override per entry via the
     card's Main/Side toggle (`setPlannedRecipeRole`); the override is **persisted on the entry**, so the
@@ -802,17 +825,12 @@ retained as historical data and are not modified or deleted by this app.
   Batch-4 diff is review-only and performs no writes. The route's explicit authenticated/admin-gated
   `?apply=true` path is the separate apply step; it conservatively writes only canonical-attributable,
   material, non-confidence-downgrade results and was used for the documented Batch 4 apply.**
-- **Category label drift.** The AI prompt and some UI use unpunctuated category names (e.g.
-  "Pasta Noodles & Rice"), while `types/recipe.ts` `Category` uses comma forms
-  ("Pasta, Noodles & Rice"). Normalize when comparing.
-- **"Sides" is not yet in the `Category` union.** The standalone "Sides" category exists in the
-  queue picker (`app/queue/page.tsx` `CATEGORIES`) and in `CATEGORY_ROLE` (`lib/userdata.ts`), but
-  **not** in `types/recipe.ts` `Category`, and **not** in the ai-ingest `SYSTEM_PROMPT` category
-  list (`app/api/ai-ingest/route.ts`) — so the AI never assigns it on its own; it only arrives via
-  a manual pick or a direct write. Both call sites are loosely typed (`CATEGORIES` is a bare
-  `string[]`, `CATEGORY_ROLE` is `Record<string, PlannedRole>`), so this compiles today, but adding
-  "Sides" to the union — and to the prompt, if the AI should choose it — is the remaining work to
-  make it fully first-class.
+- **Legacy recipe category values remain stored until migration.** Category-label drift and the
+  missing-`Sides` type gap are resolved by `lib/recipeCategories.ts`, but Firestore still contains
+  legacy recipe strings and personal overrides. Code normalizes those values at read time through
+  deterministic aliases and exact recipe-ID compatibility only; it does not infer unknown records
+  or persist the normalized result. The approved data migration and legacy override cleanup remain
+  separate, pending work.
 - **Cooking Mode wake lock is best-effort.** `components/CookingMode.tsx` uses the Screen Wake
   Lock API (`navigator.wakeLock.request('screen')`), re-acquiring on `visibilitychange`. Browsers
   without the API (notably iOS Safari historically) silently no-op — the screen may still sleep.
@@ -904,6 +922,9 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
+| Canonical recipe category code contract | High | Done | One 12-value tuple drives types, UI, filters, icons, AI schemas/prompts, shared-write validation, read compatibility, and meal-plan role derivation; no production data migration. |
+| Existing recipe category data migration | High | Pending | 66 approved shared-recipe category changes remain for a dry run, reviewed apply, and post-migration verification. |
+| Legacy personal category override cleanup | Medium | Pending | 24 likely redundant/legacy override removals remain; preserve the intentional Spicy Quinoa → Salads & Bowls override. |
 | Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Partial | Setup UI exists at `/queue#bookmarklet`, but it sends URL/image/time metadata rather than logged-in page DOM; paywalled server fetches remain blocked. |
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |

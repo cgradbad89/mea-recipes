@@ -9,6 +9,7 @@ import { addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole } from '@/lib/us
 import RecipeImage, { getCategoryIcon } from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
+import { normalizeRecipeCategory } from '@/lib/recipeCategories'
 
 function getCuisineClass(cuisine: string): string {
   const c = cuisine.toLowerCase().replace(/\s+/g, '-')
@@ -76,6 +77,8 @@ function getWeekOptions(): { weekID: string; label: string; offset: number }[] {
 export default function RecipeCard({ recipe, meta, compact = false }: RecipeCardProps) {
   const { user } = useAuth()
   const displayImageURL = meta?.overrides?.imageURL || recipe.imageURL
+  const rawCategory = meta?.overrides?.category ?? recipe.category
+  const displayCategory = normalizeRecipeCategory(rawCategory, recipe.id) ?? rawCategory
   const [showPlanPicker, setShowPlanPicker] = useState(false)
   const [selectedWeek, setSelectedWeek] = useState('')
   const [adding, setAdding] = useState(false)
@@ -131,7 +134,12 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
     if (!user || !selectedWeek) return
     setAdding(true)
     try {
-      await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
+      await addRecipeToWeekPlan(
+        user.uid,
+        selectedWeek,
+        recipe.id,
+        resolveRecipeRole({ ...recipe, category: displayCategory }),
+      )
       setAdded(true)
       setTimeout(() => {
         setAdded(false)
@@ -150,7 +158,8 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
         <RecipeImage
           src={displayImageURL}
           alt={recipe.title}
-          category={recipe.category}
+          category={displayCategory}
+          recipeID={recipe.id}
           className="w-full h-full transition-transform duration-500 group-hover:scale-105"
           emojiClassName="text-4xl"
         />
@@ -229,10 +238,10 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
         <h3 className="font-display text-lg text-cream leading-tight mb-1 line-clamp-2 group-hover:text-amber transition-colors duration-200">
           {recipe.title}
         </h3>
-        {!compact && recipe.category && (
+        {!compact && displayCategory && (
           <p className="text-faint text-xs font-body flex items-center gap-1.5">
-            <span>{getCategoryIcon(recipe.category)}</span>
-            {recipe.category}
+            <span>{getCategoryIcon(displayCategory, recipe.id)}</span>
+            {displayCategory}
           </p>
         )}
       </div>

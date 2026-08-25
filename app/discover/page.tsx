@@ -12,6 +12,7 @@ import RecipeImage from '@/components/RecipeImage'
 import { Sparkles, RefreshCw, Loader2, Star, ChefHat, Compass, Clock, Wand2, Search, Plus, Save, Check, CalendarPlus, ListChecks } from 'lucide-react'
 import type { Recipe } from '@/types/recipe'
 import { AI_CACHE_ID, aiCacheKey } from '@/lib/aiConfig'
+import { isRecipeCategory, normalizeRecipeCategory } from '@/lib/recipeCategories'
 
 const CACHE_BASE = 'mea-recommendations-cache'
 const NEW_CACHE_BASE = 'mea-new-suggestions-cache'
@@ -46,7 +47,7 @@ function RecipeRecommendationCard({
 }: {
   rec: Recommendation
   recipe?: Recipe
-  meta?: { rating?: number }
+  meta?: { rating?: number; overrides?: { category?: string } }
 }) {
   if (!recipe) return null
   return (
@@ -55,7 +56,8 @@ function RecipeRecommendationCard({
         <RecipeImage
           src={recipe.imageURL}
           alt={recipe.title}
-          category={recipe.category}
+          category={meta?.overrides?.category ?? recipe.category}
+          recipeID={recipe.id}
           className="w-full h-full group-hover:scale-105 transition-transform duration-300"
           emojiClassName="text-2xl"
         />
@@ -220,7 +222,10 @@ export default function DiscoverPage() {
           mode: planMode,
           plannedRecipes: planCurrentRecipes.map(r => ({
             title: r.title,
-            category: r.category,
+            category: normalizeRecipeCategory(
+              metas[r.id]?.overrides?.category ?? r.category,
+              r.id,
+            ) ?? r.category,
             cuisine: r.cuisine,
             ingredients: r.content,
           })),
@@ -255,7 +260,13 @@ export default function DiscoverPage() {
     setPlanAddingRecipeId(recipeID)
     try {
       const r = recipes.find(r => r.id === recipeID)
-      await addRecipeToWeekPlan(user.uid, planWeek, recipeID, resolveRecipeRole(r))
+      await addRecipeToWeekPlan(user.uid, planWeek, recipeID, resolveRecipeRole(r && {
+        ...r,
+        category: normalizeRecipeCategory(
+          metas[r.id]?.overrides?.category ?? r.category,
+          r.id,
+        ) ?? (metas[r.id]?.overrides?.category ?? r.category),
+      }))
       await refetchCookingHistory()
       setPlanAddedRecipeIds(prev => new Set(prev).add(recipeID))
       setTimeout(() => {
@@ -298,10 +309,14 @@ export default function DiscoverPage() {
     if (!gen) return
     setPlanSavingFor(suggestion.title)
     try {
+      const category = gen.category || suggestion.category || ''
+      if (!isRecipeCategory(category)) {
+        throw new Error('Choose a valid recipe category before saving.')
+      }
       const content = buildRecipeContent({
         title: gen.title || suggestion.title,
         cuisine: gen.cuisine || suggestion.cuisine || '',
-        category: gen.category || suggestion.category || '',
+        category,
         imageURL: gen.imageURL || '',
         description: gen.description || '',
         servings: gen.servings || '',
@@ -316,7 +331,7 @@ export default function DiscoverPage() {
         recipeID: '',
         title: (gen.title || suggestion.title).trim(),
         content,
-        category: gen.category || suggestion.category || '',
+        category,
         cuisine: (gen.cuisine || suggestion.cuisine || '').toLowerCase(),
         imageURL: gen.imageURL || '',
         sourceURL: '',
@@ -341,6 +356,7 @@ export default function DiscoverPage() {
       setPlanSavedFor(prev => new Set(prev).add(suggestion.title))
     } catch (e) {
       console.error('Save failed:', e)
+      setPlanError(e instanceof Error ? e.message : 'Failed to save recipe')
     } finally {
       setPlanSavingFor(null)
       setPlanNutritionFor(null)
@@ -402,7 +418,15 @@ export default function DiscoverPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          recipes: recipes.map(r => ({ id: r.id, title: r.title, cuisine: r.cuisine, category: r.category })),
+          recipes: recipes.map(r => ({
+            id: r.id,
+            title: r.title,
+            cuisine: r.cuisine,
+            category: normalizeRecipeCategory(
+              metas[r.id]?.overrides?.category ?? r.category,
+              r.id,
+            ) ?? r.category,
+          })),
           cookCounts,
           ratings,
           favorites: Array.from(favorites),
@@ -423,7 +447,7 @@ export default function DiscoverPage() {
     } finally {
       setLoading(false)
     }
-  }, [user, recipes, cookCounts, ratings, favorites, recommendationsCacheKey])
+  }, [user, recipes, metas, cookCounts, ratings, favorites, recommendationsCacheKey])
 
   const handleGetNewSuggestions = async () => {
     if (!user || !recipes.length) return
@@ -435,7 +459,13 @@ export default function DiscoverPage() {
       Object.entries(cookCounts).forEach(([id, count]) => {
         const r = recipes.find(r => r.id === id)
         if (r?.cuisine) cuisineCounts[r.cuisine] = (cuisineCounts[r.cuisine] || 0) + count
-        if (r?.category) categoryCounts[r.category] = (categoryCounts[r.category] || 0) + count
+        if (r?.category) {
+          const category = normalizeRecipeCategory(
+            metas[r.id]?.overrides?.category ?? r.category,
+            r.id,
+          )
+          if (category) categoryCounts[category] = (categoryCounts[category] || 0) + count
+        }
       })
       const topCuisines = Object.entries(cuisineCounts).sort(([, a], [, b]) => b - a).slice(0, 4).map(([c]) => c)
       const topCategories = Object.entries(categoryCounts).sort(([, a], [, b]) => b - a).slice(0, 3).map(([c]) => c)
@@ -529,10 +559,14 @@ export default function DiscoverPage() {
     setSavingGenerated(true)
     setGenerateError('')
     try {
+      const category = generatedRecipe.category || ''
+      if (!isRecipeCategory(category)) {
+        throw new Error('Choose a valid recipe category before saving.')
+      }
       const content = buildRecipeContent({
         title: generatedRecipe.title || '',
         cuisine: generatedRecipe.cuisine || '',
-        category: generatedRecipe.category || '',
+        category,
         imageURL: generatedRecipe.imageURL || '',
         description: generatedRecipe.description || '',
         servings: generatedRecipe.servings || '',
@@ -547,7 +581,7 @@ export default function DiscoverPage() {
         recipeID: '',
         title: (generatedRecipe.title || 'Untitled Recipe').trim(),
         content,
-        category: generatedRecipe.category || '',
+        category,
         cuisine: (generatedRecipe.cuisine || '').toLowerCase(),
         imageURL: generatedRecipe.imageURL || '',
         sourceURL: '',

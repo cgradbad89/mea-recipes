@@ -8,12 +8,11 @@ import { NUTRIENTS, formatNutrient, perServingFromTotal, servingSizeLabel } from
 import { useAuth } from '@/lib/AuthContext'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
-
-const CATEGORIES = [
-  'Chicken & Poultry', 'Vegetarian Mains', 'Salads & Bowls',
-  'Pasta, Noodles & Rice', 'Soups, Stews & Chili',
-  'Seafood', 'Beef & Pork', 'Breakfast, Snacks & Sides',
-]
+import {
+  RECIPE_CATEGORIES,
+  isRecipeCategory,
+  normalizeRecipeCategory,
+} from '@/lib/recipeCategories'
 
 interface Props {
   recipe: Recipe
@@ -45,7 +44,9 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
 
   const [title, setTitle] = useState(overrides.title || recipe.title)
   const [cuisine, setCuisine] = useState(overrides.cuisine || recipe.cuisine)
-  const [category, setCategory] = useState(overrides.category || recipe.category)
+  const initialRawCategory = overrides.category ?? recipe.category
+  const initialDisplayCategory = normalizeRecipeCategory(initialRawCategory, recipe.id) ?? initialRawCategory
+  const [category, setCategory] = useState(initialDisplayCategory)
   const [content, setContent] = useState(overrides.content || recipe.content)
   const [imageURL, setImageURL] = useState(overrides.imageURL || recipe.imageURL || '')
   const [prepTime, setPrepTime] = useState(overrides.prepTime || (recipe as any).prepTime || '')
@@ -55,18 +56,18 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   const [resetting, setResetting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [showDiscardWarning, setShowDiscardWarning] = useState(false)
-  const currentCategoryIsListed = !category || CATEGORIES.includes(category)
+  const categoryIsCanonical = isRecipeCategory(category)
 
   // Initial values for dirty check
   const initTitle = overrides.title || recipe.title
   const initCuisine = overrides.cuisine || recipe.cuisine
-  const initCategory = overrides.category || recipe.category
   const initContent = overrides.content || recipe.content
   const initImageURL = overrides.imageURL || recipe.imageURL || ''
   const initPrepTime = overrides.prepTime || (recipe as any).prepTime || ''
   const initCookTime = overrides.cookTime || (recipe as any).cookTime || ''
 
-  const isDirty = title !== initTitle || cuisine !== initCuisine || category !== initCategory ||
+  const categoryChanged = category !== initialDisplayCategory
+  const isDirty = title !== initTitle || cuisine !== initCuisine || categoryChanged ||
     content !== initContent || imageURL !== initImageURL || prepTime !== initPrepTime ||
     cookTime !== initCookTime || servingsChanged
 
@@ -83,7 +84,12 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
     const newOverrides: Record<string, string | number | undefined> = {
       title: title !== recipe.title ? title : undefined,
       cuisine: cuisine !== recipe.cuisine ? cuisine : undefined,
-      category: category !== recipe.category ? category : undefined,
+      // Merely opening a legacy recipe shows its canonical read-time value but
+      // must not manufacture a personal override. Preserve an existing raw
+      // override until the user intentionally changes this control.
+      category: categoryChanged
+        ? (category !== recipe.category ? category : undefined)
+        : overrides.category,
       content: content !== recipe.content ? content : undefined,
       imageURL: imageURL !== (recipe.imageURL || '') ? imageURL : undefined,
       prepTime: prepTime !== ((recipe as any).prepTime || '') ? prepTime : undefined,
@@ -126,7 +132,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
     await saveRecipeMeta(user.uid, recipe.id, updatedMeta)
     setTitle(recipe.title)
     setCuisine(recipe.cuisine)
-    setCategory(recipe.category)
+    setCategory(normalizeRecipeCategory(recipe.category, recipe.id) ?? recipe.category)
     setContent(recipe.content)
     setImageURL(recipe.imageURL || '')
     setPrepTime((recipe as any).prepTime || '')
@@ -176,8 +182,10 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
               <label className="text-faint text-xs font-body uppercase tracking-widest mb-1.5 block">Category</label>
               <select value={category} onChange={e => setCategory(e.target.value)} className="input-field">
                 <option value="" disabled>Select category</option>
-                {!currentCategoryIsListed && <option value={category}>{category}</option>}
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {category && !categoryIsCanonical && (
+                  <option value={category}>Legacy / unresolved: {category}</option>
+                )}
+                {RECIPE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { getComplementaryIngredients } from '@/lib/flavorPairings'
 import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const AI_STANDARD_MAX_BODY_BYTES = 256_000
 const MAX_PLANNED_RECIPES = 21
@@ -11,7 +12,7 @@ const MAX_EXISTING_RECIPE_TITLES = 500
 const MAX_TEXT_LENGTH = 2_000
 const MAX_INGREDIENTS_LENGTH = 4_000
 
-const PLAN_SUGGESTIONS_SCHEMA = z.object({
+export const PLAN_SUGGESTIONS_SCHEMA = z.object({
   existing: z.array(z.object({
     title: z.string(),
     reason: z.string(),
@@ -19,7 +20,7 @@ const PLAN_SUGGESTIONS_SCHEMA = z.object({
   new: z.array(z.object({
     title: z.string(),
     cuisine: z.string(),
-    category: z.string(),
+    category: z.enum(RECIPE_CATEGORIES),
     reason: z.string(),
   })),
 })
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
       ? `\n\nFLAVOR PAIRING GUIDANCE (FlavorGraph food-science model):\nThe user's planned recipes work well with these complementary ingredients:\n${complementary.join(', ')}.\nPrefer suggesting recipes that use some of these ingredients to create cohesive flavor pairings across the week and reduce grocery waste through shared ingredients.`
       : ''
 
+    const categoryVocabulary = JSON.stringify(RECIPE_CATEGORIES)
     const prompt = `You are a personal chef advisor helping someone round out their week's meal plan.
 
 CURRENTLY PLANNED FOR THE WEEK:
@@ -97,7 +99,7 @@ Suggest complementary recipes that:
 Return ONLY a JSON object with no markdown, no backticks, no explanation:
 {
   "existing": [ { "title": "exact title from their collection", "reason": "1 sentence why" } ],
-  "new": [ { "title": "new recipe name", "cuisine": "e.g. italian", "category": "one of: Chicken & Poultry, Vegetarian Mains, Salads & Bowls, Pasta Noodles & Rice, Soups Stews & Chili, Seafood, Beef & Pork, Breakfast Snacks & Sides", "reason": "1 sentence why" } ]
+  "new": [ { "title": "new recipe name", "cuisine": "e.g. italian", "category": "one exact value from ${categoryVocabulary}", "reason": "1 sentence why" } ]
 }
 
 Output rules:

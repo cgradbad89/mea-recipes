@@ -5,6 +5,7 @@ import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { safeFetchText } from '@/lib/safeFetch'
 import { z } from 'zod'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const AI_INGEST_MAX_BODY_BYTES = 2_000_000
 const MAX_URL_LENGTH = 2_048
@@ -35,10 +36,10 @@ const REQUEST_SCHEMA: z.ZodType<AIIngestRequest> = z.object({
   cookTime: z.string().max(MAX_METADATA_LENGTH).optional(),
 })
 
-const RECIPE_SCHEMA = z.object({
+export const RECIPE_SCHEMA = z.object({
   title: z.string(),
   cuisine: z.string(),
-  category: z.string(),
+  category: z.enum(RECIPE_CATEGORIES),
   ingredients: z.array(z.string()),
   instructions: z.array(z.string()),
   imageURL: z.string(),
@@ -48,13 +49,15 @@ const RECIPE_SCHEMA = z.object({
   cookTime: z.string(),
 })
 
-const SYSTEM_PROMPT = `You are a recipe parser. Given HTML or text content from a webpage or pasted text, extract the recipe and return ONLY a valid JSON object with no markdown, no backticks, no explanation.
+const CATEGORY_VOCABULARY = JSON.stringify(RECIPE_CATEGORIES)
+
+export const SYSTEM_PROMPT = `You are a recipe parser. Given HTML or text content from a webpage or pasted text, extract the recipe and return ONLY a valid JSON object with no markdown, no backticks, no explanation.
 
 Return exactly this shape:
 {
   "title": "string",
   "cuisine": "string (lowercase, e.g. italian, mexican, asian)",
-  "category": "string (one of: Chicken & Poultry, Vegetarian Mains, Salads & Bowls, Pasta Noodles & Rice, Soups Stews & Chili, Seafood, Beef & Pork, Breakfast Snacks & Sides)",
+  "category": "one exact value from ${CATEGORY_VOCABULARY}",
   "ingredients": ["ingredient 1", "ingredient 2"],
   "instructions": ["Step 1 text", "Step 2 text"],
   "imageURL": "string or empty string",

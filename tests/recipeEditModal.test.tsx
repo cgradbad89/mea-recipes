@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const mocks = vi.hoisted(() => ({
   user: { uid: 'user-1' },
@@ -26,10 +27,10 @@ vi.mock('@/lib/recipes', () => ({
 
 import RecipeEditModal from '@/components/RecipeEditModal'
 
-function recipe(category: string): Recipe {
+function recipe(category: string, id = 'test-recipe'): Recipe {
   return {
-    id: 'test-recipe',
-    recipeID: 'test-recipe',
+    id,
+    recipeID: id,
     title: 'Test Recipe',
     content: 'INGREDIENTS\n1 test ingredient\n\nINSTRUCTIONS\nCook it.',
     category,
@@ -44,9 +45,9 @@ function recipe(category: string): Recipe {
   }
 }
 
-function renderModal(recipeCategory: string, meta: RecipeMeta | null = null) {
+function renderModal(recipeCategory: string, meta: RecipeMeta | null = null, id = 'test-recipe') {
   const props = {
-    recipe: recipe(recipeCategory),
+    recipe: recipe(recipeCategory, id),
     meta,
     onClose: vi.fn(),
     onSaved: vi.fn(),
@@ -71,6 +72,25 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('RecipeEditModal category display and persistence', () => {
+  it('renders the exact canonical taxonomy from the shared contract', () => {
+    renderModal('')
+
+    expect(Array.from(categoryControl().options).map(option => option.value)).toEqual([
+      '',
+      ...RECIPE_CATEGORIES,
+    ])
+  })
+
+  it('offers Sides, separate Breakfast and Snacks, Drinks, and Sauces & Condiments', () => {
+    renderModal('')
+    const values = Array.from(categoryControl().options).map(option => option.value)
+
+    expect(values).toEqual(expect.arrayContaining([
+      'Sides', 'Breakfast', 'Snacks', 'Drinks', 'Sauces & Condiments',
+    ]))
+    expect(values).not.toContain('Breakfast, Snacks & Sides')
+  })
+
   it('displays a listed shared category', () => {
     renderModal('Seafood')
 
@@ -117,7 +137,7 @@ describe('RecipeEditModal category display and persistence', () => {
     expect(categoryControl().value).toBe('Seafood')
   })
 
-  it('displays an unlisted shared category and does not rewrite it on unrelated save', async () => {
+  it('displays canonical Sides and does not rewrite it on unrelated save', async () => {
     renderModal('Sides')
     expect(categoryControl().value).toBe('Sides')
     expect(categoryControl().selectedOptions[0]?.textContent).toBe('Sides')
@@ -136,7 +156,7 @@ describe('RecipeEditModal category display and persistence', () => {
   it('displays and preserves an unlisted personal category override', async () => {
     renderModal('Seafood', { overrides: { category: 'Other' } })
     expect(categoryControl().value).toBe('Other')
-    expect(categoryControl().selectedOptions[0]?.textContent).toBe('Other')
+    expect(categoryControl().selectedOptions[0]?.textContent).toBe('Legacy / unresolved: Other')
 
     fireEvent.change(titleControl(), {
       target: { value: 'Updated Recipe' },
@@ -147,6 +167,25 @@ describe('RecipeEditModal category display and persistence', () => {
     expect(mocks.saveRecipeMeta.mock.calls[0][2]).toMatchObject({
       overrides: { title: 'Updated Recipe', category: 'Other' },
     })
+  })
+
+  it('shows a deterministic legacy alias canonically without saving that normalization', async () => {
+    renderModal('Chicken')
+    expect(categoryControl().value).toBe('Chicken & Poultry')
+
+    fireEvent.change(titleControl(), { target: { value: 'Updated Recipe' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(mocks.saveRecipeMeta).toHaveBeenCalledTimes(1))
+    expect(mocks.saveRecipeMeta.mock.calls[0][2]).toMatchObject({
+      overrides: { title: 'Updated Recipe' },
+    })
+  })
+
+  it('uses recipe-specific compatibility for a legacy personal override', () => {
+    renderModal('Sides', { overrides: { category: 'Breakfast, Snacks & Sides' } }, 'bread')
+
+    expect(categoryControl().value).toBe('Sides')
   })
 
   it('does not write when canceled', () => {

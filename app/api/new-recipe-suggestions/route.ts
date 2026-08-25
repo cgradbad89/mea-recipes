@@ -3,6 +3,7 @@ import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { generateAIArray } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const AI_STANDARD_MAX_BODY_BYTES = 256_000
 const MAX_COLLECTION_SIZE = 500
@@ -21,10 +22,10 @@ const REQUEST_SCHEMA: z.ZodType<NewRecipeSuggestionsRequest> = z.object({
   recentTitles: z.array(BOUNDED_TEXT).max(MAX_COLLECTION_SIZE),
 })
 
-const NEW_SUGGESTION_SCHEMA = z.object({
+export const NEW_SUGGESTION_SCHEMA = z.object({
   title: z.string(),
   cuisine: z.string(),
-  category: z.string(),
+  category: z.enum(RECIPE_CATEGORIES),
   description: z.string(),
   searchQuery: z.string(),
 })
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       recentTitleCount: recentTitles.length,
     }
 
+    const categoryVocabulary = JSON.stringify(RECIPE_CATEGORIES)
     const prompt = `You are a chef and food writer. Suggest 6 specific recipes this person doesn't have yet based on their taste profile.
 
 THEIR TASTE PROFILE:
@@ -66,7 +68,7 @@ Return ONLY a JSON array with no markdown, no backticks:
   {
     "title": "Specific Recipe Name",
     "cuisine": "cuisine (lowercase)",
-    "category": "one of: Chicken & Poultry, Vegetarian Mains, Salads & Bowls, Pasta Noodles & Rice, Soups Stews & Chili, Seafood, Beef & Pork, Breakfast Snacks & Sides",
+    "category": "one exact value from ${categoryVocabulary}",
     "description": "2 sentence description of the dish and why they'd love it",
     "searchQuery": "simple google-friendly search query to find this recipe e.g. 'ottolenghi roasted eggplant recipe'"
   }

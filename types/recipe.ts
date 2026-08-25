@@ -1,3 +1,5 @@
+import type { RecipeCategory } from '@/lib/recipeCategories'
+
 // Per-recipe nutrition, written by the (in-progress) nutrition backfill onto the
 // shared recipes/{id} doc. See nutrition-tracker-spec.md (Surface 1) for the contract.
 // `total` is the durable whole-recipe basis; per-serving values are derived as
@@ -32,6 +34,8 @@ export interface Recipe {
   recipeID: string
   title: string
   content: string
+  // Production Firestore still contains legacy category strings. Keep the read
+  // model tolerant; canonical runtime values and shared writes use RecipeCategory.
   category: string
   cuisine: string
   imageURL: string
@@ -59,17 +63,10 @@ export interface Recipe {
 export interface RecipeOverrides {
   title?: string
   cuisine?: string
+  // Legacy personal overrides remain in Firestore until the later migration.
   category?: string
   content?: string
   servings?: number   // per-user servings override (see lib/userdata.ts RecipeMeta.overrides)
 }
 
-export type Category =
-  | 'Chicken & Poultry'
-  | 'Vegetarian Mains'
-  | 'Salads & Bowls'
-  | 'Pasta, Noodles & Rice'
-  | 'Soups, Stews & Chili'
-  | 'Seafood'
-  | 'Beef & Pork'
-  | 'Breakfast, Snacks & Sides'
+export type Category = RecipeCategory

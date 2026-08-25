@@ -29,7 +29,7 @@ describe('AI configuration', () => {
     expect(AI_PROVENANCE).toEqual({
       provider: 'vercel-ai-gateway',
       model: 'openai/gpt-5.6-luna',
-      prompt_version: 'v1',
+      prompt_version: 'v2',
     })
   })
 })

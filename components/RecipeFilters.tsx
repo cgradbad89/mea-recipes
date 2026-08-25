@@ -2,6 +2,7 @@
 
 import { Search, X, SlidersHorizontal, Star } from 'lucide-react'
 import { useState } from 'react'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const CUISINES = [
   'All', 'mexican', 'asian', 'american', 'mediterranean',
@@ -9,18 +10,6 @@ const CUISINES = [
   'ethiopian', 'filipino', 'vietnamese', 'moroccan', 'french',
   'japanese', 'korean', 'thai', 'spanish', 'turkish', 'lebanese',
   'brazilian', 'taiwanese', 'west african',
-]
-
-const CATEGORIES = [
-  'All',
-  'Chicken & Poultry',
-  'Vegetarian Mains',
-  'Salads & Bowls',
-  'Pasta, Noodles & Rice',
-  'Soups, Stews & Chili',
-  'Seafood',
-  'Beef & Pork',
-  'Breakfast, Snacks & Sides',
 ]
 
 export type SourceFilter = 'all' | 'mine' | 'others'
@@ -184,7 +173,7 @@ export default function RecipeFilters({
           <div>
             <p className="text-faint text-xs font-body uppercase tracking-widest mb-2.5">Category</p>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(c => (
+              {['All', ...RECIPE_CATEGORIES].map(c => (
                 <button
                   key={c}
                   onClick={() => onCategoryChange(c)}

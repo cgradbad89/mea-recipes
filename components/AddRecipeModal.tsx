@@ -5,6 +5,7 @@ import { X, Link2, FileText, Loader2, Check, Plus, Minus } from 'lucide-react'
 import { addToQueue } from '@/lib/queue'
 import { useAuth } from '@/lib/AuthContext'
 import { useRouter } from 'next/navigation'
+import { RECIPE_CATEGORIES, isRecipeCategory } from '@/lib/recipeCategories'
 
 type Tab = 'url' | 'paste'
 type Status = 'idle' | 'fetching' | 'preview' | 'done' | 'error'
@@ -12,12 +13,6 @@ type Status = 'idle' | 'fetching' | 'preview' | 'done' | 'error'
 interface AddRecipeModalProps {
   onClose: () => void
 }
-
-const CATEGORIES = [
-  'Chicken & Poultry', 'Vegetarian Mains', 'Salads & Bowls',
-  'Pasta, Noodles & Rice', 'Soups, Stews & Chili',
-  'Seafood', 'Beef & Pork', 'Breakfast, Snacks & Sides',
-]
 
 export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
   const { user } = useAuth()
@@ -55,7 +50,7 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
       if (!res.ok) throw new Error(data.error || 'Failed to parse recipe')
       setTitle(data.title || '')
       setCuisine(data.cuisine || '')
-      setCategory(data.category || CATEGORIES[0])
+      setCategory(isRecipeCategory(data.category) ? data.category : '')
       setImageURL(data.imageURL || '')
       setDescription(data.description || '')
       setServings(data.servings || '')
@@ -164,7 +159,8 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
                 <div>
                   <label className="text-faint text-xs font-body uppercase tracking-widest mb-1.5 block">Category</label>
                   <select value={category} onChange={e => setCategory(e.target.value)} className="input-field">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="" disabled>Select category</option>
+                    {RECIPE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>

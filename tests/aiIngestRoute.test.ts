@@ -15,12 +15,13 @@ vi.mock('@/lib/flavorPairings', () => ({
 }))
 vi.mock('@/lib/safeFetch', () => ({ safeFetchText: mocks.safeFetchText }))
 
-import { POST } from '@/app/api/ai-ingest/route'
+import { POST, RECIPE_SCHEMA, SYSTEM_PROMPT } from '@/app/api/ai-ingest/route'
+import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const parsedRecipe = {
   title: 'Cacio e Pepe',
   cuisine: 'italian',
-  category: 'Pasta Noodles & Rice',
+  category: 'Pasta, Noodles & Rice',
   ingredients: ['8 oz spaghetti', '1 cup pecorino'],
   instructions: ['Boil pasta.', 'Toss with cheese and pepper.'],
   imageURL: 'https://images.example/parsed.jpg',
@@ -46,6 +47,20 @@ describe('POST /api/ai-ingest', () => {
   beforeEach(() => {
     mocks.verifyAuthToken.mockResolvedValue('user-123')
     mocks.getComplementaryIngredients.mockReturnValue([])
+  })
+
+  it('uses the exact canonical category vocabulary in the prompt', () => {
+    RECIPE_CATEGORIES.forEach(category => expect(SYSTEM_PROMPT).toContain(category))
+    expect(SYSTEM_PROMPT).not.toContain('Pasta Noodles & Rice')
+    expect(SYSTEM_PROMPT).not.toContain('Breakfast Snacks & Sides')
+  })
+
+  it('accepts canonical punctuated/Sides output and rejects legacy AI categories', () => {
+    expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Sides' }).success).toBe(true)
+    expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Sauces & Condiments' }).success).toBe(true)
+    expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Pasta, Noodles & Rice' }).success).toBe(true)
+    expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Pasta Noodles & Rice' }).success).toBe(false)
+    expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Breakfast, Snacks & Sides' }).success).toBe(false)
   })
 
   it('preserves the auth guard', async () => {

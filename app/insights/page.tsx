@@ -267,7 +267,7 @@ export default function InsightsPage() {
               <div key={recipe.id} className="flex items-center gap-4">
                 <span className="font-display text-2xl text-amber/40 font-light w-6 shrink-0">{i + 1}</span>
                 <div className="w-10 h-10 rounded-lg overflow-hidden bg-card shrink-0">
-                  <RecipeImage src={recipe.imageURL} alt="" category={recipe.category} className="w-full h-full" emojiClassName="text-lg" />
+                  <RecipeImage src={recipe.imageURL} alt="" category={metas[recipe.id]?.overrides?.category ?? recipe.category} recipeID={recipe.id} className="w-full h-full" emojiClassName="text-lg" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-cream text-sm font-body truncate">{recipe.title}</p>
@@ -297,7 +297,7 @@ export default function InsightsPage() {
             {underutilized.map(({ recipe, rating }) => (
               <a key={recipe.id} href={`/recipes/${recipe.id}`} className="group flex gap-3 items-center">
                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-card shrink-0">
-                  <RecipeImage src={recipe.imageURL} alt="" category={recipe.category} className="w-full h-full group-hover:scale-105 transition-transform" emojiClassName="text-xl" />
+                  <RecipeImage src={recipe.imageURL} alt="" category={metas[recipe.id]?.overrides?.category ?? recipe.category} recipeID={recipe.id} className="w-full h-full group-hover:scale-105 transition-transform" emojiClassName="text-xl" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-cream text-xs font-body truncate group-hover:text-amber transition-colors">{recipe.title}</p>

@@ -12,14 +12,9 @@ import {
 } from 'lucide-react'
 import RecipeImage from '@/components/RecipeImage'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
+import { RECIPE_CATEGORIES, isRecipeCategory } from '@/lib/recipeCategories'
 
-const CATEGORIES = [
-  'Chicken & Poultry', 'Vegetarian Mains', 'Salads & Bowls',
-  'Pasta, Noodles & Rice', 'Soups, Stews & Chili',
-  'Seafood', 'Beef & Pork', 'Sides', 'Breakfast, Snacks & Sides',
-]
-
-function QueueCard({
+export function QueueCard({
   item, uid, onPublish, onDiscard
 }: {
   item: QueuedRecipe
@@ -64,8 +59,12 @@ function QueueCard({
   }
 
   const handlePublish = async () => {
-    setPublishStage('saving')
     setPublishError('')
+    if (!isRecipeCategory(category)) {
+      setPublishError('Choose a canonical category before publishing this recipe.')
+      return
+    }
+    setPublishStage('saving')
     try {
       const updatedItem: QueuedRecipe = {
         ...item,
@@ -139,8 +138,17 @@ function QueueCard({
               <div>
                 <label className="text-faint text-xs font-body uppercase tracking-widest mb-1 block">Category</label>
                 <select value={category} onChange={e => setCategory(e.target.value)} className="input-field">
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="" disabled>Select category</option>
+                  {category && !isRecipeCategory(category) && (
+                    <option value={category}>Legacy / unresolved: {category}</option>
+                  )}
+                  {RECIPE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {!isRecipeCategory(category) && (
+                  <p className="text-amber/80 text-[11px] font-body mt-1">
+                    Select a canonical category before publishing.
+                  </p>
+                )}
               </div>
             </div>
             <div>
@@ -167,13 +175,17 @@ function QueueCard({
           <>
             <div className="flex items-start justify-between gap-3 mb-3">
               <h3 className="font-display text-2xl text-cream font-light leading-tight">{title}</h3>
-              <button onClick={() => { setEditError(''); setEditing(true) }} className="text-faint hover:text-cream transition-colors shrink-0">
+              <button aria-label="Edit queued recipe" onClick={() => { setEditError(''); setEditing(true) }} className="text-faint hover:text-cream transition-colors shrink-0">
                 <Edit3 size={14} />
               </button>
             </div>
             <div className="flex gap-2 mb-3 flex-wrap">
               {cuisine && <span className="tag-amber capitalize">{cuisine}</span>}
-              {category && <span className="tag">{category}</span>}
+              {category && (
+                <span className="tag">
+                  {isRecipeCategory(category) ? category : `Unresolved: ${category}`}
+                </span>
+              )}
               {item.prepTime && <span className="tag">Prep {item.prepTime}</span>}
               {item.cookTime && <span className="tag">Cook {item.cookTime}</span>}
             </div>

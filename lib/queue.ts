@@ -8,6 +8,7 @@ export interface QueuedRecipe {
   id?: string
   title: string
   cuisine: string
+  // Queue is a tolerant review boundary; publishing narrows this to RecipeCategory.
   category: string
   ingredients: string[]
   instructions: string[]

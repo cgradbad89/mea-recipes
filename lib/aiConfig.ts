@@ -2,7 +2,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway'
 
 export const AI_PROVIDER = 'vercel-ai-gateway'
 export const AI_MODEL = 'openai/gpt-5.6-luna'
-export const AI_PROMPT_VERSION = 'v1'
+export const AI_PROMPT_VERSION = 'v2'
 export const AI_CACHE_VERSION = 'v2'
 
 export const AI_CACHE_ID = [

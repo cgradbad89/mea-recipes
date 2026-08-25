@@ -322,7 +322,11 @@ export default function PlanPage() {
 
   const handleAddFriendRecipe = async (recipeID: string) => {
     if (!user) return
-    await addRecipeToWeekPlan(user.uid, weekID, recipeID, resolveRecipeRole(recipes[recipeID]))
+    const recipe = recipes[recipeID]
+    await addRecipeToWeekPlan(user.uid, weekID, recipeID, resolveRecipeRole(recipe && {
+      ...recipe,
+      category: metas[recipeID]?.overrides?.category ?? recipe.category,
+    }))
     await refetchCookingHistory()
     setAddedFriendRecipe(recipeID)
     setTimeout(() => setAddedFriendRecipe(null), 1500)
@@ -333,7 +337,10 @@ export default function PlanPage() {
   const weekDateSet = new Set(weekDates)
   // Read-time adapter: legacy string entries normalize to Unscheduled + a role
   // derived from the recipe's category; object entries keep their stored day/role.
-  const plannedEntries = normalizePlanned(plan?.plannedRecipeIDs, id => recipes[id]?.category)
+  const plannedEntries = normalizePlanned(
+    plan?.plannedRecipeIDs,
+    id => metas[id]?.overrides?.category ?? recipes[id]?.category,
+  )
   const cookedSet = new Set(plan?.cookedRecipeIDs || [])
   const plannedIDList = plannedRecipeIDList(plan?.plannedRecipeIDs)
   const uncookedEntries = plannedEntries.filter(e => !cookedSet.has(e.recipeID))
@@ -413,6 +420,10 @@ export default function PlanPage() {
         perServing: perServingForViewer(recipes[recipeID]?.nutrition, metas[recipeID]?.overrides?.servings),
         servingsEaten,
         weekID,
+        role: resolveRecipeRole(recipes[recipeID] && {
+          ...recipes[recipeID],
+          category: metas[recipeID]?.overrides?.category ?? recipes[recipeID]?.category,
+        }),
       })
       await refetchCookingHistory()
       setServingsPromptFor(null)
@@ -723,7 +734,8 @@ export default function PlanPage() {
           <RecipeImage
             src={metas[id]?.overrides?.imageURL || recipe.imageURL}
             alt=""
-            category={recipe.category}
+            category={metas[id]?.overrides?.category ?? recipe.category}
+            recipeID={recipe.id}
             className="w-full aspect-[4/3]"
             emojiClassName="text-3xl"
           />
@@ -826,7 +838,8 @@ export default function PlanPage() {
               <RecipeImage
                 src={metas[sheetEntry.recipeID]?.overrides?.imageURL || sheetRecipe.imageURL}
                 alt=""
-                category={sheetRecipe.category}
+                category={metas[sheetEntry.recipeID]?.overrides?.category ?? sheetRecipe.category}
+                recipeID={sheetRecipe.id}
                 className="w-12 h-12 rounded-lg shrink-0"
                 emojiClassName="text-xl"
               />
@@ -1320,7 +1333,8 @@ export default function PlanPage() {
                                 <RecipeImage
                                   src={metas[rid]?.overrides?.imageURL || recipe.imageURL}
                                   alt=""
-                                  category={recipe.category}
+                                  category={metas[rid]?.overrides?.category ?? recipe.category}
+                                  recipeID={recipe.id}
                                   className="w-10 h-10 rounded-lg shrink-0"
                                   emojiClassName="text-lg"
                                 />

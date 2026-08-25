@@ -15,6 +15,11 @@ import { db } from './firebase'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import { perServingFromTotal, servingSizeLabel } from './nutrition'
 import { isIngredientSubheader } from './recipeContent'
+import {
+  isRecipeCategory,
+  normalizeRecipeCategory,
+  type RecipeCategory,
+} from './recipeCategories'
 
 const COLLECTION = 'recipes'
 
@@ -70,10 +75,9 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
   return docToRecipe(snap.id, snap.data())
 }
 
-export async function getRecipesByCategory(category: string): Promise<Recipe[]> {
-  const q = query(collection(db, COLLECTION), where('category', '==', category))
-  const snap = await getDocs(q)
-  return snap.docs.map(d => docToRecipe(d.id, d.data())).filter(r => r.title)
+export async function getRecipesByCategory(category: RecipeCategory): Promise<Recipe[]> {
+  const recipes = await getAllRecipes()
+  return recipes.filter(recipe => normalizeRecipeCategory(recipe.category, recipe.id) === category)
 }
 
 export async function getRecipesByCuisine(cuisine: string): Promise<Recipe[]> {
@@ -82,7 +86,14 @@ export async function getRecipesByCuisine(cuisine: string): Promise<Recipe[]> {
   return snap.docs.map(d => docToRecipe(d.id, d.data())).filter(r => r.title)
 }
 
-export async function saveRecipe(recipe: Omit<Recipe, 'id'>, addedByUid?: string): Promise<string> {
+export type SharedRecipeWrite = Omit<Recipe, 'id' | 'category'> & {
+  category: RecipeCategory
+}
+
+export async function saveRecipe(recipe: SharedRecipeWrite, addedByUid?: string): Promise<string> {
+  if (!isRecipeCategory(recipe.category)) {
+    throw new Error('Choose a valid recipe category before publishing.')
+  }
   const id = slugify(recipe.title)
   await setDoc(doc(db, COLLECTION, id), {
     ...recipe,

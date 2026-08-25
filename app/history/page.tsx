@@ -202,7 +202,8 @@ export default function HistoryPage() {
                         <RecipeImage
                           src={metas[recipe.id]?.overrides?.imageURL || recipe.imageURL}
                           alt={recipe.title}
-                          category={recipe.category}
+                          category={metas[recipe.id]?.overrides?.category ?? recipe.category}
+                          recipeID={recipe.id}
                           className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                           emojiClassName="text-2xl"
                         />

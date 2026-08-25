@@ -29,7 +29,14 @@ import { db } from './firebase'
 import type { NutritionMacros } from '@/types/recipe'
 import type { ConsumptionEntry, NutritionGoals, SavedFood, RecentFood, Meal } from '@/types/nutrition'
 import { servingsAmountLabel } from './nutrition'
-import { getWeekPlan, addRecipeToWeekPlan, markRecipeCooked, weekIDFromDate, plannedRecipeIDList } from './userdata'
+import {
+  getWeekPlan,
+  addRecipeToWeekPlan,
+  markRecipeCooked,
+  weekIDFromDate,
+  plannedRecipeIDList,
+  type PlannedRole,
+} from './userdata'
 
 export function logPath(uid: string) {
   return collection(db, 'users', uid, 'nutrition', 'root', 'log')
@@ -254,18 +261,19 @@ export async function logCookEvent(
     perServing: NutritionMacros | null   // recipe.nutrition per-serving values, if present
     servingsEaten: number
     weekID?: string                       // defaults to the current week
+    role?: PlannedRole                    // existing caller context; no recipe fetch required
   },
 ): Promise<CookEventResult> {
   const weekID = params.weekID || weekIDFromDate(new Date())
 
   // 1. plan update — reuse the exact existing write paths. Membership is checked via
-  // the shape-agnostic ID list (planned elements are objects now). No category is
-  // available here, so a freshly-added entry defaults to role 'main' — it's about to
-  // be marked cooked anyway (cooked items don't surface a role); an already-planned
-  // recipe keeps its existing day/role (addRecipeToWeekPlan is idempotent).
+  // the shape-agnostic ID list (planned elements are objects now). Callers that
+  // already have recipe context pass its resolved role. No new recipe
+  // read is performed here; absent context retains the safe main fallback. An
+  // already-planned recipe keeps its existing day/role (the add is idempotent).
   const plan = await getWeekPlan(userId, weekID)
   if (!plan || !plannedRecipeIDList(plan.plannedRecipeIDs).includes(params.recipeId)) {
-    await addRecipeToWeekPlan(userId, weekID, params.recipeId)
+    await addRecipeToWeekPlan(userId, weekID, params.recipeId, params.role)
   }
   await markRecipeCooked(userId, weekID, params.recipeId, true)
 

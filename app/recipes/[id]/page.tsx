@@ -21,6 +21,7 @@ import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe, RecipeNutrition } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 import { hasAdminAccessClaims } from '@/lib/admin'
+import { normalizeRecipeCategory } from '@/lib/recipeCategories'
 
 function formatWeekLabel(weekID: string): string {
   const start = new Date(weekID + 'T12:00:00')
@@ -159,7 +160,10 @@ export default function RecipeDetailPage() {
     ...recipe,
     title: meta?.overrides?.title || recipe.title,
     cuisine: meta?.overrides?.cuisine || recipe.cuisine,
-    category: meta?.overrides?.category || recipe.category,
+    category: normalizeRecipeCategory(
+      meta?.overrides?.category ?? recipe.category,
+      recipe.id,
+    ) ?? (meta?.overrides?.category ?? recipe.category),
     content: meta?.overrides?.content || recipe.content,
     imageURL: meta?.overrides?.imageURL || recipe.imageURL,
     prepTime: meta?.overrides?.prepTime || (recipe as any).prepTime || '',
@@ -209,7 +213,12 @@ export default function RecipeDetailPage() {
     setAddingToPlan(true)
     setPlanAddError('')
     try {
-      await addRecipeToWeekPlan(user.uid, selectedWeek, recipe.id, resolveRecipeRole(recipe))
+      await addRecipeToWeekPlan(
+        user.uid,
+        selectedWeek,
+        recipe.id,
+        resolveRecipeRole({ ...recipe, category: displayRecipe?.category }),
+      )
       await refetchCookingHistory()
       setPlanAddedLabel(formatWeekLabel(selectedWeek))
       setTimeout(() => { setShowPlanPicker(false); setPlanAddedLabel('') }, 2000)
@@ -408,6 +417,7 @@ export default function RecipeDetailPage() {
             src={displayRecipe.imageURL}
             alt={displayRecipe.title}
             category={displayRecipe.category}
+            recipeID={displayRecipe.id}
             className="w-full h-full"
             emojiClassName="text-6xl"
             loading="eager"
@@ -489,7 +499,7 @@ export default function RecipeDetailPage() {
           <span className="text-faint text-xs font-body">Meal-plan default:</span>
           <div className="inline-flex rounded-lg border border-border overflow-hidden">
             {(['main', 'side'] as const).map(r => {
-              const active = resolveRecipeRole(recipe) === r
+              const active = resolveRecipeRole({ ...recipe, category: displayRecipe.category }) === r
               return (
                 <button
                   key={r}
@@ -790,6 +800,7 @@ export default function RecipeDetailPage() {
               // serving size (override ?? shared default), not the shared default.
               perServing: perServingForViewer(recipe?.nutrition, meta?.overrides?.servings),
               servingsEaten,
+              role: resolveRecipeRole({ ...recipe, category: displayRecipe.category }),
             })
           } : undefined}
         />
