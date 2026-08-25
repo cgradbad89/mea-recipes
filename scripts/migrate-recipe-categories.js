@@ -2,14 +2,15 @@
 'use strict'
 
 /**
- * Read-only production recipe-category migration planner.
+ * Production recipe-category migration planner and exact-manifest apply command.
  *
  * Default invocation performs two production reads, writes only local audit
  * evidence, and has no Firestore mutation code:
  *   node scripts/migrate-recipe-categories.js
  *
- * This tool intentionally has no apply mode. A later, separately approved tool
- * must consume the exact manifest and re-check every old-value precondition.
+ * Apply remains unavailable unless all three explicit authorization concepts are
+ * present: --apply, --manifest, and the exact --confirm value. Apply consumes the
+ * committed manifest and re-checks every precondition in one Firestore transaction.
  */
 
 const assert = require('node:assert/strict')
@@ -20,6 +21,7 @@ const { execFileSync } = require('node:child_process')
 const { pathToFileURL } = require('node:url')
 const { loadEnv, getAdmin } = require('./_lib')
 const planner = require('./recipe-category-migration-planner')
+const applySupport = require('./recipe-category-migration-apply')
 const recipeTimeRemediation = require('./recipe-time-remediation-data.json')
 
 const PROJECT_ID = 'malignant-metro'
@@ -50,19 +52,44 @@ function defaultPaths() {
 
 function parseArgs(argv) {
   const defaults = defaultPaths()
-  const args = { json: defaults.json, markdown: defaults.markdown, refreshExpectations: false }
-  for (const raw of argv) {
+  const args = { apply: false, json: defaults.json, markdown: defaults.markdown, refreshExpectations: false }
+  for (let index = 0; index < argv.length; index += 1) {
+    const raw = argv[index]
     if (raw === '--refresh-expectations') args.refreshExpectations = true
+    else if (raw === '--apply') args.apply = true
+    else if (raw === '--manifest') args.manifest = argv[++index]
+    else if (raw.startsWith('--manifest=')) args.manifest = raw.slice('--manifest='.length)
+    else if (raw === '--confirm') args.confirm = argv[++index]
+    else if (raw.startsWith('--confirm=')) args.confirm = raw.slice('--confirm='.length)
     else if (raw.startsWith('--json=')) args.json = raw.slice('--json='.length)
     else if (raw.startsWith('--markdown=')) args.markdown = raw.slice('--markdown='.length)
     else if (raw.startsWith('--expectations=')) args.expectations = raw.slice('--expectations='.length)
-    else if (raw === '--apply' || raw.startsWith('--apply=')) {
-      throw new Error('Apply mode is intentionally not implemented. This prompt and tool are dry-run only.')
-    } else throw new Error(`Unknown argument: ${raw}`)
+    else throw new Error(`Unknown argument: ${raw}`)
+  }
+  if (args.manifest !== undefined) assert.ok(args.manifest, '--manifest path cannot be empty')
+  if (args.confirm !== undefined) assert.ok(args.confirm, '--confirm value cannot be empty')
+  if (args.apply) {
+    assert.ok(args.manifest, 'Apply refused: --manifest is required')
+    assert.ok(args.confirm, 'Apply refused: --confirm is required')
+    assert.equal(args.confirm, applySupport.APPLY_CONFIRMATION, `Apply refused: --confirm must equal ${applySupport.APPLY_CONFIRMATION}`)
+    assert.equal(args.refreshExpectations, false, 'Apply refused: --refresh-expectations is not allowed')
+    assert.equal(args.expectations, undefined, 'Apply refused: --expectations is not allowed')
+  } else if (args.manifest !== undefined || args.confirm !== undefined) {
+    throw new Error('Apply refused: --manifest/--confirm require explicit --apply')
   }
   assert.ok(args.json, '--json path cannot be empty')
   assert.ok(args.markdown, '--markdown path cannot be empty')
   return args
+}
+
+function parseManifestContents(contents) {
+  try {
+    const manifest = JSON.parse(Buffer.isBuffer(contents) ? contents.toString('utf8') : contents)
+    assert.ok(manifest && typeof manifest === 'object' && !Array.isArray(manifest), 'manifest must be a JSON object')
+    return manifest
+  } catch (error) {
+    throw new Error(`Apply refused: malformed manifest JSON: ${error.message}`)
+  }
 }
 
 function stableValue(value) {
@@ -392,13 +419,317 @@ async function loadContract() {
   const contract = await import(pathToFileURL(modulePath).href)
   return {
     RECIPE_CATEGORIES: contract.RECIPE_CATEGORIES,
+    isRecipeCategory: contract.isRecipeCategory,
     normalizeRecipeCategory: contract.normalizeRecipeCategory,
     resolveRecipeCategory: contract.resolveRecipeCategory,
   }
 }
 
+function mapSnapshot(snapshot) {
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, data: doc.data(), updateTime: doc.updateTime?.toDate?.().toISOString() || null }))
+    .sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }))
+}
+
+function productionQueries(db, ownerUid) {
+  const owner = db.collection('users').doc(ownerUid)
+  return {
+    recipes: db.collection('recipes'),
+    meta: owner.collection('recipes').doc('root').collection('meta'),
+    weekPlans: owner.collection('pantry').doc('root').collection('weekPlans'),
+  }
+}
+
+async function readApplyProduction(db, ownerUid) {
+  const queries = productionQueries(db, ownerUid)
+  const [recipeSnap, metaSnap, weekPlanSnap] = await Promise.all([
+    queries.recipes.get(), queries.meta.get(), queries.weekPlans.get(),
+  ])
+  return {
+    recipes: mapSnapshot(recipeSnap),
+    metaDocs: mapSnapshot(metaSnap),
+    weekPlans: mapSnapshot(weekPlanSnap),
+  }
+}
+
+async function readTransactionState(transaction, db, ownerUid) {
+  const queries = productionQueries(db, ownerUid)
+  // Firestore transactions require every read before the first write. Keep these
+  // reads explicit and sequential so later maintenance cannot interleave writes.
+  const recipeSnap = await transaction.get(queries.recipes)
+  const metaSnap = await transaction.get(queries.meta)
+  return { recipes: mapSnapshot(recipeSnap), metaDocs: mapSnapshot(metaSnap), weekPlans: [] }
+}
+
+function repositoryState(repoRoot, manifestRelativePath) {
+  const branch = execFileSync('git', ['branch', '--show-current'], { cwd: repoRoot, encoding: 'utf8' }).trim()
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim()
+  const originMain = execFileSync('git', ['rev-parse', 'origin/main'], { cwd: repoRoot, encoding: 'utf8' }).trim()
+  const trackedChanges = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: repoRoot, encoding: 'utf8' }).trim()
+  const manifestChanges = execFileSync('git', ['status', '--porcelain', '--', manifestRelativePath], { cwd: repoRoot, encoding: 'utf8' }).trim()
+  assert.equal(branch, 'main', 'Apply refused: current branch must be main')
+  assert.equal(head, originMain, 'Apply refused: local main and origin/main are not synchronized')
+  assert.equal(trackedChanges, '', `Apply refused: tracked worktree changes remain:\n${trackedChanges}`)
+  assert.equal(manifestChanges, '', 'Apply refused: approved manifest has worktree changes')
+  return { branch, head, originMain }
+}
+
+function applyPaths() {
+  return {
+    revert: 'docs/audits/recipe-category-migration-revert-2026-08-25.json',
+    json: 'docs/audits/recipe-category-migration-apply-2026-08-25.json',
+    markdown: 'docs/audits/recipe-category-migration-apply-2026-08-25.md',
+  }
+}
+
+function renderApplyMarkdown(report) {
+  return `# Recipe Category Migration Apply — 2026-08-25
+
+> ${report.executiveResult}
+
+## Approved manifest
+
+- Path: \`${report.approvedManifest.path}\`
+- SHA-256: \`${report.approvedManifest.sha256}\`
+- Rows: ${report.approvedManifest.rowCount} (${report.approvedManifest.sharedWriteRows} shared writes, ${report.approvedManifest.overrideRemovalRows} override removals, ${report.approvedManifest.preservedOverrides} preserved override)
+- Apply-tool commit: \`${report.applyToolCommitSha}\`
+
+## Pre-apply gate
+
+- Shared READY: ${report.preApplyGate.sharedReady}
+- Override removals READY: ${report.preApplyGate.overrideRemovalsReady}
+- Preserved overrides verified: ${report.preApplyGate.preservedOverridesVerified}
+- Precondition mismatches: ${report.preApplyGate.preconditionMismatches}
+- Unexpected records: ${report.preApplyGate.unexpectedRecords}
+- Unresolved records: ${report.preApplyGate.unresolvedRecords}
+
+## Transaction
+
+- Started: ${report.transaction.startedAt}
+- Completed: ${report.transaction.completedAt}
+- Result: ${report.transaction.result}
+- Shared category updates: ${report.transaction.sharedCategoryUpdates}
+- Override category deletions: ${report.transaction.overrideCategoryDeletions}
+- Total document writes: ${report.transaction.totalDocumentWrites}
+- Preserved-override writes: ${report.transaction.preservedOverrideWrites}
+- Partial writes: ${report.transaction.partialWrites}
+
+## Post-apply verification
+
+- Shared documents: ${report.postApply.sharedDocuments}
+- Canonical shared categories: ${report.postApply.canonicalSharedCategories}
+- Noncanonical shared categories: ${report.postApply.noncanonicalSharedCategories}
+- Missing shared categories: ${report.postApply.missingSharedCategories}
+- Category overrides remaining: ${report.postApply.categoryOverridesRemaining}
+- Recipe 182 shared category: ${report.postApply.preservedOverride.sharedCategory}
+- Recipe 182 override category: ${report.postApply.preservedOverride.overrideCategory}
+- Shared readback rows verified: ${report.postApply.sharedReadbackRowsVerified}
+- Override-deletion rows verified: ${report.postApply.overrideDeletionRowsVerified}
+
+${markdownTable(['Category', 'Count'], Object.entries(report.postApply.distribution))}
+
+## Unrelated-data safety
+
+- Week-plan writes: 0
+- Week-plan stable projection unchanged: ${report.safety.weekPlansUnchanged}
+- Stored role changes: 0
+- defaultRole changes: 0
+- Other recipe-field changes: ${report.safety.otherRecipeFieldsUnchanged ? 0 : 'DETECTED'}
+- Other RecipeMeta-field changes: ${report.safety.otherMetaFieldsUnchanged ? 0 : 'DETECTED'}
+
+## Recovery
+
+- Revert manifest: \`${report.revertManifestPath}\`
+- Rows covered: ${report.revertRowsCovered}
+- Revert executed: no (separate explicit authorization required)
+`
+}
+
+function postApplyDetails(manifest, state, validation, contract) {
+  const recipes = new Map(state.recipes.map(recipe => [recipe.id, recipe]))
+  const metas = new Map(state.metaDocs.map(meta => [meta.id, meta]))
+  const canonicalCount = state.recipes.filter(recipe => contract.isRecipeCategory(recipe.data.category)).length
+  const missing = state.recipes.filter(recipe => !Object.prototype.hasOwnProperty.call(recipe.data, 'category') || recipe.data.category === '').length
+  const noncanonical = state.recipes.filter(recipe => !contract.isRecipeCategory(recipe.data.category) && recipe.data.category !== '' && recipe.data.category !== undefined).length
+  const remainingOverrideDocs = state.metaDocs.filter(meta => {
+    const category = applySupport.categoryOverride(meta)
+    return category !== undefined && category !== null && category !== ''
+  })
+  const intentional = remainingOverrideDocs.filter(meta => meta.id === '182'
+    && applySupport.categoryOverride(meta) === applySupport.PRESERVED_OVERRIDE.overrideCategory).length
+  const legacy = remainingOverrideDocs.filter(meta => !contract.isRecipeCategory(applySupport.categoryOverride(meta))).length
+  const redundant = remainingOverrideDocs.filter(meta => {
+    if (meta.id === '182') return false
+    const recipeID = applySupport.recipeIdForMeta(meta)
+    const shared = recipes.get(recipeID)?.data?.category
+    const override = applySupport.categoryOverride(meta)
+    return contract.normalizeRecipeCategory(override, recipeID) === contract.normalizeRecipeCategory(shared, recipeID)
+      || (override === 'Breakfast, Snacks & Sides' && shared === 'Sides')
+  }).length
+  return {
+    sharedDocuments: state.recipes.length,
+    canonicalSharedCategories: canonicalCount,
+    noncanonicalSharedCategories: noncanonical,
+    missingSharedCategories: missing,
+    unexpectedCategoryValues: noncanonical,
+    distribution: validation.distribution,
+    categoryOverridesRemaining: validation.categoryOverrides,
+    legacyOverridesRemaining: legacy,
+    redundantOverridesRemaining: redundant,
+    intentionalOverridesRemaining: intentional,
+    sharedReadbackRowsVerified: manifest.sharedRecipeChanges.filter(row => recipes.get(row.recipeID)?.data?.category === row.proposedCategory).length,
+    overrideDeletionRowsVerified: manifest.overrideChanges.filter(row => applySupport.categoryOverride(metas.get(row.metaDocumentID)) === undefined).length,
+    preservedOverride: {
+      recipeID: '182',
+      title: 'Spicy Quinoa with Sweet Potatoes',
+      sharedCategory: recipes.get('182')?.data?.category,
+      overrideCategory: applySupport.categoryOverride(metas.get('182')),
+      effectivePersonalCategory: applySupport.categoryOverride(metas.get('182')) || recipes.get('182')?.data?.category,
+    },
+  }
+}
+
+async function runApply(args) {
+  const repoRoot = path.join(__dirname, '..')
+  const absoluteManifest = path.resolve(repoRoot, args.manifest)
+  const manifestRelativePath = path.relative(repoRoot, absoluteManifest).split(path.sep).join('/')
+  assert.equal(manifestRelativePath, applySupport.APPROVED_MANIFEST_PATH, `Apply refused: manifest must be ${applySupport.APPROVED_MANIFEST_PATH}`)
+  const manifestContents = fs.readFileSync(absoluteManifest)
+  const manifestSha256 = applySupport.sha256(manifestContents)
+  assert.equal(manifestSha256, applySupport.APPROVED_MANIFEST_SHA256, 'Apply refused: approved manifest SHA-256 changed')
+  const manifest = parseManifestContents(manifestContents)
+
+  loadEnv()
+  assert.equal(process.env.FIREBASE_PROJECT_ID, PROJECT_ID, `FIREBASE_PROJECT_ID must be ${PROJECT_ID}`)
+  const admin = getAdmin()
+  const owner = await admin.auth().getUserByEmail(OWNER_EMAIL)
+  const contract = await loadContract()
+  planner.validateManifest(manifest, contract)
+  applySupport.validateApprovedManifest(manifest, contract, owner.uid)
+  const repository = repositoryState(repoRoot, manifestRelativePath)
+
+  const db = admin.firestore()
+  const beforeState = await readApplyProduction(db, owner.uid)
+  const preflight = applySupport.assertLiveState(manifest, beforeState, contract, 'before')
+  const paths = applyPaths()
+  const revertEvidence = applySupport.buildRevertEvidence({
+    manifestPath: manifestRelativePath,
+    manifestSha256,
+    repositoryHead: repository.head,
+    manifest,
+    preflight,
+  })
+  const revertPath = writeEvidence(paths.revert, `${JSON.stringify(applySupport.stableValue(revertEvidence), null, 2)}\n`)
+
+  const { FieldValue } = require('firebase-admin/firestore')
+  const startedAt = new Date().toISOString()
+  let transactionResult
+  try {
+    transactionResult = await db.runTransaction(async transaction => {
+      const transactionState = await readTransactionState(transaction, db, owner.uid)
+      return applySupport.validateAndEnqueueWrites(
+        transaction, db, manifest, transactionState, contract, FieldValue.delete(),
+      )
+    })
+  } catch (error) {
+    if (String(error.message).includes('APPLY BLOCKED — PRECONDITION FAILURE')) throw error
+    throw new Error(`APPLY FAILED — TRANSACTION ROLLED BACK\n${error.stack || error.message}`)
+  }
+  const completedAt = new Date().toISOString()
+
+  const afterState = await readApplyProduction(db, owner.uid)
+  const postValidation = applySupport.validateLiveState(manifest, afterState, contract, 'after')
+  const safety = applySupport.compareSafety(beforeState, afterState)
+  const postApply = postApplyDetails(manifest, afterState, postValidation, contract)
+  const verificationPassed = postValidation.ok
+    && safety.otherRecipeFieldsUnchanged
+    && safety.otherMetaFieldsUnchanged
+    && safety.weekPlansUnchanged
+    && postApply.sharedReadbackRowsVerified === applySupport.EXPECTED.sharedWrites
+    && postApply.overrideDeletionRowsVerified === applySupport.EXPECTED.overrideDeletes
+
+  const report = {
+    generatedAt: new Date().toISOString(),
+    executiveResult: verificationPassed ? 'PASS — CATEGORY MIGRATION COMPLETE' : 'POST-APPLY VERIFICATION FAILED',
+    approvedManifest: {
+      path: manifestRelativePath,
+      sha256: manifestSha256,
+      rowCount: manifest.sharedRecipeChanges.length + manifest.overrideChanges.length + manifest.preservedOverrides.length,
+      sharedWriteRows: manifest.sharedRecipeChanges.length,
+      overrideRemovalRows: manifest.overrideChanges.length,
+      preservedOverrides: manifest.preservedOverrides.length,
+    },
+    applyToolCommitSha: repository.head,
+    preApplyRepositoryHead: repository.head,
+    projectId: PROJECT_ID,
+    preApplyGate: {
+      ...preflight,
+      preconditionMismatches: preflight.errors.length,
+      unexpectedRecords: 0,
+      unresolvedRecords: 0,
+    },
+    transaction: {
+      startedAt,
+      completedAt,
+      result: 'COMMITTED',
+      sharedCategoryUpdates: transactionResult.sharedWrites,
+      overrideCategoryDeletions: transactionResult.overrideDeletes,
+      totalDocumentWrites: transactionResult.totalWrites,
+      preservedOverrideWrites: transactionResult.preservedOverrideWrites,
+      partialWrites: 0,
+    },
+    sharedRows: manifest.sharedRecipeChanges.map(row => ({
+      recipeID: row.recipeID, title: row.title, beforeCategory: row.expectedOldCategory, afterCategory: row.proposedCategory,
+      readbackVerified: afterState.recipes.find(recipe => recipe.id === row.recipeID)?.data?.category === row.proposedCategory,
+    })),
+    overrideRemovalRows: manifest.overrideChanges.map(row => ({
+      recipeID: row.recipeID, metaDocumentID: row.metaDocumentID,
+      beforeOverrideCategory: row.expectedOverrideCategory, afterOverrideCategory: 'absent',
+      readbackVerified: applySupport.categoryOverride(afterState.metaDocs.find(meta => meta.id === row.metaDocumentID)) === undefined,
+    })),
+    preservedOverride: postApply.preservedOverride,
+    postApply,
+    readbackResults: {
+      passed: postValidation.ok,
+      mismatches: postValidation.errors,
+    },
+    safety: {
+      ...safety,
+      weekPlanWrites: 0,
+      storedRoleChanges: 0,
+      defaultRoleChanges: 0,
+      otherRecipeFieldChanges: safety.otherRecipeFieldsUnchanged ? 0 : 'DETECTED',
+      otherRecipeMetaFieldChanges: safety.otherMetaFieldsUnchanged ? 0 : 'DETECTED',
+    },
+    weekPlanNonMutationVerification: {
+      writes: 0,
+      stableProjectionUnchanged: safety.weekPlansUnchanged,
+      fieldsCovered: ['plannedRecipeIDs', 'PlannedEntry.role', 'cookedRecipeIDs', 'calendarEventIds', 'week identity'],
+    },
+    revertManifestPath: path.relative(repoRoot, revertPath).split(path.sep).join('/'),
+    revertRowsCovered: revertEvidence.validation.totalRows,
+    verificationResult: verificationPassed ? 'PASS' : 'FAIL',
+    prohibitedOperations: {
+      otherFirestoreMutations: 0,
+      firebaseDeployments: 0,
+      firestoreRuleChanges: 0,
+      firestoreIndexChanges: 0,
+      manualVercelDeployments: 0,
+    },
+  }
+  writeEvidence(paths.json, `${JSON.stringify(applySupport.stableValue(report), null, 2)}\n`)
+  writeEvidence(paths.markdown, renderApplyMarkdown(report))
+  console.log(renderApplyMarkdown(report))
+  console.log(`Revert manifest: ${path.resolve(paths.revert)}`)
+  console.log(`Apply JSON: ${path.resolve(paths.json)}`)
+  console.log(`Apply Markdown: ${path.resolve(paths.markdown)}`)
+  if (!verificationPassed) throw new Error(`POST-APPLY VERIFICATION FAILED\n${postValidation.errors.join('\n')}`)
+  return report
+}
+
 async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv)
+  if (args.apply) return runApply(args)
   loadEnv()
   assert.equal(process.env.FIREBASE_PROJECT_ID, PROJECT_ID, `FIREBASE_PROJECT_ID must be ${PROJECT_ID}`)
   const admin = getAdmin()
@@ -441,6 +772,8 @@ module.exports = {
   defaultPaths,
   fingerprintRelevantState,
   parseArgs,
+  parseManifestContents,
   reconciliation,
   renderMarkdown,
+  runApply,
 }
