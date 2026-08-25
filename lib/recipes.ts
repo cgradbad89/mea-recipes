@@ -12,9 +12,17 @@ import { deleteDoc,
   DocumentData,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Recipe, RecipeNutrition } from '@/types/recipe'
+import type { CookingStepIngredientMap, Recipe, RecipeNutrition } from '@/types/recipe'
 import { perServingFromTotal, servingSizeLabel } from './nutrition'
-import { isIngredientSubheader } from './recipeContent'
+import { isIngredientSubheader, parseRecipeContent } from './recipeContent'
+import {
+  buildHashedDeterministicCookingStepMap,
+  COOKING_MAPPING_ENGINE_VERSION,
+  COOKING_MAPPING_HYBRID_ENGINE_VERSION,
+  COOKING_MAPPING_PARSER_VERSION,
+  hasAiEligibleCookingSteps,
+  isAiEligibleCookingMappingReason,
+} from './cookingStepMapping'
 import {
   isRecipeCategory,
   normalizeRecipeCategory,
@@ -41,6 +49,9 @@ function docToRecipe(id: string, data: DocumentData): Recipe {
     addedBy: data.addedBy || undefined,
     prepTime: data.prepTime || undefined,
     cookTime: data.cookTime || undefined,
+    cookingStepIngredientMap: data.cookingStepIngredientMap && typeof data.cookingStepIngredientMap === 'object'
+      ? data.cookingStepIngredientMap as CookingStepIngredientMap
+      : undefined,
     servings: typeof data.servings === 'number' ? data.servings : undefined,
     // nutrition is written by the backfill; pass it through verbatim if present.
     nutrition: data.nutrition && typeof data.nutrition === 'object' ? data.nutrition : undefined,
@@ -103,6 +114,135 @@ export async function saveRecipe(recipe: SharedRecipeWrite, addedByUid?: string)
   })
   invalidateRecipeCache()
   return id
+}
+
+const COOKING_STEP_MAP_TIMEOUT_MS = 15_000
+const COOKING_MAPPING_UNRESOLVED_REASONS = new Set([
+  'ambiguous', 'implicit-reference', 'prepared-component', 'no-ingredient-use',
+])
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isValidCookingStepIngredientMap(
+  value: unknown,
+  ingredients: string[],
+  instructions: string[],
+  deterministicMap: CookingStepIngredientMap,
+): value is CookingStepIngredientMap {
+  if (!isRecord(value)) return false
+  if (
+    value.schemaVersion !== 1 ||
+    value.parserVersion !== COOKING_MAPPING_PARSER_VERSION ||
+    (value.engineVersion !== COOKING_MAPPING_ENGINE_VERSION && value.engineVersion !== COOKING_MAPPING_HYBRID_ENGINE_VERSION) ||
+    typeof value.sourceHash !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(value.sourceHash) ||
+    !Array.isArray(value.steps) ||
+    value.steps.length !== instructions.length
+  ) return false
+
+  return value.steps.every((step, instructionIndex) => {
+    if (!isRecord(step) || step.instructionIndex !== instructionIndex || !Array.isArray(step.ingredients)) return false
+    const deterministicStep = deterministicMap.steps[instructionIndex]
+    if (!deterministicStep) return false
+    const aiEligible = isAiEligibleCookingMappingReason(deterministicStep.unresolvedReason)
+    const deterministicReferences = new Map(
+      deterministicStep.ingredients.map(reference => [reference.ingredientIndex, reference]),
+    )
+    if (
+      step.unresolvedReason !== undefined &&
+      (typeof step.unresolvedReason !== 'string' || !COOKING_MAPPING_UNRESOLVED_REASONS.has(step.unresolvedReason))
+    ) return false
+
+    const seenIndexes = new Set<number>()
+    const validIngredients = step.ingredients.every(reference => {
+      if (!isRecord(reference)) return false
+      const index = reference.ingredientIndex
+      if (
+        typeof index !== 'number' ||
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= ingredients.length ||
+        isIngredientSubheader(ingredients[index]) ||
+        seenIndexes.has(index) ||
+        reference.confidence !== 'high' ||
+        (reference.provenance !== 'deterministic' && reference.provenance !== 'ai')
+      ) return false
+      seenIndexes.add(index)
+      const lockedReference = deterministicReferences.get(index)
+      if (reference.provenance === 'deterministic') {
+        if (!lockedReference || JSON.stringify(reference.usage) !== JSON.stringify(lockedReference.usage)) return false
+      } else if (!aiEligible || lockedReference) {
+        return false
+      }
+      if (reference.usage === undefined) return true
+      if (!isRecord(reference.usage)) return false
+      if (!['all', 'partial', 'remaining'].includes(reference.usage.kind as string)) return false
+      if (reference.usage.quantityText === undefined) return true
+      if (typeof reference.usage.quantityText !== 'string') return false
+      const instruction = instructions[instructionIndex].replace(/\s+/g, ' ').toLowerCase()
+      return instruction.includes(reference.usage.quantityText.trim().replace(/\s+/g, ' ').toLowerCase())
+    })
+    if (!validIngredients) return false
+    if ([...deterministicReferences.keys()].some(index => !seenIndexes.has(index))) return false
+    if (step.preparedComponents !== undefined && (
+      !aiEligible ||
+      !Array.isArray(step.preparedComponents) ||
+      !step.preparedComponents.every(component =>
+      isRecord(component) &&
+      typeof component.label === 'string' &&
+      component.label.trim().length > 0 &&
+      component.confidence === 'high' &&
+      component.provenance === 'ai')
+    )) return false
+    const hasAiResolution = step.ingredients.some(reference =>
+      isRecord(reference) && reference.provenance === 'ai') ||
+      (Array.isArray(step.preparedComponents) && step.preparedComponents.length > 0)
+    return hasAiResolution || step.unresolvedReason === deterministicStep.unresolvedReason
+  })
+}
+
+/**
+ * Prepare a source-bound map for the exact content about to be saved. Optional
+ * AI/API failure always falls back to the local deterministic map.
+ */
+export async function prepareCookingStepIngredientMap(
+  content: string,
+  token: string,
+  timeoutMs: number = COOKING_STEP_MAP_TIMEOUT_MS,
+): Promise<CookingStepIngredientMap> {
+  const { ingredients, instructions } = parseRecipeContent(content)
+  const deterministicMap = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+  if (!hasAiEligibleCookingSteps(deterministicMap)) return deterministicMap
+
+  try {
+    const response = await fetch('/api/cooking-step-map', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ content }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (!response.ok) return deterministicMap
+    const data: unknown = await response.json()
+    if (
+      !isRecord(data) ||
+      !isRecord(data.ai) ||
+      typeof data.ai.attempted !== 'boolean' ||
+      !['not_needed', 'completed', 'failed'].includes(data.ai.status as string) ||
+      typeof data.ai.resolvedIngredientReferences !== 'number' ||
+      !Number.isInteger(data.ai.resolvedIngredientReferences) ||
+      data.ai.resolvedIngredientReferences < 0 ||
+      typeof data.ai.resolvedPreparedComponents !== 'number' ||
+      !Number.isInteger(data.ai.resolvedPreparedComponents) ||
+      data.ai.resolvedPreparedComponents < 0 ||
+      !isValidCookingStepIngredientMap(data.mapping, ingredients, instructions, deterministicMap) ||
+      data.mapping.sourceHash !== deterministicMap.sourceHash
+    ) return deterministicMap
+    return data.mapping
+  } catch {
+    return deterministicMap
+  }
 }
 
 /**

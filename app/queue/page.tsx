@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, addToQueue, QueuedRecipe } from '@/lib/queue'
-import { saveRecipe, computeAndStoreNutrition } from '@/lib/recipes'
+import { saveRecipe, computeAndStoreNutrition, prepareCookingStepIngredientMap } from '@/lib/recipes'
 import { slugify } from '@/lib/utils'
 import {
   Loader2, Trash2, Check, ChefHat, ExternalLink,
@@ -64,6 +64,10 @@ export function QueueCard({
       setPublishError('Choose a canonical category before publishing this recipe.')
       return
     }
+    if (!user) {
+      setPublishError('Sign in again before publishing this recipe.')
+      return
+    }
     setPublishStage('saving')
     try {
       const updatedItem: QueuedRecipe = {
@@ -73,6 +77,8 @@ export function QueueCard({
         instructions: instructions.split('\n\n').map(l => l.trim()).filter(Boolean),
       }
       const content = buildRecipeContent(updatedItem)
+      const token = await user.getIdToken()
+      const cookingStepIngredientMap = await prepareCookingStepIngredientMap(content, token)
       const recipeId = await saveRecipe({
         recipeID: slugify(title),
         title: title.trim(),
@@ -86,18 +92,16 @@ export function QueueCard({
         hasImage: imageURL ? 'true' : 'false',
         created: new Date().toString(),
         modified: new Date().toString(),
+        cookingStepIngredientMap,
       }, uid)
       // Auto-nutrition: compute synchronously so the recipe lands populated, but
       // NEVER block publishing on it — computeAndStoreNutrition is timeout-guarded
       // and flags the recipe for manual calc on failure instead of throwing.
-      if (user) {
-        setPublishStage('nutrition')
-        try {
-          const token = await user.getIdToken()
-          await computeAndStoreNutrition(recipeId, token)
-        } catch (e) {
-          console.error('Nutrition step error (publishing anyway):', e)
-        }
+      setPublishStage('nutrition')
+      try {
+        await computeAndStoreNutrition(recipeId, token)
+      } catch (e) {
+        console.error('Nutrition step error (publishing anyway):', e)
       }
       await deleteFromQueue(uid, item.id!)
       onPublish(item.id!)

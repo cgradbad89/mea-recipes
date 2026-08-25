@@ -9,6 +9,25 @@ import type {
 
 export const COOKING_MAPPING_PARSER_VERSION = 'recipe-content-v1'
 export const COOKING_MAPPING_ENGINE_VERSION = 'deterministic-v1'
+export const COOKING_MAPPING_HYBRID_ENGINE_VERSION = 'hybrid-v1'
+
+export const AI_ELIGIBLE_COOKING_MAPPING_REASONS = [
+  'ambiguous',
+  'implicit-reference',
+  'prepared-component',
+] as const
+
+type AiEligibleCookingMappingReason = typeof AI_ELIGIBLE_COOKING_MAPPING_REASONS[number]
+
+export function isAiEligibleCookingMappingReason(
+  reason: CookingStepMapping['unresolvedReason'],
+): reason is AiEligibleCookingMappingReason {
+  return reason !== undefined && AI_ELIGIBLE_COOKING_MAPPING_REASONS.includes(reason as AiEligibleCookingMappingReason)
+}
+
+export function hasAiEligibleCookingSteps(map: Pick<CookingStepIngredientMap, 'steps'>): boolean {
+  return map.steps.some(step => isAiEligibleCookingMappingReason(step.unresolvedReason))
+}
 
 const PREPARATION_WORDS = new Set([
   'chopped', 'coarsely', 'crushed', 'cubed', 'diced', 'divided', 'drained',
@@ -393,5 +412,16 @@ export function buildDeterministicCookingStepMap(
     engineVersion: COOKING_MAPPING_ENGINE_VERSION,
     steps: instructions.map((instruction, instructionIndex) =>
       mapInstruction(instruction, instructionIndex, identities)),
+  }
+}
+
+/** Build the persisted deterministic shape and bind it to this exact parsed source. */
+export async function buildHashedDeterministicCookingStepMap(
+  ingredients: string[],
+  instructions: string[],
+): Promise<CookingStepIngredientMap> {
+  return {
+    ...buildDeterministicCookingStepMap(ingredients, instructions),
+    sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
   }
 }

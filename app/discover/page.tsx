@@ -4,7 +4,13 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import { useAppData } from '@/components/AppDataProvider'
-import { saveRecipe, invalidateRecipeCache, getTotalTime, computeAndStoreNutrition } from '@/lib/recipes'
+import {
+  saveRecipe,
+  invalidateRecipeCache,
+  getTotalTime,
+  computeAndStoreNutrition,
+  prepareCookingStepIngredientMap,
+} from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
 import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan, resolveRecipeRole, plannedRecipeIDList } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
@@ -327,6 +333,8 @@ export default function DiscoverPage() {
         sourceURL: '',
         status: 'pending',
       })
+      const token = await user.getIdToken()
+      const cookingStepIngredientMap = await prepareCookingStepIngredientMap(content, token)
       const recipeId = await saveRecipe({
         recipeID: '',
         title: (gen.title || suggestion.title).trim(),
@@ -342,13 +350,13 @@ export default function DiscoverPage() {
         modified: new Date().toString(),
         prepTime: gen.prepTime || '',
         cookTime: gen.cookTime || '',
+        cookingStepIngredientMap,
       }, user.uid)
       await refetchRecipes()
       invalidateRecipeCache()
       // Auto-nutrition — timeout-guarded; never blocks the save.
       setPlanNutritionFor(suggestion.title)
       try {
-        const token = await user.getIdToken()
         await computeAndStoreNutrition(recipeId, token)
       } catch (e) {
         console.error('Nutrition step error (recipe saved anyway):', e)
@@ -577,6 +585,8 @@ export default function DiscoverPage() {
         sourceURL: '',
         status: 'pending',
       })
+      const token = await user.getIdToken()
+      const cookingStepIngredientMap = await prepareCookingStepIngredientMap(content, token)
       const recipeId = await saveRecipe({
         recipeID: '',
         title: (generatedRecipe.title || 'Untitled Recipe').trim(),
@@ -592,13 +602,13 @@ export default function DiscoverPage() {
         modified: new Date().toString(),
         prepTime: generatedRecipe.prepTime || '',
         cookTime: generatedRecipe.cookTime || '',
+        cookingStepIngredientMap,
       }, user.uid)
       await refetchRecipes()
       invalidateRecipeCache()
       // Auto-nutrition — timeout-guarded; never blocks the save.
       setGenNutritionPhase(true)
       try {
-        const token = await user.getIdToken()
         await computeAndStoreNutrition(recipeId, token)
       } catch (e) {
         console.error('Nutrition step error (recipe saved anyway):', e)

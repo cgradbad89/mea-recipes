@@ -80,6 +80,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/fetch-recipe` | GET | Bearer token (required) | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted to authenticated users and the shared SSRF-safe public-URL boundary. |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters; failures are sanitized. |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; it is restricted to the user's **primary** calendar and at most seven operations (one weekly plan), has no list/search capability, and never stores the token. |
+| `/api/cooking-step-map` | POST | Bearer token (required) | Publish-time hybrid cooking-step mapping for exact final `{content}`. Auth and bounded parsing precede work; parsed source is capped at 64,000 content characters, 200 ingredients, 150 instructions, and 4,000 characters/line. Fully deterministic recipes make no AI call; eligible unresolved semantics make at most one centralized Gateway call. AI failure returns HTTP 200 with the valid deterministic map and sanitized status. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from the validated `{topCuisines,topCategories,recentTitles}` taste profile. Raw JSON is capped at 256,000 bytes; each collection is capped at 500 strings and each string at 2,000 characters; internal failures are sanitized. |
 | `/api/plan-suggestions` | POST | Bearer token (required) | FlavorGraph-informed AI suggestions for a week plan. Raw JSON is capped at 256 KB; request content is bounded to ≤21 planned recipes and ≤500 existing titles. |
 | `/api/recommendations` | POST | Bearer token (required) | AI 3-bucket recommendations from validated recipe, cook-count, rating, and favorite collections. Raw JSON is capped at 256,000 bytes; each collection/map is capped at 500 entries and client recipe text at 2,000 characters; scoring/bucket semantics are unchanged and internal failures are sanitized. |
@@ -100,7 +101,7 @@ shared this Firestore project, but MEA Recipes web now owns the supported data b
 ### `recipes/{id}` — shared recipe catalog (`lib/recipes.ts`)
 Doc ID = slugified title. Fields (see `types/recipe.ts` → `Recipe`):
 `recipeID, title, content, category, cuisine, imageURL, sourceURL, sourceFile, labels,
-hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutrition?, nutritionStatus?, defaultRole?`.
+hasImage, created, modified, addedBy?, prepTime?, cookTime?, cookingStepIngredientMap?, servings?, nutrition?, nutritionStatus?, defaultRole?`.
 - `prepTime` and `cookTime` are the only canonical recipe-time fields. `totalTime` is never
   persisted; `getTotalTime` derives it at read time (§5.8). The 2026-08-24 catalog audit populated
   both fields for all 234 usable production recipes (including explicit `cookTime: '0 min'` for
@@ -109,6 +110,13 @@ hasImage, created, modified, addedBy?, prepTime?, cookTime?, servings?, nutritio
   `docs/audits/recipe-time-audit-2026-08-24.md`.
 - `content` is a single freeform string; ingredients/instructions are **parsed at runtime**
   (`parseRecipeContent`), not stored as arrays.
+- `cookingStepIngredientMap?` is the embedded schema-v1 publish-time map for newly created recipes.
+  It stores parser/engine versions, the SHA-256 `sourceHash`, one result per instruction, high-confidence
+  ingredient references (`ingredientIndex`, `confidence`, `provenance`, optional textual usage), and
+  optional AI-validated prepared-component labels. Deterministic provenance is `deterministic`; validated
+  AI provenance is `ai`. The hash binds the map to the exact ordered ingredient/instruction arrays parsed
+  from the same stored `content`; it is not a substitute for the flat canonical content. `docToRecipe`
+  explicitly whitelists the field. Existing documents remain valid without it.
 - `category` has one canonical ordered 12-value write contract (`RECIPE_CATEGORIES` in
   `lib/recipeCategories.ts`): `Chicken & Poultry`, `Beef & Pork`, `Seafood`,
   `Vegetarian Mains`, `Pasta, Noodles & Rice`, `Salads & Bowls`, `Soups, Stews & Chili`,
@@ -699,11 +707,22 @@ retained as historical data and are not modified or deleted by this app.
     instruction arrays (including order, text, and subheaders), and
     `computeCookingMappingSourceHash` produces their lowercase SHA-256 fingerprint. A future stored
     mapping is valid only when that fingerprint matches the current effective parsed source. The
-    contract is schema v1 with parser `recipe-content-v1` and engine `deterministic-v1`. This
-    foundation does not write Firestore, invoke AI, change recipe publishing, backfill recipes, or
-    change production Cooking Mode. Later phases will add AI assistance for unresolved cases,
-    persistence/ingestion, override semantics, existing-recipe dry-run/backfill, and Cooking Mode
-    consumption.
+    contract is schema v1 with parser `recipe-content-v1`; deterministic-only results use engine
+    `deterministic-v1`, while a result containing accepted AI associations uses `hybrid-v1`.
+
+    **Prompt 2 publish-time hybrid pipeline:** Queue publish and both Discover creation/save flows
+    finalize the exact flat content, parse and hash it locally, and persist
+    `cookingStepIngredientMap` in the same initial recipe write. Fully deterministic recipes skip the
+    mapping API. Only steps unresolved as `ambiguous`, `implicit-reference`, or
+    `prepared-component` are eligible for one server-side structured Gateway call; `no-ingredient-use`
+    is never eligible. Prompt version `v1` lives in `lib/aiConfig.ts`, and the application-wide model
+    remains centrally configured. Deterministic validation rejects noneligible/out-of-range/header
+    indexes, uncertain associations, duplicate conflicts, invented usage text, and ungrounded prepared
+    labels, while preserving every deterministic reference. AI timeout, provider failure, invalid
+    response, or source-hash mismatch falls back to the local deterministic map, so recipe publishing
+    proceeds. Prompt 2 changes new-recipe persistence only: it does not backfill existing recipes or
+    change production Cooking Mode. Override semantics, existing-recipe dry-run/backfill, and map
+    consumption remain later phases.
 
 ---
 
@@ -871,12 +890,14 @@ retained as historical data and are not modified or deleted by this app.
   Web-Audio beep + `navigator.vibrate` — is best-effort and feature-detected: it may be blocked while
   the tab is backgrounded/locked, but the visual "Done!" flash and the correct remaining-time-on-return
   always work (the wake lock above keeps the screen on while in Cooking Mode).
-- **The deterministic cooking-step mapper is not yet connected to production Cooking Mode.**
-  Prompt 1 establishes the isolated domain contract and tests only. Until a later integration phase,
+- **Persisted cooking-step maps are not yet connected to production Cooking Mode.**
+  Prompt 2 accumulates source-bound deterministic/hybrid maps only on newly published recipes. Until Prompt 3,
   `components/CookingMode.tsx` still derives displayed step ingredients with its legacy terminal-word
-  regex mapper, including that mapper's known collision and omission risks. Do not interpret the new
-  engine's presence as a production behavior change or persist/backfill mappings before the source-hash,
-  override, AI-assistance, and consumption phases define those boundaries.
+  regex mapper, including that mapper's known collision and omission risks. Existing recipes have no
+  stored map until a later dry-run/backfill. Shared or personal content edits do not regenerate mapping
+  in Prompt 2 and can leave a stored map stale; future consumption must reject it whenever source hash,
+  schema, parser version, or supported engine version differs. Prompt 3 owns that render-time gate and
+  personal-override behavior.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -966,7 +987,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (deterministic foundation) | Pure schema-v1 deterministic engine, group preservation, ambiguity/prepared-component safety, qualifier metadata, and exact-source SHA-256 fingerprint are implemented and tested. Production Cooking Mode still uses the legacy terminal-token mapper. Deferred: AI resolution, ingestion/persistence, override behavior, integration, and existing-recipe dry-run/backfill. See §5.25 and §6. |
+| Cooking-step ingredient mapping | High | Partial (publish-time persistence) | Deterministic engine **Done**; validated AI assistance for eligible unresolved semantics **Done**; persistence on future Queue/Discover publishes **Done**. AI failure safely persists the deterministic map. Production Cooking Mode consumption, render-time version/hash invalidation, personal overrides, and existing-recipe dry-run/backfill remain pending. See §5.25 and §6. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
@@ -1011,7 +1032,7 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | Firebase Auth | User identity — **Google sign-in** + optional **email/password linked to the same account** (Batch 7) | Web config hardcoded in `lib/firebase.ts` (apiKey, authDomain, projectId, …). **Console prerequisite:** the **Email/Password** provider must be enabled under Authentication → Sign-in method, or the link/sign-in/reset calls throw `auth/operation-not-allowed`. |
 | Firebase Firestore (client) | Recipe catalog + per-user data | Same hardcoded web config |
 | Firebase Admin | Server-side ID-token verification in API routes | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` |
-| Vercel AI Gateway | AI recipe generation, parsing, grocery cleanup, recommendations, assistant, and nutrition fallback | `AI_GATEWAY_API_KEY` in non-Vercel runtimes; Vercel OIDC is also supported. Central config: `lib/aiConfig.ts`. |
+| Vercel AI Gateway | AI recipe generation, parsing, grocery cleanup, recommendations, assistant, cooking-step unresolved-semantic resolution, and nutrition fallback | `AI_GATEWAY_API_KEY` in non-Vercel runtimes; Vercel OIDC is also supported. Central config: `lib/aiConfig.ts`. |
 | Google Calendar API | Push meal-plan days as calendar events (Batch 6) | **No stored credential.** Client-obtained OAuth access token (`calendar.events` scope) via Firebase Google sign-in re-auth popup. Requires the Calendar API **enabled** + the scope on the **OAuth consent screen** in the `malignant-metro` GCP project. |
 | MyFitnessPal (nutrition sync) | Nightly-capable import of the food diary into `users/{uid}/nutrition/root/log` (`source: 'mfp'`). **No API** — `app/api/cron/sync-nutrition` scrapes the classic diary page HTML (`/food/diary/{MFP_USERNAME}?date=…`) with `cheerio`. | `MFP_SYNC_UID`, `MFP_SESSION_COOKIE`, `MFP_USER_AGENT`, `MFP_USERNAME`, `CRON_SECRET`; optional `MFP_DEBUG`. Session cookie expires periodically → refresh manually in Vercel. (`MFP_CSRF_TOKEN` is no longer used by code.) |
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |

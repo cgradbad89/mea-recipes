@@ -14,6 +14,7 @@ interface AIRequestBase {
   feature: string
   userId?: string
   system?: string
+  promptVersion?: string
 }
 
 interface AIPromptRequest extends AIRequestBase {
@@ -34,11 +35,11 @@ function requestInput(request: AIRequest): { prompt: string } | { messages: Mode
     : { messages: request.messages }
 }
 
-function recordUsage(feature: string, usage: LanguageModelUsage): void {
+function recordUsage(feature: string, usage: LanguageModelUsage, promptVersion: string = AI_PROMPT_VERSION): void {
   console.info('[ai-usage]', {
     provider: AI_PROVIDER,
     model: AI_MODEL,
-    promptVersion: AI_PROMPT_VERSION,
+    promptVersion,
     feature,
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
@@ -51,9 +52,9 @@ export async function generateAIText(request: AIRequest): Promise<string> {
     model: gateway(AI_MODEL),
     system: request.system,
     ...requestInput(request),
-    providerOptions: aiGatewayProviderOptions(request.feature, request.userId),
+    providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
   })
-  recordUsage(request.feature, result.usage)
+  recordUsage(request.feature, result.usage, request.promptVersion)
   return result.text
 }
 
@@ -65,9 +66,9 @@ export async function generateAIObject<T>(
     system: request.system,
     ...requestInput(request),
     output: Output.object({ schema: request.schema }),
-    providerOptions: aiGatewayProviderOptions(request.feature, request.userId),
+    providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
   })
-  recordUsage(request.feature, result.usage)
+  recordUsage(request.feature, result.usage, request.promptVersion)
   return result.output
 }
 
@@ -79,8 +80,8 @@ export async function generateAIArray<T>(
     system: request.system,
     ...requestInput(request),
     output: Output.array({ element: request.element }),
-    providerOptions: aiGatewayProviderOptions(request.feature, request.userId),
+    providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
   })
-  recordUsage(request.feature, result.usage)
+  recordUsage(request.feature, result.usage, request.promptVersion)
   return result.output
 }

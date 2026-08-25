@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   updateQueueItem: vi.fn(),
   deleteFromQueue: vi.fn(),
   saveRecipe: vi.fn(),
+  prepareCookingStepIngredientMap: vi.fn(),
   computeAndStoreNutrition: vi.fn(),
   getIdToken: vi.fn(),
 }))
@@ -24,6 +25,7 @@ vi.mock('@/lib/queue', async importOriginal => {
 })
 vi.mock('@/lib/recipes', () => ({
   saveRecipe: mocks.saveRecipe,
+  prepareCookingStepIngredientMap: mocks.prepareCookingStepIngredientMap,
   computeAndStoreNutrition: mocks.computeAndStoreNutrition,
 }))
 vi.mock('@/lib/AuthContext', () => ({
@@ -67,6 +69,13 @@ beforeEach(() => {
   mocks.updateQueueItem.mockReset().mockResolvedValue(undefined)
   mocks.deleteFromQueue.mockReset().mockResolvedValue(undefined)
   mocks.saveRecipe.mockReset().mockResolvedValue('queued-recipe')
+  mocks.prepareCookingStepIngredientMap.mockReset().mockResolvedValue({
+    schemaVersion: 1,
+    parserVersion: 'recipe-content-v1',
+    engineVersion: 'deterministic-v1',
+    sourceHash: 'a'.repeat(64),
+    steps: [],
+  })
   mocks.computeAndStoreNutrition.mockReset().mockResolvedValue(null)
   mocks.getIdToken.mockReset().mockResolvedValue('token')
 })
@@ -105,7 +114,14 @@ describe('queue category review boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
 
     await waitFor(() => expect(mocks.saveRecipe).toHaveBeenCalledTimes(1))
-    expect(mocks.saveRecipe.mock.calls[0][0]).toMatchObject({ category: 'Sauces & Condiments' })
+    expect(mocks.prepareCookingStepIngredientMap).toHaveBeenCalledWith(
+      expect.stringContaining('INGREDIENTS\n1 test ingredient'),
+      'token',
+    )
+    expect(mocks.saveRecipe.mock.calls[0][0]).toMatchObject({
+      category: 'Sauces & Condiments',
+      cookingStepIngredientMap: expect.objectContaining({ sourceHash: 'a'.repeat(64) }),
+    })
     await waitFor(() => expect(onPublish).toHaveBeenCalledWith('queue-1'))
   })
 })

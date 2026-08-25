@@ -31,7 +31,7 @@ export interface RecipeNutrition extends NutritionMacros {
 
 export type CookingMappingConfidence = 'high'
 
-export type CookingMappingProvenance = 'deterministic'
+export type CookingMappingProvenance = 'deterministic' | 'ai'
 
 export type CookingIngredientUsageKind = 'all' | 'partial' | 'remaining'
 
@@ -47,9 +47,16 @@ export interface CookingStepIngredientReference {
   usage?: CookingIngredientUsage
 }
 
+export interface CookingPreparedComponentReference {
+  label: string
+  confidence: 'high'
+  provenance: 'ai'
+}
+
 export interface CookingStepMapping {
   instructionIndex: number
   ingredients: CookingStepIngredientReference[]
+  preparedComponents?: CookingPreparedComponentReference[]
   unresolvedReason?: 'ambiguous' | 'implicit-reference' | 'prepared-component' | 'no-ingredient-use'
 }
 
@@ -59,6 +66,16 @@ export interface CookingStepIngredientMap {
   engineVersion: string
   sourceHash: string
   steps: CookingStepMapping[]
+}
+
+export interface CookingStepMapApiResponse {
+  mapping: CookingStepIngredientMap
+  ai: {
+    attempted: boolean
+    status: 'not_needed' | 'completed' | 'failed'
+    resolvedIngredientReferences: number
+    resolvedPreparedComponents: number
+  }
 }
 
 export interface Recipe {
@@ -80,6 +97,7 @@ export interface Recipe {
   addedBy?: string  // uid of user who added this recipe via web
   prepTime?: string
   cookTime?: string
+  cookingStepIngredientMap?: CookingStepIngredientMap
   servings?: number          // recipe-level servings, if stored top-level on the doc
   nutrition?: RecipeNutrition
   // Set when auto-nutrition-on-publish failed/timed out: 'needs_calc' surfaces the

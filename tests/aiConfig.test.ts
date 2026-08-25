@@ -5,7 +5,9 @@ import {
   AI_PROMPT_VERSION,
   AI_PROVENANCE,
   AI_PROVIDER,
+  COOKING_STEP_MAPPING_PROMPT_VERSION,
   aiCacheKey,
+  aiGatewayProviderOptions,
 } from '@/lib/aiConfig'
 
 describe('AI configuration', () => {
@@ -14,6 +16,8 @@ describe('AI configuration', () => {
     expect(AI_CACHE_ID).toContain(AI_PROVIDER)
     expect(AI_CACHE_ID).toContain(AI_MODEL)
     expect(AI_CACHE_ID).toContain(AI_PROMPT_VERSION)
+    expect(aiGatewayProviderOptions('cooking-step-map', 'user-123', COOKING_STEP_MAPPING_PROMPT_VERSION))
+      .toMatchObject({ gateway: { tags: expect.arrayContaining(['prompt:v1']) } })
   })
 
   it('does not reuse the legacy cache key', () => {
