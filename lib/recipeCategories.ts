@@ -15,6 +15,16 @@ export const RECIPE_CATEGORIES = [
 
 export type RecipeCategory = (typeof RECIPE_CATEGORIES)[number]
 
+export type RecipeCategoryResolutionSource =
+  | 'canonical'
+  | 'direct-legacy-alias'
+  | 'recipe-specific-legacy'
+
+export interface RecipeCategoryResolution {
+  category: RecipeCategory
+  source: RecipeCategoryResolutionSource
+}
+
 const CANONICAL_CATEGORY_SET = new Set<string>(RECIPE_CATEGORIES)
 
 const DIRECT_LEGACY_ALIASES: Readonly<Record<string, RecipeCategory>> = {
@@ -73,13 +83,31 @@ export function normalizeRecipeCategory(
   value: unknown,
   recipeID?: string,
 ): RecipeCategory | null {
+  return resolveRecipeCategory(value, recipeID)?.category ?? null
+}
+
+/**
+ * Resolve a stored category while retaining where the approved classification
+ * came from. Migration tooling uses the source to distinguish canonical values,
+ * deterministic aliases, and exact recipe-specific compatibility without
+ * maintaining a second taxonomy.
+ */
+export function resolveRecipeCategory(
+  value: unknown,
+  recipeID?: string,
+): RecipeCategoryResolution | null {
   if (typeof value !== 'string' || value.trim() === '') return null
 
   if (recipeID) {
     const recipeSpecific = RECIPE_SPECIFIC_LEGACY_ALIASES[value]?.[recipeID]
-    if (recipeSpecific) return recipeSpecific
+    if (recipeSpecific) {
+      return { category: recipeSpecific, source: 'recipe-specific-legacy' }
+    }
   }
 
-  if (isRecipeCategory(value)) return value
-  return DIRECT_LEGACY_ALIASES[value] ?? null
+  if (isRecipeCategory(value)) return { category: value, source: 'canonical' }
+  const directAlias = DIRECT_LEGACY_ALIASES[value]
+  return directAlias
+    ? { category: directAlias, source: 'direct-legacy-alias' }
+    : null
 }

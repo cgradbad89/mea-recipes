@@ -923,8 +923,8 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Feature | Priority | Status | Notes |
 |---|---|---|---|
 | Canonical recipe category code contract | High | Done | One 12-value tuple drives types, UI, filters, icons, AI schemas/prompts, shared-write validation, read compatibility, and meal-plan role derivation; no production data migration. |
-| Existing recipe category data migration | High | Pending | 66 approved shared-recipe category changes remain for a dry run, reviewed apply, and post-migration verification. |
-| Legacy personal category override cleanup | Medium | Pending | 24 likely redundant/legacy override removals remain; preserve the intentional Spicy Quinoa → Salads & Bowls override. |
+| Existing recipe category data migration | High | Pending | Dry-run-only tooling and the exact 2026-08-25 production manifest are complete: 66 shared changes are READY with exact old-value preconditions and no drift/unresolved rows. Product-owner review, a separately approved exact-manifest apply, and post-migration verification remain pending. |
+| Legacy personal category override cleanup | Medium | Pending | The 2026-08-25 dry run identifies 24 exact redundant/legacy override removals with exact uid/recipeID/old-value preconditions and preserves the intentional Spicy Quinoa → Salads & Bowls override. Product-owner review, apply, and verification remain pending. |
 | Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Partial | Setup UI exists at `/queue#bookmarklet`, but it sends URL/image/time metadata rather than logged-in page DOM; paywalled server fetches remain blocked. |
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
