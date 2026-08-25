@@ -335,7 +335,8 @@ function renderMarkdown(manifest) {
 
 > ${manifest.overallGate}
 >
-> Review-only evidence. This report authorizes no Firestore writes and the tool has no apply mode.
+> Review-only evidence. This invocation authorizes and performs no Firestore writes; apply requires
+> an explicit committed manifest plus the separate \`--apply\` and confirmation gates.
 
 ## Production baseline
 
