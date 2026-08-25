@@ -1,0 +1,764 @@
+{
+  "applyToolCommitSha": "382b553a84e3b917df1375cd7bfe0441bcf945f8",
+  "approvedManifest": {
+    "overrideRemovalRows": 24,
+    "path": "docs/audits/recipe-category-migration-dryrun-2026-08-25.json",
+    "preservedOverrides": 1,
+    "rowCount": 91,
+    "sha256": "e1f266550d037b7683e2f4640e7aeca1d84471879399bb75522441ef69470e67",
+    "sharedWriteRows": 66
+  },
+  "executiveResult": "PASS — CATEGORY MIGRATION COMPLETE",
+  "generatedAt": "2026-08-25T12:13:13.683Z",
+  "overrideRemovalRows": [
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "air-fried-sweet-potato-fries-with-rosemary-and-garlic",
+      "readbackVerified": true,
+      "recipeID": "air-fried-sweet-potato-fries-with-rosemary-and-garlic"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "balsamic-roasted-beets",
+      "readbackVerified": true,
+      "recipeID": "balsamic-roasted-beets"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Soups, Stews & Chili",
+      "metaDocumentID": "best-black-bean-soup",
+      "readbackVerified": true,
+      "recipeID": "best-black-bean-soup"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "braised-red-cabbage",
+      "readbackVerified": true,
+      "recipeID": "braised-red-cabbage"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "buttered-peas-with-mint",
+      "readbackVerified": true,
+      "recipeID": "buttered-peas-with-mint"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "caprese-salad",
+      "readbackVerified": true,
+      "recipeID": "caprese-salad"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "classic-bbq-corn",
+      "readbackVerified": true,
+      "recipeID": "classic-bbq-corn"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "readbackVerified": true,
+      "recipeID": "cucumber-tomato-salad-with-red-wine-vinaigrette"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "garlic-butter-roasted-broccoli",
+      "readbackVerified": true,
+      "recipeID": "garlic-butter-roasted-broccoli"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "garlic-parmesan-roasted-potatoes",
+      "readbackVerified": true,
+      "recipeID": "garlic-parmesan-roasted-potatoes"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "grilled-zucchini-and-summer-squash",
+      "readbackVerified": true,
+      "recipeID": "grilled-zucchini-and-summer-squash"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "herb-roasted-cauliflower",
+      "readbackVerified": true,
+      "recipeID": "herb-roasted-cauliflower"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "honey-butter-glazed-carrots",
+      "readbackVerified": true,
+      "recipeID": "honey-butter-glazed-carrots"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "honey-glazed-roasted-parsnips",
+      "readbackVerified": true,
+      "recipeID": "honey-glazed-roasted-parsnips"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "lemon-garlic-roasted-artichokes",
+      "readbackVerified": true,
+      "recipeID": "lemon-garlic-roasted-artichokes"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "rice-pilaf",
+      "readbackVerified": true,
+      "recipeID": "rice-pilaf"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-acorn-squash-with-brown-butter",
+      "readbackVerified": true,
+      "recipeID": "roasted-acorn-squash-with-brown-butter"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-asparagus-with-lemon",
+      "readbackVerified": true,
+      "recipeID": "roasted-asparagus-with-lemon"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-brussels-sprouts-with-bacon",
+      "readbackVerified": true,
+      "recipeID": "roasted-brussels-sprouts-with-bacon"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-radishes-with-herb-butter",
+      "readbackVerified": true,
+      "recipeID": "roasted-radishes-with-herb-butter"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-root-vegetable-medley",
+      "readbackVerified": true,
+      "recipeID": "roasted-root-vegetable-medley"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "saut-ed-garlic-green-beans",
+      "readbackVerified": true,
+      "recipeID": "saut-ed-garlic-green-beans"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "saut-ed-kale-with-garlic-and-lemon",
+      "readbackVerified": true,
+      "recipeID": "saut-ed-kale-with-garlic-and-lemon"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "simple-house-salad-with-vinaigrette",
+      "readbackVerified": true,
+      "recipeID": "simple-house-salad-with-vinaigrette"
+    }
+  ],
+  "postApply": {
+    "canonicalSharedCategories": 236,
+    "categoryOverridesRemaining": 1,
+    "distribution": {
+      "Beef & Pork": 20,
+      "Breakfast": 4,
+      "Chicken & Poultry": 38,
+      "Drinks": 3,
+      "Pasta, Noodles & Rice": 23,
+      "Salads & Bowls": 33,
+      "Sauces & Condiments": 4,
+      "Seafood": 12,
+      "Sides": 34,
+      "Snacks": 4,
+      "Soups, Stews & Chili": 34,
+      "Vegetarian Mains": 27
+    },
+    "intentionalOverridesRemaining": 1,
+    "legacyOverridesRemaining": 0,
+    "missingSharedCategories": 0,
+    "noncanonicalSharedCategories": 0,
+    "overrideDeletionRowsVerified": 24,
+    "preservedOverride": {
+      "effectivePersonalCategory": "Salads & Bowls",
+      "overrideCategory": "Salads & Bowls",
+      "recipeID": "182",
+      "sharedCategory": "Vegetarian Mains",
+      "title": "Spicy Quinoa with Sweet Potatoes"
+    },
+    "redundantOverridesRemaining": 0,
+    "sharedDocuments": 236,
+    "sharedReadbackRowsVerified": 66,
+    "unexpectedCategoryValues": 0
+  },
+  "preApplyGate": {
+    "categoryOverrides": 25,
+    "distribution": {
+      "Beef & Pork": 20,
+      "Breakfast": 4,
+      "Chicken & Poultry": 38,
+      "Drinks": 3,
+      "Pasta, Noodles & Rice": 23,
+      "Salads & Bowls": 33,
+      "Sauces & Condiments": 4,
+      "Seafood": 12,
+      "Sides": 34,
+      "Snacks": 4,
+      "Soups, Stews & Chili": 34,
+      "Vegetarian Mains": 27
+    },
+    "errors": [],
+    "ok": true,
+    "overrideRemovalsReady": 24,
+    "phase": "before",
+    "preconditionMismatches": 0,
+    "preservedOverridesVerified": 1,
+    "sharedDocuments": 236,
+    "sharedReady": 66,
+    "unexpectedRecords": 0,
+    "unresolvedRecords": 0
+  },
+  "preApplyRepositoryHead": "382b553a84e3b917df1375cd7bfe0441bcf945f8",
+  "preservedOverride": {
+    "effectivePersonalCategory": "Salads & Bowls",
+    "overrideCategory": "Salads & Bowls",
+    "recipeID": "182",
+    "sharedCategory": "Vegetarian Mains",
+    "title": "Spicy Quinoa with Sweet Potatoes"
+  },
+  "prohibitedOperations": {
+    "firebaseDeployments": 0,
+    "firestoreIndexChanges": 0,
+    "firestoreRuleChanges": 0,
+    "manualVercelDeployments": 0,
+    "otherFirestoreMutations": 0
+  },
+  "projectId": "malignant-metro",
+  "readbackResults": {
+    "mismatches": [],
+    "passed": true
+  },
+  "revertManifestPath": "docs/audits/recipe-category-migration-revert-2026-08-25.json",
+  "revertRowsCovered": 90,
+  "safety": {
+    "afterFingerprint": "2191909a8bcdca8d6aba72f0180825429fa1f8d9e826422d082b374985428c5a",
+    "beforeFingerprint": "2191909a8bcdca8d6aba72f0180825429fa1f8d9e826422d082b374985428c5a",
+    "defaultRoleChanges": 0,
+    "otherMetaFieldsUnchanged": true,
+    "otherRecipeFieldChanges": 0,
+    "otherRecipeFieldsUnchanged": true,
+    "otherRecipeMetaFieldChanges": 0,
+    "storedRoleChanges": 0,
+    "weekPlanWrites": 0,
+    "weekPlansUnchanged": true
+  },
+  "sharedRows": [
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "readbackVerified": true,
+      "recipeID": "151",
+      "title": "The BEST Black Bean Chili"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "152",
+      "title": "Crockpot Chicken Wild Rice Soup"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "readbackVerified": true,
+      "recipeID": "155",
+      "title": "Slow Cooker Carnitas (Mexican Pulled Pork)"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "readbackVerified": true,
+      "recipeID": "156",
+      "title": "Easy Slow Cooker Pot Roast"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "readbackVerified": true,
+      "recipeID": "157",
+      "title": "Slow Cooker Minnesota Pork Chop Casserole"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "158",
+      "title": "Creamy Crockpot White Chicken Chili"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "159",
+      "title": "Easy Slow Cooker Turkey Chili"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "readbackVerified": true,
+      "recipeID": "161",
+      "title": "Slow Cooker Beef Stew"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "162",
+      "title": "Easy Slow Cooker Chicken Pot Pie"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "164",
+      "title": "Slow Cooker Chicken Taco Soup"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Other",
+      "readbackVerified": true,
+      "recipeID": "167",
+      "title": "Slow Cooker Pumpkin Applesauce"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "168",
+      "title": "Slow Cooker Garlic Butter Chicken Pasta"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "readbackVerified": true,
+      "recipeID": "171",
+      "title": "Slow Cooker Beef Brisket with BBQ Sauce"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "173",
+      "title": "Slow Cooker Chicken Ropa Vieja"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "176",
+      "title": "Garlic Butter Roasted Chicken Thighs with Charred Lemon Salsa Verde + Asparagus"
+    },
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "readbackVerified": true,
+      "recipeID": "180",
+      "title": "Garlic Parmesan Kale Pasta"
+    },
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "readbackVerified": true,
+      "recipeID": "182",
+      "title": "Spicy Quinoa with Sweet Potatoes"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "184",
+      "title": "Pressure-Cooker Spring-Thyme Chicken Stew"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "readbackVerified": true,
+      "recipeID": "185",
+      "title": "Instant Pot Red Beans and Rice"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "186",
+      "title": "Instant Pot Lemon Chicken Thighs"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "readbackVerified": true,
+      "recipeID": "187",
+      "title": "Instant Pot Mississippi Pot Roast"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "readbackVerified": true,
+      "recipeID": "188",
+      "title": "Instant Pot BBQ Pulled Pork"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Other",
+      "readbackVerified": true,
+      "recipeID": "190",
+      "title": "Instant Pot Boiled Potatoes"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "191",
+      "title": "Chicken Tinga Tacos"
+    },
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "readbackVerified": true,
+      "recipeID": "192",
+      "title": "Easy Instant Pot Vegetable Biryani"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "194",
+      "title": "Pressure-Cooker Easy Pork Posole"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "readbackVerified": true,
+      "recipeID": "195",
+      "title": "Pressure-Cooker White Bean Chicken Chili"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "197",
+      "title": "Instant Pot Pineapple Chicken"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "readbackVerified": true,
+      "recipeID": "198",
+      "title": "Instant Pot Orange Chicken"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Other",
+      "readbackVerified": true,
+      "recipeID": "199",
+      "title": "Hush Puppies"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "air-fried-sweet-potato-fries-with-rosemary-and-garlic",
+      "title": "Air Fried Sweet Potato Fries with Rosemary and Garlic"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "best-black-bean-soup",
+      "title": "Best Black Bean Soup"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "bread",
+      "title": "Bread!"
+    },
+    {
+      "afterCategory": "Breakfast",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "cauliflower-breakfast-muffins",
+      "title": "Cauliflower Breakfast Muffins"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "chinese-chili-oil",
+      "title": "Chinese Chili Oil"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "classic-bbq-corn",
+      "title": "Classic BBQ Corn"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "readbackVerified": true,
+      "recipeID": "dan-dan-noodles",
+      "title": "Dan Dan Noodles"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "readbackVerified": true,
+      "recipeID": "easy-spaghetti-with-meat-sauce",
+      "title": "Easy Spaghetti With Meat Sauce"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "garlic-bread",
+      "title": "Garlic Bread"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "grownup-mustard-sauce-recipe",
+      "title": "Grownup Mustard Sauce Recipe"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "hearthealthy-peanut-butter-protein-bars",
+      "title": "Heart-Healthy Peanut Butter Protein Bars"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "honey-sriracha-roasted-brussels-sprouts",
+      "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS"
+    },
+    {
+      "afterCategory": "Breakfast",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "huevos-rotos-broken-eggs",
+      "title": "Huevos Rotos (Broken Eggs)"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "indian-spiced-roasted-vegetables",
+      "title": "Indian Spiced Roasted Vegetables"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "jalape-o-cheddar-cornbread",
+      "title": "Jalapeño Cheddar Cornbread"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "jam-oat-bars",
+      "title": "Jam Oat Bars"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "kimchi-ramen",
+      "title": "Kimchi Ramen"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Vegetarian Mains",
+      "readbackVerified": true,
+      "recipeID": "maple-roasted-candied-pecans",
+      "title": "Maple Roasted Candied Pecans"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "maraq-misir-red-lentil-soup",
+      "title": "Maraq Misir (Red Lentil Soup)"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "mexican-roasted-cauliflower",
+      "title": "Mexican Roasted Cauliflower"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "mexican-roasted-zucchini",
+      "title": "Mexican Roasted Zucchini"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "mexican-street-corn",
+      "title": "Mexican Street Corn"
+    },
+    {
+      "afterCategory": "Drinks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "peanut-butter-oat-protein-shake",
+      "title": "Peanut Butter Oat Protein Shake"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "pesto",
+      "title": "Pesto"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "queso-chicken-chili-with-roasted-corn-and-jalape-o",
+      "title": "Queso Chicken Chili with Roasted Corn and Jalapeño"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "ribollita-tuscan-white-bean-soup",
+      "title": "Ribollita (Tuscan White Bean Soup)"
+    },
+    {
+      "afterCategory": "Drinks",
+      "beforeCategory": "Non-Recipe / Notes",
+      "readbackVerified": true,
+      "recipeID": "rising-sun-mazcal",
+      "title": "Rising Sun - Mazcal"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "readbackVerified": true,
+      "recipeID": "saucy-gochujang-noodles-with-chicken",
+      "title": "Saucy Gochujang Noodles with Chicken"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "readbackVerified": true,
+      "recipeID": "sausage-rag",
+      "title": "Sausage Ragù"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "seared-broccoli-and-potato-soup",
+      "title": "Seared Broccoli and Potato Soup"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "readbackVerified": true,
+      "recipeID": "sheet-pan-bibimbap",
+      "title": "Sheet-Pan Bibimbap"
+    },
+    {
+      "afterCategory": "Drinks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "smoothies",
+      "title": "Smoothies"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "taco-soup",
+      "title": "Taco Soup"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "readbackVerified": true,
+      "recipeID": "toor-dal-split-yellow-pigeon-peas",
+      "title": "Toor Dal (Split Yellow Pigeon Peas)"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "traditional-southern-butter-butter-beans-recipe",
+      "title": "Traditional Southern Butter Butter Beans Recipe"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "readbackVerified": true,
+      "recipeID": "yogurt-dill-sauce",
+      "title": "yogurt Dill sauce"
+    }
+  ],
+  "transaction": {
+    "completedAt": "2026-08-25T12:13:13.322Z",
+    "overrideCategoryDeletions": 24,
+    "partialWrites": 0,
+    "preservedOverrideWrites": 0,
+    "result": "COMMITTED",
+    "sharedCategoryUpdates": 66,
+    "startedAt": "2026-08-25T12:13:12.600Z",
+    "totalDocumentWrites": 90
+  },
+  "verificationResult": "PASS",
+  "weekPlanNonMutationVerification": {
+    "fieldsCovered": [
+      "plannedRecipeIDs",
+      "PlannedEntry.role",
+      "cookedRecipeIDs",
+      "calendarEventIds",
+      "week identity"
+    ],
+    "stableProjectionUnchanged": true,
+    "writes": 0
+  }
+}

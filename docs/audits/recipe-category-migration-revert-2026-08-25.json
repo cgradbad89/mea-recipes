@@ -1,0 +1,491 @@
+{
+  "approvedManifestPath": "docs/audits/recipe-category-migration-dryrun-2026-08-25.json",
+  "approvedManifestSha256": "e1f266550d037b7683e2f4640e7aeca1d84471879399bb75522441ef69470e67",
+  "generatedAt": "2026-08-25T12:13:12.599Z",
+  "overrideCategoryRestores": [
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "air-fried-sweet-potato-fries-with-rosemary-and-garlic",
+      "recipeID": "air-fried-sweet-potato-fries-with-rosemary-and-garlic"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "balsamic-roasted-beets",
+      "recipeID": "balsamic-roasted-beets"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Soups, Stews & Chili",
+      "metaDocumentID": "best-black-bean-soup",
+      "recipeID": "best-black-bean-soup"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "braised-red-cabbage",
+      "recipeID": "braised-red-cabbage"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "buttered-peas-with-mint",
+      "recipeID": "buttered-peas-with-mint"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "caprese-salad",
+      "recipeID": "caprese-salad"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "classic-bbq-corn",
+      "recipeID": "classic-bbq-corn"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "recipeID": "cucumber-tomato-salad-with-red-wine-vinaigrette"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "garlic-butter-roasted-broccoli",
+      "recipeID": "garlic-butter-roasted-broccoli"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "garlic-parmesan-roasted-potatoes",
+      "recipeID": "garlic-parmesan-roasted-potatoes"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "grilled-zucchini-and-summer-squash",
+      "recipeID": "grilled-zucchini-and-summer-squash"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "herb-roasted-cauliflower",
+      "recipeID": "herb-roasted-cauliflower"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "honey-butter-glazed-carrots",
+      "recipeID": "honey-butter-glazed-carrots"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "honey-glazed-roasted-parsnips",
+      "recipeID": "honey-glazed-roasted-parsnips"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "lemon-garlic-roasted-artichokes",
+      "recipeID": "lemon-garlic-roasted-artichokes"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "rice-pilaf",
+      "recipeID": "rice-pilaf"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-acorn-squash-with-brown-butter",
+      "recipeID": "roasted-acorn-squash-with-brown-butter"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-asparagus-with-lemon",
+      "recipeID": "roasted-asparagus-with-lemon"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-brussels-sprouts-with-bacon",
+      "recipeID": "roasted-brussels-sprouts-with-bacon"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-radishes-with-herb-butter",
+      "recipeID": "roasted-radishes-with-herb-butter"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "roasted-root-vegetable-medley",
+      "recipeID": "roasted-root-vegetable-medley"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "saut-ed-garlic-green-beans",
+      "recipeID": "saut-ed-garlic-green-beans"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "saut-ed-kale-with-garlic-and-lemon",
+      "recipeID": "saut-ed-kale-with-garlic-and-lemon"
+    },
+    {
+      "afterOverrideCategory": "absent",
+      "beforeOverrideCategory": "Breakfast, Snacks & Sides",
+      "metaDocumentID": "simple-house-salad-with-vinaigrette",
+      "recipeID": "simple-house-salad-with-vinaigrette"
+    }
+  ],
+  "preApplyRepositoryHead": "382b553a84e3b917df1375cd7bfe0441bcf945f8",
+  "purpose": "Manual recovery evidence only; executing a revert requires separate explicit authorization.",
+  "sharedCategoryRestores": [
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "recipeID": "151"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "152"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "recipeID": "155"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "recipeID": "156"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "recipeID": "157"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "158"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "159"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "recipeID": "161"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "162"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "164"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Other",
+      "recipeID": "167"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "168"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "recipeID": "171"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "173"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "176"
+    },
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "recipeID": "180"
+    },
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "recipeID": "182"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "184"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "recipeID": "185"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "186"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Beef",
+      "recipeID": "187"
+    },
+    {
+      "afterCategory": "Beef & Pork",
+      "beforeCategory": "Pork",
+      "recipeID": "188"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Other",
+      "recipeID": "190"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "191"
+    },
+    {
+      "afterCategory": "Vegetarian Mains",
+      "beforeCategory": "Vegetarian",
+      "recipeID": "192"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "194"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soup/Stew",
+      "recipeID": "195"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "197"
+    },
+    {
+      "afterCategory": "Chicken & Poultry",
+      "beforeCategory": "Chicken",
+      "recipeID": "198"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Other",
+      "recipeID": "199"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "recipeID": "air-fried-sweet-potato-fries-with-rosemary-and-garlic"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "best-black-bean-soup"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "bread"
+    },
+    {
+      "afterCategory": "Breakfast",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "cauliflower-breakfast-muffins"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "chinese-chili-oil"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "recipeID": "classic-bbq-corn"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "recipeID": "dan-dan-noodles"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "recipeID": "easy-spaghetti-with-meat-sauce"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "recipeID": "garlic-bread"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "grownup-mustard-sauce-recipe"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "hearthealthy-peanut-butter-protein-bars"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "honey-sriracha-roasted-brussels-sprouts"
+    },
+    {
+      "afterCategory": "Breakfast",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "huevos-rotos-broken-eggs"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "recipeID": "indian-spiced-roasted-vegetables"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast Snacks & Sides",
+      "recipeID": "jalape-o-cheddar-cornbread"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "jam-oat-bars"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "kimchi-ramen"
+    },
+    {
+      "afterCategory": "Snacks",
+      "beforeCategory": "Vegetarian Mains",
+      "recipeID": "maple-roasted-candied-pecans"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "maraq-misir-red-lentil-soup"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "mexican-roasted-cauliflower"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "mexican-roasted-zucchini"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "mexican-street-corn"
+    },
+    {
+      "afterCategory": "Drinks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "peanut-butter-oat-protein-shake"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "pesto"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "queso-chicken-chili-with-roasted-corn-and-jalape-o"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "ribollita-tuscan-white-bean-soup"
+    },
+    {
+      "afterCategory": "Drinks",
+      "beforeCategory": "Non-Recipe / Notes",
+      "recipeID": "rising-sun-mazcal"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "recipeID": "saucy-gochujang-noodles-with-chicken"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "recipeID": "sausage-rag"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "seared-broccoli-and-potato-soup"
+    },
+    {
+      "afterCategory": "Pasta, Noodles & Rice",
+      "beforeCategory": "Pasta Noodles & Rice",
+      "recipeID": "sheet-pan-bibimbap"
+    },
+    {
+      "afterCategory": "Drinks",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "smoothies"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "taco-soup"
+    },
+    {
+      "afterCategory": "Soups, Stews & Chili",
+      "beforeCategory": "Soups Stews & Chili",
+      "recipeID": "toor-dal-split-yellow-pigeon-peas"
+    },
+    {
+      "afterCategory": "Sides",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "traditional-southern-butter-butter-beans-recipe"
+    },
+    {
+      "afterCategory": "Sauces & Condiments",
+      "beforeCategory": "Breakfast, Snacks & Sides",
+      "recipeID": "yogurt-dill-sauce"
+    }
+  ],
+  "validation": {
+    "overrideRows": 24,
+    "preflightPassed": true,
+    "sharedRows": 66,
+    "totalRows": 90
+  }
+}
