@@ -681,6 +681,30 @@ retained as historical data and are not modified or deleted by this app.
     failure cannot place the item in the wrong visible section. No migration or production backfill is
     required. See `docs/audits/usually-on-hand-need-this-trip-2026-08-24.md`.
 
+25. **Deterministic cooking-step ingredient mapping foundation** —
+    `lib/cookingStepMapping.ts` defines the pure first tier of the planned Cooking Mode mapping
+    architecture. Flat recipe `content` remains canonical; the engine receives its effective parsed
+    `ingredients[]` and `instructions[]`, preserves original ingredient indexes and explicit
+    subheader/group context, and emits only high-confidence deterministic references. It matches
+    normalized food phrases and a bounded set of safe semantic forms, never the legacy final-token
+    heuristic. Distinct food identities remain distinct, duplicate evidence is unresolved rather
+    than guessed, and explicit group language is required to disambiguate grouped duplicates.
+    Explicit `half`/partial quantities and `remaining`/`rest` qualifiers are preserved as source
+    metadata without quantity arithmetic. Unscoped collective references and prepared components
+    remain unresolved; steps confidently requiring no ingredient may be classified separately.
+    The governing safety invariant is **a missing mapping is preferable to an incorrect confident
+    mapping**.
+
+    `canonicalizeCookingMappingSource` losslessly serializes only the exact ingredient and
+    instruction arrays (including order, text, and subheaders), and
+    `computeCookingMappingSourceHash` produces their lowercase SHA-256 fingerprint. A future stored
+    mapping is valid only when that fingerprint matches the current effective parsed source. The
+    contract is schema v1 with parser `recipe-content-v1` and engine `deterministic-v1`. This
+    foundation does not write Firestore, invoke AI, change recipe publishing, backfill recipes, or
+    change production Cooking Mode. Later phases will add AI assistance for unresolved cases,
+    persistence/ingestion, override semantics, existing-recipe dry-run/backfill, and Cooking Mode
+    consumption.
+
 ---
 
 ## Section 6 — Known Sharp Edges
@@ -847,6 +871,12 @@ retained as historical data and are not modified or deleted by this app.
   Web-Audio beep + `navigator.vibrate` — is best-effort and feature-detected: it may be blocked while
   the tab is backgrounded/locked, but the visual "Done!" flash and the correct remaining-time-on-return
   always work (the wake lock above keeps the screen on while in Cooking Mode).
+- **The deterministic cooking-step mapper is not yet connected to production Cooking Mode.**
+  Prompt 1 establishes the isolated domain contract and tests only. Until a later integration phase,
+  `components/CookingMode.tsx` still derives displayed step ingredients with its legacy terminal-word
+  regex mapper, including that mapper's known collision and omission risks. Do not interpret the new
+  engine's presence as a production behavior change or persist/backfill mappings before the source-hash,
+  override, AI-assistance, and consumption phases define those boundaries.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -936,6 +966,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
+| Cooking-step ingredient mapping | High | Partial (deterministic foundation) | Pure schema-v1 deterministic engine, group preservation, ambiguity/prepared-component safety, qualifier metadata, and exact-source SHA-256 fingerprint are implemented and tested. Production Cooking Mode still uses the legacy terminal-token mapper. Deferred: AI resolution, ingestion/persistence, override behavior, integration, and existing-recipe dry-run/backfill. See §5.25 and §6. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

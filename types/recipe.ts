@@ -29,6 +29,38 @@ export interface RecipeNutrition extends NutritionMacros {
   computed_at?: unknown          // Firestore timestamp
 }
 
+export type CookingMappingConfidence = 'high'
+
+export type CookingMappingProvenance = 'deterministic'
+
+export type CookingIngredientUsageKind = 'all' | 'partial' | 'remaining'
+
+export interface CookingIngredientUsage {
+  kind: CookingIngredientUsageKind
+  quantityText?: string
+}
+
+export interface CookingStepIngredientReference {
+  ingredientIndex: number
+  confidence: CookingMappingConfidence
+  provenance: CookingMappingProvenance
+  usage?: CookingIngredientUsage
+}
+
+export interface CookingStepMapping {
+  instructionIndex: number
+  ingredients: CookingStepIngredientReference[]
+  unresolvedReason?: 'ambiguous' | 'implicit-reference' | 'prepared-component' | 'no-ingredient-use'
+}
+
+export interface CookingStepIngredientMap {
+  schemaVersion: 1
+  parserVersion: string
+  engineVersion: string
+  sourceHash: string
+  steps: CookingStepMapping[]
+}
+
 export interface Recipe {
   id: string
   recipeID: string
