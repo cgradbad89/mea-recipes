@@ -33,7 +33,9 @@ import {
   selectStabilitySubset,
   sha256,
   sortManifestRows,
+  sortSemanticReviewIds,
   STABILITY_CLASSIFICATIONS,
+  validateDeterministicReviewReuse,
 } from './audit-cooking-step-mappings-core.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -42,7 +44,7 @@ const { loadEnv, getAdmin } = require('./_lib.js')
 const LIMITS = { maxContentLength: 64_000, maxIngredients: 200, maxInstructions: 150, maxLineLength: 4_000 }
 const CONCURRENCY = 3
 const BOUNDED_AI_TIMEOUT_MS = 90_000
-const REQUIRED_BASE_SHA = '89cce56637d4bbb6452229b2147f018f42754b8c'
+const REQUIRED_BASE_SHA = 'abd3e82e8d64ca4dd5dde6ca754f5d4260411525'
 const EXPECTED_CONFIGURATION = {
   schemaVersion: 1,
   parserVersion: 'recipe-content-v1',
@@ -67,6 +69,11 @@ const HISTORICAL_MANIFESTS = [
   ['docs/audits/cooking-step-mapping-dryrun-v2-2026-08-26.json', '69a13a5c2a2366d372d747035a85df38bb702bbadc84df6f8a450d91ee0a73a0'],
   ['docs/audits/cooking-step-mapping-dryrun-v3-2026-08-26.json', 'd4e381889e903016b57bd5c0ae7e6922035d3fb946858e04cfd6be15b98f396b'],
 ]
+const PRIOR_DETERMINISTIC_RAW = '/tmp/cooking-step-mapping-deterministic-v4-2026-08-26.json'
+const PRIOR_DETERMINISTIC_REVIEW = path.join(
+  ROOT,
+  'docs/audits/cooking-step-mapping-deterministic-v4-review-2026-08-26.json',
+)
 const rawArgs = process.argv.slice(2)
 for (let index = 0; index < rawArgs.length; index += 1) {
   const argument = rawArgs[index]
@@ -147,7 +154,7 @@ async function loadProductionModules() {
   }
 }
 
-function auditedConfiguration(modules) {
+function auditedConfiguration(modules, frozenBehaviorFingerprint) {
   const emptyMap = modules.mapping.buildDeterministicCookingStepMap([], [])
   return {
     gitSha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(),
@@ -158,6 +165,19 @@ function auditedConfiguration(modules) {
     promptVersion: modules.aiConfig.COOKING_STEP_MAPPING_PROMPT_VERSION,
     model: modules.aiConfig.AI_MODEL,
     temperature: modules.aiConfig.COOKING_STEP_MAPPING_TEMPERATURE,
+    behaviorFingerprint: frozenBehaviorFingerprint,
+  }
+}
+
+function loadPriorDeterministicEvidence() {
+  if (!fs.existsSync(PRIOR_DETERMINISTIC_RAW)) {
+    throw new Error(`Prior exhaustive v4 raw evidence is unavailable: ${PRIOR_DETERMINISTIC_RAW}`)
+  }
+  return {
+    reviewedRaw: JSON.parse(fs.readFileSync(PRIOR_DETERMINISTIC_RAW, 'utf8')),
+    reviewArtifact: JSON.parse(fs.readFileSync(PRIOR_DETERMINISTIC_REVIEW, 'utf8')),
+    rawSha256: sha256(fs.readFileSync(PRIOR_DETERMINISTIC_RAW)),
+    reviewSha256: sha256(fs.readFileSync(PRIOR_DETERMINISTIC_REVIEW)),
   }
 }
 
@@ -196,7 +216,7 @@ async function buildBaseline(documents, modules) {
       deterministicStats: null,
       hybridStats: {
         aiAttempted: false, aiStatus: 'not_needed', aiAttempts: 0,
-        addedIngredientReferences: 0, addedPreparedComponents: 0,
+        addedIngredientReferences: 0, addedPreparedComponents: 0, acceptedUsageQualifiers: 0,
         finalMappedIngredientReferences: 0, finalIngredientReferences: 0,
         finalMappedSteps: 0, remainingUnresolvedSteps: 0, remainingAiEligibleSteps: 0,
         remainingAmbiguousSteps: 0, remainingImplicitSteps: 0, remainingPreparedComponentSteps: 0,
@@ -352,7 +372,7 @@ function rejectionEvidence(row, modelOutput, modules, run) {
   return evidence
 }
 
-async function executeHybrid(rows, modules, usage, selectedTargets = null, stabilityTarget = 40) {
+async function executeHybrid(rows, modules, usage, selectedTargets = null, stabilityTarget = 50) {
   const targets = selectedTargets || rows.filter(isAuditAiEligible)
   await mapConcurrent(targets, CONCURRENCY, async row => {
     const call = () => modules.mappingAi.resolveCookingStepMappingsWithAi(
@@ -380,6 +400,7 @@ async function executeHybrid(rows, modules, usage, selectedTargets = null, stabi
     Object.assign(row.hybridStats, {
       addedIngredientReferences: additions.filter(item => item.kind === 'ingredient').length,
       addedPreparedComponents: additions.filter(item => item.kind === 'prepared-component').length,
+      acceptedUsageQualifiers: additions.filter(item => item.kind === 'ingredient' && item.reference?.usage).length,
       finalMappedIngredientReferences: stats.mappedIngredientReferences,
       finalIngredientReferences: stats.mappedIngredientReferences,
       finalMappedSteps: stats.mappedSteps,
@@ -487,7 +508,8 @@ function refreshCachedParserExclusions(rows) {
 async function revalidateCachedRun(cachedRaw) {
   const modules = await loadProductionModules()
   try {
-    const liveConfiguration = auditedConfiguration(modules)
+    const liveBehaviorFingerprint = behaviorFingerprint()
+    const liveConfiguration = auditedConfiguration(modules, liveBehaviorFingerprint)
     assertConfiguration(liveConfiguration)
     if (JSON.stringify(liveConfiguration) !== JSON.stringify(cachedRaw.auditVersion)) {
       throw new Error('Audited software/configuration changed after the live run; discard cached output and restart from scratch.')
@@ -525,47 +547,99 @@ async function revalidateCachedRun(cachedRaw) {
         cached.candidateMap, live.parsed.ingredients, live.parsed.instructions, live.deterministicMap,
       )
     }
-    return { ...cachedRaw, rows: liveRows, finalProductionReadAt: new Date().toISOString() }
+    const priorEvidence = loadPriorDeterministicEvidence()
+    const deterministicReviewValidation = validateDeterministicReviewReuse({
+      liveRows,
+      reviewedRaw: priorEvidence.reviewedRaw,
+      reviewArtifact: priorEvidence.reviewArtifact,
+      currentAuditVersion: liveConfiguration,
+    })
+    return {
+      ...cachedRaw,
+      rows: liveRows,
+      deterministicReviewValidation,
+      finalProductionReadAt: new Date().toISOString(),
+    }
   } finally {
     await modules.close()
   }
 }
 
-function makeReviewTemplate(rows, date, auditVersion) {
-  const aiAdditions = rows.flatMap(row => [
-    ...row.aiAdditions.map(addition => ({ addition, run: 'primary' })),
-    ...(row.stability?.repeatAdditions || []).map(addition => ({ addition, run: 'stability' })),
-  ].map(({ addition, run }) => ({
-    reviewId: `${run}|${addition.additionId}`,
-    additionId: addition.additionId, run, recipeId: row.recipeId, title: row.title,
-    classification: 'PENDING', failureClass: null, explanation: null,
+function reviewIdsForAddition(run, addition) {
+  const ids = [`${run}|${addition.additionId}|association`]
+  if (addition.kind === 'ingredient' && addition.reference?.usage) {
+    ids.push(`${run}|${addition.additionId}|usage`)
+  }
+  return ids
+}
+
+function reviewEntriesForAddition(row, addition, run) {
+  const common = {
+    additionId: addition.additionId,
+    run,
+    recipeId: row.recipeId,
+    title: row.title,
+    classification: 'PENDING',
+    failureClass: null,
+    explanation: null,
     sourceIngredients: row.parsed.ingredients,
-    instructionIndex: addition.instructionIndex, instruction: addition.instruction,
-    precedingActionableContext: row.parsed.instructions.slice(Math.max(0, addition.instructionIndex - 2), addition.instructionIndex),
+    instructionIndex: addition.instructionIndex,
+    instruction: addition.instruction,
+    precedingActionableContext: row.parsed.instructions.slice(
+      Math.max(0, addition.instructionIndex - 2),
+      addition.instructionIndex,
+    ),
     deterministicStep: row.deterministicMap.steps[addition.instructionIndex],
     addition,
-  })))
+  }
+  const association = {
+    ...common,
+    reviewId: `${run}|${addition.additionId}|association`,
+    relationshipType: addition.kind === 'ingredient' ? 'INGREDIENT_RELATIONSHIP' : 'PREPARED_COMPONENT',
+  }
+  return addition.kind === 'ingredient' && addition.reference?.usage
+    ? [association, {
+      ...common,
+      reviewId: `${run}|${addition.additionId}|usage`,
+      relationshipType: 'USAGE_QUALIFIER',
+      usage: addition.reference.usage,
+    }]
+    : [association]
+}
+
+function makeReviewTemplate(rows, date, auditVersion, deterministicValidation, priorEvidence) {
+  const aiAdditions = rows.flatMap(row => [
+    ...row.aiAdditions.flatMap(addition => reviewEntriesForAddition(row, addition, 'primary')),
+    ...(row.stability?.repeatAdditions || []).flatMap(addition => reviewEntriesForAddition(row, addition, 'stability')),
+  ]).sort((a, b) => a.reviewId.localeCompare(b.reviewId))
   return {
     auditDate: date,
     auditVersion,
-    instructions: 'Classify every AI addition CORRECT, AMBIGUOUS, or INCORRECT. Review every deterministic sample candidate for obvious false positives.',
+    instructions: 'Classify every accepted ingredient relationship, prepared component, and usage qualifier CORRECT, AMBIGUOUS, or INCORRECT. Reused deterministic evidence is valid only for exact source/configuration/behavior matches; every PENDING deterministic row requires fresh review.',
     executiveVerdict: null,
     verdictReason: null,
     remainingRisks: null,
+    systemicDefect: false,
+    deterministicEvidenceSource: {
+      priorRawPath: PRIOR_DETERMINISTIC_RAW,
+      priorRawSha256: priorEvidence.rawSha256,
+      priorReviewPath: path.relative(ROOT, PRIOR_DETERMINISTIC_REVIEW),
+      priorReviewSha256: priorEvidence.reviewSha256,
+      behaviorMatches: deterministicValidation.behaviorMatches,
+      configurationMatches: deterministicValidation.configurationMatches,
+      eligibilityMatches: deterministicValidation.eligibilityMatches,
+    },
     aiAdditions,
     stability: rows.filter(row => row.stability).map(row => ({
       recipeId: row.recipeId,
       title: row.title,
+      automatedClassification: row.stability.status,
       classification: row.stability.status,
       details: row.stability.status === 'EXACT_STABLE'
         ? 'Validated semantic outputs and full candidate maps are byte-identical.' : 'PENDING',
+      primaryCandidateAppropriateToPersist: row.stability.status === 'EXACT_STABLE' ? true : null,
     })),
-    deterministicSample: selectDeterministicSample(rows, 100).map(row => ({
-      recipeId: row.recipeId, title: row.title, classification: 'PENDING', explanation: null,
-      safeCorrectMappings: 0, safeOmissions: 0, falsePositiveMappings: 0,
-      ingredients: row.parsed.ingredients, instructions: row.parsed.instructions,
-      deterministicMap: row.deterministicMap,
-    })),
+    deterministicReview: deterministicValidation.recipes,
   }
 }
 
@@ -578,42 +652,73 @@ function loadReviews(reviewFile, template) {
   return JSON.parse(fs.readFileSync(reviewFile, 'utf8'))
 }
 
+function assertReviewEvidenceMatchesFinalRead(reviews, raw) {
+  const current = new Map(raw.deterministicReviewValidation.recipes.map(row => [row.recipeId, row]))
+  if (reviews.deterministicReview.length !== current.size) {
+    throw new Error('Final live eligibility differs from the deterministic semantic-review evidence.')
+  }
+  for (const review of reviews.deterministicReview) {
+    const live = current.get(review.recipeId)
+    if (!live || live.sourceHash !== review.sourceHash || live.classification === 'PENDING') {
+      throw new Error(`Final live source/review mismatch prevents READY finalization: ${review.recipeId}`)
+    }
+  }
+  const expectedReviewIds = makeReviewTemplate(
+    raw.rows,
+    raw.auditDate,
+    raw.auditVersion,
+    raw.deterministicReviewValidation,
+    loadPriorDeterministicEvidence(),
+  ).aiAdditions.map(item => item.reviewId)
+  const actualReviewIds = sortSemanticReviewIds(reviews.aiAdditions.map(item => item.reviewId))
+  if (JSON.stringify(actualReviewIds) !== JSON.stringify(expectedReviewIds)) {
+    throw new Error('Final live candidate semantics differ from the semantic-review evidence.')
+  }
+}
+
 function assertReviewsFinal(reviews) {
   const validVerdicts = new Set(['READY FOR BACKFILL APPLY', 'READY FOR RESTRICTED BACKFILL', 'NOT READY FOR BACKFILL'])
   if (!validVerdicts.has(reviews.executiveVerdict)) throw new Error('A final executive verdict is required before manifest finalization.')
   if (reviews.aiAdditions.some(item => !['CORRECT', 'AMBIGUOUS', 'INCORRECT'].includes(item.classification))) {
     throw new Error('Every accepted AI addition must have a final semantic classification before manifest finalization.')
   }
-  if (reviews.deterministicSample.length < 100 || reviews.deterministicSample.some(item => !['SAFE', 'FALSE_POSITIVE'].includes(item.classification))) {
-    throw new Error('At least 100 deterministic recipes require final semantic classifications before manifest finalization.')
+  if (!Array.isArray(reviews.deterministicReview) || reviews.deterministicReview.length === 0 ||
+      reviews.deterministicReview.some(item => !['SAFE', 'FALSE_POSITIVE'].includes(item.classification))) {
+    throw new Error('Every source-eligible deterministic recipe requires final semantic classification before manifest finalization.')
   }
-  if ((reviews.stability || []).some(item => !STABILITY_CLASSIFICATIONS.includes(item.classification) || item.details === 'PENDING')) {
+  if ((reviews.stability || []).some(item => !STABILITY_CLASSIFICATIONS.includes(item.classification) ||
+      item.details === 'PENDING' || typeof item.primaryCandidateAppropriateToPersist !== 'boolean')) {
     throw new Error('Every stability rerun requires a final v4 stability classification and details before manifest finalization.')
   }
 }
 
 function finalizeRows(rows, reviews, auditVersion) {
-  const aiReviews = new Map(reviews.aiAdditions.map(item => [item.reviewId || `primary|${item.additionId}`, item]))
-  const deterministicReviews = new Map(reviews.deterministicSample.map(item => [item.recipeId, item]))
+  const aiReviews = new Map(reviews.aiAdditions.map(item => [item.reviewId, item]))
+  const deterministicReviews = new Map(reviews.deterministicReview.map(item => [item.recipeId, item]))
+  const stabilityReviews = new Map((reviews.stability || []).map(item => [item.recipeId, item]))
   const finalized = rows.map(row => {
     const semantic = { aiAdditionsCorrect: 0, aiAdditionsAmbiguous: 0, aiAdditionsIncorrect: 0 }
     const stabilitySemantic = { aiAdditionsCorrect: 0, aiAdditionsAmbiguous: 0, aiAdditionsIncorrect: 0 }
-    const rowReviews = row.aiAdditions.map(item => aiReviews.get(`primary|${item.additionId}`)).filter(Boolean)
+    const rowReviews = row.aiAdditions.flatMap(item => reviewIdsForAddition('primary', item))
+      .map(reviewId => aiReviews.get(reviewId)).filter(Boolean)
     for (const review of rowReviews) {
       if (review.classification === 'CORRECT') semantic.aiAdditionsCorrect += 1
       if (review.classification === 'AMBIGUOUS') semantic.aiAdditionsAmbiguous += 1
       if (review.classification === 'INCORRECT') semantic.aiAdditionsIncorrect += 1
     }
     const repeatReviews = (row.stability?.repeatAdditions || [])
-      .map(item => aiReviews.get(`stability|${item.additionId}`)).filter(Boolean)
+      .flatMap(item => reviewIdsForAddition('stability', item))
+      .map(reviewId => aiReviews.get(reviewId)).filter(Boolean)
     for (const review of repeatReviews) {
       if (review.classification === 'CORRECT') stabilitySemantic.aiAdditionsCorrect += 1
       if (review.classification === 'AMBIGUOUS') stabilitySemantic.aiAdditionsAmbiguous += 1
       if (review.classification === 'INCORRECT') stabilitySemantic.aiAdditionsIncorrect += 1
     }
-    const missingReview = [...row.aiAdditions.map(item => `primary|${item.additionId}`),
-      ...(row.stability?.repeatAdditions || []).map(item => `stability|${item.additionId}`)]
+    const missingReview = [...row.aiAdditions.flatMap(item => reviewIdsForAddition('primary', item)),
+      ...(row.stability?.repeatAdditions || []).flatMap(item => reviewIdsForAddition('stability', item))]
       .some(reviewId => !aiReviews.has(reviewId) || aiReviews.get(reviewId).classification === 'PENDING')
+    const deterministicReview = deterministicReviews.get(row.recipeId) || null
+    const stabilityReview = stabilityReviews.get(row.recipeId) || null
     const { classification, reason } = classifyAuditRecipe({
       sourceStatus: row.sourceStatus,
       sourceReason: row.sourceReason,
@@ -628,8 +733,9 @@ function finalizeRows(rows, reviews, auditVersion) {
       aiAmbiguous: semantic.aiAdditionsAmbiguous,
       stabilityAiIncorrect: stabilitySemantic.aiAdditionsIncorrect,
       stabilityAiAmbiguous: stabilitySemantic.aiAdditionsAmbiguous,
-      stabilityStatus: row.stability?.status,
-      deterministicFalsePositive: deterministicReviews.get(row.recipeId)?.classification === 'FALSE_POSITIVE',
+      stabilityStatus: stabilityReview?.classification || row.stability?.status,
+      stabilityPrimaryApproved: stabilityReview?.primaryCandidateAppropriateToPersist === true,
+      deterministicFalsePositive: deterministicReview?.classification === 'FALSE_POSITIVE',
     })
     return {
       recipeId: row.recipeId,
@@ -644,8 +750,9 @@ function finalizeRows(rows, reviews, auditVersion) {
       semanticReview: semantic,
       ...(row.stability ? {
         stability: {
-          classification: row.stability.status,
-          ...(row.stability.details ? { details: row.stability.details } : {}),
+          classification: stabilityReview?.classification || row.stability.status,
+          ...(stabilityReview?.details ? { details: stabilityReview.details } : {}),
+          primaryCandidateAppropriateToPersist: stabilityReview?.primaryCandidateAppropriateToPersist === true,
           semanticReview: stabilitySemantic,
         },
       } : {}),
@@ -654,9 +761,23 @@ function finalizeRows(rows, reviews, auditVersion) {
         sourceStatus: row.sourceStatus,
         parserEvidence: row.parserEvidence,
         candidateValidation: row.candidateValidation,
+        deterministicReview: deterministicReview ? {
+          classification: deterministicReview.classification,
+          reviewDisposition: deterministicReview.reviewDisposition,
+          sourceHash: deterministicReview.sourceHash,
+          mappedReferencesReviewed: deterministicReview.mappedReferencesReviewed,
+          safeMappings: deterministicReview.safeMappings,
+          safeOmissions: deterministicReview.safeOmissions,
+          falsePositiveMappings: deterministicReview.falsePositiveMappings,
+        } : null,
         currentMapValidation: row.currentMapValidation,
         currentMapEngineVersion: row.currentMapEngineVersion,
-        stability: row.stability ? { status: row.stability.status, attempts: row.stability.attempts, error: row.stability.error || null } : null,
+        stability: row.stability ? {
+          automatedClassification: row.stability.status,
+          reviewedClassification: stabilityReview?.classification || row.stability.status,
+          attempts: row.stability.attempts,
+          error: row.stability.error || null,
+        } : null,
       },
     }
   })
@@ -677,6 +798,35 @@ function assertFinalManifestIntegrity(manifest, rows, auditVersion) {
   }
 }
 
+function expectedVerdict(manifest, reviews, raw) {
+  const deterministicFailures = reviews.deterministicReview.filter(item =>
+    item.classification === 'FALSE_POSITIVE' || (item.falsePositiveMappings || 0) > 0)
+  const acceptedSemanticFailures = reviews.aiAdditions.filter(item =>
+    item.classification === 'AMBIGUOUS' || item.classification === 'INCORRECT')
+  const unsafeStability = (reviews.stability || []).filter(item =>
+    item.classification === 'UNSAFE_MATERIAL_DIFFERENCE')
+  if (reviews.systemicDefect || deterministicFailures.length || unsafeStability.length) {
+    return 'NOT READY FOR BACKFILL'
+  }
+  const readyInvariantFailure = manifest.some(row => !readyManifestInvariant(row))
+  if (readyInvariantFailure) return 'NOT READY FOR BACKFILL'
+  const eligibleCandidateConcern = manifest.some(row =>
+    row.audit?.sourceStatus === 'ELIGIBLE' &&
+    row.classification !== 'READY' && row.classification !== 'EXISTING_MAP')
+  if (acceptedSemanticFailures.length || eligibleCandidateConcern ||
+      raw.rows.some(row => row.sourceStatus === 'ERROR')) {
+    return 'READY FOR RESTRICTED BACKFILL'
+  }
+  return 'READY FOR BACKFILL APPLY'
+}
+
+function assertVerdictMatchesEvidence(manifest, reviews, raw) {
+  const expected = expectedVerdict(manifest, reviews, raw)
+  if (reviews.executiveVerdict !== expected) {
+    throw new Error(`Executive verdict ${reviews.executiveVerdict} does not match final evidence (${expected}).`)
+  }
+}
+
 function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
   const ready = count(manifest, row => row.classification === 'READY')
   const review = count(manifest, row => row.classification === 'REVIEW')
@@ -691,7 +841,8 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
   const aiAmbiguous = count(reviewedAdditions, item => item.classification === 'AMBIGUOUS')
   const aiIncorrect = count(reviewedAdditions, item => item.classification === 'INCORRECT')
   const stabilityRows = raw.rows.filter(row => row.stability)
-  const det = reviews.deterministicSample
+  const reviewedStability = reviews.stability || []
+  const det = reviews.deterministicReview
   const rejectionEvidence = raw.rows.flatMap(row => row.validatorRejections || [])
   const rejectionReasons = [
     'UNCERTAIN_CONFIDENCE', 'INVALID_INDEX', 'HEADER_INDEX', 'DETERMINISTIC_LOCK',
@@ -719,6 +870,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     '## Configuration audited', '',
     '| Setting | Value |', '|---|---|',
     `| Git SHA | \`${config.gitSha}\` |`,
+    `| Behavior fingerprint | \`${config.behaviorFingerprint}\` |`,
     `| Schema | \`${config.schemaVersion}\` |`,
     `| Parser | \`${config.parserVersion}\` |`,
     `| Deterministic engine | \`${config.deterministicEngineVersion}\` |`,
@@ -764,7 +916,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     `| Non-actionable steps | ${sum(eligible, row => row.deterministicStats?.nonActionableSteps || 0)} |`,
     `| AI-eligible steps | ${sum(eligible, row => row.deterministicStats?.aiEligibleSteps || 0)} |`,
     `| Deterministic validation failures | ${count(raw.rows, row => row.sourceStatus === 'ERROR')} |`, '',
-    `The new deterministic semantic review covered **${det.length}** eligible recipes: safe correct mappings **${sum(det, item => item.safeCorrectMappings || 0)}**, safe omissions **${sum(det, item => item.safeOmissions || 0)}**, confirmed false-positive mappings **${sum(det, item => item.falsePositiveMappings || 0)}**, confirmed false-positive recipes **${count(det, item => item.classification === 'FALSE_POSITIVE')}**.`, '',
+    `The exhaustive deterministic semantic review covered **${det.length}** eligible recipes: mapped references reviewed **${sum(det, item => item.mappedReferencesReviewed || 0)}**, safe mappings **${sum(det, item => item.safeMappings || 0)}**, safe omissions **${sum(det, item => item.safeOmissions || 0)}**, confirmed false-positive mappings **${sum(det, item => item.falsePositiveMappings || 0)}**, confirmed false-positive recipes **${count(det, item => item.classification === 'FALSE_POSITIVE')}**. Exact byte-equivalent prior evidence was reused for **${count(det, item => item.reviewDisposition === 'REUSED_BYTE_EQUIVALENT')}** recipes; **${count(det, item => item.reviewDisposition === 'RE_REVIEWED_CURRENT_SOURCE')}** recipes were freshly re-reviewed.`, '',
     ...det.filter(item => item.classification === 'FALSE_POSITIVE')
       .map(item => `- **${item.title}** (\`${item.recipeId}\`) — ${item.explanation}`), '',
     'All nine deterministic-v2 failure recipes were included: Butter-Soy Chicken, Chicken Chow Mein, Chicken Wild Rice, Tacos Al Pastor, Sheet Pan Chicken Tinga, Chopped Thai Shrimp Salad, Singapore Mei Fun, Sesame Apricot Tofu, and Chickpea Curry. Their exact v4 results are recorded in the semantic-review artifact.', '',
@@ -774,10 +926,10 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     `| Mapped ingredient references | ${sum(eligible, row => row.deterministicStats?.mappedIngredientReferences || 0)} | ${sum(eligible, row => row.hybridStats.finalMappedIngredientReferences)} |`,
     `| AI-eligible unresolved steps | ${sum(eligible, row => row.deterministicStats?.aiEligibleSteps || 0)} | ${sum(eligible, row => row.hybridStats.remainingUnresolvedSteps)} |`,
     `| Prepared components | 0 | ${sum(eligible, row => row.hybridStats.addedPreparedComponents)} |`, '',
-    `AI-eligible recipes: **${count(eligible, row => (row.deterministicStats?.aiEligibleSteps || 0) > 0)}**; actual primary recipes called: **${count(eligible, row => row.hybridStats.aiAttempted)}**; primary requests: **${raw.usage.primaryRequests}**; retries: **${primaryRetries}**; failures: **${count(eligible, row => row.hybridStats.aiStatus === 'failed')}**; accepted ingredient additions: **${sum(eligible, row => row.hybridStats.addedIngredientReferences)}**; accepted prepared components: **${sum(eligible, row => row.hybridStats.addedPreparedComponents)}**. Final mapped steps: **${sum(eligible, row => row.hybridStats.finalMappedSteps)}**; final ingredient references: **${sum(eligible, row => row.hybridStats.finalIngredientReferences)}**; remaining ambiguous: **${sum(eligible, row => row.hybridStats.remainingAmbiguousSteps)}**; remaining implicit: **${sum(eligible, row => row.hybridStats.remainingImplicitSteps)}**; remaining prepared-component semantics: **${sum(eligible, row => row.hybridStats.remainingPreparedComponentSteps)}**.`, '',
+    `AI-eligible recipes: **${count(eligible, row => (row.deterministicStats?.aiEligibleSteps || 0) > 0)}**; actual primary recipes called: **${count(eligible, row => row.hybridStats.aiAttempted)}**; primary requests: **${raw.usage.primaryRequests}**; retries: **${primaryRetries}**; failures: **${count(eligible, row => row.hybridStats.aiStatus === 'failed')}**; accepted ingredient additions: **${sum(eligible, row => row.hybridStats.addedIngredientReferences)}**; accepted prepared components: **${sum(eligible, row => row.hybridStats.addedPreparedComponents)}**; accepted usage qualifiers: **${sum(eligible, row => row.hybridStats.acceptedUsageQualifiers)}**. Final mapped steps: **${sum(eligible, row => row.hybridStats.finalMappedSteps)}**; final ingredient references: **${sum(eligible, row => row.hybridStats.finalIngredientReferences)}**; remaining ambiguous: **${sum(eligible, row => row.hybridStats.remainingAmbiguousSteps)}**; remaining implicit: **${sum(eligible, row => row.hybridStats.remainingImplicitSteps)}**; remaining prepared-component semantics: **${sum(eligible, row => row.hybridStats.remainingPreparedComponentSteps)}**; total remaining AI-eligible: **${sum(eligible, row => row.hybridStats.remainingAiEligibleSteps)}**.`, '',
     'Coverage is descriptive only. Conservative omission is preferred to an incorrect confident association.', '',
     '## AI semantic accuracy', '',
-    `Accepted additions reviewed across primary and stability runs: **${reviewedAdditions.length}** — correct **${aiCorrect}**, ambiguous **${aiAmbiguous}**, incorrect **${aiIncorrect}**. Primary additions reviewed: **${count(reviewedAdditions, item => item.run === 'primary')}**. Stability additions reviewed: **${count(reviewedAdditions, item => item.run === 'stability')}**. Accepted usage qualifiers reviewed: **${count(reviewedAdditions, item => Boolean(item.addition.reference?.usage))}**. Every accepted addition in both executed runs was reviewed.`, '',
+    `Accepted semantic relationships reviewed across primary and stability runs: **${reviewedAdditions.length}** — correct **${aiCorrect}**, ambiguous **${aiAmbiguous}**, incorrect **${aiIncorrect}**. Primary relationships reviewed: **${count(reviewedAdditions, item => item.run === 'primary')}**. Stability relationships reviewed: **${count(reviewedAdditions, item => item.run === 'stability')}**. Accepted usage qualifiers reviewed: **${count(reviewedAdditions, item => item.relationshipType === 'USAGE_QUALIFIER')}**. Every accepted relationship in both executed runs was reviewed.`, '',
     ...reviewedAdditions.filter(item => item.classification !== 'CORRECT')
       .map(item => `- **${item.title}** (${item.run}, \`${item.additionId}\`) — ${item.classification}: ${item.explanation || 'No explanation recorded.'}`),
     ...(aiAmbiguous + aiIncorrect === 0 ? ['- No ambiguous or incorrect accepted AI additions were found.'] : []), '',
@@ -788,17 +940,17 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     ...(rejectionReasons.length === 0 ? ['| none observed | 0 |'] : []), '',
     'These counts are audit observations produced by replaying each model proposal through the unchanged production merger. They distinguish accepted additions from rejected suggestions and stripped metadata.', '',
     '## Stability', '',
-    `Subset: **${stabilityRows.length}** recipes — exact stable **${count(stabilityRows, row => row.stability.status === 'EXACT_STABLE')}**, semantically stable **${count(stabilityRows, row => row.stability.status === 'SEMANTICALLY_STABLE')}**, safe-omission differences **${count(stabilityRows, row => row.stability.status === 'SAFE_OMISSION_DIFFERENCE')}**, unsafe material differences **${count(stabilityRows, row => row.stability.status === 'UNSAFE_MATERIAL_DIFFERENCE')}**, errors **${count(stabilityRows, row => row.stability.status === 'ERROR')}**, provider retries **${stabilityRetries}**.`, '',
-    ...stabilityRows.filter(row => row.stability.status !== 'EXACT_STABLE').map(row =>
-      `- **${row.title}** (\`${row.recipeId}\`) — ${row.stability.status}: ${row.stability.details || 'validated semantic outputs differ; see review evidence.'}`), '',
-    'Historical stability comparison (different denominators): v1 had 10/20 material differences; bounded v2 had 1/20; full v2 had 4/30 safe-omission/component differences; bounded v3 had 20/20 exact.', '',
+    `Subset: **${reviewedStability.length}** recipes — exact stable **${count(reviewedStability, row => row.classification === 'EXACT_STABLE')}**, semantically stable **${count(reviewedStability, row => row.classification === 'SEMANTICALLY_STABLE')}**, safe-omission differences **${count(reviewedStability, row => row.classification === 'SAFE_OMISSION_DIFFERENCE')}**, unsafe material differences **${count(reviewedStability, row => row.classification === 'UNSAFE_MATERIAL_DIFFERENCE')}**, errors **${count(reviewedStability, row => row.classification === 'ERROR')}**, provider retries **${stabilityRetries}**.`, '',
+    ...reviewedStability.filter(row => row.classification !== 'EXACT_STABLE').map(row =>
+      `- **${row.title}** (\`${row.recipeId}\`) — ${row.classification}${row.automatedClassification && row.automatedClassification !== row.classification ? ` (automated comparator: ${row.automatedClassification})` : ''}: ${row.details || 'validated semantic outputs differ; see review evidence.'}`), '',
+    'Historical stability comparison uses different denominators: v1 failed; v2 failed; v3 failed despite zero unsafe stability differences because deterministic precision failed; v4 deterministic remediation exhaustively reached zero false positives. The current full hybrid-v4 run is the only apply-readiness evidence.', '',
     '## V1 → V2 → V3 → V4 comparison', '',
-    '| Measure | V2 full | V3 remediation | Fresh V4 full |', '|---|---:|---:|---:|',
+    '| Measure | V2 full | V3 full | Fresh V4 full |', '|---|---:|---:|---:|',
     `| Deterministic false-positive recipes | 9 / 60 | 0 / 80 | ${count(det, item => item.classification === 'FALSE_POSITIVE')} / ${det.length} |`,
-    `| Accepted AI additions correct | 84 / 84 | 22 / 22 | ${aiCorrect} / ${reviewedAdditions.length} |`,
-    `| Exact stability | 26 / 30 | 20 / 20 | ${count(stabilityRows, row => row.stability.status === 'EXACT_STABLE')} / ${stabilityRows.length} |`,
-    `| Safe-omission stability differences | 4 / 30 | 0 / 20 | ${count(stabilityRows, row => row.stability.status === 'SAFE_OMISSION_DIFFERENCE')} / ${stabilityRows.length} |`,
-    `| Unsafe stability differences | 0 / 30 | 0 / 20 | ${count(stabilityRows, row => row.stability.status === 'UNSAFE_MATERIAL_DIFFERENCE')} / ${stabilityRows.length} |`, '',
+    `| Accepted AI relationships correct | 84 / 84 | 109 / 109 | ${aiCorrect} / ${reviewedAdditions.length} |`,
+    `| Exact stability | 26 / 30 | 37 / 40 | ${count(reviewedStability, row => row.classification === 'EXACT_STABLE')} / ${reviewedStability.length} |`,
+    `| Safe-omission stability differences | 4 / 30 | 3 / 40 | ${count(reviewedStability, row => row.classification === 'SAFE_OMISSION_DIFFERENCE')} / ${reviewedStability.length} |`,
+    `| Unsafe stability differences | 0 / 30 | 0 / 40 | ${count(reviewedStability, row => row.classification === 'UNSAFE_MATERIAL_DIFFERENCE')} / ${reviewedStability.length} |`, '',
     'The runs use different engines and review/stability denominators. Only commensurate precision and semantic-stability counts are compared.', '',
     '## Recipe classification', '',
     '| Classification | Count |', '|---|---:|',
@@ -810,7 +962,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     'For every READY row, a future apply must require: approved manifest SHA-256 matches the exact file AND the live recipe exists AND live `cookingStepIngredientMap` is absent AND fresh live shared-content `sourceHash === manifest.sourceHash` AND the manifest candidate validates under this exact audited v4 contract. Any failed precondition means SKIP.', '',
     'A future writer may merge only `cookingStepIngredientMap`. It must not modify content, title, category, cuisine, nutrition, servings, times, image, source, metadata, or any user-owned data. No writer exists in this audit.', '',
     '## Manifest integrity', '',
-    `Path: \`${path.relative(ROOT, manifestIntegrity.path)}\`; SHA-256: \`${manifestIntegrity.sha256}\`; rows: **${manifest.length}**; READY **${ready}**; REVIEW **${review}**; EXCLUDED **${excluded}**; ERROR **${errors}**; EXISTING_MAP **${existingMaps}**. Every READY candidate passed current production validation, has a fresh source hash, and had no production map at audit time.`, '',
+    `Path: \`${path.relative(ROOT, manifestIntegrity.path)}\`; SHA-256: \`${manifestIntegrity.sha256}\`; rows: **${manifest.length}**; READY **${ready}**; REVIEW **${review}**; EXCLUDED **${excluded}**; ERROR **${errors}**; EXISTING_MAP **${existingMaps}**. Every READY candidate passed current production validation, has a fresh source hash matching the final live reread, had no production map at audit time, and has no known semantic defect. The final live reread also matched the frozen configuration and behavior fingerprint.`, '',
     '## Historical manifest status', '',
     '`docs/audits/cooking-step-mapping-dryrun-2026-08-25.json` (SHA-256 `03cccba16232237f2ffb8b0c1971ec3a66732da8a0f1480717769ac5f25093ae`) remains **HISTORICAL ONLY — NOT AUTHORIZED FOR APPLY**.', '',
     '`docs/audits/cooking-step-mapping-dryrun-v2-2026-08-26.json` (SHA-256 `69a13a5c2a2366d372d747035a85df38bb702bbadc84df6f8a450d91ee0a73a0`) remains **HISTORICAL ONLY — NOT AUTHORIZED FOR APPLY**. Neither historical manifest supplied a candidate or classification to this run.', '',
@@ -846,11 +998,18 @@ async function main() {
       originalInfo(...values)
     }
     try {
-      const auditVersion = auditedConfiguration(modules)
-      assertConfiguration(auditVersion)
       const frozenBehaviorFingerprint = behaviorFingerprint()
+      const auditVersion = auditedConfiguration(modules, frozenBehaviorFingerprint)
+      assertConfiguration(auditVersion)
       const documents = await readSharedRecipes()
       const rows = await buildBaseline(documents, modules)
+      const priorEvidence = loadPriorDeterministicEvidence()
+      const deterministicReviewValidation = validateDeterministicReviewReuse({
+        liveRows: rows,
+        reviewedRaw: priorEvidence.reviewedRaw,
+        reviewArtifact: priorEvidence.reviewArtifact,
+        currentAuditVersion: auditVersion,
+      })
       let boundedSelection = null
       if (mode === 'hybrid') await executeHybrid(rows, modules, usage)
       if (mode === 'bounded-hybrid') {
@@ -866,6 +1025,13 @@ async function main() {
         limits: LIMITS,
         auditVersion,
         auditFreeze: { behaviorFiles: BEHAVIOR_FILES, behaviorFingerprint: frozenBehaviorFingerprint },
+        deterministicEvidenceSource: {
+          priorRawPath: PRIOR_DETERMINISTIC_RAW,
+          priorRawSha256: priorEvidence.rawSha256,
+          priorReviewPath: path.relative(ROOT, PRIOR_DETERMINISTIC_REVIEW),
+          priorReviewSha256: priorEvidence.reviewSha256,
+        },
+        deterministicReviewValidation,
         usage,
         ...(boundedSelection ? { boundedSelection } : {}),
         rows,
@@ -906,7 +1072,14 @@ async function main() {
     return
   }
 
-  const template = makeReviewTemplate(raw.rows, date, raw.auditVersion)
+  const priorEvidence = loadPriorDeterministicEvidence()
+  const template = makeReviewTemplate(
+    raw.rows,
+    date,
+    raw.auditVersion,
+    raw.deterministicReviewValidation,
+    priorEvidence,
+  )
   const reviews = loadReviews(paths.reviews, template)
   if (JSON.stringify(reviews.auditVersion) !== JSON.stringify(raw.auditVersion)) {
     throw new Error('Semantic-review configuration does not match the live run; restart from scratch.')
@@ -915,13 +1088,14 @@ async function main() {
   for (const row of raw.rows) {
     if (!row.stability) continue
     const item = stabilityReviews.get(row.recipeId)
-    if (item?.classification !== row.stability.status) {
+    if ((item?.automatedClassification || item?.classification) !== row.stability.status) {
       throw new Error(`Stability review classification drift for ${row.recipeId}`)
     }
     row.stability.details = item?.details || null
+    row.stability.reviewedStatus = item?.classification || row.stability.status
   }
   const pendingAiReviews = count(reviews.aiAdditions, item => item.classification === 'PENDING')
-  const pendingDeterministicReviews = count(reviews.deterministicSample, item => item.classification === 'PENDING')
+  const pendingDeterministicReviews = count(reviews.deterministicReview, item => item.classification === 'PENDING')
   const pendingStabilityReviews = count(reviews.stability || [], item => item.details === 'PENDING')
   const validVerdicts = new Set(['READY FOR BACKFILL APPLY', 'READY FOR RESTRICTED BACKFILL', 'NOT READY FOR BACKFILL'])
   if (pendingAiReviews || pendingDeterministicReviews || pendingStabilityReviews || !validVerdicts.has(reviews.executiveVerdict)) {
@@ -934,8 +1108,10 @@ async function main() {
     return
   }
   assertReviewsFinal(reviews)
+  assertReviewEvidenceMatchesFinalRead(reviews, raw)
   const manifest = finalizeRows(raw.rows, reviews, raw.auditVersion)
   assertFinalManifestIntegrity(manifest, raw.rows, raw.auditVersion)
+  assertVerdictMatchesEvidence(manifest, reviews, raw)
   if (fs.existsSync(paths.manifest)) {
     throw new Error(`Refusing to overwrite immutable manifest: ${paths.manifest}`)
   }

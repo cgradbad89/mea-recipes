@@ -13,6 +13,8 @@ import {
   selectStabilitySubset,
   STABILITY_CLASSIFICATIONS,
   sortManifestRows,
+  sortSemanticReviewIds,
+  validateDeterministicReviewReuse,
 } from '../scripts/audit-cooking-step-mappings-core.mjs'
 
 const limits = { maxContentLength: 64_000, maxIngredients: 200, maxInstructions: 150, maxLineLength: 4_000 }
@@ -83,6 +85,11 @@ describe('cooking-step audit AI controls', () => {
     expect(source).not.toMatch(/JSON\.parse\(fs\.readFileSync\([^\n]*cooking-step-mapping-dryrun-v2-2026-08-26\.json/)
   })
 
+  it('never loads the historical v3 manifest as candidate input', () => {
+    const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
+    expect(source).not.toMatch(/JSON\.parse\(fs\.readFileSync\([^\n]*cooking-step-mapping-dryrun-v3-2026-08-26\.json/)
+  })
+
   it('uses current live content to parse and hash every baseline candidate', () => {
     const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
     expect(source).toMatch(/const content = typeof data\.content === 'string' \? data\.content : ''/)
@@ -94,6 +101,7 @@ describe('cooking-step audit AI controls', () => {
     const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
     expect(source).toContain('COOKING_STEP_MAPPING_PROMPT_VERSION')
     expect(source).toContain('COOKING_STEP_MAPPING_TEMPERATURE')
+    expect(source).toContain('behaviorFingerprint: frozenBehaviorFingerprint')
     expect(source).toMatch(/auditVersion,/)
   })
 
@@ -163,17 +171,86 @@ describe('cooking-step audit classification and determinism', () => {
       .map(row => row.recipeId)).toEqual(['a', 'm', 'z'])
   })
 
+  it('persists semantic-review IDs in deterministic locale order', () => {
+    expect(sortSemanticReviewIds(['stability|z', 'primary|ä', 'primary|a']))
+      .toEqual(['primary|a', 'primary|ä', 'stability|z'])
+  })
+
   it('requires every READY row to carry a valid candidate, source hash, and absent-map precondition', () => {
     const hash = 'a'.repeat(64)
     const ready = {
       classification: 'READY', sourceHash: hash,
       candidateMap: { sourceHash: hash },
       precondition: { currentMapAbsent: true, contentSourceHash: hash },
-      audit: { candidateValidation: { valid: true } },
+      semanticReview: { aiAdditionsAmbiguous: 0, aiAdditionsIncorrect: 0 },
+      audit: {
+        candidateValidation: { valid: true },
+        deterministicReview: { classification: 'SAFE' },
+      },
     }
     expect(readyManifestInvariant(ready)).toBe(true)
     expect(readyManifestInvariant({ ...ready, precondition: { ...ready.precondition, currentMapAbsent: false } })).toBe(false)
     expect(readyManifestInvariant({ ...ready, sourceHash: null })).toBe(false)
+  })
+
+  it('reuses exhaustive deterministic review only for exact source, map, behavior, config, and eligibility matches', () => {
+    const hash = 'a'.repeat(64)
+    const auditVersion = {
+      schemaVersion: 1,
+      parserVersion: 'recipe-content-v1',
+      deterministicEngineVersion: 'deterministic-v4',
+      hybridEngineVersion: 'hybrid-v4',
+      promptVersion: 'v2',
+      model: 'openai/gpt-5.6-luna',
+      temperature: 0,
+      behaviorFingerprint: 'f'.repeat(64),
+    }
+    const deterministicMap = { sourceHash: hash, steps: [] }
+    const liveRow = {
+      recipeId: 'recipe', title: 'Recipe', sourceStatus: 'ELIGIBLE', sourceHash: hash,
+      deterministicMap, deterministicStats: { instructionCount: 0, ingredientReferences: 0, unmappedSteps: 0 },
+      parsed: { ingredients: [], instructions: [] },
+    }
+    const reviewedRaw = {
+      auditVersion,
+      auditFreeze: { behaviorFingerprint: auditVersion.behaviorFingerprint },
+      rows: [{ ...liveRow }],
+    }
+    const reviewArtifact = {
+      auditVersion,
+      recipes: [{
+        recipeId: 'recipe', instructionCount: 0, mappedReferencesReviewed: 0,
+        safeMappings: 0, safeOmissions: 0, falsePositives: [], classification: 'SAFE',
+      }],
+    }
+    expect(validateDeterministicReviewReuse({
+      liveRows: [liveRow], reviewedRaw, reviewArtifact, currentAuditVersion: auditVersion,
+    }).recipes[0]).toMatchObject({ classification: 'SAFE', reviewDisposition: 'REUSED_BYTE_EQUIVALENT' })
+
+    const changed = { ...liveRow, sourceHash: 'b'.repeat(64), deterministicMap: { ...deterministicMap, sourceHash: 'b'.repeat(64) } }
+    expect(validateDeterministicReviewReuse({
+      liveRows: [changed], reviewedRaw, reviewArtifact, currentAuditVersion: auditVersion,
+    }).recipes[0]).toMatchObject({ classification: 'PENDING', reviewDisposition: 'RE_REVIEW_REQUIRED' })
+
+    expect(validateDeterministicReviewReuse({
+      liveRows: [liveRow],
+      reviewedRaw,
+      reviewArtifact,
+      currentAuditVersion: { ...auditVersion, behaviorFingerprint: 'e'.repeat(64) },
+    }).recipes[0]).toMatchObject({ classification: 'PENDING', reviewDisposition: 'RE_REVIEW_REQUIRED' })
+
+    expect(validateDeterministicReviewReuse({
+      liveRows: [liveRow],
+      reviewedRaw,
+      reviewArtifact,
+      currentAuditVersion: { ...auditVersion, model: 'different-model' },
+    }).recipes[0]).toMatchObject({ classification: 'PENDING', reviewDisposition: 'RE_REVIEW_REQUIRED' })
+  })
+
+  it('prevents finalization when the final live reread no longer matches semantic evidence', () => {
+    const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
+    expect(source).toContain('assertReviewEvidenceMatchesFinalRead(reviews, raw)')
+    expect(source).toContain('Final live source/review mismatch prevents READY finalization')
   })
 
   it('finalizes and validates the manifest before hashing its exact bytes', () => {

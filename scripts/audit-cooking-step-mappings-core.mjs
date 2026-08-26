@@ -8,6 +8,16 @@ export const STABILITY_CLASSIFICATIONS = [
   'UNSAFE_MATERIAL_DIFFERENCE',
 ]
 
+export const AUDITED_CONFIGURATION_KEYS = [
+  'schemaVersion',
+  'parserVersion',
+  'deterministicEngineVersion',
+  'hybridEngineVersion',
+  'promptVersion',
+  'model',
+  'temperature',
+]
+
 const EXACT_URL = /^https?:\/\/\S+$/i
 const PAYWALL_PLACEHOLDER = /^(?:not available|unavailable)\b.*(?:paywall|could not be fetched)/i
 const STANDALONE_NON_COOKING_STEP = /^(?:storage(?: suggestions?)?:|nutritional? information\b|(?:📊\s*)?nutrition estimate:|note:\s*the nutritional information\b|recipe source:)/i
@@ -207,13 +217,96 @@ export function auditPrecondition(row) {
   }
 }
 
+export function auditedConfigurationContract(configuration) {
+  return Object.fromEntries(AUDITED_CONFIGURATION_KEYS.map(key => [key, configuration?.[key]]))
+}
+
+export function configurationContractsMatch(left, right) {
+  return JSON.stringify(auditedConfigurationContract(left)) ===
+    JSON.stringify(auditedConfigurationContract(right))
+}
+
+export function validateDeterministicReviewReuse({
+  liveRows,
+  reviewedRaw,
+  reviewArtifact,
+  currentAuditVersion,
+}) {
+  const eligible = liveRows.filter(row => row.sourceStatus === 'ELIGIBLE')
+  const reviewedEligible = (reviewedRaw?.rows || []).filter(row => row.sourceStatus === 'ELIGIBLE')
+  const reviewById = new Map((reviewArtifact?.recipes || []).map(row => [row.recipeId, row]))
+  const reviewedById = new Map(reviewedEligible.map(row => [row.recipeId, row]))
+  const behaviorMatches = typeof currentAuditVersion?.behaviorFingerprint === 'string' &&
+    reviewedRaw?.auditFreeze?.behaviorFingerprint === currentAuditVersion.behaviorFingerprint
+  const configurationMatches = configurationContractsMatch(reviewedRaw?.auditVersion, currentAuditVersion) &&
+    configurationContractsMatch(reviewArtifact?.auditVersion, currentAuditVersion)
+  const reviewedIds = reviewedEligible.map(row => row.recipeId).sort()
+  const liveIds = eligible.map(row => row.recipeId).sort()
+  const eligibilityMatches = JSON.stringify(reviewedIds) === JSON.stringify(liveIds)
+
+  const recipes = eligible.map(row => {
+    const reviewedRow = reviewedById.get(row.recipeId)
+    const priorReview = reviewById.get(row.recipeId)
+    const sourceMatches = typeof row.sourceHash === 'string' && row.sourceHash === reviewedRow?.sourceHash
+    const deterministicMapMatches = Boolean(reviewedRow?.deterministicMap) &&
+      JSON.stringify(row.deterministicMap) === JSON.stringify(reviewedRow.deterministicMap)
+    const reviewMetricsMatch = Boolean(priorReview) &&
+      priorReview.instructionCount === row.deterministicStats?.instructionCount &&
+      priorReview.mappedReferencesReviewed === row.deterministicStats?.ingredientReferences &&
+      priorReview.safeMappings === row.deterministicStats?.ingredientReferences &&
+      priorReview.safeOmissions === row.deterministicStats?.unmappedSteps &&
+      priorReview.classification === 'SAFE' &&
+      Array.isArray(priorReview.falsePositives) && priorReview.falsePositives.length === 0
+    const reusable = behaviorMatches && configurationMatches && eligibilityMatches &&
+      sourceMatches && deterministicMapMatches && reviewMetricsMatch
+    return {
+      recipeId: row.recipeId,
+      title: row.title,
+      sourceHash: row.sourceHash,
+      mappedReferencesReviewed: reusable ? priorReview.mappedReferencesReviewed : 0,
+      safeMappings: reusable ? priorReview.safeMappings : 0,
+      safeOmissions: reusable ? priorReview.safeOmissions : 0,
+      falsePositiveMappings: reusable ? 0 : null,
+      classification: reusable ? 'SAFE' : 'PENDING',
+      reviewDisposition: reusable ? 'REUSED_BYTE_EQUIVALENT' : 'RE_REVIEW_REQUIRED',
+      explanation: reusable
+        ? 'Prior exhaustive v4 adjudication reused: source hash, deterministic map, behavior fingerprint, configuration, and eligibility are exact matches.'
+        : 'Current row requires fresh deterministic semantic review.',
+      reuseChecks: {
+        behaviorMatches,
+        configurationMatches,
+        eligibilityMatches,
+        sourceMatches,
+        deterministicMapMatches,
+        reviewMetricsMatch,
+      },
+      ingredients: row.parsed.ingredients,
+      instructions: row.parsed.instructions,
+      deterministicMap: row.deterministicMap,
+    }
+  })
+
+  return {
+    behaviorMatches,
+    configurationMatches,
+    eligibilityMatches,
+    reusableRecipes: recipes.filter(row => row.classification === 'SAFE').length,
+    reReviewRequiredRecipes: recipes.filter(row => row.classification === 'PENDING').length,
+    recipes,
+  }
+}
+
 export function readyManifestInvariant(row) {
   return row?.classification !== 'READY' || (
     row.precondition?.currentMapAbsent === true &&
     typeof row.sourceHash === 'string' && /^[a-f0-9]{64}$/.test(row.sourceHash) &&
     row.precondition?.contentSourceHash === row.sourceHash &&
     row.candidateMap?.sourceHash === row.sourceHash &&
-    row.audit?.candidateValidation?.valid === true
+    row.audit?.candidateValidation?.valid === true &&
+    row.audit?.deterministicReview?.classification === 'SAFE' &&
+    row.semanticReview?.aiAdditionsAmbiguous === 0 &&
+    row.semanticReview?.aiAdditionsIncorrect === 0 &&
+    !['UNSAFE_MATERIAL_DIFFERENCE', 'ERROR'].includes(row.stability?.classification)
   )
 }
 
@@ -247,7 +340,7 @@ export function classifyAuditRecipe(evidence) {
   if (evidence.deterministicFalsePositive) {
     return { classification: 'EXCLUDED', reason: 'Deterministic semantic sample found an obvious false positive.' }
   }
-  if (evidence.stabilityStatus === 'SAFE_OMISSION_DIFFERENCE') {
+  if (evidence.stabilityStatus === 'SAFE_OMISSION_DIFFERENCE' && !evidence.stabilityPrimaryApproved) {
     return { classification: 'REVIEW', reason: 'A safe-omission stability difference affects which candidate relationship would be persisted.' }
   }
   if (evidence.stabilityStatus === 'UNSAFE_MATERIAL_DIFFERENCE' || evidence.stabilityStatus === 'ERROR') {
@@ -258,6 +351,10 @@ export function classifyAuditRecipe(evidence) {
 
 export function sortManifestRows(rows) {
   return [...rows].sort((a, b) => a.recipeId.localeCompare(b.recipeId))
+}
+
+export function sortSemanticReviewIds(ids) {
+  return [...ids].sort((a, b) => a.localeCompare(b))
 }
 
 export function selectStabilitySubset(rows, target = 40) {

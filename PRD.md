@@ -1079,6 +1079,31 @@ retained as historical data and are not modified or deleted by this app.
   manifests are **NOT AUTHORIZED**. No v4 manifest exists, and the next full hybrid-v4 audit remains a
   separate read-only session. See
   `docs/audits/cooking-step-mapping-v4-remediation-validation-2026-08-26.md`.
+- **The fresh 2026-08-26 full production hybrid-v4 dry run is READY FOR BACKFILL APPLY, but no
+  backfill occurred.** The immutable read-only audit ran at Git SHA
+  `abd3e82e8d64ca4dd5dde6ca754f5d4260411525` with behavior fingerprint
+  `d0580cf952d58595b4eb8dc0c81212900357e928817f07a18fddff72d4d02ced`, schema 1, parser
+  `recipe-content-v1`, deterministic-v4/hybrid-v4, prompt v2, `openai/gpt-5.6-luna`, and
+  temperature 0. A final live reread confirmed the same source hashes and frozen behavior.
+  Production still contained 236 shared recipes, zero persisted cooking-step maps, 187 eligible
+  recipes, and the same 49 source/parser exclusions. Exact byte-equivalent exhaustive v4 evidence
+  remained valid for all 187 eligible recipes and all 1,040 deterministic references: 1,040 safe
+  mappings, 518 safe omissions, and zero false-positive mappings or recipes. The full primary pass
+  made 94 Gateway requests (zero retries/failures), accepting 45 ingredient associations, 26
+  prepared components, and 2 usage qualifiers. Across the primary pass and 50 stability reruns,
+  all 134 accepted semantic relationships were manually reviewed: 134 correct, zero ambiguous,
+  zero incorrect. Reviewed stability was 46 exact, 1 semantically stable, 3 safe-omission
+  differences whose primary candidates were explicitly approved, zero unsafe material differences,
+  and zero errors. Final classification is 187 READY / 0 REVIEW / 49 EXCLUDED / 0 ERROR / 0
+  EXISTING_MAP. The immutable manifest is
+  `docs/audits/cooking-step-mapping-dryrun-v4-2026-08-26.json`, SHA-256
+  `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`.
+  This audit authorizes only creation of a separate manifest-SHA-locked apply workflow. That future
+  workflow must make zero AI calls, perform zero mapping recomputation, fail closed on live
+  existence/map-absence/source-hash/validator preconditions, and write only the exact approved
+  `cookingStepIngredientMap` candidate. Firestore remained read-only throughout this audit. See
+  `docs/audits/cooking-step-mapping-dryrun-v4-2026-08-26.md` and
+  `docs/audits/cooking-step-mapping-semantic-review-v4-2026-08-26.json`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1168,7 +1193,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (deterministic-v4 exhaustive gate passed; backfill blocked) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Bounded unchanged prompt-v2 compatibility — **Done**: 28/28 accepted additions correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Fresh full production hybrid-v4 dry run — **Pending**. Backfill apply — **Blocked**; v1/v2/v3 manifests are stale and unauthorized, and no v4 manifest exists. Source/parser remediation — **Pending**. Personal override-specific maps — **Pending**. Production still has zero persisted maps and no existing recipe was backfilled. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-remediation-validation-2026-08-26.md`, and `docs/audits/cooking-step-mapping-deterministic-v4-review-2026-08-26.json`. |
+| Cooking-step ingredient mapping | High | Partial (hybrid-v4 dry run passed; apply workflow ready to scope) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done / READY FOR BACKFILL APPLY**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences; immutable manifest SHA-256 `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`. Backfill apply — **Ready for a separate manifest-SHA-locked apply prompt**; no writer exists and no map has been applied. Source/parser remediation — **Pending**. Personal override-specific mappings — **Pending**. Production still has zero persisted maps. See §5.25, §6, `docs/audits/cooking-step-mapping-dryrun-v4-2026-08-26.md`, and `docs/audits/cooking-step-mapping-semantic-review-v4-2026-08-26.json`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
