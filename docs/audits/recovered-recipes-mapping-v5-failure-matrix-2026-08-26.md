@@ -1,0 +1,26 @@
+# Recovered Recipe Mapping V5 Failure Matrix — 2026-08-26
+
+## Scope and reproduction
+
+This matrix freezes the pre-v5 behavior at git SHA `6ccdb31529ad41512985db2501f9754f8a0985ce` before mapping behavior changed. A read-only local reproduction rebuilt deterministic-v4 output from the parsed sources captured by the v4 dry run. All seven reviewed deterministic false positives reproduced. The same high-confidence AI proposal for the Couscous Salad salt row was submitted twice to the prompt-v2 merge validator; both the primary and stability attempts were accepted.
+
+No recipe, persisted map, or Firestore document was written during reproduction.
+
+## Failure matrix
+
+| Recipe | Step / row | Ingredient row and scope | Instruction and prior use | Observed v4 behavior | Expected v5 behavior | Root-cause class |
+|---|---:|---|---|---|---|---|
+| `couscous-salad-with-lime-basil-vinaigrette` | step 2 / row 15 | `1/2 teaspoon kosher salt`; **Lime Basil Vinaigrette** | Sweet potatoes use “a sprinkle of salt.” Step 0 already consumes all dressing ingredients. | deterministic-v4 mapped row 15. | Omit row 15: the instruction is a fresh, unlisted salad-group use and the only exact salt row belongs to an already-consumed dressing group. | Consumed row + wrong component/group + fresh use |
+| `couscous-salad-with-lime-basil-vinaigrette` | step 3 / row 15 | `1/2 teaspoon kosher salt`; **Lime Basil Vinaigrette** | Final salad says “season with salt and pepper.” Step 0 already consumes the dressing row; “with dressing” is prepared-component reuse, not raw salt-row reuse. | The prompt-v2 AI merge validator accepted row 15 in both the primary and repeat/stability reproductions. | Reject row 15: no remaining/reserved/divided/partial grounding authorizes reuse, and prepared dressing reuse cannot reopen a consumed raw row. | AI lifecycle parity failure + consumed row + wrong group |
+| `dads-chili` | step 5 / row 15 | `Chili Sauce 1 TBSP`; ungrouped | “Blend veggies ... for a smoother chili” refers to the finished dish. Row 15 is directly used as “Chili Sauce” in step 0. | deterministic-v4 treated the finished-dish noun `chili` as an active alias of `Chili Sauce`. | Omit row 15 in step 5 while retaining the direct `Chili Sauce` mapping in step 0. | Compound-ingredient alias / finished-dish collision |
+| `easy-chicken-ramen` | step 2 / row 13 | `1 cup water`; soup ingredients | “Bring a pot of water to boil” is unlisted egg-cooking water. The listed cup is explicitly introduced later in step 5 as soup water. | deterministic-v4 mapped row 13 to the egg-boiling process water. | Omit row 13 in step 2 and preserve its direct measured use in the soup step. | Process-water collision + quantity/purpose incompatibility |
+| `pepper-steak` | step 0 / row 3 | `3 ½ tablespoons soy sauce, plus more to taste`; ungrouped | Marinade explicitly uses `2 ½ tablespoons soy sauce`; step 3 later uses the remaining 1 tablespoon. | deterministic-v4 selected the correct row but captured only `½ tablespoons` as the partial-use quantity. | Map row 3 with exact usage `{ kind: "partial", quantityText: "2 ½ tablespoons" }`, preserving the grounded quantity sequence. | Mixed-number token truncation / partial quantity incompatibility |
+| `peruvian-roasted-chicken-with-spicy-cilantro-sauce` | step 4 / row 3 | `1 tablespoon aji amarillo...`; **FOR THE CHICKEN** | Sauce preparation uses `aji amarillo paste`; row 3 was already used in the chicken marinade. The exact sauce row is row 21, `½ tablespoon...`, under **FOR THE SAUCE**. | deterministic-v4 mapped the consumed marinade row 3 into the sauce step. | Omit row 3 and select only the available sauce-group row 21. | Consumed row + wrong component/group + duplicate identity |
+| `tuscan-bean-soup` | step 2 / row 21 | `4 cloves garlic, sliced`; **Rosemary Lemon Garlic Oil** | Soup aromatics use garlic. Step 0 already consumes row 21 in the prepared oil; soup garlic is row 5, `4–6 cloves garlic—rough chopped`. | deterministic-v4 mapped the oil-component row 21 into the soup step. | Omit row 21 and select only available soup row 5. | Consumed row + wrong component/group + duplicate identity |
+| `vegetarian-skillet-chili` | step 0 / row 7 | `1 large onion, chopped`; **For the Chili** | Pickling step explicitly scopes itself to pickled onions; row 2 is `1 red onion or shallot, thinly sliced`. | deterministic-v4 mapped both the correct pickling row and chili onion row 7. | Omit row 7 from step 0; retain row 2 there and row 7 in the later chili step. | Wrong component/group + duplicate identity |
+
+## Required invariant
+
+An ingredient row is available for an instruction only when the exact row is textually grounded, belongs to the instruction's component/group/purpose, and has not already been fully consumed. A consumed row may be reused only with explicit remaining/rest/reserved wording, a divided or grounded partial-quantity sequence, continuing manipulation of the same physical ingredient, or explicit reuse of an established prepared component. Reusing a prepared component does not reopen its raw constituent rows.
+
+The same availability decision must protect deterministic mapping, AI proposal acceptance, persisted-map validation for v5 maps, and prompt context. The rule is corpus-general and contains no recipe-ID exceptions.

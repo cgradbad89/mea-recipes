@@ -20,6 +20,7 @@ import type {
   CookingPreparedComponentReference,
   CookingStepIngredientMap,
   CookingStepIngredientReference,
+  CookingStepMapping,
 } from '@/types/recipe'
 
 const AI_USAGE_SCHEMA = z.object({
@@ -167,13 +168,17 @@ export function mergeValidatedAiCookingMappings(
   }
 
   let acceptedAiAssociation = false
-  const steps = deterministicMap.steps.map(step => {
+  const steps: CookingStepMapping[] = []
+  for (const step of deterministicMap.steps) {
     const proposals = proposalsByStep.get(step.instructionIndex)
-    if (!proposals?.length || isNonActionableCookingInstruction(instructions[step.instructionIndex] || '')) return {
-      ...step,
-      ingredients: step.ingredients.map(reference => reference.usage
-        ? { ...reference, usage: { ...reference.usage } }
-        : { ...reference }),
+    if (!proposals?.length || isNonActionableCookingInstruction(instructions[step.instructionIndex] || '')) {
+      steps.push({
+        ...step,
+        ingredients: step.ingredients.map(reference => reference.usage
+          ? { ...reference, usage: { ...reference.usage } }
+          : { ...reference }),
+      })
+      continue
     }
 
     const proposedIngredients = proposals.flatMap(proposal => proposal.ingredients)
@@ -191,6 +196,7 @@ export function mergeValidatedAiCookingMappings(
         instructions[step.instructionIndex] || '',
         index,
         proposal.usage as CookingIngredientUsage | undefined,
+        { instructionIndex: step.instructionIndex, priorSteps: steps },
       )
       if (!grounding.accepted) continue
       acceptedIndexes.add(index)
@@ -216,15 +222,15 @@ export function mergeValidatedAiCookingMappings(
     const resolved = aiIngredients.length > 0 || aiPreparedComponents.length > 0
     if (resolved) acceptedAiAssociation = true
     const { unresolvedReason, ...stepWithoutReason } = step
-    return {
+    steps.push({
       ...(resolved ? stepWithoutReason : step),
       ingredients: [...step.ingredients, ...aiIngredients]
         .sort((a, b) => a.ingredientIndex - b.ingredientIndex),
       ...((step.preparedComponents?.length || aiPreparedComponents.length)
         ? { preparedComponents: [...(step.preparedComponents || []), ...aiPreparedComponents] }
         : {}),
-    }
-  })
+    })
+  }
 
   return acceptedAiAssociation
     ? { ...deterministicMap, engineVersion: COOKING_MAPPING_HYBRID_ENGINE_VERSION, steps }

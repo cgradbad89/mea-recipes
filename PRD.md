@@ -714,7 +714,7 @@ retained as historical data and are not modified or deleted by this app.
     heuristic. Distinct food identities remain distinct, duplicate evidence is unresolved rather
     than guessed, and explicit group language is required to disambiguate grouped duplicates.
     Explicit `half`/partial quantities and `remaining`/`rest` qualifiers are preserved as source
-    metadata without quantity arithmetic. V4 requires both safely grounded identity and positive
+    metadata without quantity arithmetic. V5 requires both safely grounded identity and positive
     evidence that the ingredient is actively used now. Action grounding is clause-local: contextual
     nouns (`sauce for the chicken`), negative/deferred clauses, headings/labels, and explanatory
     supplemental notes do not become ingredient references merely because another clause contains an
@@ -736,12 +736,12 @@ retained as historical data and are not modified or deleted by this app.
     instruction arrays (including order, text, and subheaders), and
     `computeCookingMappingSourceHash` produces their lowercase SHA-256 fingerprint. A future stored
     mapping is valid only when that fingerprint matches the current effective parsed source. The
-    contract is schema v1 with parser `recipe-content-v1`; deterministic-only results use engine
-    `deterministic-v4`, while a result containing accepted AI associations uses `hybrid-v4`. Runtime
-    supports only those v4 engine values; persisted v1/v2/v3 maps fail closed to deterministic-v4
-    fallback.
+    contract is schema v1 with parser `recipe-content-v1`; newly generated deterministic-only results
+    use engine `deterministic-v5`, while a result containing accepted AI associations uses `hybrid-v5`.
+    Runtime continues to accept the 187 already-audited source-bound `deterministic-v4`/`hybrid-v4`
+    maps as well as v5 maps; persisted v1/v2/v3 maps fail closed to deterministic-v5 fallback.
 
-    **Deterministic-v4 listed-row lifecycle:** during one deterministic step traversal only, each
+    **Deterministic-v5 listed-row availability and lifecycle:** during one deterministic step traversal, each
     confidently mapped row is marked used, including rows resolved through a bounded collective such
     as `all sauce ingredients`. A used row cannot satisfy a later ordinary noun or quantity match.
     Reuse requires uniquely grounded `remaining`/`rest`/`reserved` language, an explicitly divided row
@@ -752,7 +752,11 @@ retained as historical data and are not modified or deleted by this app.
     uses cannot borrow a similar listed row. Ingredient form, group, and purpose markers such as `for
     garnish`, `for topping`, `for the sauce`, and `for the slaw` remain row evidence rather than being
     stripped into a global identity. Optional ingredients are not excluded when an actionable
-    instruction addresses their correct purpose. Context such as `to hold the salmon`, `for the
+    instruction addresses their correct purpose. V5 additionally requires positive current component/
+    group/purpose compatibility, protects compound ingredient names from finished-dish noun collisions,
+    rejects measured recipe rows for unmeasured fresh boiling/ice-bath process material, preserves the
+    complete grounded mixed-number quantity, and prevents prepared oil/sauce/dressing constituent words
+    from escaping their component. Context such as `to hold the salmon`, `for the
     salmon`, or a before/while clause remains non-active unless its local clause directs action on the
     row.
 
@@ -768,7 +772,9 @@ retained as historical data and are not modified or deleted by this app.
     duplicate groups, unbounded collective expansion, negative context, nonlocal usage metadata, and
     noncanonical prepared labels while preserving every deterministic reference. Invalid usage is
     dropped only when the base association is independently grounded; otherwise the association is
-    rejected. Prepared components require an exact canonical ingredient-group or earlier actionable
+    rejected. Hybrid-v5 invokes the same row-availability gate with all prior accepted deterministic/AI
+    steps, so high-confidence AI cannot reopen a consumed row, cross group/purpose, borrow fresh process
+    material, or override quantity incompatibility. Prepared components require an exact canonical ingredient-group or earlier actionable
     antecedent. AI timeout, provider failure, invalid
     response, or source-hash mismatch falls back to the local deterministic map, so recipe publishing
     proceeds. Prompt 2 changes new-recipe persistence only: it does not backfill existing recipes.
@@ -830,6 +836,22 @@ retained as historical data and are not modified or deleted by this app.
     dry run produced zero write candidates and 187 `MAP_ALREADY_PRESENT` skips. The apply made zero
     AI calls, invoked neither deterministic nor hybrid mapping generation, and made zero candidate
     substitutions. See `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`.
+
+    **2026-08-26 recovered-recipe deterministic-v5 remediation:** The recovered-41 hybrid-v4 audit
+    exposed seven deterministic false positives and one repeated AI relationship: consumed/wrong-group
+    salt, chile, garlic, and onion rows; fresh egg-boiling water; a finished-dish `chili` collision;
+    truncated mixed-number usage; and AI reuse of consumed vinaigrette salt. V5 centralizes exact-row
+    availability across deterministic and AI validation without recipe-ID exceptions. A fresh live
+    read-only pass reviewed all 41 repaired recipes, all 295 deterministic references, and all 111
+    fully unmapped instructions: 295 safe mappings, 111 safe omissions, 0 false positives, and 0
+    invalid candidates. All 187 persisted v4 maps retained matching hashes, structural validity, and
+    runtime selection with zero fallbacks. A fixed 26-recipe bounded prompt-v2 run reviewed all 25
+    accepted primary/repeat relationships as correct (0 ambiguous/incorrect); stability was 23 exact,
+    3 safe-omission differences, and 0 unsafe differences. Prompt v2, model, and temperature remain
+    unchanged. Recipe/map/Firestore writes were zero. This passes remediation and authorizes only a
+    completely fresh 41-recipe hybrid-v5 audit; it does not authorize apply. See
+    `docs/audits/recovered-recipes-mapping-v5-remediation-validation-2026-08-26.md` and
+    `docs/audits/recovered-recipes-mapping-v5-semantic-review-2026-08-26.json`.
 
     Personal content overrides are mapped from their effective parsed source. A changed ingredient,
     instruction, or ordering normally invalidates the shared stored map and uses the deterministic
@@ -1206,6 +1228,19 @@ retained as historical data and are not modified or deleted by this app.
   the complete 41-recipe audit from fresh live content; do not use this manifest for apply. See
   `docs/audits/recovered-recipes-mapping-v4-dryrun-2026-08-26.md` and
   `docs/audits/recovered-recipes-mapping-v4-semantic-review-2026-08-26.json`.
+- **Recovered-recipe mapping v5 remediation passed, but apply remains blocked pending a fresh full
+  audit.** The seven deterministic failures and repeated AI vinaigrette-salt failure were reproduced
+  before editing and resolved with general row-availability, group/component, process-material,
+  compound-name, and exact mixed-quantity rules. The final fresh live deterministic-v5 pass reviewed
+  41/41 recipes, 295/295 references, and 111/111 fully unmapped instructions with zero false-positive
+  mappings or recipes. The authoritative hybrid-v5 validator rejected consumed vinaigrette salt in
+  focused primary/repeat tests and both bounded live runs. The 26-recipe prompt-v2 validation reviewed
+  25 accepted relationships as correct, with 23 exact stability, three safe omission differences, and
+  zero unsafe differences. All 187 persisted v4 maps still match live hashes, validate structurally,
+  and resolve as persisted with zero fallback; they were not rewritten or migrated. The historical
+  recovered-v4 manifest remains failed evidence only. No new manifest was created and recipe, map, and
+  Firestore writes were zero. See
+  `docs/audits/recovered-recipes-mapping-v5-remediation-validation-2026-08-26.md`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1295,7 +1330,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (eligible-corpus backfill plus Waves 1A–3 done; recovered mapping remediation, Wave 4/5, and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only content repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping dry run — Done / failed semantic gates**: all 41 source-clean and map-free; exhaustive review found seven deterministic false positives in seven recipes and two incorrect accepted AI relationships across primary/stability, so the immutable SHA-locked manifest is evidence only and no apply is authorized. **Recovered 41-recipe mapping remediation and fresh rerun — Pending**. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/excluded-recipe-parser-wave1a-validation-2026-08-26.md`, `docs/audits/excluded-recipe-wave2-apply-2026-08-26.md`, `docs/audits/excluded-recipe-wave3-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v4-dryrun-2026-08-26.md`, and the preserved v1-v4 audit evidence. |
+| Cooking-step ingredient mapping | High | Partial (eligible-corpus backfill, Waves 1A–3, and mapping-v5 remediation done; fresh recovered-v5 audit, Wave 4/5, and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping audit — Failed / historical**: seven deterministic false positives and repeated incorrect AI salt acceptance; its immutable manifest is never reusable. **Mapping v5 remediation — Done / PASS**: 41/41 recipes, 295 references, 111 omissions, 0 false positives; bounded AI 25/25 correct with 0 unsafe stability differences; all 187 persisted v4 maps remain runtime accepted. **Fresh recovered 41-recipe v5 hybrid audit — Pending**. **Recovered map apply — Blocked** until that fresh audit produces a new approved immutable manifest. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-remediation-validation-2026-08-26.md`, and the preserved v1-v4 audit evidence. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

@@ -65,7 +65,7 @@ describe('deterministic mapping contract', () => {
     expect(result).toMatchObject({
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'deterministic-v4',
+      engineVersion: 'deterministic-v5',
     })
     expect(result.steps.map(step => step.instructionIndex)).toEqual([0, 1])
   })
@@ -309,7 +309,7 @@ describe('runtime cooking-step map resolver', () => {
     expect(result.mapping.steps[0].ingredients.map(reference => reference.ingredientIndex)).toEqual([0])
   })
 
-  it('accepts a valid deterministic-v4 persisted map', async () => {
+  it('accepts a valid deterministic-v5 persisted map', async () => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
@@ -359,7 +359,7 @@ describe('runtime cooking-step map resolver', () => {
   })
 
   it.each(['deterministic-v2', 'hybrid-v2', 'deterministic-v3', 'hybrid-v3'])(
-    'rejects a persisted %s map after the v4 upgrade', async engineVersion => {
+    'rejects a persisted %s map after the v5 upgrade', async engineVersion => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
@@ -367,7 +367,7 @@ describe('runtime cooking-step map resolver', () => {
     await expect(resolveCookingStepIngredientMap(ingredients, instructions, persisted)).resolves.toMatchObject({
       source: 'deterministic-fallback',
       fallbackReason: 'unsupported-engine',
-      mapping: { engineVersion: 'deterministic-v4' },
+      mapping: { engineVersion: 'deterministic-v5' },
     })
     },
   )

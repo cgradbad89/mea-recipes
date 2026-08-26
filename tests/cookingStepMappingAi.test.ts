@@ -21,7 +21,7 @@ function deterministicMap(
   return {
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'deterministic-v4',
+    engineVersion: 'deterministic-v5',
     sourceHash: HASH,
     steps: Array.from({ length: instructionCount }, (_, instructionIndex) => ({
       instructionIndex,
@@ -53,7 +53,7 @@ describe('validated AI cooking-step mapping merge', () => {
       ['Add the oil to the marinade.'],
       output(0, [{ ingredientIndex: 0, confidence: 'high' }]),
     )
-    expect(merged.engineVersion).toBe('hybrid-v4')
+    expect(merged.engineVersion).toBe('hybrid-v5')
     expect(merged.steps[0]).toEqual({
       instructionIndex: 0,
       ingredients: [{ ingredientIndex: 0, confidence: 'high', provenance: 'ai' }],
@@ -84,7 +84,7 @@ describe('validated AI cooking-step mapping merge', () => {
         usage: { kind: 'remaining' },
       }]),
     )
-    expect(merged.engineVersion).toBe('deterministic-v4')
+    expect(merged.engineVersion).toBe('deterministic-v5')
     expect(merged.steps[0].ingredients).toEqual([
       { ingredientIndex: 0, confidence: 'high', provenance: 'deterministic' },
     ])

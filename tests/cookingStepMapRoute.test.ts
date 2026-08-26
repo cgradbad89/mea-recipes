@@ -128,7 +128,7 @@ describe('POST /api/cooking-step-map', () => {
     const response = await POST(jsonRequest({ content: ambiguousContent }))
     const data = await response.json()
     expect(response.status).toBe(200)
-    expect(data.mapping.engineVersion).toBe('hybrid-v4')
+    expect(data.mapping.engineVersion).toBe('hybrid-v5')
     expect(data.mapping.steps[0].ingredients).toEqual([
       { ingredientIndex: 1, confidence: 'high', provenance: 'ai' },
     ])
@@ -169,7 +169,7 @@ describe('POST /api/cooking-step-map', () => {
       resolvedIngredientReferences: 0,
       resolvedPreparedComponents: 0,
     })
-    expect(data.mapping.engineVersion).toBe('deterministic-v4')
+    expect(data.mapping.engineVersion).toBe('deterministic-v5')
     expect(JSON.stringify(data)).not.toContain('secret provider detail')
   })
 
