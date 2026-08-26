@@ -17,8 +17,9 @@ Systemic safety blockers were confirmed: deterministic false positives in the st
 | Eligible | 187 |
 | Parser/content excluded | 49 |
 | Parser-defective | 41 |
-| No parsed ingredients | 2 |
-| No parsed instructions | 6 |
+| Empty parsed ingredient arrays | 2 |
+| Empty parsed instruction arrays | 8 |
+| No-instruction exclusions after no-ingredient precedence | 6 |
 | Other invalid content | 0 |
 | Deterministic-only | 119 |
 | AI attempted (actual primary recipes) | 74 |
