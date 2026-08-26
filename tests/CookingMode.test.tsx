@@ -20,7 +20,7 @@ async function hybridIngredientMapFor(
   return {
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'hybrid-v2',
+    engineVersion: 'hybrid-v3',
     sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
     steps: [{
       instructionIndex: 0,
@@ -56,7 +56,7 @@ async function preparedComponentMap(): Promise<{
     mapping: {
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'hybrid-v2',
+      engineVersion: 'hybrid-v3',
       sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
       steps: [{
         instructionIndex: 0,

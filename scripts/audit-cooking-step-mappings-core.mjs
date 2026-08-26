@@ -244,7 +244,7 @@ export function selectStabilitySubset(rows, target = 30) {
     .slice(0, target).map(item => item.row)
 }
 
-export function selectDeterministicSample(rows, target = 60) {
+export function selectDeterministicSample(rows, target = 80) {
   const requiredIds = [
     '194', 'charlie-bird-s-farro-salad', 'easy-spaghetti-with-meat-sauce', 'pesto',
     'roasted-asparagus-with-lemon', 'taco-soup', 'japanese-teriyaki-salmon-bowl',
@@ -253,6 +253,8 @@ export function selectDeterministicSample(rows, target = 60) {
     'creamy-chickpea-spinach-masala-with-tadka', 'fried-chicken-sandwich',
     'moqueca-brazilian-fish-stew', 'queso-chicken-chili-with-roasted-corn-and-jalape-o',
     'tacos-al-pastor',
+    'sheet-pan-chicken-tinga-bowls', 'chopped-thai-shrimp-salad-with-garlic-lime-dressing',
+    'singapore-mei-fun', 'sesame-apricot-tofu', 'chickpea-curry',
   ]
   const eligible = rows.filter(row => row.sourceStatus === 'ELIGIBLE')
   const selected = []

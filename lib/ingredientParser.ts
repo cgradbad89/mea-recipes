@@ -261,7 +261,7 @@ export function normalizeNoun(name: string): string {
  * Parse a SIMPLE quantity string to a number for summing. Returns null for
  * ranges, side-by-side compounds ("2 cups + 3 tbsp"), or anything non-numeric.
  */
-function parseQtyNumber(q: string): number | null {
+export function parseQuantityNumber(q: string): number | null {
   const s = (q || '').trim()
   if (!s) return null
   if (s.includes('+')) return null
@@ -326,8 +326,8 @@ export function mergeQuantities(existing: QtyUnit, incoming: QtyUnit): QtyUnit {
   if (!iQ) return { quantity: eQ, unit: eU }
   if (!eQ) return { quantity: iQ, unit: iU }
 
-  const eNum = parseQtyNumber(eQ)
-  const iNum = parseQtyNumber(iQ)
+  const eNum = parseQuantityNumber(eQ)
+  const iNum = parseQuantityNumber(iQ)
   const eCanon = unitCanonical(eU)
   const iCanon = unitCanonical(iU)
   const sameUnit = (eCanon !== null && eCanon === iCanon) || (eU === '' && iU === '')

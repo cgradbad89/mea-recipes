@@ -283,6 +283,7 @@ export async function resolveCookingStepMappingsWithAi(
   ingredients: string[],
   instructions: string[],
   userId: string,
+  timeout?: number,
 ): Promise<AiCookingStepResolution> {
   return generateAIObject({
     feature: 'cooking-step-map',
@@ -292,5 +293,6 @@ export async function resolveCookingStepMappingsWithAi(
     prompt: buildCookingStepMappingPrompt(deterministicMap, ingredients, instructions),
     schema: AI_COOKING_STEP_RESOLUTION_SCHEMA,
     temperature: COOKING_STEP_MAPPING_TEMPERATURE,
+    ...(timeout === undefined ? {} : { timeout }),
   })
 }

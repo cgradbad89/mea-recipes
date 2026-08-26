@@ -39,15 +39,19 @@ const require = createRequire(import.meta.url)
 const { loadEnv, getAdmin } = require('./_lib.js')
 const LIMITS = { maxContentLength: 64_000, maxIngredients: 200, maxInstructions: 150, maxLineLength: 4_000 }
 const CONCURRENCY = 3
+const BOUNDED_AI_TIMEOUT_MS = 90_000
 const args = new Set(process.argv.slice(2))
-const mode = args.has('--hybrid') ? 'hybrid' : args.has('--deterministic-only') ? 'deterministic-only' : null
+const selectedModes = ['--hybrid', '--bounded-hybrid', '--deterministic-only'].filter(flag => args.has(flag))
+const mode = args.has('--hybrid') ? 'hybrid'
+  : args.has('--bounded-hybrid') ? 'bounded-hybrid'
+    : args.has('--deterministic-only') ? 'deterministic-only' : null
 const option = name => {
   const index = process.argv.indexOf(name)
   return index === -1 ? null : process.argv[index + 1]
 }
 
-if (!mode || (args.has('--hybrid') && args.has('--deterministic-only'))) {
-  throw new Error('Choose exactly one mode: --deterministic-only or --hybrid')
+if (!mode || selectedModes.length !== 1) {
+  throw new Error('Choose exactly one mode: --deterministic-only, --bounded-hybrid, or --hybrid')
 }
 
 function auditDate() {
@@ -75,7 +79,7 @@ async function loadProductionModules() {
     return {
       recipeContent: await server.ssrLoadModule('/lib/recipeContent.ts'),
       mapping: await server.ssrLoadModule('/lib/cookingStepMapping.ts'),
-      mappingAi: mode === 'hybrid' ? await server.ssrLoadModule('/lib/cookingStepMappingAi.ts') : null,
+      mappingAi: mode !== 'deterministic-only' ? await server.ssrLoadModule('/lib/cookingStepMappingAi.ts') : null,
       aiConfig: await server.ssrLoadModule('/lib/aiConfig.ts'),
       route: await server.ssrLoadModule('/app/api/cooking-step-map/route.ts'),
       close: () => server.close(),
@@ -285,11 +289,12 @@ function rejectionEvidence(row, modelOutput, modules, run) {
   return evidence
 }
 
-async function executeHybrid(rows, modules, usage) {
-  const targets = rows.filter(isAuditAiEligible)
+async function executeHybrid(rows, modules, usage, selectedTargets = null, stabilityTarget = 30) {
+  const targets = selectedTargets || rows.filter(isAuditAiEligible)
   await mapConcurrent(targets, CONCURRENCY, async row => {
     const call = () => modules.mappingAi.resolveCookingStepMappingsWithAi(
       row.deterministicMap, row.parsed.ingredients, row.parsed.instructions, 'cooking-step-mapping-production-audit',
+      mode === 'bounded-hybrid' ? BOUNDED_AI_TIMEOUT_MS : undefined,
     )
     const result = await callWithOneTransientRetry(call)
     row.hybridStats.aiAttempted = true
@@ -320,10 +325,11 @@ async function executeHybrid(rows, modules, usage) {
     })
   })
 
-  const stabilityTargets = selectStabilitySubset(rows, 30)
+  const stabilityTargets = selectStabilitySubset(rows, stabilityTarget)
   await mapConcurrent(stabilityTargets, CONCURRENCY, async row => {
     const result = await callWithOneTransientRetry(() => modules.mappingAi.resolveCookingStepMappingsWithAi(
       row.deterministicMap, row.parsed.ingredients, row.parsed.instructions, 'cooking-step-mapping-production-audit-stability',
+      mode === 'bounded-hybrid' ? BOUNDED_AI_TIMEOUT_MS : undefined,
     ))
     usage.stabilityRequests += result.attempts
     if (result.status === 'failed') {
@@ -349,12 +355,39 @@ async function executeHybrid(rows, modules, usage) {
   })
 }
 
+function selectBoundedHybridTargets(rows, target = 25) {
+  const priorityIds = [
+    'buttersoy-chicken-and-asparagus-stirfry', 'chicken-chow-mein', 'chicken-wild-rice',
+    'tacos-al-pastor', 'sheet-pan-chicken-tinga-bowls',
+    'chopped-thai-shrimp-salad-with-garlic-lime-dressing', 'singapore-mei-fun',
+    'sesame-apricot-tofu', 'chickpea-curry',
+    'blue-corn-green-chili-chicken-enchiladas', 'creamy-chickpea-spinach-masala-with-tadka',
+    'fried-chicken-sandwich', 'moqueca-brazilian-fish-stew',
+    'queso-chicken-chili-with-roasted-corn-and-jalape-o', 'dan-dan-noodles',
+    'korean-bulgogi-beef-bowls', 'chicken-gyro-chopped-salad', 'pad-thai',
+    'japanese-cold-soba-noodle-salad', 'pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta',
+    'mexican-oaxacan-bowl', 'creamy-kale-pasta', 'mediterranean-grilled-salmon',
+    'brown-butter-lentil-and-sweet-potato-salad', 'shrimp-pullao',
+  ]
+  const eligible = rows.filter(isAuditAiEligible)
+  const selected = priorityIds
+    .map(recipeId => eligible.find(row => row.recipeId === recipeId))
+    .filter(Boolean)
+  if (selected.length < target) {
+    const selectedIds = new Set(selected.map(row => row.recipeId))
+    selected.push(...selectDeterministicSample(rows, 80)
+      .filter(row => isAuditAiEligible(row) && !selectedIds.has(row.recipeId))
+      .slice(0, target - selected.length))
+  }
+  return selected.slice(0, target)
+}
+
 function reviewPaths(date) {
   return {
-    manifest: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v2-${date}.json`),
-    report: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v2-${date}.md`),
-    reviews: path.join(ROOT, `docs/audits/cooking-step-mapping-semantic-review-v2-${date}.json`),
-    raw: path.join('/tmp', `cooking-step-mapping-run-v2-${date}.json`),
+    manifest: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v3-${date}.json`),
+    report: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v3-${date}.md`),
+    reviews: path.join(ROOT, `docs/audits/cooking-step-mapping-semantic-review-v3-${date}.json`),
+    raw: path.join('/tmp', `cooking-step-mapping-run-v3-${date}.json`),
   }
 }
 
@@ -452,7 +485,7 @@ function makeReviewTemplate(rows, date, auditVersion) {
       details: row.stability.status === 'EXACT_STABLE'
         ? 'Validated semantic outputs and full candidate maps are byte-identical.' : 'PENDING',
     })),
-    deterministicSample: selectDeterministicSample(rows, 60).map(row => ({
+    deterministicSample: selectDeterministicSample(rows, 80).map(row => ({
       recipeId: row.recipeId, title: row.title, classification: 'PENDING', explanation: null,
       safeCorrectMappings: 0, safeOmissions: 0,
       ingredients: row.parsed.ingredients, instructions: row.parsed.instructions,
@@ -574,7 +607,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
   const existingByVersion = [...new Set(raw.rows.filter(row => row.currentMapPresent)
     .map(row => row.currentMapEngineVersion || 'unknown'))].sort()
   const lines = [
-    `# Cooking-step mapping v2 production dry run — ${date}`, '',
+    `# Cooking-step mapping v3 production dry run — ${date}`, '',
     '## Executive verdict', '', verdict, '',
     'This is a fresh full-corpus read-only validation. No historical v1 candidate map was used, and no Firestore document was written.', '',
     reviews.verdictReason || '', '',
@@ -594,7 +627,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     `| Nonempty shared content | ${count(raw.rows, row => row.contentNonempty)} |`,
     `| Existing persisted maps | ${existingMaps} |`,
     `| Existing v1 maps | ${count(raw.rows, row => ['deterministic-v1', 'hybrid-v1'].includes(row.currentMapEngineVersion))} |`,
-    `| Current v2 maps | ${count(raw.rows, row => [config.deterministicEngineVersion, config.hybridEngineVersion].includes(row.currentMapEngineVersion))} |`,
+    `| Current v3 maps | ${count(raw.rows, row => [config.deterministicEngineVersion, config.hybridEngineVersion].includes(row.currentMapEngineVersion))} |`,
     ...existingByVersion.map(version => `| Existing \`${version}\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === version)} |`),
     `| Source eligible | ${eligible.length} |`,
     `| Source/parser excluded | ${sourceExcludedRows.length} |`,
@@ -607,7 +640,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
       .map(status => `| \`${status}\` | ${count(raw.rows, row => row.sourceStatus === status)} |`), '',
     ...sourceExcludedRows.map(row => `- **${row.title}** (\`${row.recipeId}\`) — \`${row.sourceStatus}\`: ${row.sourceReason}`), '',
     'These exclusions are source/parser defects, not mapper abstentions. No legacy content was repaired in this audit.', '',
-    '## Deterministic-v2 results', '',
+    '## Deterministic-v3 results', '',
     '| Metric | Count |', '|---|---:|',
     `| Instructions | ${sum(eligible, row => row.deterministicStats?.instructionCount || 0)} |`,
     `| Mapped steps | ${sum(eligible, row => row.deterministicStats?.mappedSteps || 0)} |`,
@@ -698,7 +731,13 @@ async function main() {
       const auditVersion = auditedConfiguration(modules)
       const documents = await readSharedRecipes()
       const rows = await buildBaseline(documents, modules)
+      let boundedSelection = null
       if (mode === 'hybrid') await executeHybrid(rows, modules, usage)
+      if (mode === 'bounded-hybrid') {
+        const targets = selectBoundedHybridTargets(rows, 25)
+        boundedSelection = targets.map(row => row.recipeId)
+        await executeHybrid(rows, modules, usage, targets, 20)
+      }
       raw = {
         auditDate: date,
         executionTimestamp: new Date().toISOString(),
@@ -707,18 +746,39 @@ async function main() {
         limits: LIMITS,
         auditVersion,
         usage,
+        ...(boundedSelection ? { boundedSelection } : {}),
         rows,
       }
     } finally {
       console.info = originalInfo
       await modules.close()
     }
-    fs.writeFileSync(mode === 'hybrid' ? paths.raw : path.join('/tmp', `cooking-step-mapping-deterministic-v2-${date}.json`), stableJson(raw))
+    const rawPath = mode === 'hybrid' ? paths.raw
+      : mode === 'bounded-hybrid' ? path.join('/tmp', `cooking-step-mapping-bounded-hybrid-v3-${date}.json`)
+        : path.join('/tmp', `cooking-step-mapping-deterministic-v3-${date}.json`)
+    fs.writeFileSync(rawPath, stableJson(raw))
   }
 
   if (mode === 'deterministic-only') {
     if (raw.usage.primaryRequests !== 0 || raw.usage.stabilityRequests !== 0) throw new Error('Deterministic mode attempted AI')
     console.log(JSON.stringify({ mode, rows: raw.rows.length, eligible: count(raw.rows, row => row.sourceStatus === 'ELIGIBLE'), aiRequests: 0 }, null, 2))
+    return
+  }
+
+
+  if (mode === 'bounded-hybrid') {
+    const targets = raw.rows.filter(row => raw.boundedSelection.includes(row.recipeId))
+    console.log(JSON.stringify({
+      mode,
+      rawArtifact: path.join('/tmp', `cooking-step-mapping-bounded-hybrid-v3-${date}.json`),
+      uniqueRecipes: targets.length,
+      primaryRecipesCalled: count(targets, row => row.hybridStats.aiAttempted),
+      primaryRequests: raw.usage.primaryRequests,
+      stabilityRecipes: count(targets, row => Boolean(row.stability)),
+      stabilityRequests: raw.usage.stabilityRequests,
+      acceptedAdditions: sum(targets, row => row.aiAdditions.length),
+      productionWrites: raw.productionWrites,
+    }, null, 2))
     return
   }
 

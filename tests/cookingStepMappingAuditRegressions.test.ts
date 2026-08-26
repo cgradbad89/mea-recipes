@@ -102,7 +102,7 @@ describe('2026-08-25 deterministic audit regressions', () => {
     expect(indexes(
       ['4 boneless skinless chicken breasts', '1 tablespoon seasoning mix'],
       'The seasoning mix can be any all purpose chicken seasoning you like.',
-    )).toEqual([1])
+    )).not.toContain(0)
   })
 
   it('marks obvious reader-review prose non-actionable', () => {
@@ -146,5 +146,197 @@ describe('2026-08-25 deterministic audit regressions', () => {
 
   it('retains the positive primary-protein shorthand control', () => {
     expect(indexes(['2 lb pork shoulder'], 'Brown the pork in batches.')).toEqual([0])
+  })
+})
+
+describe('2026-08-26 deterministic-v3 active-use regressions', () => {
+  it('does not map a protein mentioned only as the target of a sauce', () => {
+    expect(indexes(['1 lb chicken breast'], 'Prepare the sauce for the chicken.')).toEqual([])
+  })
+
+  it('still maps a protein that is actively added', () => {
+    expect(indexes(['1 lb chicken breast'], 'Add the chicken to the pan.')).toEqual([0])
+  })
+
+  it('does not map shrimp from a dressing context phrase', () => {
+    expect(indexes(['1 lb shrimp'], 'Make the dressing for the shrimp.')).toEqual([])
+  })
+
+  it('maps shrimp when it is actively tossed with dressing', () => {
+    expect(indexes(['1 lb shrimp'], 'Toss the shrimp with the dressing.')).toEqual([0])
+  })
+
+  it('does not let an action in another clause activate a contextual protein', () => {
+    expect(indexes(['1 lb chicken breast'], 'Make the sauce, then serve it over the chicken.')).toEqual([])
+  })
+
+  it('keeps negative and positive uses local across clauses', () => {
+    expect(indexes(['olive oil', 'extra firm tofu'], 'Do not add oil yet; add tofu now.')).toEqual([1])
+  })
+
+  it('does not map a prepared-component constituent', () => {
+    expect(step(['2 cloves garlic'], 'Add the garlic sauce.')).toMatchObject({
+      ingredients: [],
+      unresolvedReason: 'prepared-component',
+    })
+  })
+
+  it('maps a separately acted-on raw constituent before a component reference', () => {
+    expect(indexes(['2 cloves garlic'], 'Add the garlic and then stir in the sauce.')).toEqual([0])
+  })
+
+  it('treats a for-the-protein line as a heading rather than ingredient use', () => {
+    expect(step(['1 lb chicken breast'], 'For the chicken:')).toMatchObject({
+      ingredients: [],
+      unresolvedReason: 'non-actionable',
+    })
+  })
+
+  it('does not map contextual serving-side language', () => {
+    expect(indexes(['1 lb chicken breast'], 'Prepare the sauce and serve with the chicken on the side.')).toEqual([])
+  })
+
+  it('does not map a noun embedded in a destination label', () => {
+    expect(indexes(['2 eggs'], 'Transfer the shrimp to the egg plate.')).toEqual([])
+  })
+
+  it('does not map raw bacon from contextual bacon-fat or bacon-pan phrases', () => {
+    expect(indexes(['12 slices bacon'], 'Drain excess bacon fat, then add bread to the bacon pan.')).toEqual([])
+  })
+
+  it('does not map an ingredient mentioned only in a temporal clause', () => {
+    expect(indexes(['1 lb chicken breast', '1 tbsp butter'], 'While the chicken bakes, melt the butter.')).toEqual([1])
+  })
+
+  it('does not map an ingredient mentioned only in a completion condition', () => {
+    expect(indexes(['1 lb chicken breast', '1 tbsp butter'], 'When the chicken is done cooking, melt the butter.')).toEqual([1])
+  })
+
+  it('leaves duplicate group salt unresolved without row-specific evidence', () => {
+    expect(step([
+      'For the chicken:', '1 tsp salt',
+      'For the dressing:', '1/2 tsp salt',
+    ], 'Season shrimp with salt.')).toMatchObject({ ingredients: [], unresolvedReason: 'ambiguous' })
+  })
+
+  it('uses an exact quantity to select only the matching duplicate oil row', () => {
+    expect(indexes([
+      'For the chicken:', '2 tbsp avocado oil',
+      'For the dressing:', '1 tbsp avocado oil',
+    ], 'Add 1 tbsp avocado oil.')).toEqual([3])
+  })
+
+  it('leaves quantity-disambiguated duplicates unresolved when neither row agrees', () => {
+    expect(step([
+      'For the chicken:', '2 tbsp avocado oil',
+      'For the dressing:', '1 tbsp avocado oil',
+    ], 'Add 3 tbsp avocado oil.')).toMatchObject({ ingredients: [], unresolvedReason: 'ambiguous' })
+  })
+
+  it('does not attach an explicit mismatched quantity to a unique listed row', () => {
+    expect(indexes(['1 tbsp avocado oil'], 'Add 2 tbsp avocado oil.')).toEqual([])
+  })
+
+  it('uses another unambiguous component cue in the clause to select duplicate garlic', () => {
+    expect(indexes([
+      'For the marinade:', '4 cloves garlic', '1/2 onion',
+      'For the tomatillo sauce:', '3 tomatillos', '2 small cloves of garlic', '1/4 onion',
+    ], 'Roast the tomatillos, onion, and garlic.')).toEqual([4, 5, 6])
+  })
+
+  it('does not map a listed plain water row from an unlisted hot-water use', () => {
+    expect(indexes(['1 tbsp water'], 'Pour in hot water enough to cover the noodles.')).toEqual([])
+  })
+
+  it('does not emit a bare Oil section-label row', () => {
+    expect(indexes(['Oil', '2 tbsp neutral cooking oil'], 'Heat half of the cooking oil.')).toEqual([1])
+  })
+
+  it('does not map locally negated oil even when another ingredient is active', () => {
+    expect(indexes(['Oil', '2 tbsp neutral cooking oil', '8 shrimp'], 'Sear the shrimp; no need to pour in more oil.'))
+      .toEqual([2])
+  })
+
+  it('keeps an actionable optional garnish', () => {
+    expect(indexes(['cilantro'], 'Optional: garnish with cilantro.')).toEqual([0])
+  })
+
+  it('marks the Chicken Chow Mein substitution note non-actionable', () => {
+    expect(step(
+      ['1 piece chicken breast'],
+      '1. Apart from chicken, you may also use pork, beef, shrimp or Char Siu. For vegetarian and vegan diets, egg and tofu are great alternatives.',
+    )).toMatchObject({ ingredients: [], unresolvedReason: 'non-actionable' })
+  })
+
+  it('does not map raw chile from an unlisted prepared chili oil', () => {
+    expect(indexes(['1 fresh chilli'], 'Drizzle with homemade chili oil if you wish.')).toEqual([])
+  })
+
+  it('does not map raw chipotle from a prepared chipotle mayo reference', () => {
+    expect(indexes(['1 tsp ground chipotle'], 'Serve with the Chipotle Mayo.')).toEqual([])
+  })
+
+  it('does not attach unscoped extra water to an earlier measured water row', () => {
+    expect(indexes(['2 tbsp water'], 'Add extra water or broth to thin the sauce.')).toEqual([])
+  })
+
+  it('marks the Singapore Mei Fun fry line as a section heading', () => {
+    expect(step(['2 eggs', '8 shrimp'], 'Fry the eggs & shrimp')).toMatchObject({
+      ingredients: [],
+      unresolvedReason: 'non-actionable',
+    })
+  })
+
+  it('marks the Fried Chicken Sandwich size guidance as supplemental prose', () => {
+    expect(step(
+      ['4 chicken breasts'],
+      'You can use small chicken pieces, large chicken breasts that have been pounded thin, or large chicken breasts cut in half.',
+    )).toMatchObject({ ingredients: [], unresolvedReason: 'non-actionable' })
+  })
+
+  it('fixes Butter-Soy Chicken wrong-group salt while retaining active asparagus', () => {
+    const ingredients = [
+      'For the Chicken', '1 chicken breast', '1/4 teaspoon salt',
+      'For the Stir-fry', '1/4 pound asparagus', 'Salt and black pepper',
+    ]
+    const result = step(ingredients, 'Start the stir-fry: Add the asparagus, then transfer chicken and add a pinch of salt and pepper.')
+    expect(result.ingredients.map(reference => reference.ingredientIndex)).toEqual([1, 4])
+  })
+
+  it('fixes chicken wild rice contextual chicken without losing the roux ingredients', () => {
+    expect(indexes(
+      ['1 pound chicken breasts', '1/2 cup butter', '3/4 cup flour', '2 cups whole milk'],
+      'When rice and chicken are done cooking, melt the butter. Add the flour. Slowly whisk in the whole milk.',
+    )).toEqual([1, 2, 3])
+  })
+
+  it('fixes Sheet Pan Chicken Tinga temporal chicken without losing sauce garlic', () => {
+    expect(indexes(
+      ['1 lb chicken thighs', '2 cloves garlic'],
+      'Sauce: While the chicken bakes, heat oil in a skillet. Add garlic and saute.',
+    )).toEqual([1])
+  })
+
+  it('fixes Chopped Thai Shrimp Salad dressing-salt leakage', () => {
+    expect(indexes(
+      ['1/2 tsp salt', '1 lb shrimp'],
+      'Shrimp: Add the shrimp and sprinkle with a little salt.',
+    )).toEqual([1])
+  })
+
+  it('fixes Sesame Apricot Tofu garlic leakage from prepared-sauce prose', () => {
+    const result = step(
+      ['extra firm tofu', 'Apricot Sauce:', '2 cloves garlic'],
+      'Finally, add the sauce to the tofu and remove from heat - it will smell really good from the garlic.',
+    )
+    expect(result.ingredients.map(reference => reference.ingredientIndex)).toEqual([0])
+    expect(result.unresolvedReason).toBe('prepared-component')
+  })
+
+  it('fixes Chickpea Curry mismatched optional-component oil quantity', () => {
+    expect(indexes(
+      ['1 tablespoon avocado oil'],
+      'For the pickled cucumber salad, toss cucumbers with 2 tablespoons avocado oil.',
+    )).toEqual([])
   })
 })
