@@ -1,0 +1,91 @@
+{
+  "result": "PASS",
+  "execution": {
+    "applyStartedAt": "2026-08-26T23:36:15.958Z",
+    "externalPostApplyDryRunStartedAt": "2026-08-26T23:36:23.743Z"
+  },
+  "approvedManifest": {
+    "path": "docs/audits/recovered-recipes-mapping-v5-dryrun-2026-08-26.json",
+    "sha256": "5d4ddaa10c788f9192ae74a5887859bc2847496706461b655752d86e62741170",
+    "rows": 41
+  },
+  "semanticEvidence": {
+    "path": "docs/audits/recovered-recipes-mapping-v5-semantic-review-final-2026-08-26.json",
+    "sha256": "d42dffce95bf6195c31d61af8c59347b128f14684c76544b8a547ec551cfb0a6",
+    "purpose": "Pre-reviewed validation baselines only; never a candidate source."
+  },
+  "repository": {
+    "branch": "main",
+    "startingSha": "87429bad54ea54516dac722a2a0b9757d96d4cf5",
+    "auditedMappingSha": "52157d937b78a1cef41e95c0882285c1234150cd"
+  },
+  "population": {
+    "ready": 41,
+    "uniqueRecipeIds": 41,
+    "wave1A": 28,
+    "wave2": 6,
+    "wave3": 7,
+    "unresolvedRecipesAdmitted": 0
+  },
+  "preflight": {
+    "readyRows": 41,
+    "readyToWrite": 41,
+    "skipped": 0,
+    "errors": 0
+  },
+  "apply": {
+    "batchCount": 1,
+    "attemptedWrites": 41,
+    "committedWrites": 41,
+    "writeField": "cookingStepIngredientMap",
+    "updateTimePreconditions": 41,
+    "commitError": null
+  },
+  "readback": {
+    "writtenRowsReread": 41,
+    "exactCandidateMatches": 41,
+    "sourceHashMatches": 41,
+    "candidateValidationPasses": 41,
+    "rawNonMapMismatches": 0,
+    "unexpectedStates": 0
+  },
+  "corpusSafety": {
+    "original187Changed": 0,
+    "original187ValidAfter": 187,
+    "unresolved8Changed": 0,
+    "unresolved8MapsAfter": 0
+  },
+  "postApply": {
+    "readyToWrite": 0,
+    "mapAlreadyPresent": 41,
+    "otherSkips": 0,
+    "errors": 0,
+    "writes": 0
+  },
+  "finalCorpus": {
+    "sharedRecipes": 236,
+    "mapped": 228,
+    "unmapped": 8
+  },
+  "aiAndRecomputation": {
+    "aiCalls": 0,
+    "deterministicMappingGenerations": 0,
+    "hybridMappingGenerations": 0,
+    "manifestCandidateSubstitutions": 0
+  },
+  "dataIntegrity": {
+    "rawNonMapDocumentMismatches": 0,
+    "contentChanges": 0,
+    "titleMetadataChanges": 0,
+    "categoryCuisineChanges": 0,
+    "imageSourceChanges": 0,
+    "timeServingsChanges": 0,
+    "nutritionChanges": 0,
+    "unknownFieldChanges": 0
+  },
+  "historicalRecoveredV4Manifest": {
+    "path": "docs/audits/recovered-recipes-mapping-v4-dryrun-2026-08-26.json",
+    "sha256": "289759234b88c4d29b18fe42a7f67f2e18473cc9285dd5df4ef9ced798ca1716",
+    "status": "HISTORICAL ONLY — NOT AUTHORIZED FOR APPLY"
+  }
+}
