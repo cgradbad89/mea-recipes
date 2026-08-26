@@ -788,6 +788,7 @@ export default function RecipeDetailPage() {
           title={displayRecipe.title}
           ingredients={ingredients}
           instructions={instructions}
+          persistedMap={recipe?.cookingStepIngredientMap}
           sourceURL={displayRecipe.sourceURL}
           onClose={() => setShowCookingMode(false)}
           onMarkCooked={user ? async (servingsEaten: number) => {

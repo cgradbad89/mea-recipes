@@ -62,7 +62,7 @@ wrapped in a per-route `layout.tsx`.
 |---|---|---|---|
 | Home (redirect) | `/` (`app/page.tsx`) | Done | Redirects to `/recipes`; no landing page |
 | Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence |
-| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers**) |
+| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers** and validated persisted `cookingStepIngredientMap` → safe deterministic fallback) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup, persistent Usually On Hand preferences, and per-list Need This Trip overrides |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
@@ -720,9 +720,26 @@ retained as historical data and are not modified or deleted by this app.
     indexes, uncertain associations, duplicate conflicts, invented usage text, and ungrounded prepared
     labels, while preserving every deterministic reference. AI timeout, provider failure, invalid
     response, or source-hash mismatch falls back to the local deterministic map, so recipe publishing
-    proceeds. Prompt 2 changes new-recipe persistence only: it does not backfill existing recipes or
-    change production Cooking Mode. Override semantics, existing-recipe dry-run/backfill, and map
-    consumption remain later phases.
+    proceeds. Prompt 2 changes new-recipe persistence only: it does not backfill existing recipes.
+
+    **Prompt 3 Cooking Mode consumption:** runtime precedence is the effective recipe content
+    (`meta.overrides.content || recipe.content`) → parse the exact displayed ingredients and
+    instructions → synchronously build the conservative deterministic mapping → compute the
+    canonical source hash and validate any persisted map's schema, parser version, supported engine,
+    exact source hash, and complete structure → use the persisted deterministic/hybrid map only when
+    every check passes; otherwise keep the deterministic mapping. A persisted map is never displayed
+    before asynchronous hashing completes, and stale async results are source/object guarded. Missing,
+    stale, unsupported, or malformed maps fail closed as a whole without technical fallback UI.
+    Cooking Mode performs no mapping API/AI request and no mapping write.
+
+    Personal content overrides are mapped from their effective parsed source. A changed ingredient,
+    instruction, or ordering normally invalidates the shared stored map and uses the deterministic
+    fallback; a canonically source-equivalent override may safely retain it. Override-specific maps
+    are not persisted. Validated persisted prepared components render as subordinate, non-checkable
+    `Prepared: …` context and never enter All Ingredients. `remaining` and explicit partial
+    `quantityText` usage render as subtle qualifiers without changing raw ingredient text or doing
+    quantity arithmetic. Ingredient check state is keyed by original ingredient index, so duplicate
+    identical rows remain distinct while the step and All Ingredients views share state.
 
 ---
 
@@ -890,14 +907,14 @@ retained as historical data and are not modified or deleted by this app.
   Web-Audio beep + `navigator.vibrate` — is best-effort and feature-detected: it may be blocked while
   the tab is backgrounded/locked, but the visual "Done!" flash and the correct remaining-time-on-return
   always work (the wake lock above keeps the screen on while in Cooking Mode).
-- **Persisted cooking-step maps are not yet connected to production Cooking Mode.**
-  Prompt 2 accumulates source-bound deterministic/hybrid maps only on newly published recipes. Until Prompt 3,
-  `components/CookingMode.tsx` still derives displayed step ingredients with its legacy terminal-word
-  regex mapper, including that mapper's known collision and omission risks. Existing recipes have no
-  stored map until a later dry-run/backfill. Shared or personal content edits do not regenerate mapping
-  in Prompt 2 and can leave a stored map stale; future consumption must reject it whenever source hash,
-  schema, parser version, or supported engine version differs. Prompt 3 owns that render-time gate and
-  personal-override behavior.
+- **Cooking-step mapping still has pre-backfill and override limitations.** Production Cooking Mode
+  now rejects stale/unsupported/malformed persisted maps and uses the conservative deterministic engine;
+  the legacy terminal-token mapper has no production use. Personal content overrides do not persist
+  override-specific maps, so changed overrides fall back deterministically even when the shared recipe
+  has a valid hybrid map. Most existing recipes predate publish-time persistence and therefore receive
+  deterministic mappings only; AI-assisted prepared-component and implicit-reference improvements remain
+  unavailable for them until the existing-recipe dry-run/backfill phase. Parser-defective legacy recipe
+  content remains outside mapping correctness and must be remediated separately.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -987,7 +1004,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (publish-time persistence) | Deterministic engine **Done**; validated AI assistance for eligible unresolved semantics **Done**; persistence on future Queue/Discover publishes **Done**. AI failure safely persists the deterministic map. Production Cooking Mode consumption, render-time version/hash invalidation, personal overrides, and existing-recipe dry-run/backfill remain pending. See §5.25 and §6. |
+| Cooking-step ingredient mapping | High | Partial (existing-recipe backfill pending) | Deterministic engine **Done**; validated AI assistance and publish-time persistence **Done**; Cooking Mode validated persisted-map consumption, render-time version/hash invalidation, deterministic fallback, prepared-component/usage rendering, and safe personal-override invalidation **Done**. Existing-recipe corpus dry run/backfill, override-specific map persistence, and legacy parser/content remediation remain pending. See §5.25 and §6. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

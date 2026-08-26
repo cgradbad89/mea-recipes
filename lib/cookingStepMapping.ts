@@ -11,6 +11,24 @@ export const COOKING_MAPPING_PARSER_VERSION = 'recipe-content-v1'
 export const COOKING_MAPPING_ENGINE_VERSION = 'deterministic-v1'
 export const COOKING_MAPPING_HYBRID_ENGINE_VERSION = 'hybrid-v1'
 
+export type CookingStepMapFallbackReason =
+  | 'missing'
+  | 'source-hash-mismatch'
+  | 'unsupported-schema'
+  | 'unsupported-parser'
+  | 'unsupported-engine'
+  | 'invalid-structure'
+
+export interface ResolvedCookingStepMap {
+  mapping: CookingStepIngredientMap
+  source: 'persisted' | 'deterministic-fallback'
+  fallbackReason?: CookingStepMapFallbackReason
+}
+
+export type CookingStepMapValidationResult =
+  | { valid: true }
+  | { valid: false; reason: Exclude<CookingStepMapFallbackReason, 'missing'> }
+
 export const AI_ELIGIBLE_COOKING_MAPPING_REASONS = [
   'ambiguous',
   'implicit-reference',
@@ -62,6 +80,10 @@ const QUALIFIED_GENERIC_FORMS = new Set([
 const COMPONENT_WORDS = new Set([
   'batter', 'dough', 'dressing', 'filling', 'glaze', 'marinade', 'mixture',
   'rub', 'sauce', 'seasoning', 'tadka', 'topping',
+])
+
+const COOKING_MAPPING_UNRESOLVED_REASONS = new Set([
+  'ambiguous', 'implicit-reference', 'prepared-component', 'no-ingredient-use',
 ])
 
 const COLLECTIVE_REFERENCE = /\b(?:all (?:of )?(?:the )?ingredient|remaining ingredient|dry ingredient|wet ingredient|everything)\b/
@@ -424,4 +446,169 @@ export async function buildHashedDeterministicCookingStepMap(
     ...buildDeterministicCookingStepMap(ingredients, instructions),
     sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Validate a persisted map against the exact deterministic source-bound map for
+ * the content being displayed. This is shared by publish-time response handling
+ * and browser runtime consumption so the two paths cannot drift.
+ */
+export function validateCookingStepIngredientMap(
+  value: unknown,
+  ingredients: string[],
+  instructions: string[],
+  deterministicMap: CookingStepIngredientMap,
+): CookingStepMapValidationResult {
+  if (!isRecord(value)) return { valid: false, reason: 'invalid-structure' }
+  if (value.schemaVersion !== 1) return { valid: false, reason: 'unsupported-schema' }
+  if (value.parserVersion !== COOKING_MAPPING_PARSER_VERSION) {
+    return { valid: false, reason: 'unsupported-parser' }
+  }
+  if (
+    value.engineVersion !== COOKING_MAPPING_ENGINE_VERSION &&
+    value.engineVersion !== COOKING_MAPPING_HYBRID_ENGINE_VERSION
+  ) return { valid: false, reason: 'unsupported-engine' }
+  if (typeof value.sourceHash !== 'string' || !/^[0-9a-f]{64}$/.test(value.sourceHash)) {
+    return { valid: false, reason: 'invalid-structure' }
+  }
+  if (value.sourceHash !== deterministicMap.sourceHash) {
+    return { valid: false, reason: 'source-hash-mismatch' }
+  }
+  if (!Array.isArray(value.steps) || value.steps.length !== instructions.length) {
+    return { valid: false, reason: 'invalid-structure' }
+  }
+
+  let hasAiResolution = false
+  const validSteps = value.steps.every((step, instructionIndex) => {
+    if (
+      !isRecord(step) ||
+      step.instructionIndex !== instructionIndex ||
+      !Array.isArray(step.ingredients) ||
+      step.ingredients.length > ingredients.length
+    ) return false
+
+    const deterministicStep = deterministicMap.steps[instructionIndex]
+    if (!deterministicStep) return false
+    const aiEligible = isAiEligibleCookingMappingReason(deterministicStep.unresolvedReason)
+    const deterministicReferences = new Map(
+      deterministicStep.ingredients.map(reference => [reference.ingredientIndex, reference]),
+    )
+    if (
+      step.unresolvedReason !== undefined &&
+      (typeof step.unresolvedReason !== 'string' || !COOKING_MAPPING_UNRESOLVED_REASONS.has(step.unresolvedReason))
+    ) return false
+
+    const seenIndexes = new Set<number>()
+    const validIngredients = step.ingredients.every(reference => {
+      if (!isRecord(reference)) return false
+      const index = reference.ingredientIndex
+      if (
+        typeof index !== 'number' ||
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= ingredients.length ||
+        isIngredientSubheader(ingredients[index]) ||
+        seenIndexes.has(index) ||
+        reference.confidence !== 'high' ||
+        (reference.provenance !== 'deterministic' && reference.provenance !== 'ai')
+      ) return false
+      seenIndexes.add(index)
+
+      const lockedReference = deterministicReferences.get(index)
+      if (reference.provenance === 'deterministic') {
+        if (!lockedReference || JSON.stringify(reference.usage) !== JSON.stringify(lockedReference.usage)) return false
+      } else {
+        if (!aiEligible || lockedReference) return false
+        hasAiResolution = true
+      }
+
+      if (reference.usage === undefined) return true
+      if (!isRecord(reference.usage)) return false
+      if (!['all', 'partial', 'remaining'].includes(reference.usage.kind as string)) return false
+      if (reference.usage.quantityText === undefined) return true
+      if (
+        typeof reference.usage.quantityText !== 'string' ||
+        reference.usage.quantityText.trim().length === 0 ||
+        reference.usage.quantityText.length > 80
+      ) return false
+      const instruction = instructions[instructionIndex].replace(/\s+/g, ' ').toLowerCase()
+      return instruction.includes(reference.usage.quantityText.trim().replace(/\s+/g, ' ').toLowerCase())
+    })
+    if (!validIngredients) return false
+    if ([...deterministicReferences.keys()].some(index => !seenIndexes.has(index))) return false
+
+    if (step.preparedComponents !== undefined) {
+      if (!aiEligible || !Array.isArray(step.preparedComponents) || step.preparedComponents.length > 30) return false
+      const labels = new Set<string>()
+      const validComponents = step.preparedComponents.every(component => {
+        if (
+          !isRecord(component) ||
+          typeof component.label !== 'string' ||
+          component.label.trim().length === 0 ||
+          component.label.length > 80 ||
+          component.confidence !== 'high' ||
+          component.provenance !== 'ai'
+        ) return false
+        const normalizedLabel = component.label.trim().replace(/\s+/g, ' ').toLowerCase()
+        if (labels.has(normalizedLabel)) return false
+        labels.add(normalizedLabel)
+        hasAiResolution = true
+        return true
+      })
+      if (!validComponents) return false
+    }
+
+    const stepHasAiResolution = step.ingredients.some(reference =>
+      isRecord(reference) && reference.provenance === 'ai') ||
+      (Array.isArray(step.preparedComponents) && step.preparedComponents.length > 0)
+    return stepHasAiResolution || step.unresolvedReason === deterministicStep.unresolvedReason
+  })
+
+  if (!validSteps) return { valid: false, reason: 'invalid-structure' }
+  if (value.engineVersion === COOKING_MAPPING_ENGINE_VERSION && hasAiResolution) {
+    return { valid: false, reason: 'invalid-structure' }
+  }
+  if (value.engineVersion === COOKING_MAPPING_HYBRID_ENGINE_VERSION && !hasAiResolution) {
+    return { valid: false, reason: 'invalid-structure' }
+  }
+  return { valid: true }
+}
+
+/**
+ * Resolve the safest map for browser rendering. The deterministic map is always
+ * built first; persisted data is returned only after exact hash/version/shape
+ * validation. This function performs no network, AI, persistence, or mutation.
+ */
+export async function resolveCookingStepIngredientMap(
+  ingredients: string[],
+  instructions: string[],
+  persistedMap?: unknown,
+): Promise<ResolvedCookingStepMap> {
+  const deterministicMap = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+  if (persistedMap === undefined || persistedMap === null) {
+    return {
+      mapping: deterministicMap,
+      source: 'deterministic-fallback',
+      fallbackReason: 'missing',
+    }
+  }
+
+  const validation = validateCookingStepIngredientMap(
+    persistedMap,
+    ingredients,
+    instructions,
+    deterministicMap,
+  )
+  if (!validation.valid) {
+    return {
+      mapping: deterministicMap,
+      source: 'deterministic-fallback',
+      fallbackReason: validation.reason,
+    }
+  }
+  return { mapping: persistedMap as CookingStepIngredientMap, source: 'persisted' }
 }

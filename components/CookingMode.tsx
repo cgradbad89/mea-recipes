@@ -3,7 +3,15 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { X, ChefHat, BookOpen, ChevronLeft, ChevronRight, ExternalLink, Check, Timer, Play, Pause, Bell, RotateCcw, ChevronDown, ChevronUp, List } from 'lucide-react'
 import { detectIngredientHeader } from '@/lib/recipes'
-import { parseIngredient } from '@/lib/ingredientParser'
+import {
+  buildDeterministicCookingStepMap,
+  canonicalizeCookingMappingSource,
+  resolveCookingStepIngredientMap,
+} from '@/lib/cookingStepMapping'
+import type {
+  CookingIngredientUsage,
+  CookingStepIngredientMap,
+} from '@/types/recipe'
 
 // ─── Step-duration timer parsing (Batch 9) ────────────────────────────────────
 // Conservative, TAP-TO-START only — nothing here auto-starts. We surface a small
@@ -111,6 +119,13 @@ interface RunningTimer {
   remainingMs: number     // authoritative while paused/finished; mirror while running
 }
 
+function usageQualifier(usage?: CookingIngredientUsage): string | null {
+  if (!usage) return null
+  if (usage.kind === 'remaining') return 'remaining'
+  if (usage.kind === 'partial') return usage.quantityText ? `use ${usage.quantityText}` : 'use part'
+  return null
+}
+
 // Minimal typing for the Screen Wake Lock API (not in all TS lib.dom versions)
 interface WakeLockSentinelLike {
   released: boolean
@@ -121,6 +136,7 @@ interface CookingModeProps {
   title: string
   ingredients: string[]
   instructions: string[]
+  persistedMap?: CookingStepIngredientMap
   sourceURL?: string
   onClose: () => void
   /**
@@ -136,6 +152,7 @@ export default function CookingMode({
   title,
   ingredients,
   instructions,
+  persistedMap,
   sourceURL,
   onClose,
   onMarkCooked,
@@ -150,38 +167,49 @@ export default function CookingMode({
   const [cookedError, setCookedError] = useState('')
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null)
 
-  // ─── Map ingredients to steps ─────────────────────────────────────────────
-  const stepIngredients = useMemo(() => {
-    const parsedIngs = ingredients.map((ing, i) => {
-      const header = detectIngredientHeader(ing);
-      if (header.isHeader) return null;
-      const parsed = parseIngredient(ing);
-      const baseName = parsed.name.split(',')[0].trim().toLowerCase();
-      const words = baseName.split(/\s+/);
-      const coreNoun = words[words.length - 1] || baseName;
-      return { index: i, raw: ing, searchTarget: coreNoun || ing.toLowerCase() };
-    }).filter(Boolean) as { index: number, raw: string, searchTarget: string }[];
+  // ─── Resolve persisted mapping against the exact displayed source ─────────
+  // The conservative deterministic result is renderable synchronously. A
+  // persisted map may replace it only after async source-hash/version/structure
+  // validation. Binding the result to both source and persisted object identity
+  // prevents stale async work (or a newly changed map) from being displayed.
+  const mappingSource = canonicalizeCookingMappingSource(ingredients, instructions)
+  const deterministicMapping = useMemo(
+    () => buildDeterministicCookingStepMap(ingredients, instructions),
+    [ingredients, instructions],
+  )
+  const [resolvedMapping, setResolvedMapping] = useState<{
+    source: string
+    persistedMap: CookingStepIngredientMap | undefined
+    mapping: CookingStepIngredientMap
+  } | null>(null)
 
-    return instructions.map(step => {
-      const stepLower = step.toLowerCase();
-      const stepIngs: { index: number, raw: string }[] = [];
-      
-      parsedIngs.forEach(ping => {
-        try {
-          const escaped = ping.searchTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-          if (regex.test(stepLower)) {
-            stepIngs.push({ index: ping.index, raw: ping.raw });
-          }
-        } catch (e) {
-          if (stepLower.includes(ping.searchTarget)) {
-            stepIngs.push({ index: ping.index, raw: ping.raw });
-          }
-        }
-      });
-      return stepIngs;
-    });
-  }, [instructions, ingredients]);
+  useEffect(() => {
+    let active = true
+    resolveCookingStepIngredientMap(ingredients, instructions, persistedMap)
+      .then(result => {
+        if (active) setResolvedMapping({ source: mappingSource, persistedMap, mapping: result.mapping })
+      })
+      .catch(() => {
+        // Web Crypto failure or another unexpected runtime issue leaves the
+        // already-rendered deterministic mapping in place.
+      })
+    return () => { active = false }
+  }, [ingredients, instructions, mappingSource, persistedMap])
+
+  const activeMapping = resolvedMapping?.source === mappingSource &&
+    resolvedMapping.persistedMap === persistedMap
+    ? resolvedMapping.mapping
+    : deterministicMapping
+
+  const stepIngredients = useMemo(() => instructions.map((_, instructionIndex) =>
+    (activeMapping.steps[instructionIndex]?.ingredients || []).map(reference => ({
+      index: reference.ingredientIndex,
+      raw: ingredients[reference.ingredientIndex],
+      usage: reference.usage,
+    }))), [activeMapping, ingredients, instructions])
+
+  const stepPreparedComponents = useMemo(() => instructions.map((_, instructionIndex) =>
+    activeMapping.steps[instructionIndex]?.preparedComponents || []), [activeMapping, instructions])
 
   // ─── Tap-to-start step timers (Batch 9) ───────────────────────────────────
   const [timers, setTimers] = useState<RunningTimer[]>([])
@@ -463,6 +491,16 @@ export default function CookingMode({
                         </div>
                       )}
 
+                      {stepPreparedComponents[i] && stepPreparedComponents[i].length > 0 && (
+                        <div className="mt-3 space-y-1" aria-label={`Prepared components for step ${i + 1}`}>
+                          {stepPreparedComponents[i].map(component => (
+                            <p key={component.label} className="text-xs font-body text-faint">
+                              <span className="text-muted">Prepared:</span> {component.label}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Collapsible Ingredients Toggle */}
                       {stepIngredients[i] && stepIngredients[i].length > 0 && (
                         <div className="mt-3" onClick={e => e.stopPropagation()}>
@@ -491,6 +529,8 @@ export default function CookingMode({
                                         e.stopPropagation();
                                         toggleChecked(ing.index);
                                       }}
+                                      aria-label={`${ing.raw}${usageQualifier(ing.usage) ? ` · ${usageQualifier(ing.usage)}` : ''}`}
+                                      aria-pressed={isChecked}
                                       className="w-full flex items-start gap-3 text-left py-1.5 px-2 rounded-lg hover:bg-surface/50 transition-colors"
                                     >
                                       <span
@@ -505,7 +545,10 @@ export default function CookingMode({
                                           isChecked ? 'text-faint line-through' : 'text-cream'
                                         }`}
                                       >
-                                        {ing.raw}
+                                        <span>{ing.raw}</span>
+                                        {usageQualifier(ing.usage) && (
+                                          <span className="text-faint"> · {usageQualifier(ing.usage)}</span>
+                                        )}
                                       </span>
                                     </button>
                                   </li>
@@ -736,6 +779,7 @@ export default function CookingMode({
                     <li key={i}>
                       <button
                         onClick={() => toggleChecked(i)}
+                        aria-pressed={isChecked}
                         className="w-full flex items-start gap-3 text-left py-2.5 px-2 rounded-xl hover:bg-card/60 transition-colors"
                       >
                         <span

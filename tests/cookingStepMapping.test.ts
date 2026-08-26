@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildHashedDeterministicCookingStepMap,
   buildDeterministicCookingStepMap,
   canonicalizeCookingMappingSource,
   computeCookingMappingSourceHash,
+  resolveCookingStepIngredientMap,
 } from '@/lib/cookingStepMapping'
+import type { CookingStepIngredientMap } from '@/types/recipe'
 
 function indexes(ingredients: string[], instruction: string): number[] {
   return buildDeterministicCookingStepMap(ingredients, [instruction]).steps[0].ingredients
@@ -256,5 +259,234 @@ describe('positive controls', () => {
   it('maps Taco Soup ingredients directly', () => {
     const ingredients = ['green chiles', 'black beans', 'diced tomatoes', 'chicken broth']
     expect(indexes(ingredients, 'Stir in the chiles, beans, tomatoes, and chicken broth.')).toEqual([0, 1, 2, 3])
+  })
+})
+
+async function validHybridMap(
+  ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
+  instructions = ['Add the olive oil.'],
+): Promise<CookingStepIngredientMap> {
+  return {
+    schemaVersion: 1,
+    parserVersion: 'recipe-content-v1',
+    engineVersion: 'hybrid-v1',
+    sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
+    steps: [{
+      instructionIndex: 0,
+      ingredients: [{ ingredientIndex: 1, confidence: 'high', provenance: 'ai' }],
+    }],
+  }
+}
+
+async function validPreparedComponentMap(): Promise<{
+  ingredients: string[]
+  instructions: string[]
+  mapping: CookingStepIngredientMap
+}> {
+  const ingredients = ['For the green sauce:', '1 cup parsley', '1 tbsp olive oil']
+  const instructions = ['Toss with the prepared green sauce.']
+  return {
+    ingredients,
+    instructions,
+    mapping: {
+      schemaVersion: 1,
+      parserVersion: 'recipe-content-v1',
+      engineVersion: 'hybrid-v1',
+      sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
+      steps: [{
+        instructionIndex: 0,
+        ingredients: [],
+        preparedComponents: [{ label: 'Green sauce', confidence: 'high', provenance: 'ai' }],
+      }],
+    },
+  }
+}
+
+describe('runtime cooking-step map resolver', () => {
+  it('uses the deterministic fallback when no persisted map exists', async () => {
+    const result = await resolveCookingStepIngredientMap(['2 garlic cloves'], ['Add the garlic.'])
+    expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: 'missing' })
+    expect(result.mapping.steps[0].ingredients.map(reference => reference.ingredientIndex)).toEqual([0])
+  })
+
+  it('accepts a valid deterministic-v1 persisted map', async () => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    const result = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
+    expect(result).toEqual({ mapping: persisted, source: 'persisted' })
+  })
+
+  it('accepts a valid hybrid-v1 AI-only ingredient association', async () => {
+    const persisted = await validHybridMap()
+    const ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil']
+    const result = await resolveCookingStepIngredientMap(ingredients, ['Add the olive oil.'], persisted)
+    expect(result.source).toBe('persisted')
+    expect(result.mapping.steps[0].ingredients[0]).toMatchObject({ ingredientIndex: 1, provenance: 'ai' })
+  })
+
+  it('accepts a structurally valid prepared-component association', async () => {
+    const fixture = await validPreparedComponentMap()
+    const result = await resolveCookingStepIngredientMap(fixture.ingredients, fixture.instructions, fixture.mapping)
+    expect(result.source).toBe('persisted')
+    expect(result.mapping.steps[0].preparedComponents?.[0].label).toBe('Green sauce')
+  })
+
+  it.each([
+    ['schemaVersion', 2, 'unsupported-schema'],
+    ['parserVersion', 'recipe-content-v2', 'unsupported-parser'],
+    ['engineVersion', 'hybrid-v2', 'unsupported-engine'],
+  ] as const)('rejects unsupported %s', async (field, value, reason) => {
+    const persisted = await validHybridMap()
+    const invalid = { ...persisted, [field]: value }
+    const result = await resolveCookingStepIngredientMap(
+      ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
+      ['Add the olive oil.'],
+      invalid,
+    )
+    expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: reason })
+  })
+
+  it('rejects a source-hash mismatch and maps the current source', async () => {
+    const persisted = await validHybridMap()
+    const result = await resolveCookingStepIngredientMap(
+      ['For the sauce:', '1 tbsp avocado oil', 'For the salad:', '1 tbsp avocado oil'],
+      ['Add the avocado oil.'],
+      persisted,
+    )
+    expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: 'source-hash-mismatch' })
+    expect(result.mapping.sourceHash).not.toBe(persisted.sourceHash)
+  })
+
+  it.each([
+    ['non-integer instruction index', (map: CookingStepIngredientMap) => { map.steps[0].instructionIndex = 0.5 }],
+    ['out-of-range instruction index', (map: CookingStepIngredientMap) => { map.steps[0].instructionIndex = 2 }],
+    ['non-integer ingredient index', (map: CookingStepIngredientMap) => { map.steps[0].ingredients[0].ingredientIndex = 1.5 }],
+    ['out-of-range ingredient index', (map: CookingStepIngredientMap) => { map.steps[0].ingredients[0].ingredientIndex = 99 }],
+    ['ingredient subheader reference', (map: CookingStepIngredientMap) => { map.steps[0].ingredients[0].ingredientIndex = 0 }],
+    ['unsupported confidence', (map: CookingStepIngredientMap) => {
+      ;(map.steps[0].ingredients[0] as unknown as { confidence: string }).confidence = 'uncertain'
+    }],
+    ['unsupported provenance', (map: CookingStepIngredientMap) => {
+      ;(map.steps[0].ingredients[0] as unknown as { provenance: string }).provenance = 'legacy'
+    }],
+    ['duplicate ingredient reference', (map: CookingStepIngredientMap) => {
+      map.steps[0].ingredients.push({ ...map.steps[0].ingredients[0] })
+    }],
+    ['invalid usage kind', (map: CookingStepIngredientMap) => {
+      ;(map.steps[0].ingredients[0] as unknown as { usage: { kind: string } }).usage = { kind: 'calculated' }
+    }],
+    ['usage text absent from instruction', (map: CookingStepIngredientMap) => {
+      map.steps[0].ingredients[0].usage = { kind: 'partial', quantityText: '¼ cup' }
+    }],
+  ])('rejects invalid structure: %s', async (_, mutate) => {
+    const persisted = await validHybridMap()
+    mutate(persisted)
+    const result = await resolveCookingStepIngredientMap(
+      ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
+      ['Add the olive oil.'],
+      persisted,
+    )
+    expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: 'invalid-structure' })
+  })
+
+  it('rejects duplicate instruction records', async () => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.', 'Stir again.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    persisted.steps[1] = { ...persisted.steps[0] }
+    const result = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
+    expect(result.fallbackReason).toBe('invalid-structure')
+  })
+
+  it('rejects removal of a locked deterministic reference', async () => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    persisted.steps[0].ingredients = []
+    const result = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
+    expect(result.fallbackReason).toBe('invalid-structure')
+  })
+
+  it.each([
+    ['empty label', (map: CookingStepIngredientMap) => { map.steps[0].preparedComponents![0].label = '   ' }],
+    ['unsupported provenance', (map: CookingStepIngredientMap) => {
+      ;(map.steps[0].preparedComponents![0] as unknown as { provenance: string }).provenance = 'deterministic'
+    }],
+    ['duplicate label', (map: CookingStepIngredientMap) => {
+      map.steps[0].preparedComponents!.push({ label: ' green  sauce ', confidence: 'high', provenance: 'ai' })
+    }],
+  ])('rejects malformed prepared components: %s', async (_, mutate) => {
+    const fixture = await validPreparedComponentMap()
+    mutate(fixture.mapping)
+    const result = await resolveCookingStepIngredientMap(fixture.ingredients, fixture.instructions, fixture.mapping)
+    expect(result.fallbackReason).toBe('invalid-structure')
+  })
+
+  it('rejects AI associations mislabeled with the deterministic engine', async () => {
+    const persisted = await validHybridMap()
+    persisted.engineVersion = 'deterministic-v1'
+    const result = await resolveCookingStepIngredientMap(
+      ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
+      ['Add the olive oil.'],
+      persisted,
+    )
+    expect(result.fallbackReason).toBe('invalid-structure')
+  })
+
+  it('rejects a hybrid engine map with no AI resolution', async () => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    persisted.engineVersion = 'hybrid-v1'
+    const result = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
+    expect(result.fallbackReason).toBe('invalid-structure')
+  })
+
+  it('does not mutate ingredients, instructions, or the persisted map', async () => {
+    const ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil']
+    const instructions = ['Add the olive oil.']
+    const persisted = await validHybridMap(ingredients, instructions)
+    const before = JSON.stringify({ ingredients, instructions, persisted })
+    await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
+    expect(JSON.stringify({ ingredients, instructions, persisted })).toBe(before)
+  })
+})
+
+describe('effective-source and personal override resolution', () => {
+  const sharedIngredients = ['salt', 'olive oil']
+  const sharedInstructions = ['Add salt and olive oil.']
+
+  it('uses a shared stored map when shared content is effective', async () => {
+    const persisted = await buildHashedDeterministicCookingStepMap(sharedIngredients, sharedInstructions)
+    await expect(resolveCookingStepIngredientMap(sharedIngredients, sharedInstructions, persisted))
+      .resolves.toMatchObject({ source: 'persisted' })
+  })
+
+  it.each([
+    ['changed ingredient', ['sea salt', 'olive oil'], sharedInstructions],
+    ['changed instruction', sharedIngredients, ['Whisk salt and olive oil.']],
+    ['reordered ingredients', ['olive oil', 'salt'], sharedInstructions],
+  ] as const)('%s invalidates the shared stored map', async (_, ingredients, instructions) => {
+    const persisted = await buildHashedDeterministicCookingStepMap(sharedIngredients, sharedInstructions)
+    const result = await resolveCookingStepIngredientMap([...ingredients], [...instructions], persisted)
+    expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: 'source-hash-mismatch' })
+  })
+
+  it('allows a source-equivalent override to retain the shared stored map', async () => {
+    const persisted = await buildHashedDeterministicCookingStepMap(sharedIngredients, sharedInstructions)
+    const result = await resolveCookingStepIngredientMap([...sharedIngredients], [...sharedInstructions], persisted)
+    expect(result.source).toBe('persisted')
+  })
+
+  it('uses deterministic override mapping when no stored map exists', async () => {
+    const result = await resolveCookingStepIngredientMap(['2 garlic cloves'], ['Add garlic.'])
+    expect(result.source).toBe('deterministic-fallback')
+    expect(result.mapping.steps[0].ingredients[0].ingredientIndex).toBe(0)
+  })
+
+  it('fails closed without throwing for malformed persisted input', async () => {
+    await expect(resolveCookingStepIngredientMap(['salt'], ['Add salt.'], { steps: 'broken' }))
+      .resolves.toMatchObject({ source: 'deterministic-fallback', fallbackReason: 'unsupported-schema' })
   })
 })
