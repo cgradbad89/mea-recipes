@@ -14,8 +14,8 @@ import type {
 } from '@/types/recipe'
 
 export const COOKING_MAPPING_PARSER_VERSION = 'recipe-content-v1'
-export const COOKING_MAPPING_ENGINE_VERSION = 'deterministic-v3'
-export const COOKING_MAPPING_HYBRID_ENGINE_VERSION = 'hybrid-v3'
+export const COOKING_MAPPING_ENGINE_VERSION = 'deterministic-v4'
+export const COOKING_MAPPING_HYBRID_ENGINE_VERSION = 'hybrid-v4'
 
 export type CookingStepMapFallbackReason =
   | 'missing'
@@ -92,11 +92,13 @@ const PREPARED_CARRIER_WORDS = new Set([
   ...COMPONENT_WORDS, 'aioli', 'mayo', 'mayonnaise', 'pesto',
 ])
 
-const ROW_SENSITIVE_FORMS = new Set(['garlic', 'oil', 'salt'])
+const ROW_SENSITIVE_FORMS = new Set(['chile', 'garlic', 'oil', 'salt', 'water'])
 
 const SOURCE_SECTION_LABELS = new Set([
   'aromatic', 'noodle', 'oil', 'protein', 'seasoning', 'vegetable',
 ])
+
+const PURPOSE_SECTION_TAILS = new Set(['rub', 'slaw'])
 
 const SHARED_ALTERNATIVE_HEAD_FORMS = new Set([
   'broth', 'cheese', 'chile', 'cream', 'milk', 'oil', 'pepper', 'powder',
@@ -104,7 +106,7 @@ const SHARED_ALTERNATIVE_HEAD_FORMS = new Set([
 ])
 
 const NON_PRIMARY_PROTEIN_FORMS = new Set([
-  'broth', 'flavor', 'oil', 'powder', 'sauce', 'seasoning', 'stock',
+  'base', 'broth', 'flavor', 'oil', 'powder', 'sauce', 'seasoning', 'stock',
 ])
 
 const AI_GENERIC_REFERENCE_FORMS = new Set([
@@ -127,7 +129,8 @@ const REVIEW_AUTHOR_LINE = /^.{1,80}\d+\s+years? ago$/i
 const COMPONENT_HEADING = /^(?:(?:for )?(?:the )?)?[\p{L}\p{N} -]{0,50}(?:dressing|filling|glaze|marinade|mixture|sauce|tadka|topping):?$/iu
 const INSTRUCTION_HEADING = /^(?:for\s+(?:the\s+)?|to\s+assemble\b|(?:start|finish|prepare|fry|mix)\s+(?:the\s+)?)[^.!?]{0,80}:?$/i
 const SUPPLEMENTAL_REFERENCE = /^\d+\.\s*(?:apart from\b|please feel free\b|for shooting\b|mei fun is\b|you can either use\b|any type of\b)/i
-const ACTIVE_USE_VERB = /\b(?:add|arrange|baste|beat|blend|boil|bring|brown|brush|coat|combine|cook|cut|divide|drain|drizzle|finish|fold|fry|garnish|grate|grill|heat|marinate|melt|mix|place|pour|press|pulse|reserve|return|rinse|roast|saute|season|sear|serve|shred|simmer|slice|spoon|sprinkle|squeeze|stir|stream|toss|top|transfer|whisk|wrap)\b/
+const ACTIVE_USE_VERB = /\b(?:add|arrange|baste|beat|blend|boil|bring|brown|brush|coat|combine|cook|cut|divide|drain|drizzle|finish|fold|fry|garnish|grate|grill|heat|marinate|melt|mix|place|pour|press|pulse|reserve|return|rinse|roast|saute|season|sear|serve|shred|simmer|slice|smash|spoon|spread|sprinkle|squeeze|stir|stream|toss|top|transfer|use|whisk|wrap)\b/
+const CONTINUING_USE_VERB = /(?:^| )(?:arrange|baste|brush|coat|cook|cut|divide|drain|garnish|grill|marinate|place|press|return|rinse|roast|sear|serve|shred|slice|top|transfer|toss|wrap)(?: the)?$/
 const CONTEXTUAL_CLAUSE_START = /^(?:after|as|as soon as|before|if|once|until|when|while)\b/
 const NEGATIVE_CLAUSE_START = /^(?:do not|dont|never|no need to|without|leave out)\b/
 const SHORT_SECTION_HEADING = /^(?:prepare the [\p{L}\p{N} -]+|mix the (?:sauce|dressing)|fry the [\p{L}\p{N} -]+\s+&\s+[\p{L}\p{N} -]+|stir-fry to finish)$/iu
@@ -244,6 +247,9 @@ function ingredientAliases(rawName: string): {
     if (tail === 'powder' && words.at(-2) === 'chile') {
       aliases.add('chile powder')
     }
+    if (tail === 'water') aliases.add('water')
+    if (tail === 'salt' && words.length === 2 && words[0] === 'kosher') aliases.add('salt')
+    if (tail === 'miso') aliases.add('miso')
   }
 
   return {
@@ -264,7 +270,8 @@ function normalizeGroup(raw: string): string {
     .replace(/^\*+|\*+$/g, '')
     .replace(/:$/, '')
     .replace(/^for\s+(?:the\s+)?/i, '')
-    .replace(/^the\s+/i, ''))
+    .replace(/^the\s+/i, '')
+    .replace(/\s+ingredients?$/i, ''))
 }
 
 function buildIngredientIdentities(ingredients: string[]): IngredientIdentity[] {
@@ -280,6 +287,15 @@ function buildIngredientIdentities(ingredients: string[]): IngredientIdentity[] 
     const parsed = parseIngredient(raw)
     const aliasData = ingredientAliases(parsed.name)
     if (!aliasData.identity) return
+    const identityTail = aliasData.identity.split(' ').at(-1)
+    if (
+      !parsed.quantity && !parsed.unit &&
+      /^[A-Z]/.test(raw.trim()) &&
+      identityTail && PURPOSE_SECTION_TAILS.has(identityTail)
+    ) {
+      group = normalizeGroup(raw) || null
+      return
+    }
     const sourceSectionLabel = !parsed.quantity && !parsed.unit &&
       /^[A-Z]/.test(raw.trim()) && SOURCE_SECTION_LABELS.has(aliasData.identity)
     result.push({
@@ -331,7 +347,7 @@ function collectOccurrences(words: string[], identities: IngredientIdentity[]): 
     }
   }
 
-  const chileIdentities = identities.filter(identity => identity.identity.split(' ').at(-1) === 'chile')
+  const chileIdentities = identities.filter(identity => identity.identity.split(' ').includes('chile'))
   for (const position of findPhrasePositions(words, 'chile')) {
     if (words[position.end] === 'powder') continue
     for (const ingredient of chileIdentities) {
@@ -378,7 +394,8 @@ function instructionGroups(words: string[], identities: IngredientIdentity[]): s
   const normalizedInstruction = words.join(' ')
   return groups.filter(group => {
     const phrase = group.split(' ').map(escapeRegExp).join(' ')
-    return new RegExp(`\\b(?:(?:for|make|prepare) (?:the )?${phrase}|all (?:of )?(?:the )?${phrase} ingredient|${phrase} ingredient)\\b`).test(normalizedInstruction)
+    const directMultiwordGroup = group.split(' ').length > 1 ? `|${phrase}` : ''
+    return new RegExp(`\\b(?:(?:for|make|prepare) (?:the )?${phrase}|all (?:of )?(?:the )?${phrase} ingredient|${phrase} ingredient${directMultiwordGroup})\\b`).test(normalizedInstruction)
   })
 }
 
@@ -491,7 +508,7 @@ function instructionClauses(instruction: string, identities: IngredientIdentity[
       negative: NEGATIVE_CLAUSE_START.test(normalized),
       groupCues,
     })
-    if (explicitGroups.length === 1 && !ACTIVE_USE_VERB.test(normalized)) carriedGroup = explicitGroups[0]
+    if (explicitGroups.length === 1) carriedGroup = explicitGroups[0]
     else if (ACTIVE_USE_VERB.test(normalized) && !leadingGroup) carriedGroup = null
     wordOffset += words.length
   }
@@ -551,6 +568,7 @@ function occurrenceHasActiveUse(
   const aliasTail = occurrence.alias.split(' ').at(-1)
 
   if (/(?:^| )(?:for|from|alongside|beside)(?: the)?$/.test(immediatePrefix)) return false
+  if (/(?:^| )to hold(?: the)?$/.test(immediatePrefix)) return false
   if (
     /(?:^| )over(?: the)?$/.test(immediatePrefix) &&
     PROTEIN_WORDS.has(occurrence.alias) &&
@@ -563,13 +581,13 @@ function occurrenceHasActiveUse(
   if (embeddedInComponent && !PREPARED_CARRIER_WORDS.has(aliasTail || '')) return false
   if (
     occurrence.alias === 'water' &&
-    /(?:^| )(?:boiling|cold|hot|warm)$/.test(immediatePrefix) &&
-    !/\b(?:boiling|cold|hot|warm) water\b/.test(occurrence.ingredient.identity)
+    /(?:^| )(?:boiling|cold|fresh|hot|warm)$/.test(immediatePrefix) &&
+    !/\b(?:boiling|cold|fresh|hot|warm) water\b/.test(occurrence.ingredient.identity)
   ) return false
   if (/(?:^| )no need to(?: \w+){0,4}$/.test(immediatePrefix)) return false
   if (
-    ROW_SENSITIVE_FORMS.has(occurrence.alias) &&
-    /(?:^| )(?:little|pinch of|dash of)(?: the)?$/.test(immediatePrefix) &&
+    ROW_SENSITIVE_FORMS.has(aliasTail || '') &&
+    /(?:^| )(?:little|pinch of|dash of|(?:a )?few(?: \w+)?(?: of)?|(?:an )?extra splash of)(?: the)?$/.test(immediatePrefix) &&
     Boolean(occurrence.ingredient.quantity)
   ) return false
   if (!ACTIVE_USE_VERB.test(prefix)) return false
@@ -580,6 +598,7 @@ function occurrenceHasActiveUse(
 function applyClauseGroupEvidence(
   occurrences: PhraseOccurrence[],
   clauses: InstructionClause[],
+  identities: IngredientIdentity[],
 ): PhraseOccurrence[] {
   const kept: PhraseOccurrence[] = []
   for (let clauseIndex = 0; clauseIndex < clauses.length; clauseIndex += 1) {
@@ -595,10 +614,24 @@ function applyClauseGroupEvidence(
 
     const cueGroups = new Set(clauses[clauseIndex].groupCues)
     if (cueGroups.size === 0) {
+      const contextualGroups = new Set<string>()
+      for (const identity of identities) {
+        if (!identity.group) continue
+        const evidenceAliases = new Set(identity.aliases)
+        const tail = identity.identity.split(' ').at(-1)
+        if (tail && !ROW_SENSITIVE_FORMS.has(tail)) evidenceAliases.add(tail)
+        if ([...evidenceAliases].some(alias =>
+          !ROW_SENSITIVE_FORMS.has(alias) && findPhrasePositions(clauses[clauseIndex].words, alias).length > 0
+        )) contextualGroups.add(identity.group)
+      }
+      if (contextualGroups.size === 1) cueGroups.add([...contextualGroups][0])
+    }
+    if (cueGroups.size === 0) {
       for (const matches of byEvidence.values()) {
         if (matches.length !== 1) continue
         const match = matches[0]
-        if (match.ingredient.group && !ROW_SENSITIVE_FORMS.has(match.alias)) cueGroups.add(match.ingredient.group)
+        const aliasTail = match.alias.split(' ').at(-1) || ''
+        if (match.ingredient.group && !ROW_SENSITIVE_FORMS.has(aliasTail)) cueGroups.add(match.ingredient.group)
       }
     }
     const clauseGroup = cueGroups.size === 1 ? [...cueGroups][0] : null
@@ -615,7 +648,7 @@ function applyClauseGroupEvidence(
       }
       for (const match of matches) {
         if (
-          ROW_SENSITIVE_FORMS.has(match.alias) &&
+          ROW_SENSITIVE_FORMS.has(match.alias.split(' ').at(-1) || '') &&
           match.ingredient.group &&
           match.ingredient.group !== clauseGroup
         ) continue
@@ -649,7 +682,7 @@ function collectActiveOccurrences(
     }
     return [{ ...occurrence, clauseIndex: scoped.clauseIndex }]
   })
-  return { occurrences: applyClauseGroupEvidence(active, clauses), quantityMismatch }
+  return { occurrences: applyClauseGroupEvidence(active, clauses, identities), quantityMismatch }
 }
 
 function usageForOccurrence(
@@ -910,6 +943,14 @@ function mapInstruction(
 
   const activeResult = collectActiveOccurrences(instruction, identities)
   let occurrences = activeResult.occurrences
+  const colonIndex = instruction.indexOf(':')
+  const leadingGroup = leadingInstructionGroup(instruction, identities)
+  if (!leadingGroup && colonIndex > 0 && colonIndex <= 80 && explicitGroups.length === 0) {
+    const leadingPurpose = normalizeGroup(instruction.slice(0, colonIndex))
+    if (leadingPurpose && !/^(?:finish|note|start|step)$/.test(leadingPurpose)) {
+      occurrences = occurrences.filter(occurrence => occurrence.ingredient.group === null)
+    }
+  }
   occurrences = dedupeBestOccurrences(occurrences)
 
   const ambiguousIndexes = ambiguousIngredientIndexes(occurrences)
@@ -948,6 +989,53 @@ function mapInstruction(
   return { ...base, ingredients: [] }
 }
 
+function hasExplicitRowReuse(
+  instruction: string,
+  identity: IngredientIdentity,
+  reference: CookingStepIngredientReference,
+): boolean {
+  if (reference.usage?.kind === 'remaining') return true
+  const words = normalizedWords(instruction)
+  const explicitReuse = ingredientReferenceAliases(identity).some(alias =>
+    findPhrasePositions(words, alias).some(position => {
+      const prefix = words.slice(Math.max(0, position.start - 6), position.start).join(' ')
+      return /(?:^| )(?:remaining|reserved|rest of(?: the)?)$/.test(prefix)
+    }))
+  if (explicitReuse) return true
+  return /\bdivided\b/i.test(identity.raw) && reference.usage?.kind === 'partial'
+}
+
+function isGenuineContinuingUse(
+  instruction: string,
+  identity: IngredientIdentity,
+): boolean {
+  const words = normalizedWords(instruction)
+  return ingredientReferenceAliases(identity).some(alias =>
+    findPhrasePositions(words, alias).some(position => {
+      const prefix = words.slice(Math.max(0, position.start - 8), position.start).join(' ')
+      return CONTINUING_USE_VERB.test(prefix)
+    }))
+}
+
+function applyRowLifecycle(
+  mapping: CookingStepMapping,
+  instruction: string,
+  identities: IngredientIdentity[],
+  usedIndexes: Set<number>,
+): CookingStepMapping {
+  const available = mapping.ingredients.filter(reference => {
+    if (!usedIndexes.has(reference.ingredientIndex)) return true
+    const identity = identities.find(item => item.ingredientIndex === reference.ingredientIndex)
+    if (!identity) return false
+    return hasExplicitRowReuse(instruction, identity, reference) ||
+      isGenuineContinuingUse(instruction, identity)
+  })
+  available.forEach(reference => usedIndexes.add(reference.ingredientIndex))
+  return available.length === mapping.ingredients.length
+    ? mapping
+    : { ...mapping, ingredients: available }
+}
+
 /** Stable, lossless source serialization. Array order, exact text, and headers matter. */
 export function canonicalizeCookingMappingSource(ingredients: string[], instructions: string[]): string {
   return JSON.stringify({ ingredients, instructions })
@@ -970,12 +1058,18 @@ export function buildDeterministicCookingStepMap(
   instructions: string[],
 ): Omit<CookingStepIngredientMap, 'sourceHash'> {
   const identities = buildIngredientIdentities(ingredients)
+  const usedIndexes = new Set<number>()
   return {
     schemaVersion: 1,
     parserVersion: COOKING_MAPPING_PARSER_VERSION,
     engineVersion: COOKING_MAPPING_ENGINE_VERSION,
     steps: instructions.map((instruction, instructionIndex) =>
-      mapInstruction(instruction, instructionIndex, identities)),
+      applyRowLifecycle(
+        mapInstruction(instruction, instructionIndex, identities),
+        instruction,
+        identities,
+        usedIndexes,
+      )),
   }
 }
 

@@ -72,7 +72,7 @@ beforeEach(() => {
   mocks.prepareCookingStepIngredientMap.mockReset().mockResolvedValue({
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'deterministic-v3',
+    engineVersion: 'deterministic-v4',
     sourceHash: 'a'.repeat(64),
     steps: [],
   })

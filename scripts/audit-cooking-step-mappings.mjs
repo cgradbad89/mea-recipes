@@ -42,12 +42,12 @@ const { loadEnv, getAdmin } = require('./_lib.js')
 const LIMITS = { maxContentLength: 64_000, maxIngredients: 200, maxInstructions: 150, maxLineLength: 4_000 }
 const CONCURRENCY = 3
 const BOUNDED_AI_TIMEOUT_MS = 90_000
-const REQUIRED_REMEDIATION_SHA = 'cfdf9c245ad882a0ef422bd429aca16ec97bf196'
+const REQUIRED_BASE_SHA = '89cce56637d4bbb6452229b2147f018f42754b8c'
 const EXPECTED_CONFIGURATION = {
   schemaVersion: 1,
   parserVersion: 'recipe-content-v1',
-  deterministicEngineVersion: 'deterministic-v3',
-  hybridEngineVersion: 'hybrid-v3',
+  deterministicEngineVersion: 'deterministic-v4',
+  hybridEngineVersion: 'hybrid-v4',
   promptVersion: 'v2',
   model: 'openai/gpt-5.6-luna',
   temperature: 0,
@@ -65,6 +65,7 @@ const BEHAVIOR_FILES = [
 const HISTORICAL_MANIFESTS = [
   ['docs/audits/cooking-step-mapping-dryrun-2026-08-25.json', '03cccba16232237f2ffb8b0c1971ec3a66732da8a0f1480717769ac5f25093ae'],
   ['docs/audits/cooking-step-mapping-dryrun-v2-2026-08-26.json', '69a13a5c2a2366d372d747035a85df38bb702bbadc84df6f8a450d91ee0a73a0'],
+  ['docs/audits/cooking-step-mapping-dryrun-v3-2026-08-26.json', 'd4e381889e903016b57bd5c0ae7e6922035d3fb946858e04cfd6be15b98f396b'],
 ]
 const rawArgs = process.argv.slice(2)
 for (let index = 0; index < rawArgs.length; index += 1) {
@@ -104,10 +105,10 @@ function behaviorFingerprint() {
 function assertConfiguration(config) {
   const actual = Object.fromEntries(Object.keys(EXPECTED_CONFIGURATION).map(key => [key, config[key]]))
   if (JSON.stringify(actual) !== JSON.stringify(EXPECTED_CONFIGURATION)) {
-    throw new Error(`Audited configuration does not match the required v3 freeze: ${JSON.stringify(actual)}`)
+    throw new Error(`Audited configuration does not match the required v4 freeze: ${JSON.stringify(actual)}`)
   }
-  if (config.gitSha !== REQUIRED_REMEDIATION_SHA) {
-    throw new Error(`Expected remediation SHA ${REQUIRED_REMEDIATION_SHA}, received ${config.gitSha}`)
+  if (config.gitSha !== REQUIRED_BASE_SHA) {
+    throw new Error(`Expected v4 remediation base SHA ${REQUIRED_BASE_SHA}, received ${config.gitSha}`)
   }
 }
 
@@ -421,7 +422,12 @@ async function executeHybrid(rows, modules, usage, selectedTargets = null, stabi
 }
 
 function selectBoundedHybridTargets(rows, target = 25) {
+  const remediationIds = [
+    'mexican-oaxacan-bowl', 'creamy-kale-pasta',
+    'schmancy-hot-smoked-salmon', 'chili-lime-fish',
+  ]
   const priorityIds = [
+    ...remediationIds,
     'buttersoy-chicken-and-asparagus-stirfry', 'chicken-chow-mein', 'chicken-wild-rice',
     'tacos-al-pastor', 'sheet-pan-chicken-tinga-bowls',
     'chopped-thai-shrimp-salad-with-garlic-lime-dressing', 'singapore-mei-fun',
@@ -431,10 +437,10 @@ function selectBoundedHybridTargets(rows, target = 25) {
     'queso-chicken-chili-with-roasted-corn-and-jalape-o', 'dan-dan-noodles',
     'korean-bulgogi-beef-bowls', 'chicken-gyro-chopped-salad', 'pad-thai',
     'japanese-cold-soba-noodle-salad', 'pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta',
-    'mexican-oaxacan-bowl', 'creamy-kale-pasta', 'mediterranean-grilled-salmon',
+    'mediterranean-grilled-salmon',
     'brown-butter-lentil-and-sweet-potato-salad', 'shrimp-pullao',
   ]
-  const eligible = rows.filter(isAuditAiEligible)
+  const eligible = rows.filter(row => isAuditAiEligible(row) || remediationIds.includes(row.recipeId))
   const selected = priorityIds
     .map(recipeId => eligible.find(row => row.recipeId === recipeId))
     .filter(Boolean)
@@ -449,10 +455,10 @@ function selectBoundedHybridTargets(rows, target = 25) {
 
 function reviewPaths(date) {
   return {
-    manifest: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v3-${date}.json`),
-    report: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v3-${date}.md`),
-    reviews: path.join(ROOT, `docs/audits/cooking-step-mapping-semantic-review-v3-${date}.json`),
-    raw: path.join('/tmp', `cooking-step-mapping-run-v3-${date}.json`),
+    manifest: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v4-${date}.json`),
+    report: path.join(ROOT, `docs/audits/cooking-step-mapping-dryrun-v4-${date}.md`),
+    reviews: path.join(ROOT, `docs/audits/cooking-step-mapping-semantic-review-v4-${date}.json`),
+    raw: path.join('/tmp', `cooking-step-mapping-run-v4-${date}.json`),
   }
 }
 
@@ -582,7 +588,7 @@ function assertReviewsFinal(reviews) {
     throw new Error('At least 100 deterministic recipes require final semantic classifications before manifest finalization.')
   }
   if ((reviews.stability || []).some(item => !STABILITY_CLASSIFICATIONS.includes(item.classification) || item.details === 'PENDING')) {
-    throw new Error('Every stability rerun requires a final v3 stability classification and details before manifest finalization.')
+    throw new Error('Every stability rerun requires a final v4 stability classification and details before manifest finalization.')
   }
 }
 
@@ -706,9 +712,9 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
   const existingByVersion = [...new Set(raw.rows.filter(row => row.currentMapPresent)
     .map(row => row.currentMapEngineVersion || 'unknown'))].sort()
   const lines = [
-    `# Cooking-step mapping v3 production dry run — ${date}`, '',
+    `# Cooking-step mapping v4 production dry run — ${date}`, '',
     '## Executive verdict', '', verdict, '',
-    'This is a fresh full-corpus read-only validation. No historical v1 or v2 candidate map was used, and no Firestore document was written.', '',
+    'This is a fresh full-corpus read-only validation. No historical v1, v2, or v3 candidate map was used, and no Firestore document was written.', '',
     reviews.verdictReason || '', '',
     '## Configuration audited', '',
     '| Setting | Value |', '|---|---|',
@@ -731,7 +737,9 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     `| Existing \`hybrid-v2\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === 'hybrid-v2')} |`,
     `| Existing \`deterministic-v3\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === 'deterministic-v3')} |`,
     `| Existing \`hybrid-v3\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === 'hybrid-v3')} |`,
-    ...existingByVersion.filter(version => !['deterministic-v1', 'hybrid-v1', 'deterministic-v2', 'hybrid-v2', 'deterministic-v3', 'hybrid-v3'].includes(version))
+    `| Existing \`deterministic-v4\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === 'deterministic-v4')} |`,
+    `| Existing \`hybrid-v4\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === 'hybrid-v4')} |`,
+    ...existingByVersion.filter(version => !['deterministic-v1', 'hybrid-v1', 'deterministic-v2', 'hybrid-v2', 'deterministic-v3', 'hybrid-v3', 'deterministic-v4', 'hybrid-v4'].includes(version))
       .map(version => `| Existing \`${version}\` maps | ${count(raw.rows, row => row.currentMapEngineVersion === version)} |`),
     `| Source eligible | ${eligible.length} |`,
     `| Source/parser excluded | ${sourceExcludedRows.length} |`,
@@ -743,7 +751,7 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
       .map(status => `| \`${status}\` | ${count(raw.rows, row => row.sourceStatus === status)} |`), '',
     ...sourceExcludedRows.map(row => `- **${row.title}** (\`${row.recipeId}\`) — \`${row.sourceStatus}\`: ${row.sourceReason}`), '',
     'These exclusions are source/parser defects, not mapper abstentions. No legacy content was repaired in this audit.', '',
-    '## Deterministic-v3 results', '',
+    '## Deterministic-v4 results', '',
     '| Metric | Count |', '|---|---:|',
     `| Instructions | ${sum(eligible, row => row.deterministicStats?.instructionCount || 0)} |`,
     `| Mapped steps | ${sum(eligible, row => row.deterministicStats?.mappedSteps || 0)} |`,
@@ -759,8 +767,8 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     `The new deterministic semantic review covered **${det.length}** eligible recipes: safe correct mappings **${sum(det, item => item.safeCorrectMappings || 0)}**, safe omissions **${sum(det, item => item.safeOmissions || 0)}**, confirmed false-positive mappings **${sum(det, item => item.falsePositiveMappings || 0)}**, confirmed false-positive recipes **${count(det, item => item.classification === 'FALSE_POSITIVE')}**.`, '',
     ...det.filter(item => item.classification === 'FALSE_POSITIVE')
       .map(item => `- **${item.title}** (\`${item.recipeId}\`) — ${item.explanation}`), '',
-    'All nine deterministic-v2 failure recipes were included: Butter-Soy Chicken, Chicken Chow Mein, Chicken Wild Rice, Tacos Al Pastor, Sheet Pan Chicken Tinga, Chopped Thai Shrimp Salad, Singapore Mei Fun, Sesame Apricot Tofu, and Chickpea Curry. Their exact v3 results are recorded in the semantic-review artifact.', '',
-    '## Hybrid-v3 results', '',
+    'All nine deterministic-v2 failure recipes were included: Butter-Soy Chicken, Chicken Chow Mein, Chicken Wild Rice, Tacos Al Pastor, Sheet Pan Chicken Tinga, Chopped Thai Shrimp Salad, Singapore Mei Fun, Sesame Apricot Tofu, and Chickpea Curry. Their exact v4 results are recorded in the semantic-review artifact.', '',
+    '## Hybrid-v4 results', '',
     '| Metric | Deterministic | Hybrid |', '|---|---:|---:|',
     `| Mapped steps | ${sum(eligible, row => row.deterministicStats?.mappedSteps || 0)} | ${sum(eligible, row => row.hybridStats.finalMappedSteps)} |`,
     `| Mapped ingredient references | ${sum(eligible, row => row.deterministicStats?.mappedIngredientReferences || 0)} | ${sum(eligible, row => row.hybridStats.finalMappedIngredientReferences)} |`,
@@ -784,8 +792,8 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     ...stabilityRows.filter(row => row.stability.status !== 'EXACT_STABLE').map(row =>
       `- **${row.title}** (\`${row.recipeId}\`) — ${row.stability.status}: ${row.stability.details || 'validated semantic outputs differ; see review evidence.'}`), '',
     'Historical stability comparison (different denominators): v1 had 10/20 material differences; bounded v2 had 1/20; full v2 had 4/30 safe-omission/component differences; bounded v3 had 20/20 exact.', '',
-    '## V1 → V2 → V3 comparison', '',
-    '| Measure | V2 full | V3 remediation | Fresh V3 full |', '|---|---:|---:|---:|',
+    '## V1 → V2 → V3 → V4 comparison', '',
+    '| Measure | V2 full | V3 remediation | Fresh V4 full |', '|---|---:|---:|---:|',
     `| Deterministic false-positive recipes | 9 / 60 | 0 / 80 | ${count(det, item => item.classification === 'FALSE_POSITIVE')} / ${det.length} |`,
     `| Accepted AI additions correct | 84 / 84 | 22 / 22 | ${aiCorrect} / ${reviewedAdditions.length} |`,
     `| Exact stability | 26 / 30 | 20 / 20 | ${count(stabilityRows, row => row.stability.status === 'EXACT_STABLE')} / ${stabilityRows.length} |`,
@@ -799,13 +807,14 @@ function renderReport(date, raw, manifest, reviews, manifestIntegrity) {
     '## Remaining risks', '',
     reviews.remainingRisks || '- Parser/content exclusions remain outside mapping correctness. Personal override-specific maps remain unimplemented. AI stability is evidenced only by the recorded rerun subset.', '',
     '## Future apply preconditions', '',
-    'For every READY row, a future apply must require: approved manifest SHA-256 matches the exact file AND the live recipe exists AND live `cookingStepIngredientMap` is absent AND fresh live shared-content `sourceHash === manifest.sourceHash` AND the manifest candidate validates under this exact audited v3 contract. Any failed precondition means SKIP.', '',
+    'For every READY row, a future apply must require: approved manifest SHA-256 matches the exact file AND the live recipe exists AND live `cookingStepIngredientMap` is absent AND fresh live shared-content `sourceHash === manifest.sourceHash` AND the manifest candidate validates under this exact audited v4 contract. Any failed precondition means SKIP.', '',
     'A future writer may merge only `cookingStepIngredientMap`. It must not modify content, title, category, cuisine, nutrition, servings, times, image, source, metadata, or any user-owned data. No writer exists in this audit.', '',
     '## Manifest integrity', '',
     `Path: \`${path.relative(ROOT, manifestIntegrity.path)}\`; SHA-256: \`${manifestIntegrity.sha256}\`; rows: **${manifest.length}**; READY **${ready}**; REVIEW **${review}**; EXCLUDED **${excluded}**; ERROR **${errors}**; EXISTING_MAP **${existingMaps}**. Every READY candidate passed current production validation, has a fresh source hash, and had no production map at audit time.`, '',
     '## Historical manifest status', '',
     '`docs/audits/cooking-step-mapping-dryrun-2026-08-25.json` (SHA-256 `03cccba16232237f2ffb8b0c1971ec3a66732da8a0f1480717769ac5f25093ae`) remains **HISTORICAL ONLY — NOT AUTHORIZED FOR APPLY**.', '',
     '`docs/audits/cooking-step-mapping-dryrun-v2-2026-08-26.json` (SHA-256 `69a13a5c2a2366d372d747035a85df38bb702bbadc84df6f8a450d91ee0a73a0`) remains **HISTORICAL ONLY — NOT AUTHORIZED FOR APPLY**. Neither historical manifest supplied a candidate or classification to this run.', '',
+    '`docs/audits/cooking-step-mapping-dryrun-v3-2026-08-26.json` (SHA-256 `d4e381889e903016b57bd5c0ae7e6922035d3fb946858e04cfd6be15b98f396b`) remains **HISTORICAL ONLY — NOT AUTHORIZED FOR APPLY**. No historical manifest supplied a candidate or classification to this run.', '',
     '## Production and AI execution', '',
     `Firestore operations: read-only shared \`recipes\` collection queries; writes: **none**. Real Gateway requests: ${raw.usage.primaryRequests + raw.usage.stabilityRequests} (${raw.usage.primaryRequests} primary, ${raw.usage.stabilityRequests} stability, ${primaryRetries + stabilityRetries} retries). The centralized helper emitted ${usageMetadata.length} usage records totaling ${usageTotals.inputTokens} input, ${usageTotals.outputTokens} output, and ${usageTotals.totalTokens} tokens for ${usageMetadata[0]?.provider || config.model} / ${usageMetadata[0]?.model || config.model}. No authoritative dollar cost was provided, so none is reported or estimated.`, '',
   ]
@@ -820,7 +829,7 @@ async function main() {
   if (resume) {
     const resumePath = path.resolve(resume)
     if (HISTORICAL_MANIFESTS.some(([relativePath]) => resumePath === path.join(ROOT, relativePath))) {
-      throw new Error('Historical v1/v2 manifests are forbidden as candidate or resume input.')
+      throw new Error('Historical v1/v2/v3 manifests are forbidden as candidate or resume input.')
     }
   }
   let raw
@@ -869,8 +878,8 @@ async function main() {
       await modules.close()
     }
     const rawPath = mode === 'hybrid' ? paths.raw
-      : mode === 'bounded-hybrid' ? path.join('/tmp', `cooking-step-mapping-bounded-hybrid-v3-${date}.json`)
-        : path.join('/tmp', `cooking-step-mapping-deterministic-v3-${date}.json`)
+      : mode === 'bounded-hybrid' ? path.join('/tmp', `cooking-step-mapping-bounded-hybrid-v4-${date}.json`)
+        : path.join('/tmp', `cooking-step-mapping-deterministic-v4-${date}.json`)
     fs.writeFileSync(rawPath, stableJson(raw))
   }
 
@@ -885,7 +894,7 @@ async function main() {
     const targets = raw.rows.filter(row => raw.boundedSelection.includes(row.recipeId))
     console.log(JSON.stringify({
       mode,
-      rawArtifact: path.join('/tmp', `cooking-step-mapping-bounded-hybrid-v3-${date}.json`),
+      rawArtifact: path.join('/tmp', `cooking-step-mapping-bounded-hybrid-v4-${date}.json`),
       uniqueRecipes: targets.length,
       primaryRecipesCalled: count(targets, row => row.hybridStats.aiAttempted),
       primaryRequests: raw.usage.primaryRequests,

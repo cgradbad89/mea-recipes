@@ -1,0 +1,1894 @@
+{
+  "auditDate": "2026-08-26",
+  "auditVersion": {
+    "gitSha": "89cce56637d4bbb6452229b2147f018f42754b8c",
+    "schemaVersion": 1,
+    "parserVersion": "recipe-content-v1",
+    "deterministicEngineVersion": "deterministic-v4",
+    "hybridEngineVersion": "hybrid-v4",
+    "promptVersion": "v2",
+    "model": "openai/gpt-5.6-luna",
+    "temperature": 0
+  },
+  "reviewScope": "Every deterministic association and every unmapped step in every source-eligible production recipe was manually adjudicated against the exact indexed ingredient rows and instruction text.",
+  "sourceEligibleRecipes": 187,
+  "recipesReviewed": 187,
+  "mappedReferencesReviewed": 1040,
+  "safeMappings": 1040,
+  "safeOmissions": 518,
+  "falsePositiveMappings": 0,
+  "falsePositiveRecipes": 0,
+  "productionWrites": 0,
+  "recipes": [
+    {
+      "recipeId": "151",
+      "title": "The BEST Black Bean Chili",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "152",
+      "title": "Crockpot Chicken Wild Rice Soup",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "155",
+      "title": "Slow Cooker Carnitas (Mexican Pulled Pork)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "156",
+      "title": "Easy Slow Cooker Pot Roast",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "157",
+      "title": "Slow Cooker Minnesota Pork Chop Casserole",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "158",
+      "title": "Creamy Crockpot White Chicken Chili",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "159",
+      "title": "Easy Slow Cooker Turkey Chili",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "161",
+      "title": "Slow Cooker Beef Stew",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 6,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "162",
+      "title": "Easy Slow Cooker Chicken Pot Pie",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "164",
+      "title": "Slow Cooker Chicken Taco Soup",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "166",
+      "title": "Overnight Oatmeal",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "167",
+      "title": "Slow Cooker Pumpkin Applesauce",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "168",
+      "title": "Slow Cooker Garlic Butter Chicken Pasta",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "171",
+      "title": "Slow Cooker Beef Brisket with BBQ Sauce",
+      "instructionCount": 9,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 9,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "173",
+      "title": "Slow Cooker Chicken Ropa Vieja",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "176",
+      "title": "Garlic Butter Roasted Chicken Thighs with Charred Lemon Salsa Verde + Asparagus",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 6,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "178",
+      "title": "Spicy Shrimp Tacos with Garlic Cilantro Lime Slaw",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "179",
+      "title": "Spicy Fish Taco Bowls with Cilantro Lime Slaw",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "180",
+      "title": "Garlic Parmesan Kale Pasta",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "182",
+      "title": "Spicy Quinoa with Sweet Potatoes",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "184",
+      "title": "Pressure-Cooker Spring-Thyme Chicken Stew",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "185",
+      "title": "Instant Pot Red Beans and Rice",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "186",
+      "title": "Instant Pot Lemon Chicken Thighs",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "187",
+      "title": "Instant Pot Mississippi Pot Roast",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "188",
+      "title": "Instant Pot BBQ Pulled Pork",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "189",
+      "title": "Instant Pot Perfect Hard Boiled Eggs",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "190",
+      "title": "Instant Pot Boiled Potatoes",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "191",
+      "title": "Chicken Tinga Tacos",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "192",
+      "title": "Easy Instant Pot Vegetable Biryani",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 11,
+      "safeMappings": 11,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "194",
+      "title": "Pressure-Cooker Easy Pork Posole",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "195",
+      "title": "Pressure-Cooker White Bean Chicken Chili",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "197",
+      "title": "Instant Pot Pineapple Chicken",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "198",
+      "title": "Instant Pot Orange Chicken",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "199",
+      "title": "Hush Puppies",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "air-fried-sweet-potato-fries-with-rosemary-and-garlic",
+      "title": "Air Fried Sweet Potato Fries with Rosemary and Garlic",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "air-fryer-falafel",
+      "title": "Air Fryer Falafel",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 12,
+      "safeMappings": 12,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "balsamic-roasted-beets",
+      "title": "Balsamic Roasted Beets",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "best-black-bean-soup",
+      "title": "Best Black Bean Soup",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "black-lentil-and-harissa-roasted-veggie-bowl",
+      "title": "Black Lentil and Harissa-Roasted Veggie Bowl",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "blackened-chicken-breasts",
+      "title": "Blackened Chicken Breasts",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "blue-corn-green-chili-chicken-enchiladas",
+      "title": "Blue Corn Green Chili Chicken Enchiladas",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "braised-red-cabbage",
+      "title": "Braised Red Cabbage",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "bread",
+      "title": "Bread!",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "broccoli-salad",
+      "title": "Broccoli Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "brown-butter-lentil-and-sweet-potato-salad",
+      "title": "Brown Butter Lentil and Sweet Potato Salad",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "buttered-peas-with-mint",
+      "title": "Buttered Peas with Mint",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "buttersoy-chicken-and-asparagus-stirfry",
+      "title": "Butter-Soy Chicken and Asparagus Stir-Fry",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "caprese-salad",
+      "title": "Caprese Salad",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "caramelized-brussels-sprouts-pasta-with-toasted-chickpeas",
+      "title": "Caramelized Brussels Sprouts Pasta With Toasted Chickpeas",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "cauliflower-breakfast-muffins",
+      "title": "Cauliflower Breakfast Muffins",
+      "instructionCount": 2,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "cauliflower-curry",
+      "title": "Cauliflower Curry",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "charlie-bird-s-farro-salad",
+      "title": "Charlie Bird's Farro Salad",
+      "instructionCount": 2,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "charred-corn-and-chickpea-salad-with-lime-crema",
+      "title": "Charred Corn and Chickpea Salad With Lime Crema",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-chickpea-salad",
+      "title": "Chicken Chickpea Salad",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-chow-mein",
+      "title": "Chicken Chow Mein",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 7,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-gyro-chopped-salad",
+      "title": "Chicken Gyro Chopped Salad",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-meatballs-with-peppers-and-orzo",
+      "title": "Chicken Meatballs with Peppers and Orzo",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-souvlaki-bowl-with-tzatziki",
+      "title": "Chicken Souvlaki Bowl with Tzatziki",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "title": "Chicken Tikka",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 7,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chicken-wild-rice",
+      "title": "chicken wild rice",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "title": "Chickpea and Fennel Ratatouille",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chickpea-curry",
+      "title": "Chickpea Curry",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chilecrisp-tofu-tomatoes-and-cucumbers",
+      "title": "Chile-Crisp Tofu, Tomatoes and Cucumbers",
+      "instructionCount": 2,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chili-lime-fish",
+      "title": "Chili Lime Fish",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "title": "Chopped Thai Shrimp Salad with Garlic Lime Dressing",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "citrusy-couscous-salad-with-broccoli-and-feta",
+      "title": "Citrusy Couscous Salad With Broccoli and Feta",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "classic-bbq-corn",
+      "title": "Classic BBQ Corn",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "creamy-chickpea-spinach-masala-with-tadka",
+      "title": "Creamy Chickpea Spinach Masala With Tadka",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "creamy-kale-pasta",
+      "title": "Creamy Kale Pasta",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "crispy-gnocchi-with-tomato-and-red-onion",
+      "title": "Crispy Gnocchi With Tomato and Red Onion",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "cucumber-salad",
+      "title": "Cucumber Salad",
+      "instructionCount": 2,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "title": "Cucumber Tomato Salad with Red Wine Vinaigrette",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "dan-dan-noodles",
+      "title": "Dan Dan Noodles",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "doro-wat-ethiopianstyle-spicy-chicken",
+      "title": "Doro Wat (Ethiopian-Style Spicy Chicken)",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "easy-spaghetti-with-meat-sauce",
+      "title": "Easy Spaghetti With Meat Sauce",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "fried-chicken-sandwich",
+      "title": "Fried Chicken Sandwich",
+      "instructionCount": 9,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 9,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "garlic-bread",
+      "title": "Garlic Bread",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+      "title": "GARLIC BUTTER HERB STEAK BITES WITH POTATOES",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "garlic-butter-roasted-broccoli",
+      "title": "Garlic Butter Roasted Broccoli",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "garlic-herb-shrimp-with-white-beans-and-spinach",
+      "title": "Garlic Herb Shrimp with White Beans and Spinach",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "garlic-parmesan-roasted-potatoes",
+      "title": "Garlic Parmesan Roasted Potatoes",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "gochugaru-salmon-with-crispy-rice",
+      "title": "Gochugaru Salmon With Crispy Rice",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "gochujang-noodles-with-crispy-tofu",
+      "title": "Gochujang Noodles with Crispy Tofu",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 13,
+      "safeMappings": 13,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "green-goddess-roasted-chicken",
+      "title": "Green Goddess Roasted Chicken",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "grilled-chicken-salad",
+      "title": "Grilled Chicken Salad",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 8,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "grilled-fish-tacos",
+      "title": "Grilled fish tacos",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 6,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "grilled-salmon",
+      "title": "Grilled Salmon",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "title": "Grilled Zucchini and Summer Squash",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "grownup-mustard-sauce-recipe",
+      "title": "Grownup Mustard Sauce Recipe",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "hearthealthy-peanut-butter-protein-bars",
+      "title": "Heart-Healthy Peanut Butter Protein Bars",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "herb-roasted-cauliflower",
+      "title": "Herb-Roasted Cauliflower",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "honey-butter-glazed-carrots",
+      "title": "Honey Butter Glazed Carrots",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "honey-glazed-roasted-parsnips",
+      "title": "Honey Glazed Roasted Parsnips",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "honey-sriracha-roasted-brussels-sprouts",
+      "title": "HONEY SRIRACHA ROASTED BRUSSELS SPROUTS",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "hot-mustard-grilled-chicken",
+      "title": "Hot Mustard Grilled Chicken",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "indian-spiced-roasted-vegetables",
+      "title": "Indian Spiced Roasted Vegetables",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "intsa-punjabi-chole",
+      "title": "Intsa Punjabi Chole",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "italian-sausage-and-white-bean-salad",
+      "title": "Italian Sausage and White Bean Salad",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "jalape-o-cheddar-cornbread",
+      "title": "Jalapeño Cheddar Cornbread",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "jam-oat-bars",
+      "title": "Jam Oat Bars",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "japanese-cold-soba-noodle-salad",
+      "title": "Japanese Cold Soba Noodle Salad",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 12,
+      "safeMappings": 12,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "japanese-teriyaki-salmon-bowl",
+      "title": "Japanese Teriyaki Salmon Bowl",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "jocn-chicken-and-tomatillo-stew",
+      "title": "Jocón (Chicken and Tomatillo Stew) - Amazing",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "kale-and-quinoa-salad-with-plums-and-herbs",
+      "title": "Kale and Quinoa Salad With Plums and Herbs",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "kimchi-ramen",
+      "title": "Kimchi Ramen",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "korean-bulgogi-beef-bowls",
+      "title": "Korean Bulgogi Beef Bowls",
+      "instructionCount": 9,
+      "mappedReferencesReviewed": 14,
+      "safeMappings": 14,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "korean-sundubu-jjigae-soft-tofu-stew",
+      "title": "Korean Sundubu Jjigae (Soft Tofu Stew)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "lebanese-lemon-garlic-chicken-thighs",
+      "title": "Lebanese Lemon Garlic Chicken Thighs",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "lemon-garlic-roasted-artichokes",
+      "title": "Lemon Garlic Roasted Artichokes",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mango-black-bean-quinoa-bowl",
+      "title": "Mango Black Bean Quinoa Bowl",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mapo-rag-crazy-good",
+      "title": "Mapo Ragù - crazy good",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "maraq-misir-red-lentil-soup",
+      "title": "Maraq Misir (Red Lentil Soup)",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mediterranean-grilled-salmon",
+      "title": "Mediterranean Grilled Salmon",
+      "instructionCount": 12,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 10,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mediterranean-quinoa-bowl",
+      "title": "Mediterranean Quinoa Bowl",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "megans-wild-rice-kale-salad",
+      "title": "Megan's wild rice & Kale Salad",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mexican-oaxacan-bowl",
+      "title": "Mexican Oaxacan Bowl",
+      "instructionCount": 9,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mexican-roasted-cauliflower",
+      "title": "Mexican Roasted Cauliflower",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "mexican-roasted-zucchini",
+      "title": "Mexican Roasted Zucchini",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "michelada-chicken",
+      "title": "Michelada Chicken",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "miso-glazed-eggplant",
+      "title": "Miso Glazed Eggplant",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "moqueca-brazilian-fish-stew",
+      "title": "Moqueca - Brazilian Fish Stew",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "moroccan-spiced-carrot-and-chickpea-soup",
+      "title": "Moroccan Spiced Carrot and Chickpea Soup",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "one-pan-farro-with-tomatoes-and-kale",
+      "title": "One-Pan Farro with Tomatoes and Kale",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "onepot-beans-greens-and-grains",
+      "title": "One-Pot Beans, Greens and Grains",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "onepot-tofu-and-broccoli-rice",
+      "title": "One-Pot Tofu and Broccoli Rice",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "original-texas-chili-con-carne",
+      "title": "Original Texas Chili Con Carne",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "orzo-salad",
+      "title": "Orzo Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "pad-thai",
+      "title": "Pad Thai",
+      "instructionCount": 9,
+      "mappedReferencesReviewed": 11,
+      "safeMappings": 11,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta",
+      "title": "Pearl Couscous Skillet With Tomatoes, Chickpeas, And Feta",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "pesto",
+      "title": "Pesto",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "pulled-pork",
+      "title": "Pulled pork",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "queso-chicken-chili-with-roasted-corn-and-jalape-o",
+      "title": "Queso Chicken Chili with Roasted Corn and Jalapeño",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "quinoa-sweet-potato-salad",
+      "title": "Quinoa Sweet Potato Salad",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "radish-cucumber-and-white-bean-farro-salad",
+      "title": "Radish, Cucumber and White Bean Farro Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "rainbow-quinoa-salad",
+      "title": "Rainbow Quinoa Salad",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "ramen-carbonara",
+      "title": "Ramen Carbonara",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "ribollita-tuscan-white-bean-soup",
+      "title": "Ribollita (Tuscan White Bean Soup)",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "rice-pilaf",
+      "title": "Rice Pilaf",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-acorn-squash-with-brown-butter",
+      "title": "Roasted Acorn Squash with Brown Butter",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-asparagus-with-lemon",
+      "title": "Roasted Asparagus with Lemon",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-broccoli-salad",
+      "title": "Roasted Broccoli Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-brussels-sprouts-with-bacon",
+      "title": "Roasted Brussels Sprouts with Bacon",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-cauliflower-tacos-with-chipotle-crema",
+      "title": "Roasted Cauliflower Tacos with Chipotle Crema",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-radishes-with-herb-butter",
+      "title": "Roasted Radishes with Herb Butter",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-root-vegetable-medley",
+      "title": "Roasted Root Vegetable Medley",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "roasted-veggie-bowl",
+      "title": "Roasted Veggie Bowl",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "saucy-gochujang-noodles-with-chicken",
+      "title": "Saucy Gochujang Noodles with Chicken",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 5,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sausage-rag",
+      "title": "Sausage Ragù",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "saut-ed-garlic-green-beans",
+      "title": "Sautéed Garlic Green Beans",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "saut-ed-kale-with-garlic-and-lemon",
+      "title": "Sautéed Kale with Garlic and Lemon",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "schmancy-hot-smoked-salmon",
+      "title": "Schmancy Hot Smoked Salmon",
+      "instructionCount": 10,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "seared-broccoli-and-potato-soup",
+      "title": "Seared Broccoli and Potato Soup",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 10,
+      "safeMappings": 10,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sesame-apricot-tofu",
+      "title": "Sesame Apricot Tofu",
+      "instructionCount": 7,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "shakshucka",
+      "title": "Shakshucka",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "shakshuka-with-feta",
+      "title": "Shakshuka With Feta",
+      "instructionCount": 2,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sheet-pan-bibimbap",
+      "title": "Sheet-Pan Bibimbap",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sheet-pan-chicken-tinga-bowls",
+      "title": "Sheet Pan Chicken Tinga Bowls",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sheet-pan-kielbasa-with-cabbage-and-beans",
+      "title": "Sheet-Pan Kielbasa With Cabbage and Beans",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "shrimp-pullao",
+      "title": "Shrimp Pullao",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "simple-house-salad-with-vinaigrette",
+      "title": "Simple House Salad with Vinaigrette",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "singapore-mei-fun",
+      "title": "Singapore Mei Fun",
+      "instructionCount": 16,
+      "mappedReferencesReviewed": 12,
+      "safeMappings": 12,
+      "safeOmissions": 12,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "skillet-chicken-and-pearl-couscous-with-moroccan-spices",
+      "title": "Skillet Chicken and Pearl Couscous With Moroccan Spices",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "skillet-gnocchi-with-miso-butter-and-asparagus",
+      "title": "Skillet Gnocchi With Miso Butter and Asparagus",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "slow-cooker-creamy-tomato-lentil-soup",
+      "title": "Slow Cooker Creamy Tomato Lentil Soup",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "smashed-cucumber-edamame-rice-bowl",
+      "title": "Smashed Cucumber Edamame Rice Bowl",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "smashed-zucchini-with-chickpeas-and-peanuts",
+      "title": "Smashed Zucchini With Chickpeas and Peanuts",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "spanish-chickpea-and-spinach-espinacas-con-garbanzos",
+      "title": "Spanish Chickpea and Spinach (Espinacas con Garbanzos)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "spicy-coconut-lentil-soup",
+      "title": "Spicy Coconut Lentil Soup",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 5,
+      "safeMappings": 5,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sticky-miso-salmon-bowl",
+      "title": "Sticky Miso Salmon Bowl",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "sticky-pineapple-ribs",
+      "title": "Sticky Pineapple Ribs",
+      "instructionCount": 6,
+      "mappedReferencesReviewed": 12,
+      "safeMappings": 12,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "suadero-tacos",
+      "title": "Suadero Tacos",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 0,
+      "safeMappings": 0,
+      "safeOmissions": 4,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "taco-soup",
+      "title": "Taco Soup",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "title": "Tacos Al Pastor",
+      "instructionCount": 14,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 11,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "taiwanese-three-cup-tofu",
+      "title": "Taiwanese Three Cup Tofu (San Bei Tofu)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "tamales-chicken",
+      "title": "Tamales - chicken",
+      "instructionCount": 8,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 7,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "thai-basil-chicken-pad-kra-pao",
+      "title": "Thai Basil Chicken (Pad Kra Pao)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "thai-salad",
+      "title": "Thai Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 4,
+      "safeMappings": 4,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "the-easiest-vegetable-stir-fry",
+      "title": "The Easiest Vegetable Stir Fry",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 12,
+      "safeMappings": 12,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "tom-kha-gai-thai-coconut-chicken-soup",
+      "title": "Tom Kha Gai (Thai Coconut Chicken Soup)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 8,
+      "safeMappings": 8,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "tomato-avo-salad",
+      "title": "tomato avo salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 1,
+      "safeMappings": 1,
+      "safeOmissions": 2,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "toor-dal-split-yellow-pigeon-peas",
+      "title": "Toor Dal (Split Yellow Pigeon Peas)",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 2,
+      "safeMappings": 2,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "traditional-southern-butter-butter-beans-recipe",
+      "title": "Traditional Southern Butter Butter Beans Recipe",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 6,
+      "safeMappings": 6,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "turkish-red-lentil-soup",
+      "title": "Turkish Red Lentil Soup (Mercimek Çorbası)",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "tzatziki-chickpea-salad",
+      "title": "Tzatziki Chickpea Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 7,
+      "safeMappings": 7,
+      "safeOmissions": 1,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "west-african-peanut-stew",
+      "title": "West African Peanut Stew",
+      "instructionCount": 5,
+      "mappedReferencesReviewed": 9,
+      "safeMappings": 9,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "white-bean-caprese-salad",
+      "title": "White Bean Caprese Salad",
+      "instructionCount": 3,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 0,
+      "falsePositives": [],
+      "classification": "SAFE"
+    },
+    {
+      "recipeId": "yogurt-dill-sauce",
+      "title": "yogurt Dill sauce",
+      "instructionCount": 4,
+      "mappedReferencesReviewed": 3,
+      "safeMappings": 3,
+      "safeOmissions": 3,
+      "falsePositives": [],
+      "classification": "SAFE"
+    }
+  ]
+}

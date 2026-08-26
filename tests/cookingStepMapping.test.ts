@@ -65,7 +65,7 @@ describe('deterministic mapping contract', () => {
     expect(result).toMatchObject({
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'deterministic-v3',
+      engineVersion: 'deterministic-v4',
     })
     expect(result.steps.map(step => step.instructionIndex)).toEqual([0, 1])
   })
@@ -269,7 +269,7 @@ async function validHybridMap(
   return {
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'hybrid-v3',
+    engineVersion: 'hybrid-v4',
     sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
     steps: [{
       instructionIndex: 0,
@@ -291,7 +291,7 @@ async function validPreparedComponentMap(): Promise<{
     mapping: {
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'hybrid-v3',
+      engineVersion: 'hybrid-v4',
       sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
       steps: [{
         instructionIndex: 0,
@@ -309,7 +309,7 @@ describe('runtime cooking-step map resolver', () => {
     expect(result.mapping.steps[0].ingredients.map(reference => reference.ingredientIndex)).toEqual([0])
   })
 
-  it('accepts a valid deterministic-v3 persisted map', async () => {
+  it('accepts a valid deterministic-v4 persisted map', async () => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
@@ -317,7 +317,7 @@ describe('runtime cooking-step map resolver', () => {
     expect(result).toEqual({ mapping: persisted, source: 'persisted' })
   })
 
-  it('accepts a valid hybrid-v3 AI-only ingredient association', async () => {
+  it('accepts a valid hybrid-v4 AI-only ingredient association', async () => {
     const persisted = await validHybridMap()
     const ingredients = ['For the sauce:', '1 tbsp olive oil']
     const result = await resolveCookingStepIngredientMap(ingredients, ['Add the oil to the marinade.'], persisted)
@@ -358,7 +358,8 @@ describe('runtime cooking-step map resolver', () => {
     })
   })
 
-  it.each(['deterministic-v2', 'hybrid-v2'])('rejects a persisted %s map after the v3 upgrade', async engineVersion => {
+  it.each(['deterministic-v2', 'hybrid-v2', 'deterministic-v3', 'hybrid-v3'])(
+    'rejects a persisted %s map after the v4 upgrade', async engineVersion => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
@@ -366,9 +367,10 @@ describe('runtime cooking-step map resolver', () => {
     await expect(resolveCookingStepIngredientMap(ingredients, instructions, persisted)).resolves.toMatchObject({
       source: 'deterministic-fallback',
       fallbackReason: 'unsupported-engine',
-      mapping: { engineVersion: 'deterministic-v3' },
+      mapping: { engineVersion: 'deterministic-v4' },
     })
-  })
+    },
+  )
 
   it('rejects a source-hash mismatch and maps the current source', async () => {
     const persisted = await validHybridMap()
@@ -448,7 +450,7 @@ describe('runtime cooking-step map resolver', () => {
 
   it('rejects AI associations mislabeled with the deterministic engine', async () => {
     const persisted = await validHybridMap()
-    persisted.engineVersion = 'deterministic-v3'
+    persisted.engineVersion = 'deterministic-v4'
     const result = await resolveCookingStepIngredientMap(
       ['For the sauce:', '1 tbsp olive oil'],
       ['Add the oil to the marinade.'],
@@ -461,7 +463,7 @@ describe('runtime cooking-step map resolver', () => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
-    persisted.engineVersion = 'hybrid-v3'
+    persisted.engineVersion = 'hybrid-v4'
     const result = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
     expect(result.fallbackReason).toBe('invalid-structure')
   })
