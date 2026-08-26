@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "executionDate": "2026-08-26",
+  "executedAt": "2026-08-26T21:41:53.573Z",
+  "executiveResult": "PASS",
+  "repository": {
+    "branch": "main",
+    "startingSha": "aa3fc0934c42ffd03abf52122d0781224a69b9fc"
+  },
+  "manifest": {
+    "path": "docs/audits/excluded-recipe-wave3-dryrun-2026-08-26.json",
+    "sha256": "7e3cfeef142e9d42d4e751b5f3c7051ec920e28d44ba61b6665fa57ecce61c0b",
+    "counts": {
+      "rows": 7,
+      "READY": 7,
+      "SKIP": 0
+    }
+  },
+  "preApply": {
+    "readyToWrite": 7,
+    "skipped": 0,
+    "skipRows": [],
+    "errors": [],
+    "mappedBaselineGate": {
+      "ingredientArrayChanges": [],
+      "instructionArrayChanges": [],
+      "sourceHashChanges": [],
+      "persistedMapChanges": [],
+      "contentChanges": [],
+      "missingRecipes": [],
+      "unexpectedRecipes": []
+    }
+  },
+  "apply": {
+    "batchCount": 1,
+    "attemptedWrites": 7,
+    "committedWrites": 7,
+    "writtenRecipeIds": [
+      "chana-masala",
+      "dads-chili",
+      "easy-chicken-ramen",
+      "lemon-herb-pasta-salad-with-marinated-chickpeas",
+      "lemongrass-chicken",
+      "mole-poblano",
+      "tuscan-bean-soup"
+    ],
+    "commitError": null,
+    "writeField": "content only"
+  },
+  "readback": {
+    "rows": [
+      {
+        "recipeId": "chana-masala",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "https://cookieandkate.com/quick-vegan-chana-masala/\n\nNOTES\nRecipe adapted with permission from The Oh She Glows Cookbook by Angela Liddon.\nTAME THE HEAT: While chana masala is inherently full of spice, the serrano (or jalapeño) and cayenne pepper are what bring the heat. If you’re sensitive, reduce or omit them both. You can always stir in a pinch of cayenne pepper at the end of cooking if you want more.\nSPICE BLEND NOTE: Garam masala is traditional. If you don’t have it and want to get by without making another trip to the store, you could use tikka masala instead, or perhaps even 1 teaspoon yellow curry powder. Don’t have any of those? I suspect this dish would be nicely flavorful with an added pinch of clove and cardamom, or even nothing at all.\nSTORAGE SUGGESTIONS: This recipe makes for great leftovers! Store the rice, chana masala and garnishes separately for best results. Warm the rice and chana masala together, then garnish with fresh lemon wedges and cilantro. Leftovers should keep well for up to 5 days. I believe you could also successfully freeze the chana masala and rice components for later.\nCHANGE IT UP: Though untraditional, I think this would taste great with a generous splash of coconut milk for some creaminess (it would also mellow the spices somewhat).\nUPDATE 3/18/20: The recipe originally called for cumin seeds (1 ½ teaspoons) instead of ground cumin. I made the switch because ground cumin is easier to find. The recipe called for cooking the cumin seeds in the oil before adding the onion, etc. (Cook for a minute or two, stirring frequently, until the seeds are golden and fragrant. Watch carefully to avoid burning the seeds.)\n\nINGREDIENTS\n1 cup uncooked brown basmati rice, for serving (rice is optional, I like to cook extra to have on hand for other meals)\n2 tablespoons coconut oil or extra-virgin olive oil\n1 medium yellow onion, chopped\n1 medium serrano or jalapeño pepper*, minced (remove ribs and seeds to tame the spice level)\n½ teaspoon fine sea salt, to taste\n5 cloves garlic, pressed or minced (about 1 tablespoon)\n1 tablespoon peeled and minced fresh ginger (about a 1-inch piece)\n1 ½ teaspoons garam masala**\n1 ½ teaspoons ground coriander\n¾ teaspoon ground cumin\n½ teaspoon ground turmeric\nPinch of cayenne pepper (optional!*)\n1 large can (28 ounces) fire-roasted crushed tomatoes or whole peeled tomatoes, with their juices\n2 cans (14 ounces each) chickpeas (or 3 cups cooked chickpeas), rinsed and drained\nLemon wedges, for garnish\nFresh cilantro, for garnish (optional)\n\nINSTRUCTIONS\nStep 1\nCook the rice (if you want to serve the chana masala on rice): Bring a large pot of water to boil on the stove and rinse the rice in a fine-mesh colander. Once boiling, pour in the rice and give it a stir. Boil the rice for 30 minutes, then turn off the heat and drain the rice. Return the rice to the pot and cover the pot. Let the rice steam for 10 minutes. Remove the lid, fluff the rice with a fork and season with sea salt to taste.\nStep 2\nCook the chana masala: In a medium Dutch oven or large saucepan, warm the oil over medium-low heat. Add the onion, serrano and salt. Cook until the onion is tender and turning translucent, about 5 minutes.\nStep 3\nAdd the garlic and ginger, and cook until fragrant, about 30 seconds to 1 minute. Stir in the garam masala, coriander, cumin, turmeric, salt and cayenne (if using), and cook for another minute, while stirring constantly.\nStep 4\nAdd the tomatoes and their juices. If using whole tomatoes, use the back of a wooden spoon to break the tomatoes apart (you can leave some chunks of tomato for texture).\nStep 5\nRaise the heat to medium-high and add the chickpeas. Bring the mixture to a simmer. Cook, reducing the heat as necessary to maintain a gentle simmer, for 10 minutes or longer to allow the flavors to develop. Season to taste with additional salt, if desired. If it’s not spicy enough for your liking, add another pinch of cayenne.\nStep 6\nServe over basmati rice, if desired, and garnish with a lemon wedge or two and a sprinkle of fresh cilantro leaves."
+      },
+      {
+        "recipeId": "dads-chili",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "Here is the recipe:\n\nNOTES\nThis takes a while and actually the meat if you use ribs or steak tenderizes nicely after cooking and sitting overnight. I usually start the sauce first to allow the flavors to cook together before adding the veggies. The anaheim peppers are optional as is the coffee chocolate and hatch powder. With just the reaper and cayenne it will have a nice heat without overwhelming DC folks. However, a well roasted habanero will certainly add flavor and more heat. You can always add more heat but once it's in the chili can't take it out. If you can't find the reaper powder use habanero, if no habanero use a few serano, if no serano a bunch of jalapenos but that is last resort. Things like the butter and beer and chocolate brown sugar and coffee are estimates but a good place to start. If you think you need more chili you can double this recipe. Good luck!!! Let me know if you have any questions. This recipe is NOT to be shared. Love ya. Dad\n\nINGREDIENTS\nButter 2 TBSP\nMeat (chuck short ribs are best, but top sirloin or even hamburger work) 1 lb.\nCelery 2 stalks\nOnion 1/2\nGreen Pepper 1/2\nGarlic (at least) 6 cloves\nMushrooms 3\nTomatoes 2\nAnaheim Peppers 2 roasted and peeled\nOPTIONAL Habaneros roasted 1-2 (none)\nV-8 17 oz.\nWorchestershire Sauce 2 TBSP\nChicken stock 1 cup\nTomato Paste 2 TBSP\nBarbq sauce 1 TBSP\nChili Sauce 1 TBSP\nGrey Poupon 1 TBSP\nBeer 1/2 a bottle\nCumin 1 TBSP\nBlack Pepper 1 Tsp\nCayenne Pepper 1 tsp\nBasil 1 tsp\nThyme 1 tsp\noregano 1 tsp\nCrushed coriandeer 2 tsp\nCoffee 1 tsp\nChocolate couple squares\nBrown sugar 1/2 TBSP\nNorth Carolina Reaper 1 tsp (use 1/4 tsp)\nHatch powder 1 TBSP (none)\n\nINSTRUCTIONS\nStep 1\nIn a large pot combine V-8, Worchestershire, Chicken stock, tomato paste, Barbq sauce, Grey poupon, Beer, spices, Coffee, chocolate, brown sugar and pepper powder Simmer\nStep 2\nCut fat from meat, chop into small cubes or pieces, season with crushed black pepper or just ground black pepper, salt and a sprinkling of the reaper pepper. ( I recently used the japanese soy to marinate a couple of hours and it did add some flavor to the meat. Put the meat in a pan with some olive oil and brown. Add to sauce.\nStep 3\nDice veggies (excluding tomato, saute in butter (may need more butter) until onions are clear; celery and green pepper not crisp\nStep 4\nRoast Anaheim (broiler is fine) skin dark both sides, peel and chop fine\nStep 5\nBEANS Optional but one can drained black beans is what I use.\nStep 6\nOPTIONAL - Blend veggies until smooth after saute (or maybe just blend half for a smooth sauce with substance)- most professionals do this for a smoother chili though for your work may be too different for folks.\nStep 7\nOnce everything is in the pot bring a boil then turn down and simmer for a couple hours"
+      },
+      {
+        "recipeId": "easy-chicken-ramen",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "https://www.foxandbriar.com/easy-chicken-ramen/\n\nNOTES\nKeep the noodles seperate from the soup until just before serving. For leftovers, store the broth and noodles seperately.**The egg is optional but I really recommend it. If you don't have time to marincompletapelyg, you can just skip the marinading step. You can also serve with a fried or poached egg if you prefer.\nNutrition\nCalories: 369 kcal | Carbohydrates: 18 g | Protein: 41 g | Fat: 14 g | Saturated Fat: 3 g | Cholesterol: 235 mg | Sodium: 2694 mg | Potassium: 925 mg | Fiber: 3 g | Sugar: 6 g | Vitamin A: 130.9% | Vitamin C: 80.9% | Calcium: 21.8% | Iron: 22.7%\nNutritional information is an estimate for your convenience. If you have strict nutritional needs, please do your due diligence to make sure this recipe fits your needs.\n\nINGREDIENTS\n1 tablespoon oil\n1 white onion sliced\n1 tablespoon fresh grated ginger root\n4 garlic cloves pressed or finely minced\n1 tablespoon chili garlic sauce\n2 tablespoons oyster sauce\n1 tablespoon fish sauce\n1/2 cup low sodium soy sauce\n1/4 cup rice vinegar\n4 ounces shiitake mushrooms stems removed and sliced\n1/2 - 3/4 pounds baby bok choy sliced into quarters lengthwise\n1 pound boneless skinless chicken thighs\n4 cups low sodium chicken broth\n1 cup water\n1-2 packages fresh yakisoba noodles* one package is about 7 ounces. Use two packages if you like lots of noodles. Fresh noodles are usually found in the produce section of the grocery store\nFor The Ramen Egg**\n4 eggs\n1/4 cup low sodium soy sauce\n1/4 cup rice vinegar\n3/4 cup water\nAdditional Toppings (Optional)\nsliced green onion\ncilantro\nchili garlic sauce\nsesame seeds\nlime wedges\n\nINSTRUCTIONS\nStep 1\nTo Prepare The Ramen Egg: Whisk together the 1/4 cup of soy sauce, 1/4 cup of rice vinegar and 3/4 cup water, set aside.\nStep 2\nPrepare an ice bath by filling a bowl with ice and water.\nStep 3\nBring a pot of water to boil (make sure there is enough water to cover the eggs). When boiling, carefully lower the eggs into the water using a slotted spoon or spider. Reduce heat if necessary to keep the water just barely boiling. Cook for 7 minutes, then remove from pot and place eggs in the ice bath. Leave in the ice bath for 3 minutes. Remove from ice bath and gently peel (egg will be soft). Place peeled eggs in the marinade and make sure they are completely covered with the marinade. Leave in the marinade for several hours or overnight. If keeping longer, discard the marinade and store in the refrigerator up to 3 days. Reheat the egg in the ramen broth (don't leave in the broth very long before serving or the egg will overcook).\nStep 4\nTo Prepare The Noodles: If using fresh noodles: Bring a pot of water to a boil. When boiling, add the noodles and simmer for 3 minutes. Strain and rinse with cold water. Toss with just a little oil if necessary to keep them from sticking (mine already had a little oil on them, so I didn't need to). Set aside.\nStep 5\n(If using another type of noodle, follow package instructions)\nStep 6\nTo Prepare The Soup: Heat a large pot or dutch oven over medium high heat. Add the onion and sauté until starting to soften, about 5 minutes. Add the sliced mushrooms and sauté for another 2-3 minutes. Add the garlic and ginger and stir fry for about 30 seconds, just until fragrant so that they don't burn. Add the chicken broth and 1 cup of water, soy sauce, rice vinegar, oyster sauce, fish sauce, chili garlic sauce, stir to combine. Bring back to a simmer.\nStep 7\nWhen broth reaches a simmer, add the chicken thighs. Simmer for 15-20 minutes until chicken is cooked through and reaches a temperature of 165°F.\nStep 8\nRemove the chicken and shred it with two forks. Add it back to the broth along with the bok choy and cook for 3-5 minutes. Remove from heat and serve.\nStep 9\nTo Serve The Ramen: In a bowl, place a serving of noodles, then pour the soup over them. Top soup with ramen egg, sliced green onions, cilantro and sesame seeds if desired."
+      },
+      {
+        "recipeId": "lemon-herb-pasta-salad-with-marinated-chickpeas",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "https://pinchofyum.com/lemon-herb-pasta-salad#tasty-recipes-63229-jump-target\n\nINGREDIENTS\nMarinated Chickpeas:\none 14 ounce can chickpeas, drained and rinsed (DeLallo)\n1/4 cup olive oil\n1 clove garlic, grated or crushed into a paste\na generous squeeze of lemon juice\n1 teaspoon salt\nPasta:\n8 ounces farfalle pasta (DeLallo)\n1/4 cup olive oil (as needed) (DeLallo)\njuice and zest of one lemon\n1/2 cup finely chopped parsley and basil\nsalt and pepper to taste\n1/2 cup freshly grated Parmesan cheese\n\nINSTRUCTIONS\nStep 1\nPrepare marinated chickpeas by combining everything together in a shallow bowl. For the best flavor, allow this to marinate for 8 hours or overnight. But hey, if you don’t have the time, just let it all hang out while you prep the rest of the pasta. It’s all good.\nStep 2\nCook pasta according to package directions. Drain. While pasta is hot, toss with marinated chickpeas and allow to cool slightly.\nStep 3\nAdd more olive oil (as needed). Add lemon juice and zest and herbs. Season with salt and pepper. Add in Parmesan cheese last so it doesn’t completely melt. Serve warm, cold, or room temp with extra lemon, Parmesan, and herbs as needed!"
+      },
+      {
+        "recipeId": "lemongrass-chicken",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "https://www.feastingathome.com/lemongrass-chicken-stir-fry/#tasty-recipes-61155-jump-target\n\nNOTES\nI love purchasing frozen chopped lemongrass from the Asain Market and having it on hand in the freezer or quick easy dinners. Lemongrass paste also is also a timesaving option. If using fresh lemongrass, chop it as finely as possible and if so inclined, mash it a bit to release the oils.\nIf making this with beef or lamb, I would drain off the fat.\nIf making with plant-based meat, leave out the salt and fish sauce and sub soy sauce – starting off lightly ( 1-2 tablespoons, adding more to taste.\n\nINGREDIENTS\n1–2 tablespoons oil – peanut, coconut or wok oil.\n2 fat shallots, thinly sliced\n6 garlic cloves, roughly chopped\n1/4 cup lemongrass, finely chopped (see notes)\n4–5 dried thai chilies (or dried arbol chilies) or 1/2 teaspoon of chili flakes\n1 lb ground chicken or ground turkey ( or beef, or lamb, or plant-based- see notes)\n1/2 teaspoon salt\n1 teaspoon Chinese 5-Spice\n1 teaspoon cracked pepper\n1 bell red or yellow bell pepper (or sub other quick cooking veggie)\n2 baby bok choy, about 2 cups, sliced (or sub other quick cooking green or veggie)\n3 tablespoons fish sauce\n2 tablespoons lime juice\n1 tablespoon honey\n1/4 cup mint leaves or thai basil\nLime wedges\nServe with jasmine rice.\n\nINSTRUCTIONS\nStep 1\nSet rice to cook if using.\nStep 2\nIn an extra-large skillet, heat oil over medium-heat heat. Once hot, add shallots, stir fry until tender, about 2-3 minutes. Add garlic, lemongrass and dried chilies, stir-frying until fragrant. Scoop this all into a bowl and set aside.\nStep 3\nIn the same pan add a splash of oil, increase heat to high, add ground chicken and season with salt and pepper, breaking it apart with a spatula and browning just a bit. Add five spice, bell peppers and bok chok, lower heat, and stir fry until bell peppers are just tender, about 3 minutes.\nStep 4\nAdd fish sauce, lime juice and honey mixture, along with cooked shallots/garlic/ lemongrass ( removing the thai chilies).\nStep 5\nTaste and adjust flavors- to taste.\nStep 6\nAdd fresh herbs and serve!"
+      },
+      {
+        "recipeId": "mole-poblano",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "https://www.mexicoinmykitchen.com/how-to-make-mole-poblano/#recipe\n\nNOTES\nThis mole can be made well ahead and the leftover sauce can be kept very successfully in the freezer for about six months. When reheated it will probably have to be diluted with more broth and freshly cooked chicken, or better yet used for chicken-filled enchiladas.\nThis Mole Sauce is not spicy if you want to add some heat to the sauce, add 2 dried chipotle peppers or morita peppers.\nIf you want it a little sweeter, add more chocolate.\nsome recipes suggest frying the dry peppers, you could choose to do so.\n\nINGREDIENTS\nFor the chicken:\n1 Large chicken cut up in pieces\nAbout 8 cups of water\n1 Small onion cut up in pieces\n3 Garlic cloves\nSalt to taste\nFor the Sauce:\n6 Mulato peppers\n4 Ancho peppers\n6 Pasilla peppers\n1 Tablespoon of reserved pepper seeds\n6 Whole cloves\n½ Teaspoon black peppercorn\n¼ Teaspoon coriander seeds\n¼ Teaspoonanises seeds\n¾ Cup sesame seeds\n¾ Inch of mexican cinnamon stick\n½ Cup of raisins\n⅓ Cup unskinned almonds\n⅓ Cup peanuts\n1 Corn tortilla\n3 Small slices of french bread\n⅓ Cup of raw pumpkin seeds\n½ Small white onion sliced\n2 Medium roasted tomatoes\n3 Garlic gloves roasted\n½ Large ripe dark-skinned plantain peeled, thickly sliced\n1 Tablet of Mexican drinking Chocolate* About 3.1 ounces.\nThe reserved broth from the cooked chicken.\n½ Cup of oil or lard to fry the ingredients\nSalt to taste\n\nINSTRUCTIONS\nStep 1\nCombine all ingredients in large pot. Bring to boil. Reduce heat, cover, and simmer until chicken is just cooked through, skimming foam, about 35 minutes. Transfer chicken to bowl; cover and chill. Strain and reserve broth in pot.\nStep 2\nFor the Mole Sauce: Get all the ingredients ready according to the list. This step is very important.\nStep 3\nPrepare the peppers . Make sure to clean the dry peppers with a wet cloth and cut the peppers using your kitchen scissors if possible to flatten them for an even toasting.\nStep 4\nHave a large pot ready with simmering chicken broth or water to soak all the ingredients after toasting or frying. They will get softer and easier to grind this way.\nStep 5\nIn a skillet toast the dry peppers a few at a time, on both sides, pressing them down as you turn them, until the inside flesh turns tobacco brown. This takes a few seconds, take care not to let them burn. Place the peppers and the chocolate in the bowl with the broth to soak. Keep toasting the rest of the peppers and placing them in the broth.\nStep 6\nMeanwhile, toast separately the reserved peppers seeds, the coriander seeds, the anise seeds and sesame seeds. Set them aside to cool.\nStep 7\nGrind in an electric coffee/spice grinder as finely as possible. Cloves, peppercorns, cinnamon, and all the toasted ingredients except the sesame seeds. In case you do not have a grinder, but you have a professional blender skip this step and place the spices and seeds on the pot with the rest of the ingredients to be grinded in the blender.\nStep 8\nReserve 2 tablespoons of the sesame seeds for serving the mole; grind the rest as finely as possible. After this step add this mixture of spices and seeds to the bowl with the peppers.\nStep 9\nNow, add a small portion of the lard or vegetable oil to a skillet and begin frying the following ingredients separately draining any excess fat after frying: the raisins until plump up, the almonds until well browned, the pumpkin seeds until they swell (take care, since they tend to explode and jump).\nStep 10\nEvery ingredient will be added to the pot with the chicken broth. You can roast the tomatoes and garlic cloves while frying the rest of the ingredients. Fry the onions until golden brown and place in the bowl.\nStep 11\nFry the tortilla and bread until crisp. Only add a little more lard at a time or it will be absorbed, specially by the tortilla and bread.\nStep 12\nAdd plantain and sauté until golden, about 3 minutes. Using slotted spoon, drain excess fat and transfer to bowl. Make sure to use a ripe plantain.\nStep 13\nThis is the bowl where all the fried and toasted ingredients were placed and now are ready to go into the blender. It is going to look a little bit messy. Crush the bread and tortilla roughly, chop the tomatoes roasted tomatoes. This will make the grinding process a little bit easier.\nStep 14\nPut ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.\nStep 15\nIn a large skillet over medium heat, reheat the sauce, scraping the bottom of the pan very often to avoid sticking. Season with salt.\nStep 16\nContinue frying until the mixture is very thick, about 8 minutes, and stir. Add more broth as needed to desire thickness and continue cooking, the mixture should be bubbling and splattering—for about 25 minutes. By now pools of oil should be forming on the surface.\nStep 17\nAdd cooked chicken to hot mole; simmer until chicken is heated through, about 10 minutes. To serve, place a piece of chicken on a warm plate. Spoon on plenty of the mole sauce; sprinkle with sesame seeds. In Mexico it is usually serve with white rice with peas and a lot of warm tortillas."
+      },
+      {
+        "recipeId": "tuscan-bean-soup",
+        "status": "WRITTEN_AND_VERIFIED",
+        "checks": {
+          "exists": true,
+          "exactContent": true,
+          "exactParse": true,
+          "nonContentFields": true,
+          "mapAbsent": true,
+          "parserClean": true
+        },
+        "exactContentReadback": "https://www.feastingathome.com/ribollita-recipe/#tasty-recipes-19903-jump-target\n\nNOTES\nNOTE: If you like a thicker soup, blend or puree 1-2 cups of the soup, and add back to the soup. Or, thicken it with day-old bread, torn into small pieces and cooked with the broth. This is the traditional way. (I prefer a brothier version of this soup, so I skip both and serve with toasty bread on the side instead.)\nKeep this vegan by using veggie broth, no pancetta or parmesan. The rosemary oil will add a delicious flavor – I highly recommend it. Sometimes I’ll add a tablespoon of Nutritional Yeast for a more cheesy flavor and 1 tablespoon miso paste to add more depth. Up to you.\n\nINGREDIENTS\n1/8 cup good olive oil\n1/2 cup chopped pancetta or bacon –optional (feel free to leave this out, or sub vegan bacon)\n2 cups diced onions\n1 cup diced carrots\n1 cup diced fennel bulb (or sub celery)\n4 – 6 cloves garlic- rough chopped\n1 teaspoon freshly ground black pepper\n1/4 teaspoon crushed red pepper flakes, more to taste\n2 teaspoons salt, plus more to taste\n2–3 medium tomatoes – diced (or a 14-ounce can diced tomatoes)\n6 cups lacinato kale, chopped\nSplash white wine\n6 cups chicken or veggie stock\nParmesan rind (optional, but adds depth and flavor)\n3 cups cooked cannellini beans – or use 2 cans cannellini beans (drained, rinsed), or great northern white beans\n1/2 cup chopped fresh Italian parsley leaves\nGrated pecorino or Parmesan – optional or try vegan parmesan\nCrusty Bread\nRosemary Lemon Garlic Oil ( for drizzling)\n1/2 cup good olive oil\nzest of one large lemon\n4 cloves garlic, sliced\nfew sprigs rosemary (or thyme, sage)\n\nINSTRUCTIONS\nStep 1\nMake the Lemon Garlic Rosemary Oil – place all ingredients in a small jar or bowl and let sit on the counter (or make the day before, refrigerating)\nStep 2\nIn a large, heavy-bottom pot or dutch oven, heat oil over medium heat. Add onions and optional pancetta and saute 6-8 minutes.\nStep 3\nLower heat to med-low and add the carrots, fennel (or celery) and garlic, salt, pepper and chili flakes, and cook another 7- 9 minutes until vegetables are tender.\nStep 4\nAdd the tomatoes and lacinato kale, and a splash of white wine, and continue sauteing and stirring occasionally for 7-8 minutes.\nStep 5\nAdd the stock and beans. Bring to soup to boil, turn heat down and simmer for 15 minutes.(You could add a Parmesan rind to the simmering soup for extra depth of flavor.)\nStep 6\nStir in fresh Italian Parsley. Adjust salt if necessary.\nStep 7\nServe in bowls with a drizzle of the flavorful lemon oil, grated Parmesan ( or Romano) and crusty bread."
+      }
+    ],
+    "writtenRowsReread": 7,
+    "exactContentMatches": 7,
+    "exactParseMatches": 7,
+    "nonContentMismatches": 0,
+    "mapFieldsPresent": 0,
+    "unexpectedStates": 0
+  },
+  "corpusSafety": {
+    "beforeMapped": {
+      "mappedRecipes": 187,
+      "storedHashMismatches": []
+    },
+    "afterMapped": {
+      "mappedRecipes": 187,
+      "storedHashMismatches": []
+    },
+    "mappedIngredientArrayChanges": 0,
+    "mappedInstructionArrayChanges": 0,
+    "mappedSourceHashChanges": 0,
+    "writesOutsideAuthorizedIds": 0,
+    "writesToMappedRecipes": 0,
+    "persistedMapChanges": 0,
+    "nonContentFieldChanges": 0,
+    "details": {
+      "outsideAuthorizedMutations": [],
+      "mappedRecipeMutations": [],
+      "persistedMapChanges": [],
+      "nonContentMutations": []
+    },
+    "mappedImpact": {
+      "ingredientArrayChanges": [],
+      "instructionArrayChanges": [],
+      "sourceHashChanges": []
+    }
+  },
+  "postApply": {
+    "readyToWrite": 0,
+    "skipped": 7,
+    "skipRows": [
+      {
+        "recipeId": "chana-masala",
+        "title": "Chana Masala",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      },
+      {
+        "recipeId": "dads-chili",
+        "title": "Dad's Chili",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      },
+      {
+        "recipeId": "easy-chicken-ramen",
+        "title": "Easy Chicken Ramen",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      },
+      {
+        "recipeId": "lemon-herb-pasta-salad-with-marinated-chickpeas",
+        "title": "Lemon Herb Pasta Salad with Marinated Chickpeas",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      },
+      {
+        "recipeId": "lemongrass-chicken",
+        "title": "Lemongrass Chicken",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      },
+      {
+        "recipeId": "mole-poblano",
+        "title": "Mole Poblano",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      },
+      {
+        "recipeId": "tuscan-bean-soup",
+        "title": "Tuscan Bean Soup",
+        "status": "SKIP",
+        "reason": "ALREADY_APPLIED"
+      }
+    ],
+    "errors": []
+  },
+  "repairedRows": 7,
+  "remainingExcludedPopulation": {
+    "count": 8,
+    "recipes": [
+      {
+        "recipeId": "chipotle-tahini-bowls",
+        "disposition": "PRODUCT_DECISION_REQUIRED"
+      },
+      {
+        "recipeId": "maple-roasted-candied-pecans",
+        "disposition": "MANUAL_SOURCE_REQUIRED"
+      },
+      {
+        "recipeId": "mexican-street-corn",
+        "disposition": "REIMPORT_REQUIRED"
+      },
+      {
+        "recipeId": "rising-sun-mazcal",
+        "disposition": "REIMPORT_REQUIRED"
+      },
+      {
+        "recipeId": "smoothies",
+        "disposition": "PRODUCT_DECISION_REQUIRED"
+      },
+      {
+        "recipeId": "spaghetti-carbonara",
+        "disposition": "REIMPORT_REQUIRED"
+      },
+      {
+        "recipeId": "speget-with-fake-meat-meatballs",
+        "disposition": "REIMPORT_REQUIRED"
+      },
+      {
+        "recipeId": "zesty-quinoa-salad",
+        "disposition": "REIMPORT_REQUIRED"
+      }
+    ]
+  },
+  "mapFieldsWritten": 0,
+  "aiCalls": 0,
+  "mappingGenerationCalls": 0
+}
