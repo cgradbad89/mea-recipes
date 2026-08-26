@@ -2,7 +2,10 @@ import 'server-only'
 
 import { z } from 'zod'
 import { generateAIObject } from '@/lib/ai'
-import { COOKING_STEP_MAPPING_PROMPT_VERSION } from '@/lib/aiConfig'
+import {
+  COOKING_STEP_MAPPING_PROMPT_VERSION,
+  COOKING_STEP_MAPPING_TEMPERATURE,
+} from '@/lib/aiConfig'
 import {
   COOKING_MAPPING_HYBRID_ENGINE_VERSION,
   groundCookingPreparedComponent,
@@ -288,6 +291,6 @@ export async function resolveCookingStepMappingsWithAi(
     system: COOKING_STEP_MAPPING_SYSTEM_PROMPT,
     prompt: buildCookingStepMappingPrompt(deterministicMap, ingredients, instructions),
     schema: AI_COOKING_STEP_RESOLUTION_SCHEMA,
-    temperature: 0,
+    temperature: COOKING_STEP_MAPPING_TEMPERATURE,
   })
 }

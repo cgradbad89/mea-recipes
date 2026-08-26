@@ -959,6 +959,23 @@ retained as historical data and are not modified or deleted by this app.
   validator semantics. A fresh full production hybrid dry run and new immutable manifest/hash are
   required before backfill can be reconsidered. See
   `docs/audits/cooking-step-mapping-remediation-validation-2026-08-25.md`.
+- **The fresh 2026-08-26 full production v2 dry run is NOT READY FOR BACKFILL.** The read-only
+  run independently regenerated all 236 current shared recipes from live `content` under schema 1,
+  parser `recipe-content-v1`, deterministic-v2/hybrid-v2, prompt v2, `openai/gpt-5.6-luna`, and
+  temperature 0. Production still had zero persisted cooking-step maps; 187 recipes were source-
+  eligible and 49 retained source/parser exclusions. All 84 accepted AI relationships across the
+  primary and 30-recipe stability runs were reviewed as correct (0 ambiguous, 0 incorrect), and the
+  hardened validator rejected or stripped 591 unsafe/unsupported suggestions or metadata. However,
+  the 60-recipe deterministic review found confident false positives in 9 recipes: wrong-group
+  salt/garlic, instruction-heading and supplemental-note matches, contextual rather than active use,
+  prepared-component leakage to a raw ingredient, unlisted water reuse, a bare ingredient-section
+  label treated as food, and mismatched partial-use quantity metadata. The stability rerun was 26/30
+  exact and 4/30 materially different (all safe omission versus correct association), exceeding the
+  5% automatic-backfill target. The immutable v2 manifest contains 176 `READY`, 2 `REVIEW`, 58
+  `EXCLUDED`, 0 `ERROR`, and 0 `EXISTING_MAP` rows, with SHA-256
+  `69a13a5c2a2366d372d747035a85df38bb702bbadc84df6f8a450d91ee0a73a0`, but its corpus verdict
+  blocks every apply because the deterministic defects are systemic. No existing recipe was
+  backfilled. See `docs/audits/cooking-step-mapping-dryrun-v2-2026-08-26.md`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1048,7 +1065,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (fresh dry run pending; backfill blocked) | Deterministic engine, publish-time AI persistence, Cooking Mode cutover, and v2 mapping remediation **Done**. The historical 2026-08-25 corpus dry run remains **NOT READY FOR BACKFILL** and invalid for apply after engine/prompt changes. Bounded post-remediation validation **Done** (27 recipes; 59/59 accepted relationships correct; 0 ambiguous/incorrect; stability 19 exact / 1 safe material omission difference). A fresh full production hybrid dry run and new manifest/hash are **Pending**. Backfill apply is **Blocked** pending that new dry run and review. Override-specific map persistence and legacy parser/content remediation also remain pending. No existing recipe map was persisted. See §5.25, §6, `docs/audits/cooking-step-mapping-dryrun-2026-08-25.md`, and `docs/audits/cooking-step-mapping-remediation-validation-2026-08-25.md`. |
+| Cooking-step ingredient mapping | High | Partial (fresh v2 dry run done; backfill blocked) | Deterministic v2 remediation — **Done**; prompt v2 / validator hardening — **Done**; fresh full production v2 dry run — **Done**. The new 2026-08-26 run reviewed 84/84 accepted AI relationships as correct but found systemic deterministic-v2 false positives in 9/60 reviewed recipes and 4/30 safe-omission stability differences, so backfill apply is **Blocked** and no manifest row is authorized for apply. Parser/content remediation — **Pending**. Personal override-specific maps — **Pending**. Production still has zero persisted maps and no existing recipe was backfilled. The historical v1 manifest remains invalid. See §5.25, §6, `docs/audits/cooking-step-mapping-dryrun-2026-08-25.md`, `docs/audits/cooking-step-mapping-remediation-validation-2026-08-25.md`, and `docs/audits/cooking-step-mapping-dryrun-v2-2026-08-26.md`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

@@ -5,6 +5,7 @@ export const AI_MODEL = 'openai/gpt-5.6-luna'
 export const AI_PROMPT_VERSION = 'v2'
 export const AI_CACHE_VERSION = 'v2'
 export const COOKING_STEP_MAPPING_PROMPT_VERSION = 'v2'
+export const COOKING_STEP_MAPPING_TEMPERATURE = 0
 
 export const AI_CACHE_ID = [
   AI_CACHE_VERSION,

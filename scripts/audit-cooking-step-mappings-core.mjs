@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const AUDIT_CLASSIFICATIONS = ['READY', 'REVIEW', 'EXCLUDED', 'ERROR']
+export const AUDIT_CLASSIFICATIONS = ['READY', 'REVIEW', 'EXCLUDED', 'ERROR', 'EXISTING_MAP']
 
 const EXACT_URL = /^https?:\/\/\S+$/i
 const PAYWALL_PLACEHOLDER = /^(?:not available|unavailable)\b.*(?:paywall|could not be fetched)/i
@@ -68,6 +68,8 @@ export function mapStats(map) {
   const steps = map?.steps || []
   const reasonCount = reason => steps.filter(step => step.unresolvedReason === reason).length
   return {
+    instructionCount: steps.length,
+    ingredientReferences: steps.reduce((sum, step) => sum + step.ingredients.length, 0),
     mappedIngredientReferences: steps.reduce((sum, step) => sum + step.ingredients.length, 0),
     mappedSteps: steps.filter(step => step.ingredients.length > 0 || (step.preparedComponents?.length || 0) > 0).length,
     unmappedSteps: steps.filter(step => step.ingredients.length === 0 && !(step.preparedComponents?.length > 0)).length,
@@ -184,8 +186,48 @@ export function auditPrecondition(row) {
   }
 }
 
-export function selectStabilitySubset(rows, target = 20) {
-  const scored = rows.filter(row => row.aiAdditions.length > 0).map(row => {
+export function classifyAuditRecipe(evidence) {
+  if (evidence.sourceStatus?.startsWith('EXCLUDE_')) {
+    return { classification: 'EXCLUDED', reason: evidence.sourceReason }
+  }
+  if (evidence.sourceStatus === 'ERROR') return { classification: 'ERROR', reason: evidence.sourceReason }
+  if (evidence.currentMapPresent) {
+    return {
+      classification: 'EXISTING_MAP',
+      reason: `A persisted ${evidence.currentMapEngineVersion || 'unknown-version'} map already exists; future backfill must not replace it.`,
+    }
+  }
+  if (evidence.aiStatus === 'failed') {
+    return { classification: 'ERROR', reason: `AI evaluation failed: ${evidence.aiError}` }
+  }
+  if (!evidence.candidateValid) {
+    return { classification: 'ERROR', reason: `Candidate failed production validation: ${evidence.candidateValidationReason || 'unknown'}` }
+  }
+  if (evidence.missingReview) return { classification: 'REVIEW', reason: 'AI additions await semantic review.' }
+  if (evidence.aiIncorrect > 0) {
+    return { classification: 'EXCLUDED', reason: 'At least one AI addition is semantically incorrect.' }
+  }
+  if (evidence.aiAmbiguous > 0) {
+    return { classification: 'REVIEW', reason: 'At least one AI addition is semantically ambiguous.' }
+  }
+  if (evidence.stabilityAiIncorrect > 0 || evidence.stabilityAiAmbiguous > 0) {
+    return { classification: 'REVIEW', reason: 'The stability rerun produced an unsafe accepted AI relationship.' }
+  }
+  if (evidence.deterministicFalsePositive) {
+    return { classification: 'EXCLUDED', reason: 'Deterministic semantic sample found an obvious false positive.' }
+  }
+  if (evidence.stabilityStatus === 'MATERIAL_DIFFERENCE' || evidence.stabilityStatus === 'ERROR') {
+    return { classification: 'REVIEW', reason: `Stability check result: ${evidence.stabilityStatus}.` }
+  }
+  return { classification: 'READY', reason: null }
+}
+
+export function sortManifestRows(rows) {
+  return [...rows].sort((a, b) => a.recipeId.localeCompare(b.recipeId))
+}
+
+export function selectStabilitySubset(rows, target = 30) {
+  const scored = rows.filter(row => row.hybridStats?.aiAttempted).map(row => {
     const text = row.parsed.instructions.join(' ').toLowerCase()
     const ingredients = row.parsed.ingredients.map(item => item.toLowerCase())
     const repeated = ingredients.some((item, index) => ingredients.indexOf(item) !== index)
@@ -202,11 +244,15 @@ export function selectStabilitySubset(rows, target = 20) {
     .slice(0, target).map(item => item.row)
 }
 
-export function selectDeterministicSample(rows, target = 40) {
+export function selectDeterministicSample(rows, target = 60) {
   const requiredIds = [
-    '194', 'charlie-bird-s-farro-salad', 'easy-spaghetti-with-meat-sauce',
-    'buttersoy-chicken-and-asparagus-stirfry', 'roasted-asparagus-with-lemon',
-    'hearthealthy-peanut-butter-protein-bars', 'yogurt-dill-sauce', 'pesto', 'taco-soup',
+    '194', 'charlie-bird-s-farro-salad', 'easy-spaghetti-with-meat-sauce', 'pesto',
+    'roasted-asparagus-with-lemon', 'taco-soup', 'japanese-teriyaki-salmon-bowl',
+    'blue-corn-green-chili-chicken-enchiladas',
+    'buttersoy-chicken-and-asparagus-stirfry', 'chicken-chow-mein', 'chicken-wild-rice',
+    'creamy-chickpea-spinach-masala-with-tadka', 'fried-chicken-sandwich',
+    'moqueca-brazilian-fish-stew', 'queso-chicken-chili-with-roasted-corn-and-jalape-o',
+    'tacos-al-pastor',
   ]
   const eligible = rows.filter(row => row.sourceStatus === 'ELIGIBLE')
   const selected = []
