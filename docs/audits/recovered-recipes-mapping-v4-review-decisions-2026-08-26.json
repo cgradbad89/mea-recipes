@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-08-26",
+  "auditVersion": {
+    "gitSha": "8cee451f5a82256f302cae869cd16f6e910c8336",
+    "behaviorFingerprint": "57e7f102127ac3401e976e62e94f4f9923975d6a53da34eb360d6b0bfdeb83fd",
+    "schemaVersion": 1,
+    "parserVersion": "recipe-content-v1",
+    "deterministicEngineVersion": "deterministic-v4",
+    "hybridEngineVersion": "hybrid-v4",
+    "promptVersion": "v2",
+    "model": "openai/gpt-5.6-luna",
+    "temperature": 0
+  },
+  "executiveResult": "NOT READY FOR MAPPING APPLY",
+  "deterministicRecipes": [
+    { "recipeId": "chana-masala", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chicken-enchiladas", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chicken-fajitas", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chicken-paprikash", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chicken-stew", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chicken-tacos-w-pineapple", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chimichurri-chicken", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "chinese-chili-oil", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    {
+      "recipeId": "couscous-salad-with-lime-basil-vinaigrette",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "The sweet-potato step borrows the measured salt row from the Lime Basil Vinaigrette group for an unlisted sprinkle of salt.",
+      "falsePositiveReviewIds": ["couscous-salad-with-lime-basil-vinaigrette|step:2|ingredient:15"],
+      "falsePositiveExplanations": {
+        "couscous-salad-with-lime-basil-vinaigrette|step:2|ingredient:15": "Wrong group and lifecycle: the measured salt row belongs to the vinaigrette, while this step calls for an unlisted sprinkle on the sweet potatoes."
+      }
+    },
+    { "recipeId": "crazy-good-dal-adas-spicy-red-lentil-tamarind-soup", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "creamy-cauliflower-soup-with-rosemary-olive-oil", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "crisp-gnocchi-with-brussels-sprouts-and-brown-butter", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "crispy-gnocchi-with-burst-tomatoes-and-mozzarella", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "crispy-gnocchi-with-sausage-and-broccoli", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "crunchy-queso-wrap", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "curried-red-bean-soup-with-kale", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "curry-tomatoes-and-chickpeas-with-cucumber-yogurt", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    {
+      "recipeId": "dads-chili",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "A generic reference to the finished dish as smoother chili is incorrectly matched to the Chili Sauce ingredient row.",
+      "falsePositiveReviewIds": ["dads-chili|step:5|ingredient:15"],
+      "falsePositiveExplanations": {
+        "dads-chili|step:5|ingredient:15": "The word chili names the finished dish in this instruction; it does not actively use the listed Chili Sauce row."
+      }
+    },
+    {
+      "recipeId": "easy-chicken-ramen",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "The egg-boiling step incorrectly reuses the measured soup-water row for unlisted process water.",
+      "falsePositiveReviewIds": ["easy-chicken-ramen|step:2|ingredient:13"],
+      "falsePositiveExplanations": {
+        "easy-chicken-ramen|step:2|ingredient:13": "The listed 1 cup water is introduced later into the soup; the pot water used to boil eggs is separate unlisted process water."
+      }
+    },
+    { "recipeId": "filipino-brased-chicken-tocino", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "huevos-rotos-broken-eggs", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "kung-pao-tofu", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "lemon-herb-pasta-salad-with-marinated-chickpeas", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "lemongrass-chicken", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "mole-poblano", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "onepot-chicken-and-lentil", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "onepot-chicken-and-rice-with-caramelized-lemon", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "onepot-ratatouille-pasta", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "peanut-butter-oat-protein-shake", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "pearl-couscous-with-creamy-feta-and-chickpeas-meh", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    {
+      "recipeId": "pepper-steak",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "The soy-sauce relationship is correct, but deterministic usage metadata records only 1/2 tablespoon instead of the locally grounded 2 1/2 tablespoons.",
+      "falsePositiveReviewIds": ["pepper-steak|step:0|ingredient:3"],
+      "falsePositiveExplanations": {
+        "pepper-steak|step:0|ingredient:3": "Incorrect usage qualifier: the instruction uses 2 1/2 tablespoons soy sauce, while the map records quantityText as 1/2 tablespoons."
+      }
+    },
+    { "recipeId": "peruvian-chicken-w-green-sauce", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    {
+      "recipeId": "peruvian-roasted-chicken-with-spicy-cilantro-sauce",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "The sauce step selects the chicken-marinade aji amarillo row instead of the separate sauce-group row.",
+      "falsePositiveReviewIds": ["peruvian-roasted-chicken-with-spicy-cilantro-sauce|step:4|ingredient:3"],
+      "falsePositiveExplanations": {
+        "peruvian-roasted-chicken-with-spicy-cilantro-sauce|step:4|ingredient:3": "Wrong group and lifecycle: ingredient 3 belongs to the chicken marinade and has already been consumed; the sauce has its own aji amarillo row at ingredient 21."
+      }
+    },
+    { "recipeId": "pork-fried-rice", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "pozole-verde-wowza", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "roasted-white-bean-and-tomato-pasta", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "sheetpan-gochujang-chicken-and-roasted-vegetables", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    { "recipeId": "spicy-ovenfried-rice-with-gochujang-and-fried-eggs", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." },
+    {
+      "recipeId": "tuscan-bean-soup",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "The soup aromatics step selects garlic from the separate rosemary-lemon-oil component.",
+      "falsePositiveReviewIds": ["tuscan-bean-soup|step:2|ingredient:21"],
+      "falsePositiveExplanations": {
+        "tuscan-bean-soup|step:2|ingredient:21": "Wrong group: ingredient 21 belongs to Rosemary Lemon Garlic Oil, while the soup step should use the separate soup garlic row at ingredient 5."
+      }
+    },
+    {
+      "recipeId": "vegetarian-skillet-chili",
+      "classification": "FALSE_POSITIVE",
+      "explanation": "The pickling step selects the main-chili onion instead of the pickled-onion group row.",
+      "falsePositiveReviewIds": ["vegetarian-skillet-chili|step:0|ingredient:7"],
+      "falsePositiveExplanations": {
+        "vegetarian-skillet-chili|step:0|ingredient:7": "Wrong group: the pickling instruction uses ingredient 2 red onion or shallot, not ingredient 7 large onion from the chili group."
+      }
+    },
+    { "recipeId": "zibdiyit-gambari-spicy-shrimp-and-tomato-stew", "classification": "SAFE", "explanation": "All deterministic references and omissions were reviewed against the complete ingredient list and instruction context." }
+  ],
+  "aiRelationships": [
+    { "reviewId": "primary|chicken-tacos-w-pineapple|step:2|component:marinade", "classification": "CORRECT", "explanation": "The immediately prior instruction establishes the marinade and this step actively pours it over the chicken." },
+    { "reviewId": "stability|chicken-tacos-w-pineapple|step:2|component:marinade", "classification": "CORRECT", "explanation": "The repeat relationship is grounded by the same established marinade." },
+    { "reviewId": "primary|couscous-salad-with-lime-basil-vinaigrette|step:3|ingredient:15", "classification": "INCORRECT", "explanation": "The measured salt row belongs to and is consumed by the vinaigrette; final salad seasoning is unlisted additional salt." },
+    { "reviewId": "stability|couscous-salad-with-lime-basil-vinaigrette|step:3|ingredient:15", "classification": "INCORRECT", "explanation": "The repeat makes the same wrong-group, consumed-row salt association." },
+    { "reviewId": "primary|crunchy-queso-wrap|step:2|component:filling", "classification": "CORRECT", "explanation": "The preceding instruction explicitly establishes the cooked filling used in assembly." },
+    { "reviewId": "primary|easy-chicken-ramen|step:5|ingredient:13", "classification": "CORRECT", "explanation": "This soup step explicitly adds the listed 1 cup water." },
+    { "reviewId": "stability|easy-chicken-ramen|step:5|ingredient:13", "classification": "CORRECT", "explanation": "The repeat relationship is explicitly quantity-grounded in the soup step." },
+    { "reviewId": "primary|filipino-brased-chicken-tocino|step:4|ingredient:0", "classification": "CORRECT", "explanation": "The marinade instruction explicitly uses garlic." },
+    { "reviewId": "primary|filipino-brased-chicken-tocino|step:4|ingredient:2", "classification": "CORRECT", "explanation": "The marinade instruction explicitly uses the whites of the listed green onions." },
+    { "reviewId": "primary|filipino-brased-chicken-tocino|step:4|ingredient:3", "classification": "CORRECT", "explanation": "The marinade instruction explicitly uses the chicken thighs." },
+    { "reviewId": "stability|filipino-brased-chicken-tocino|step:4|ingredient:0", "classification": "CORRECT", "explanation": "The repeat garlic relationship is explicit." },
+    { "reviewId": "stability|filipino-brased-chicken-tocino|step:4|ingredient:2", "classification": "CORRECT", "explanation": "The repeat green-onion relationship is explicit." },
+    { "reviewId": "primary|kung-pao-tofu|step:4|component:sauce", "classification": "CORRECT", "explanation": "The sauce is established in step 1 and actively added here." },
+    { "reviewId": "stability|kung-pao-tofu|step:4|component:sauce", "classification": "CORRECT", "explanation": "The repeat prepared-component relationship has the same establishment and use." },
+    { "reviewId": "primary|mole-poblano|step:0|ingredient:1", "classification": "CORRECT", "explanation": "The chicken is explicitly cooked, removed, and reserved in this instruction." },
+    { "reviewId": "primary|mole-poblano|step:16|ingredient:15", "classification": "CORRECT", "explanation": "The serving instruction explicitly sprinkles the reserved sesame seeds." },
+    { "reviewId": "stability|mole-poblano|step:0|ingredient:1", "classification": "CORRECT", "explanation": "The repeat chicken relationship is explicit." },
+    { "reviewId": "stability|mole-poblano|step:16|ingredient:15", "classification": "CORRECT", "explanation": "The repeat sesame-seed relationship is explicit." },
+    { "reviewId": "primary|onepot-chicken-and-lentil|step:1|ingredient:2", "classification": "CORRECT", "explanation": "The instruction actively pushes and cooks the carrots." },
+    { "reviewId": "primary|onepot-chicken-and-lentil|step:1|ingredient:3", "classification": "CORRECT", "explanation": "The instruction explicitly seasons the chicken with salt and pepper." },
+    { "reviewId": "stability|onepot-chicken-and-lentil|step:1|ingredient:2", "classification": "CORRECT", "explanation": "The repeat carrot relationship is explicit." },
+    { "reviewId": "stability|onepot-chicken-and-lentil|step:1|ingredient:3", "classification": "CORRECT", "explanation": "The repeat seasoning relationship is explicit." },
+    { "reviewId": "primary|peruvian-chicken-w-green-sauce|step:1|ingredient:10", "classification": "CORRECT", "explanation": "The instruction actively prepares, marinates, and refrigerates the listed chicken." },
+    { "reviewId": "primary|peruvian-chicken-w-green-sauce|step:2|component:green sauce", "classification": "CORRECT", "explanation": "The green-sauce ingredient group establishes the named component served with the chicken." },
+    { "reviewId": "primary|peruvian-chicken-w-green-sauce|step:4|component:green sauce", "classification": "CORRECT", "explanation": "The green-sauce group and header establish the component created in this instruction." },
+    { "reviewId": "stability|peruvian-chicken-w-green-sauce|step:1|ingredient:10", "classification": "CORRECT", "explanation": "The repeat chicken relationship is explicit." },
+    { "reviewId": "stability|peruvian-chicken-w-green-sauce|step:2|component:green sauce", "classification": "CORRECT", "explanation": "The repeat serving relationship uses the uniquely established green sauce." },
+    { "reviewId": "stability|peruvian-chicken-w-green-sauce|step:4|component:green sauce", "classification": "CORRECT", "explanation": "The repeat preparation relationship is grounded by the green-sauce group." },
+    { "reviewId": "primary|peruvian-roasted-chicken-with-spicy-cilantro-sauce|step:5|component:sauce", "classification": "CORRECT", "explanation": "The immediately preceding instruction establishes the unique sauce served here." },
+    { "reviewId": "stability|peruvian-roasted-chicken-with-spicy-cilantro-sauce|step:5|component:sauce", "classification": "CORRECT", "explanation": "The repeat sauce relationship is grounded by the same establishment." },
+    { "reviewId": "primary|pork-fried-rice|step:6|ingredient:15", "classification": "CORRECT", "explanation": "The instruction explicitly sprinkles and tosses the listed scallions." },
+    { "reviewId": "stability|pork-fried-rice|step:6|ingredient:15", "classification": "CORRECT", "explanation": "The repeat scallion relationship is explicit." },
+    { "reviewId": "primary|pozole-verde-wowza|step:4|ingredient:9", "classification": "CORRECT", "explanation": "The salt association and locally quoted a generous pinch partial-use qualifier are explicit." },
+    { "reviewId": "stability|pozole-verde-wowza|step:4|ingredient:9", "classification": "CORRECT", "explanation": "The repeat salt relationship and usage qualifier are explicitly grounded." }
+  ],
+  "stability": [
+    {
+      "recipeId": "crunchy-queso-wrap",
+      "classification": "SAFE_OMISSION_DIFFERENCE",
+      "details": "The primary correctly accepts the prepared filling used in assembly; the repeat safely omits that relationship. The primary candidate remains semantically correct."
+    },
+    {
+      "recipeId": "filipino-brased-chicken-tocino",
+      "classification": "SAFE_OMISSION_DIFFERENCE",
+      "details": "Both runs accept garlic and green-onion whites; the primary additionally accepts the explicitly named chicken thighs. The repeat safely omits only that correct relationship."
+    }
+  ]
+}
