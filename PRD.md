@@ -698,8 +698,13 @@ retained as historical data and are not modified or deleted by this app.
     heuristic. Distinct food identities remain distinct, duplicate evidence is unresolved rather
     than guessed, and explicit group language is required to disambiguate grouped duplicates.
     Explicit `half`/partial quantities and `remaining`/`rest` qualifiers are preserved as source
-    metadata without quantity arithmetic. Unscoped collective references and prepared components
-    remain unresolved; steps confidently requiring no ingredient may be classified separately.
+    metadata without quantity arithmetic. V2 preserves shared head nouns in alternatives, keeps
+    identity-defining modifiers, normalizes chile/chili spelling without collapsing distinct chile
+    ingredients, and suppresses clear local negative/deferred/removal/incidental/additional-quantity
+    contexts. Duplicate groups require positive current-instruction scope. Unscoped collective
+    references and prepared components remain unresolved; obvious URL/review/nutrition/storage/paywall
+    contamination is retained in source but classified `non-actionable` and never sent to mapping AI.
+    Steps confidently requiring no ingredient may be classified separately.
     The governing safety invariant is **a missing mapping is preferable to an incorrect confident
     mapping**.
 
@@ -708,17 +713,23 @@ retained as historical data and are not modified or deleted by this app.
     `computeCookingMappingSourceHash` produces their lowercase SHA-256 fingerprint. A future stored
     mapping is valid only when that fingerprint matches the current effective parsed source. The
     contract is schema v1 with parser `recipe-content-v1`; deterministic-only results use engine
-    `deterministic-v1`, while a result containing accepted AI associations uses `hybrid-v1`.
+    `deterministic-v2`, while a result containing accepted AI associations uses `hybrid-v2`. Runtime
+    supports only those v2 engine values; persisted v1 maps fail closed to deterministic-v2 fallback.
 
     **Prompt 2 publish-time hybrid pipeline:** Queue publish and both Discover creation/save flows
     finalize the exact flat content, parse and hash it locally, and persist
     `cookingStepIngredientMap` in the same initial recipe write. Fully deterministic recipes skip the
     mapping API. Only steps unresolved as `ambiguous`, `implicit-reference`, or
     `prepared-component` are eligible for one server-side structured Gateway call; `no-ingredient-use`
-    is never eligible. Prompt version `v1` lives in `lib/aiConfig.ts`, and the application-wide model
-    remains centrally configured. Deterministic validation rejects noneligible/out-of-range/header
-    indexes, uncertain associations, duplicate conflicts, invented usage text, and ungrounded prepared
-    labels, while preserving every deterministic reference. AI timeout, provider failure, invalid
+    and `non-actionable` are never eligible. Cooking mapping prompt `v2` lives in `lib/aiConfig.ts`, uses
+    the unchanged centrally configured `openai/gpt-5.6-luna` Gateway model, and requests temperature 0
+    only for this feature. Its precision-first contract treats abstention as correct. Shared pure
+    validation rejects noneligible/out-of-range/header indexes, uncertain associations, unsupported
+    duplicate groups, unbounded collective expansion, negative context, nonlocal usage metadata, and
+    noncanonical prepared labels while preserving every deterministic reference. Invalid usage is
+    dropped only when the base association is independently grounded; otherwise the association is
+    rejected. Prepared components require an exact canonical ingredient-group or earlier actionable
+    antecedent. AI timeout, provider failure, invalid
     response, or source-hash mismatch falls back to the local deterministic map, so recipe publishing
     proceeds. Prompt 2 changes new-recipe persistence only: it does not backfill existing recipes.
 
@@ -731,6 +742,14 @@ retained as historical data and are not modified or deleted by this app.
     before asynchronous hashing completes, and stale async results are source/object guarded. Missing,
     stale, unsupported, or malformed maps fail closed as a whole without technical fallback UI.
     Cooking Mode performs no mapping API/AI request and no mapping write.
+
+    **2026-08-25 mapping remediation:** The production-audit deterministic/AI/validator failures are
+    fixed in deterministic-v2/hybrid-v2/prompt-v2 and locked by corpus-derived final-map regressions.
+    A bounded read-only 27-recipe live validation reviewed 59 accepted relationships across two final
+    passes: 59 correct, 0 ambiguous, 0 incorrect; the prior stability subset improved from 10/20 to
+    1/20 material differences (safe omission versus a correct association). This authorizes a fresh
+    full production dry run only. It does not authorize backfill. See
+    `docs/audits/cooking-step-mapping-remediation-validation-2026-08-25.md`.
 
     Personal content overrides are mapped from their effective parsed source. A changed ingredient,
     instruction, or ordering normally invalidates the shared stored map and uses the deterministic
@@ -929,6 +948,17 @@ retained as historical data and are not modified or deleted by this app.
   **NOT READY FOR BACKFILL** because these are systemic engine/prompt/validator limitations. No recipe
   was mutated and production still has zero persisted maps. See
   `docs/audits/cooking-step-mapping-dryrun-2026-08-25.md`.
+- **The historical 2026-08-25 cooking-step manifest is permanently invalid for apply after v2
+  remediation.** Deterministic-v2 preserves alternative head nouns/modifiers, guards negative and
+  non-actionable context, and requires bounded collective/group scope. Hybrid-v2 shares stricter local
+  ingredient/usage/component grounding between merge and runtime validation; prompt-v2 is
+  precision-first and temperature 0. The bounded 27-recipe final validation found 59/59 accepted
+  relationships correct and improved the prior stability subset to 19 exact / 0 semantically stable /
+  1 material omission difference / 0 errors. This remediates the known mapping failures but does not
+  make the old 168 `READY` rows current: every old candidate was produced by stale engine/prompt/
+  validator semantics. A fresh full production hybrid dry run and new immutable manifest/hash are
+  required before backfill can be reconsidered. See
+  `docs/audits/cooking-step-mapping-remediation-validation-2026-08-25.md`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1018,7 +1048,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (remediation and backfill pending) | Deterministic engine **Done**; validated AI assistance and publish-time persistence **Done**; runtime Cooking Mode cutover **Done**; existing-corpus hybrid dry run **Done** (2026-08-25: 168 `READY`, 7 `REVIEW`, 61 `EXCLUDED`, 0 `ERROR`, verdict **NOT READY FOR BACKFILL**). Backfill apply remains **Pending** and must not proceed until the confirmed deterministic/AI/validator defects are remediated and a new production dry run passes. Override-specific map persistence and legacy parser/content remediation also remain pending. No existing recipe map was persisted by the dry run. See §5.25, §6, and `docs/audits/cooking-step-mapping-dryrun-2026-08-25.md`. |
+| Cooking-step ingredient mapping | High | Partial (fresh dry run pending; backfill blocked) | Deterministic engine, publish-time AI persistence, Cooking Mode cutover, and v2 mapping remediation **Done**. The historical 2026-08-25 corpus dry run remains **NOT READY FOR BACKFILL** and invalid for apply after engine/prompt changes. Bounded post-remediation validation **Done** (27 recipes; 59/59 accepted relationships correct; 0 ambiguous/incorrect; stability 19 exact / 1 safe material omission difference). A fresh full production hybrid dry run and new manifest/hash are **Pending**. Backfill apply is **Blocked** pending that new dry run and review. Override-specific map persistence and legacy parser/content remediation also remain pending. No existing recipe map was persisted. See §5.25, §6, `docs/audits/cooking-step-mapping-dryrun-2026-08-25.md`, and `docs/audits/cooking-step-mapping-remediation-validation-2026-08-25.md`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

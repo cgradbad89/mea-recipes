@@ -17,7 +17,7 @@ describe('AI configuration', () => {
     expect(AI_CACHE_ID).toContain(AI_MODEL)
     expect(AI_CACHE_ID).toContain(AI_PROMPT_VERSION)
     expect(aiGatewayProviderOptions('cooking-step-map', 'user-123', COOKING_STEP_MAPPING_PROMPT_VERSION))
-      .toMatchObject({ gateway: { tags: expect.arrayContaining(['prompt:v1']) } })
+      .toMatchObject({ gateway: { tags: expect.arrayContaining(['prompt:v2']) } })
   })
 
   it('does not reuse the legacy cache key', () => {

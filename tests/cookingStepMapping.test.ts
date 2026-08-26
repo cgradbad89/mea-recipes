@@ -65,7 +65,7 @@ describe('deterministic mapping contract', () => {
     expect(result).toMatchObject({
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'deterministic-v1',
+      engineVersion: 'deterministic-v2',
     })
     expect(result.steps.map(step => step.instructionIndex)).toEqual([0, 1])
   })
@@ -263,13 +263,13 @@ describe('positive controls', () => {
 })
 
 async function validHybridMap(
-  ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
-  instructions = ['Add the olive oil.'],
+  ingredients = ['For the sauce:', '1 tbsp olive oil'],
+  instructions = ['Add the oil to the marinade.'],
 ): Promise<CookingStepIngredientMap> {
   return {
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'hybrid-v1',
+    engineVersion: 'hybrid-v2',
     sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
     steps: [{
       instructionIndex: 0,
@@ -291,7 +291,7 @@ async function validPreparedComponentMap(): Promise<{
     mapping: {
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'hybrid-v1',
+      engineVersion: 'hybrid-v2',
       sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
       steps: [{
         instructionIndex: 0,
@@ -309,7 +309,7 @@ describe('runtime cooking-step map resolver', () => {
     expect(result.mapping.steps[0].ingredients.map(reference => reference.ingredientIndex)).toEqual([0])
   })
 
-  it('accepts a valid deterministic-v1 persisted map', async () => {
+  it('accepts a valid deterministic-v2 persisted map', async () => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
@@ -317,10 +317,10 @@ describe('runtime cooking-step map resolver', () => {
     expect(result).toEqual({ mapping: persisted, source: 'persisted' })
   })
 
-  it('accepts a valid hybrid-v1 AI-only ingredient association', async () => {
+  it('accepts a valid hybrid-v2 AI-only ingredient association', async () => {
     const persisted = await validHybridMap()
-    const ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil']
-    const result = await resolveCookingStepIngredientMap(ingredients, ['Add the olive oil.'], persisted)
+    const ingredients = ['For the sauce:', '1 tbsp olive oil']
+    const result = await resolveCookingStepIngredientMap(ingredients, ['Add the oil to the marinade.'], persisted)
     expect(result.source).toBe('persisted')
     expect(result.mapping.steps[0].ingredients[0]).toMatchObject({ ingredientIndex: 1, provenance: 'ai' })
   })
@@ -335,16 +335,27 @@ describe('runtime cooking-step map resolver', () => {
   it.each([
     ['schemaVersion', 2, 'unsupported-schema'],
     ['parserVersion', 'recipe-content-v2', 'unsupported-parser'],
-    ['engineVersion', 'hybrid-v2', 'unsupported-engine'],
+    ['engineVersion', 'hybrid-v1', 'unsupported-engine'],
   ] as const)('rejects unsupported %s', async (field, value, reason) => {
     const persisted = await validHybridMap()
     const invalid = { ...persisted, [field]: value }
     const result = await resolveCookingStepIngredientMap(
-      ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
-      ['Add the olive oil.'],
+      ['For the sauce:', '1 tbsp olive oil'],
+      ['Add the oil to the marinade.'],
       invalid,
     )
     expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: reason })
+  })
+
+  it('rejects a deterministic-v1 map after the semantic engine upgrade', async () => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    persisted.engineVersion = 'deterministic-v1'
+    await expect(resolveCookingStepIngredientMap(ingredients, instructions, persisted)).resolves.toMatchObject({
+      source: 'deterministic-fallback',
+      fallbackReason: 'unsupported-engine',
+    })
   })
 
   it('rejects a source-hash mismatch and maps the current source', async () => {
@@ -383,8 +394,8 @@ describe('runtime cooking-step map resolver', () => {
     const persisted = await validHybridMap()
     mutate(persisted)
     const result = await resolveCookingStepIngredientMap(
-      ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
-      ['Add the olive oil.'],
+      ['For the sauce:', '1 tbsp olive oil'],
+      ['Add the oil to the marinade.'],
       persisted,
     )
     expect(result).toMatchObject({ source: 'deterministic-fallback', fallbackReason: 'invalid-structure' })
@@ -425,10 +436,10 @@ describe('runtime cooking-step map resolver', () => {
 
   it('rejects AI associations mislabeled with the deterministic engine', async () => {
     const persisted = await validHybridMap()
-    persisted.engineVersion = 'deterministic-v1'
+    persisted.engineVersion = 'deterministic-v2'
     const result = await resolveCookingStepIngredientMap(
-      ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil'],
-      ['Add the olive oil.'],
+      ['For the sauce:', '1 tbsp olive oil'],
+      ['Add the oil to the marinade.'],
       persisted,
     )
     expect(result.fallbackReason).toBe('invalid-structure')
@@ -438,14 +449,14 @@ describe('runtime cooking-step map resolver', () => {
     const ingredients = ['salt']
     const instructions = ['Add salt.']
     const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
-    persisted.engineVersion = 'hybrid-v1'
+    persisted.engineVersion = 'hybrid-v2'
     const result = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
     expect(result.fallbackReason).toBe('invalid-structure')
   })
 
   it('does not mutate ingredients, instructions, or the persisted map', async () => {
-    const ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil']
-    const instructions = ['Add the olive oil.']
+    const ingredients = ['For the sauce:', '1 tbsp olive oil']
+    const instructions = ['Add the oil to the marinade.']
     const persisted = await validHybridMap(ingredients, instructions)
     const before = JSON.stringify({ ingredients, instructions, persisted })
     await resolveCookingStepIngredientMap(ingredients, instructions, persisted)

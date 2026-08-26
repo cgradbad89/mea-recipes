@@ -8,8 +8,8 @@ import type {
 } from '@/types/recipe'
 
 export const COOKING_MAPPING_PARSER_VERSION = 'recipe-content-v1'
-export const COOKING_MAPPING_ENGINE_VERSION = 'deterministic-v1'
-export const COOKING_MAPPING_HYBRID_ENGINE_VERSION = 'hybrid-v1'
+export const COOKING_MAPPING_ENGINE_VERSION = 'deterministic-v2'
+export const COOKING_MAPPING_HYBRID_ENGINE_VERSION = 'hybrid-v2'
 
 export type CookingStepMapFallbackReason =
   | 'missing'
@@ -69,7 +69,7 @@ const PROTEIN_WORDS = new Set([
 ])
 
 const DISTINCTIVE_CATEGORY_FORMS = new Set([
-  'bean', 'butter', 'cheese', 'chile', 'ketchup', 'mayonnaise', 'mustard',
+  'bean', 'butter', 'cheese', 'ketchup', 'mayonnaise', 'mustard',
   'yogurt',
 ])
 
@@ -82,13 +82,33 @@ const COMPONENT_WORDS = new Set([
   'rub', 'sauce', 'seasoning', 'tadka', 'topping',
 ])
 
-const COOKING_MAPPING_UNRESOLVED_REASONS = new Set([
-  'ambiguous', 'implicit-reference', 'prepared-component', 'no-ingredient-use',
+const SHARED_ALTERNATIVE_HEAD_FORMS = new Set([
+  'broth', 'cheese', 'chile', 'cream', 'milk', 'oil', 'pepper', 'powder',
+  'sauce', 'seasoning', 'stock', 'vinegar', 'yogurt',
 ])
 
-const COLLECTIVE_REFERENCE = /\b(?:all (?:of )?(?:the )?ingredient|remaining ingredient|dry ingredient|wet ingredient|everything)\b/
+const NON_PRIMARY_PROTEIN_FORMS = new Set([
+  'broth', 'flavor', 'oil', 'powder', 'sauce', 'seasoning', 'stock',
+])
+
+const AI_GENERIC_REFERENCE_FORMS = new Set([
+  'bean', 'butter', 'cheese', 'cream', 'milk', 'oil', 'stock', 'yogurt',
+])
+
+const COOKING_MAPPING_UNRESOLVED_REASONS = new Set([
+  'ambiguous', 'implicit-reference', 'prepared-component', 'no-ingredient-use', 'non-actionable',
+])
+
+const COLLECTIVE_REFERENCE = /\b(?:all (?:of )?(?:the )?(?:\w+ )?ingredient|remaining ingredient|dry ingredient|wet ingredient|everything(?: else)?)\b/
 const CONFIDENT_NO_USE = /^(?:preheat\b|(?:bake|cook|roast) (?:for|until)\b|reduce (?:the )?heat\b|remove from (?:the )?heat\b|let (?:it|this|the mixture|the dish) (?:rest|cool|chill)\b|rest\b|cool completely\b|refrigerate\b|chill\b|set aside\b)/
 const PREPARED_COMPONENT_REFERENCE = /\b(?:add|baste|brush|fold|pour|serve|spread|stir|toss)\b(?:\s+\w+){0,6}\s+(?:(?:in|over|with)\s+)?(?:(?:the|prepared)\s+)?(?:\w+\s+){0,2}(?:dressing|filling|glaze|marinade|mixture|sauce|tadka|topping)\b/
+
+const EXACT_URL = /^https?:\/\/\S+$/i
+const NON_ACTIONABLE_METADATA = /^(?:storage(?: suggestions?)?:|nutritional? information\b|(?:📊\s*)?nutrition estimate:|note:\s*the nutritional information\b|recipe source:)/i
+const PAYWALL_PLACEHOLDER = /^(?:not available|unavailable)\b.*(?:paywall|could not be fetched|behind a paywall)/i
+const REVIEW_OR_COMMENT = /^(?:have you cooked this\?|cooking notes$|most helpful\d*$|\d+ this is helpful$|loved this recipe\b|amazing recipe\b|delicious! if\b|also: this recipe is perfect\b|i made this for\b|i added all the water it asked\b)/i
+const REVIEW_AUTHOR_LINE = /^.{1,80}\d+\s+years? ago$/i
+const COMPONENT_HEADING = /^(?:(?:for )?(?:the )?)?[\p{L}\p{N} -]{0,50}(?:dressing|filling|glaze|marinade|mixture|sauce|tadka|topping):?$/iu
 
 interface IngredientIdentity {
   ingredientIndex: number
@@ -123,7 +143,10 @@ function stripBoundedParentheticals(value: string): string {
 
 function normalizedWords(value: string): string[] {
   const normalized = normalizeNoun(value.replace(/[’']/g, '').replace(/[\/–—-]+/g, ' '))
-  return normalized ? normalized.split(' ').filter(Boolean) : []
+  return normalized
+    ? normalized.split(' ').filter(Boolean).map(word =>
+      /^(?:chili|chily|chilies|chilie|chilli|chillis)$/.test(word) ? 'chile' : word)
+    : []
 }
 
 function withoutPreparationWords(value: string): string {
@@ -148,12 +171,22 @@ function ingredientAliases(rawName: string): {
 } {
   const withoutNotes = stripBoundedParentheticals(rawName)
   const beforeComma = withoutNotes.split(',')[0].trim()
-  const alternatives = beforeComma
+  let alternatives = beforeComma
     .replace(/\band\s*\/\s*or\b/gi, ' or ')
     .replace(/\s+\/\s+/g, ' or ')
     .split(/\s+or\s+/i)
     .map(part => part.trim())
     .filter(Boolean)
+  const finalAlternativeWords = normalizedWords(alternatives.at(-1) || '')
+  const sharedHead = finalAlternativeWords.at(-1)
+  if (sharedHead && finalAlternativeWords.length > 1 && SHARED_ALTERNATIVE_HEAD_FORMS.has(sharedHead)) {
+    alternatives = alternatives.map(alternative => {
+      const words = normalizedWords(alternative)
+      return words.length > 0 && words.at(-1) !== sharedHead
+        ? `${alternative} ${sharedHead}`
+        : alternative
+    })
+  }
   const identity = withoutPreparationWords(alternatives[0] || beforeComma)
   const aliases = new Set<string>()
   const qualifiedAliases = new Set<string>()
@@ -169,7 +202,7 @@ function ingredientAliases(rawName: string): {
   for (const alias of [...aliases]) {
     const words = alias.split(' ')
     const protein = words.find(word => PROTEIN_WORDS.has(word))
-    if (protein) aliases.add(protein)
+    if (protein && !words.some(word => NON_PRIMARY_PROTEIN_FORMS.has(word))) aliases.add(protein)
 
     const tail = words[words.length - 1]
     if (words.length > 1 && DISTINCTIVE_CATEGORY_FORMS.has(tail)) {
@@ -179,6 +212,9 @@ function ingredientAliases(rawName: string): {
     }
     if (words.length > 1 && QUALIFIED_GENERIC_FORMS.has(tail)) {
       qualifiedAliases.add(tail)
+    }
+    if (tail === 'powder' && words.at(-2) === 'chile') {
+      aliases.add('chile powder')
     }
   }
 
@@ -264,15 +300,40 @@ function collectOccurrences(words: string[], identities: IngredientIdentity[]): 
     }
   }
 
+  const chileIdentities = identities.filter(identity => identity.identity.split(' ').at(-1) === 'chile')
+  for (const position of findPhrasePositions(words, 'chile')) {
+    if (words[position.end] === 'powder') continue
+    for (const ingredient of chileIdentities) {
+      occurrences.push({ ingredient, alias: 'chile', ...position })
+    }
+  }
+
   // A shorter alias inside a more specific food phrase is not independent
   // evidence. This prevents "chicken" from selecting chicken breast inside
   // the phrase "chicken broth", while preserving a separate earlier mention.
-  return occurrences.filter(occurrence => !occurrences.some(other =>
-    other !== occurrence &&
-    other.start <= occurrence.start &&
-    other.end >= occurrence.end &&
-    other.end - other.start > occurrence.end - occurrence.start
-  ))
+  return occurrences.filter(occurrence =>
+    !isInactiveOccurrence(words, occurrence) &&
+    !occurrences.some(other =>
+      other !== occurrence &&
+      other.start <= occurrence.start &&
+      other.end >= occurrence.end &&
+      other.end - other.start > occurrence.end - occurrence.start
+    ))
+}
+
+function isInactiveOccurrence(words: string[], occurrence: PhraseOccurrence): boolean {
+  const prefix = words.slice(Math.max(0, occurrence.start - 9), occurrence.start).join(' ')
+  const suffix = words.slice(occurrence.end, occurrence.end + 5).join(' ')
+  const immediatePrefix = words.slice(Math.max(0, occurrence.start - 5), occurrence.start).join(' ')
+
+  if (PROTEIN_WORDS.has(occurrence.alias) && NON_PRIMARY_PROTEIN_FORMS.has(words[occurrence.end])) return true
+  if (/(?:^| )(?:without|remove|discard)(?: the)?$/.test(immediatePrefix)) return true
+  if (/(?:^| )except(?: the)?(?: [a-z]+ and)?$/.test(prefix)) return true
+  if (/(?:^| )(?:do not|dont|never)(?: add| use| include| mix| stir in| pour in)?(?: the)?$/.test(immediatePrefix)) return true
+  if (/(?:^| )(?:reserve|save|hold|set aside)(?: the)?$/.test(immediatePrefix) && /^(?:for|until) later\b/.test(suffix)) return true
+  if (/(?:^| )some(?: of the)?$/.test(immediatePrefix) && /^may\b/.test(suffix)) return true
+  if (/(?:^| )another(?: \d+){1,3}(?: \w+)?(?: of)?$/.test(immediatePrefix)) return true
+  return false
 }
 
 function instructionGroups(words: string[], identities: IngredientIdentity[]): string[] {
@@ -280,8 +341,24 @@ function instructionGroups(words: string[], identities: IngredientIdentity[]): s
   const normalizedInstruction = words.join(' ')
   return groups.filter(group => {
     const phrase = group.split(' ').map(escapeRegExp).join(' ')
-    return new RegExp(`\\b(?:for|make|prepare) (?:the )?${phrase}\\b`).test(normalizedInstruction)
+    return new RegExp(`\\b(?:(?:for|make|prepare) (?:the )?${phrase}|all (?:of )?(?:the )?${phrase} ingredient|${phrase} ingredient)\\b`).test(normalizedInstruction)
   })
+}
+
+export function isNonActionableCookingInstruction(instruction: string): boolean {
+  const text = instruction.trim()
+  if (!text) return false
+  if (
+    EXACT_URL.test(text) ||
+    NON_ACTIONABLE_METADATA.test(text) ||
+    PAYWALL_PLACEHOLDER.test(text) ||
+    REVIEW_OR_COMMENT.test(text) ||
+    REVIEW_AUTHOR_LINE.test(text)
+  ) return true
+  if (COMPONENT_HEADING.test(text) && !/\b(?:add|blend|combine|cook|heat|make|mix|prepare|stir|whisk)\b/i.test(text)) {
+    return true
+  }
+  return false
 }
 
 function dedupeBestOccurrences(occurrences: PhraseOccurrence[]): PhraseOccurrence[] {
@@ -342,6 +419,205 @@ function usageForOccurrence(
   return undefined
 }
 
+interface CookingInstructionScope {
+  words: string[]
+  identities: IngredientIdentity[]
+  explicitGroups: string[]
+  boundedCollectiveIndexes: Set<number>
+  unboundedCollective: boolean
+}
+
+function cookingInstructionScope(ingredients: string[], instruction: string): CookingInstructionScope {
+  const words = normalizedWords(instruction)
+  const identities = buildIngredientIdentities(ingredients)
+  const explicitGroups = instructionGroups(words, identities)
+  const hasCollective = COLLECTIVE_REFERENCE.test(words.join(' '))
+  const boundedCollectiveIndexes = new Set<number>()
+  if (hasCollective && explicitGroups.length === 1) {
+    identities
+      .filter(identity => identity.group === explicitGroups[0])
+      .forEach(identity => boundedCollectiveIndexes.add(identity.ingredientIndex))
+  }
+  return {
+    words,
+    identities,
+    explicitGroups,
+    boundedCollectiveIndexes,
+    unboundedCollective: hasCollective && explicitGroups.length !== 1,
+  }
+}
+
+function ingredientReferenceAliases(identity: IngredientIdentity): string[] {
+  const aliases = new Set(identity.aliases)
+  const tail = identity.identity.split(' ').at(-1)
+  if (tail && AI_GENERIC_REFERENCE_FORMS.has(tail)) aliases.add(tail)
+  return [...aliases].sort(compareAliases)
+}
+
+function activeGroundedIngredientIndexes(
+  scope: CookingInstructionScope,
+): { grounded: Set<number>; ambiguous: Set<number> } {
+  let occurrences = collectOccurrences(scope.words, scope.identities)
+  if (scope.explicitGroups.length === 1) {
+    occurrences = occurrences.filter(occurrence => occurrence.ingredient.group === scope.explicitGroups[0])
+  }
+
+  // AI may resolve a unique generic reference such as "the oil", but never a
+  // food-defining modifier such as chicken from chicken broth.
+  const scopedIdentities = scope.explicitGroups.length === 1
+    ? scope.identities.filter(identity => identity.group === scope.explicitGroups[0])
+    : scope.identities
+  for (const identity of scopedIdentities) {
+    const tail = identity.identity.split(' ').at(-1)
+    if (!tail || !AI_GENERIC_REFERENCE_FORMS.has(tail)) continue
+    const sameTail = scopedIdentities.filter(item => item.identity.split(' ').at(-1) === tail)
+    if (sameTail.length !== 1) continue
+    for (const position of findPhrasePositions(scope.words, tail)) {
+      const occurrence = { ingredient: identity, alias: tail, ...position }
+      const insideFullIdentity = ingredientReferenceAliases(identity)
+        .filter(alias => alias !== tail)
+        .flatMap(alias => findPhrasePositions(scope.words, alias))
+        .some(full => full.start <= position.start && full.end >= position.end)
+      if (!insideFullIdentity && !isInactiveOccurrence(scope.words, occurrence)) occurrences.push(occurrence)
+    }
+  }
+
+  occurrences = dedupeBestOccurrences(occurrences)
+  const ambiguous = ambiguousIngredientIndexes(occurrences)
+  const grounded = new Set(occurrences
+    .filter(occurrence => !ambiguous.has(occurrence.ingredient.ingredientIndex))
+    .map(occurrence => occurrence.ingredient.ingredientIndex))
+  scope.boundedCollectiveIndexes.forEach(index => grounded.add(index))
+  return { grounded, ambiguous }
+}
+
+function usageLocallyGrounded(
+  usage: CookingIngredientUsage,
+  instruction: string,
+  identity: IngredientIdentity,
+  boundedCollective: boolean,
+): CookingIngredientUsage | undefined {
+  const words = normalizedWords(instruction)
+  const aliases = ingredientReferenceAliases(identity)
+  const occurrences = aliases.flatMap(alias =>
+    findPhrasePositions(words, alias).map(position => ({ alias, ...position })))
+  const quantityText = usage.quantityText?.trim().replace(/\s+/g, ' ')
+
+  if (usage.kind === 'all') {
+    const locallyAll = occurrences.some(occurrence => {
+      const prefix = words.slice(Math.max(0, occurrence.start - 4), occurrence.start).join(' ')
+      return /(?:^| )all(?: of)?(?: the)?$/.test(prefix)
+    })
+    if (!boundedCollective && !locallyAll) return undefined
+  }
+
+  if (usage.kind === 'remaining') {
+    const locallyRemaining = occurrences.some(occurrence => {
+      const prefix = words.slice(Math.max(0, occurrence.start - 5), occurrence.start).join(' ')
+      return /(?:^| )(?:remaining|rest of(?: the)?)$/.test(prefix)
+    })
+    if (!locallyRemaining) return undefined
+  }
+
+  if (usage.kind === 'partial') {
+    if (!quantityText) return undefined
+    const quantityWords = normalizedWords(quantityText)
+    const quantityPositions = findPhrasePositions(words, quantityWords.join(' '))
+    const localQuantity = occurrences.some(occurrence => quantityPositions.some(quantity =>
+      quantity.end <= occurrence.start && occurrence.start - quantity.end <= 3))
+    if (!localQuantity) return undefined
+  }
+
+  return quantityText ? { kind: usage.kind, quantityText } : { kind: usage.kind }
+}
+
+export function validateAiCookingIngredientReference(
+  ingredients: string[],
+  instruction: string,
+  ingredientIndex: number,
+  usage?: CookingIngredientUsage,
+): { accepted: boolean; usage?: CookingIngredientUsage } {
+  if (isNonActionableCookingInstruction(instruction)) return { accepted: false }
+  const scope = cookingInstructionScope(ingredients, instruction)
+  const identity = scope.identities.find(item => item.ingredientIndex === ingredientIndex)
+  if (!identity) return { accepted: false }
+  const { grounded, ambiguous } = activeGroundedIngredientIndexes(scope)
+  if (ambiguous.has(ingredientIndex) || !grounded.has(ingredientIndex)) return { accepted: false }
+  if (scope.unboundedCollective && !collectOccurrences(scope.words, [identity]).length) {
+    return { accepted: false }
+  }
+  if (!usage) return { accepted: true }
+  const groundedUsage = usageLocallyGrounded(
+    usage,
+    instruction,
+    identity,
+    scope.boundedCollectiveIndexes.has(ingredientIndex),
+  )
+  return groundedUsage ? { accepted: true, usage: groundedUsage } : { accepted: true }
+}
+
+function canonicalComponentLabel(value: string): string {
+  return normalizeNoun(value
+    .trim()
+    .replace(/^\*+|\*+$/g, '')
+    .replace(/:$/, '')
+    .replace(/^for\s+(?:the\s+)?/i, '')
+    .replace(/^the\s+/i, ''))
+}
+
+function establishedPreparedComponents(
+  ingredients: string[],
+  instructions: string[],
+  instructionIndex: number,
+): string[] {
+  const labels = new Set<string>()
+  for (const ingredient of ingredients) {
+    if (!isIngredientSubheader(ingredient)) continue
+    const label = canonicalComponentLabel(ingredient)
+    const tail = label.split(' ').at(-1)
+    if (tail && COMPONENT_WORDS.has(tail)) labels.add(label)
+  }
+
+  const creationVerb = /\b(?:blend|combine|cook|form|make|mix|prepare|stir|whisk)\b/i
+  for (const instruction of instructions.slice(0, instructionIndex)) {
+    if (isNonActionableCookingInstruction(instruction) || !creationVerb.test(instruction)) continue
+    const normalized = normalizedWords(instruction).join(' ')
+    const componentAlternation = [...COMPONENT_WORDS].join('|')
+    const patterns = [
+      new RegExp(`\\b(?:make|prepare)(?: the)? ((?:[a-z0-9]+ ){0,2}(?:${componentAlternation}))\\b`, 'g'),
+      new RegExp(`\\b(?:into|to form|to make)(?: a| the)? ((?:[a-z0-9]+ ){0,2}(?:${componentAlternation}))\\b`, 'g'),
+      new RegExp(`\\b(?:reserve|save)(?: [a-z0-9]+){0,5} (?:of )?(?:the )?((?:[a-z0-9]+ )?(?:${componentAlternation}))\\b`, 'g'),
+    ]
+    for (const pattern of patterns) {
+      for (const match of normalized.matchAll(pattern)) {
+        const candidate = canonicalComponentLabel(match[1])
+        const tail = candidate.split(' ').at(-1)
+        if (tail && COMPONENT_WORDS.has(tail) && candidate.split(' ').length <= 3) labels.add(candidate)
+      }
+    }
+  }
+  return [...labels]
+}
+
+export function groundCookingPreparedComponent(
+  label: string,
+  instructionIndex: number,
+  ingredients: string[],
+  instructions: string[],
+): string | null {
+  const normalized = canonicalComponentLabel(label)
+  const tail = normalized.split(' ').at(-1)
+  if (!normalized || !tail || !COMPONENT_WORDS.has(tail)) return null
+  const established = establishedPreparedComponents(ingredients, instructions, instructionIndex)
+  const exact = established.find(component => component === normalized)
+  if (exact) return exact
+  if (normalized === tail) {
+    const matchingTail = established.filter(component => component.split(' ').at(-1) === tail)
+    if (matchingTail.length === 1) return matchingTail[0]
+  }
+  return null
+}
+
 function ingredientReference(ingredientIndex: number, usage?: CookingIngredientUsage): CookingStepIngredientReference {
   return usage
     ? { ingredientIndex, confidence: 'high', provenance: 'deterministic', usage }
@@ -354,6 +630,9 @@ function mapInstruction(
   identities: IngredientIdentity[],
 ): CookingStepMapping {
   const base = { instructionIndex }
+  if (isNonActionableCookingInstruction(instruction)) {
+    return { ...base, ingredients: [], unresolvedReason: 'non-actionable' }
+  }
   const words = normalizedWords(instruction)
   const normalizedInstruction = words.join(' ')
   const explicitGroups = instructionGroups(words, identities)
@@ -382,8 +661,11 @@ function mapInstruction(
   const preparedComponent = PREPARED_COMPONENT_REFERENCE.test(normalizedInstruction)
   const preparedOnlyIndexes = new Set(safeOccurrences
     .filter(occurrence => {
-      const after = words[occurrence.end]
-      return COMPONENT_WORDS.has(occurrence.alias) || after === 'mixture'
+      const after = words.slice(occurrence.end, occurrence.end + 3)
+      const identityTail = occurrence.ingredient.identity.split(' ').at(-1)
+      return COMPONENT_WORDS.has(occurrence.alias) ||
+        after[0] === 'mixture' ||
+        (identityTail === 'chile' && after.includes('sauce'))
     })
     .map(occurrence => occurrence.ingredient.ingredientIndex))
   const usableOccurrences = safeOccurrences.filter(occurrence => !preparedOnlyIndexes.has(occurrence.ingredient.ingredientIndex))
@@ -396,7 +678,7 @@ function mapInstruction(
     ))
 
   if (ambiguousIndexes.size > 0) return { ...base, ingredients, unresolvedReason: 'ambiguous' }
-  if (preparedComponent && (preparedOnlyIndexes.size > 0 || ingredients.length === 0)) {
+  if (preparedOnlyIndexes.size > 0 || (preparedComponent && ingredients.length === 0)) {
     return { ...base, ingredients, unresolvedReason: 'prepared-component' }
   }
   if (ingredients.length > 0) return { ...base, ingredients }
@@ -526,17 +808,31 @@ export function validateCookingStepIngredientMap(
         hasAiResolution = true
       }
 
-      if (reference.usage === undefined) return true
-      if (!isRecord(reference.usage)) return false
-      if (!['all', 'partial', 'remaining'].includes(reference.usage.kind as string)) return false
-      if (reference.usage.quantityText === undefined) return true
-      if (
-        typeof reference.usage.quantityText !== 'string' ||
-        reference.usage.quantityText.trim().length === 0 ||
-        reference.usage.quantityText.length > 80
-      ) return false
-      const instruction = instructions[instructionIndex].replace(/\s+/g, ' ').toLowerCase()
-      return instruction.includes(reference.usage.quantityText.trim().replace(/\s+/g, ' ').toLowerCase())
+      let validatedUsage: CookingIngredientUsage | undefined
+      if (reference.usage !== undefined) {
+        if (!isRecord(reference.usage)) return false
+        if (!['all', 'partial', 'remaining'].includes(reference.usage.kind as string)) return false
+        if (
+          reference.usage.quantityText !== undefined &&
+          (
+            typeof reference.usage.quantityText !== 'string' ||
+            reference.usage.quantityText.trim().length === 0 ||
+            reference.usage.quantityText.length > 80
+          )
+        ) return false
+        validatedUsage = reference.usage as unknown as CookingIngredientUsage
+      }
+
+      if (reference.provenance === 'ai') {
+        const grounding = validateAiCookingIngredientReference(
+          ingredients,
+          instructions[instructionIndex],
+          index,
+          validatedUsage,
+        )
+        if (!grounding.accepted || JSON.stringify(grounding.usage) !== JSON.stringify(validatedUsage)) return false
+      }
+      return true
     })
     if (!validIngredients) return false
     if ([...deterministicReferences.keys()].some(index => !seenIndexes.has(index))) return false
@@ -555,6 +851,13 @@ export function validateCookingStepIngredientMap(
         ) return false
         const normalizedLabel = component.label.trim().replace(/\s+/g, ' ').toLowerCase()
         if (labels.has(normalizedLabel)) return false
+        const groundedLabel = groundCookingPreparedComponent(
+          component.label,
+          instructionIndex,
+          ingredients,
+          instructions,
+        )
+        if (!groundedLabel || canonicalComponentLabel(component.label) !== groundedLabel) return false
         labels.add(normalizedLabel)
         hasAiResolution = true
         return true

@@ -15,6 +15,7 @@ interface AIRequestBase {
   userId?: string
   system?: string
   promptVersion?: string
+  temperature?: number
 }
 
 interface AIPromptRequest extends AIRequestBase {
@@ -51,6 +52,7 @@ export async function generateAIText(request: AIRequest): Promise<string> {
   const result = await generateText({
     model: gateway(AI_MODEL),
     system: request.system,
+    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...requestInput(request),
     providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
   })
@@ -64,6 +66,7 @@ export async function generateAIObject<T>(
   const result = await generateText({
     model: gateway(AI_MODEL),
     system: request.system,
+    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...requestInput(request),
     output: Output.object({ schema: request.schema }),
     providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
@@ -78,6 +81,7 @@ export async function generateAIArray<T>(
   const result = await generateText({
     model: gateway(AI_MODEL),
     system: request.system,
+    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...requestInput(request),
     output: Output.array({ element: request.element }),
     providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),

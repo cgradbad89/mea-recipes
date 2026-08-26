@@ -26,14 +26,12 @@ Step 1
 Add the salt and stir well.`
 
 const ambiguousContent = `INGREDIENTS
-For the marinade:
-1 tbsp olive oil
 For the sauce:
-2 tbsp olive oil
+1 tbsp olive oil
 
 INSTRUCTIONS
 Step 1
-Add the olive oil and stir well.`
+Add the oil to the marinade.`
 
 const preparedComponentContent = `INGREDIENTS
 For the green sauce:
@@ -130,7 +128,7 @@ describe('POST /api/cooking-step-map', () => {
     const response = await POST(jsonRequest({ content: ambiguousContent }))
     const data = await response.json()
     expect(response.status).toBe(200)
-    expect(data.mapping.engineVersion).toBe('hybrid-v1')
+    expect(data.mapping.engineVersion).toBe('hybrid-v2')
     expect(data.mapping.steps[0].ingredients).toEqual([
       { ingredientIndex: 1, confidence: 'high', provenance: 'ai' },
     ])
@@ -171,7 +169,7 @@ describe('POST /api/cooking-step-map', () => {
       resolvedIngredientReferences: 0,
       resolvedPreparedComponents: 0,
     })
-    expect(data.mapping.engineVersion).toBe('deterministic-v1')
+    expect(data.mapping.engineVersion).toBe('deterministic-v2')
     expect(JSON.stringify(data)).not.toContain('secret provider detail')
   })
 

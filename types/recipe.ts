@@ -57,7 +57,7 @@ export interface CookingStepMapping {
   instructionIndex: number
   ingredients: CookingStepIngredientReference[]
   preparedComponents?: CookingPreparedComponentReference[]
-  unresolvedReason?: 'ambiguous' | 'implicit-reference' | 'prepared-component' | 'no-ingredient-use'
+  unresolvedReason?: 'ambiguous' | 'implicit-reference' | 'prepared-component' | 'no-ingredient-use' | 'non-actionable'
 }
 
 export interface CookingStepIngredientMap {

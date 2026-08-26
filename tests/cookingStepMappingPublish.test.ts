@@ -28,14 +28,12 @@ Step 1
 Add the salt and stir well.`
 
 const ambiguousContent = `INGREDIENTS
-For the marinade:
-1 tbsp olive oil
 For the sauce:
-2 tbsp olive oil
+1 tbsp olive oil
 
 INSTRUCTIONS
 Step 1
-Add the olive oil and stir well.`
+Add the oil to the marinade.`
 
 function apiResponse(mapping: CookingStepIngredientMap): Response {
   return new Response(JSON.stringify({
@@ -54,7 +52,7 @@ async function hybridApiMap(content: string): Promise<CookingStepIngredientMap> 
   return {
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'hybrid-v1',
+    engineVersion: 'hybrid-v2',
     sourceHash: await computeCookingMappingSourceHash(parsed.ingredients, parsed.instructions),
     steps: [{
       instructionIndex: 0,
@@ -73,7 +71,7 @@ describe('publish-time cooking-step map helper', () => {
 
   it('skips the API when deterministic mapping fully resolves the recipe', async () => {
     const mapping = await prepareCookingStepIngredientMap(deterministicContent, 'token')
-    expect(mapping.engineVersion).toBe('deterministic-v1')
+    expect(mapping.engineVersion).toBe('deterministic-v2')
     expect(mapping.steps[0].ingredients[0].ingredientIndex).toBe(0)
     expect(fetch).not.toHaveBeenCalled()
   })
@@ -93,7 +91,7 @@ describe('publish-time cooking-step map helper', () => {
     const remote = { ...await hybridApiMap(ambiguousContent), sourceHash: 'b'.repeat(64) }
     vi.mocked(fetch).mockResolvedValueOnce(apiResponse(remote))
     const mapping = await prepareCookingStepIngredientMap(ambiguousContent, 'token')
-    expect(mapping.engineVersion).toBe('deterministic-v1')
+    expect(mapping.engineVersion).toBe('deterministic-v2')
     expect(mapping.sourceHash).not.toBe(remote.sourceHash)
   })
 
@@ -102,28 +100,28 @@ describe('publish-time cooking-step map helper', () => {
     remote.steps[0].ingredients[0].ingredientIndex = 0 // header index
     vi.mocked(fetch).mockResolvedValueOnce(apiResponse(remote))
     const mapping = await prepareCookingStepIngredientMap(ambiguousContent, 'token')
-    expect(mapping.engineVersion).toBe('deterministic-v1')
-    expect(mapping.steps[0].unresolvedReason).toBe('ambiguous')
+    expect(mapping.engineVersion).toBe('deterministic-v2')
+    expect(mapping.steps[0].unresolvedReason).toBe('prepared-component')
   })
 
   it('falls back deterministically on network failure', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'))
     const mapping = await prepareCookingStepIngredientMap(ambiguousContent, 'token')
-    expect(mapping.engineVersion).toBe('deterministic-v1')
+    expect(mapping.engineVersion).toBe('deterministic-v2')
     expect(mapping.steps[0].ingredients).toEqual([])
   })
 
   it('falls back deterministically when the optional request times out', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new DOMException('Timed out', 'AbortError'))
     const mapping = await prepareCookingStepIngredientMap(ambiguousContent, 'token', 1)
-    expect(mapping.engineVersion).toBe('deterministic-v1')
-    expect(mapping.steps[0].unresolvedReason).toBe('ambiguous')
+    expect(mapping.engineVersion).toBe('deterministic-v2')
+    expect(mapping.steps[0].unresolvedReason).toBe('prepared-component')
   })
 
   it('falls back deterministically when the API returns a failure response', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(new Response('unavailable', { status: 503 }))
     const mapping = await prepareCookingStepIngredientMap(ambiguousContent, 'token', 1)
-    expect(mapping.engineVersion).toBe('deterministic-v1')
+    expect(mapping.engineVersion).toBe('deterministic-v2')
   })
 })
 

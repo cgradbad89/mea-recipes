@@ -75,6 +75,7 @@ export function mapStats(map) {
     implicitReferenceSteps: reasonCount('implicit-reference'),
     preparedComponentSteps: reasonCount('prepared-component'),
     noIngredientUseSteps: reasonCount('no-ingredient-use'),
+    nonActionableSteps: reasonCount('non-actionable'),
     aiEligibleSteps: steps.filter(step => ['ambiguous', 'implicit-reference', 'prepared-component'].includes(step.unresolvedReason)).length,
     preparedComponents: steps.reduce((sum, step) => sum + (step.preparedComponents?.length || 0), 0),
   }

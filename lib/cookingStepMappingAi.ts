@@ -5,7 +5,10 @@ import { generateAIObject } from '@/lib/ai'
 import { COOKING_STEP_MAPPING_PROMPT_VERSION } from '@/lib/aiConfig'
 import {
   COOKING_MAPPING_HYBRID_ENGINE_VERSION,
+  groundCookingPreparedComponent,
+  isNonActionableCookingInstruction,
   isAiEligibleCookingMappingReason,
+  validateAiCookingIngredientReference,
 } from '@/lib/cookingStepMapping'
 import { normalizeNoun, parseIngredient } from '@/lib/ingredientParser'
 import { isIngredientSubheader } from '@/lib/recipeContent'
@@ -42,16 +45,7 @@ export const AI_COOKING_STEP_RESOLUTION_SCHEMA = z.object({
 
 export type AiCookingStepResolution = z.infer<typeof AI_COOKING_STEP_RESOLUTION_SCHEMA>
 
-const COMPONENT_WORDS = new Set([
-  'batter', 'dough', 'dressing', 'filling', 'glaze', 'marinade', 'mixture',
-  'rub', 'sauce', 'seasoning', 'tadka', 'topping',
-])
-
-const PARTIAL_LANGUAGE = /(?:\b(?:half|quarter|some|\d+(?:\.\d+)?|\d+\/\d+)\b|[¼½¾⅐⅑⅒⅓⅔⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])/i
-const REMAINING_LANGUAGE = /\b(?:remaining|rest)\b/i
-const ALL_LANGUAGE = /\b(?:all|everything)\b/i
-
-export const COOKING_STEP_MAPPING_SYSTEM_PROMPT = `You resolve only high-confidence semantic ingredient relationships for cooking instructions.
+export const COOKING_STEP_MAPPING_SYSTEM_PROMPT = `You fill only relationships that deterministic cooking logic could not safely resolve. Leaving a relationship unresolved is a correct outcome. Never optimize for mapping completeness.
 
 The deterministic mappings supplied in the request are locked and authoritative. Never remove, replace, correct, or restate them. Return proposals only for the listed unresolved instruction indexes, and reference only the existing numeric indexes.
 
@@ -61,8 +55,15 @@ Rules:
 - Use ingredient subheaders as semantic scope only when instruction context supports that group.
 - A generic reference such as "the sauce", "the marinade", "the dressing", "the filling", "the topping", "the tadka", or "the prepared mixture" is a prepared component, not permission to choose an arbitrary raw ingredient whose name ends with that word.
 - Resolve collective references only when their group scope is clear. Generic "everything" remains uncertain without a clear scope.
+- Generic "remaining ingredients" never authorizes guessing which unused rows are meant. Do not infer from ingredient order or prior unmapped rows.
 - Resolve pronouns only when the antecedent is strong; otherwise omit them.
 - Preserve explicit half, remaining, rest, fractional, or measured usage text, but never calculate quantities.
+- Do not map generic food words to compound ingredients: "chicken" does not establish "chicken broth".
+- Do not infer active use from negative or deferred language such as "do not add the oil yet", "reserve for later", "without", "remove", or "discard".
+- Do not invent prepared components. If no prior instruction or ingredient group establishes a component called "topping", "add toppings" is not a prepared component.
+- Use only the canonical established component label. Never include action, serving, quantity, or raw-ingredient words in a component label.
+- Do not override group ambiguity. If two olive-oil rows belong to different groups and the instruction does not name the group, mark uncertain or omit both.
+- Obvious source URLs, reviews/comments, nutrition estimates, storage notes, and unavailable/paywall placeholders are non-actionable and must receive no proposals.
 - Never rewrite recipe text, invent ingredients, create indexes, or add explanatory prose.
 
 Use confidence "high" only for strongly supported proposals. Use "uncertain" or omit the proposal whenever doubt remains.`
@@ -116,25 +117,6 @@ function ingredientContexts(ingredients: string[]): IngredientContext[] {
   return result
 }
 
-function containsNormalizedPhrase(source: string, phrase: string): boolean {
-  if (!phrase) return false
-  return ` ${normalizeText(source)} `.includes(` ${normalizeText(phrase)} `)
-}
-
-function validateUsage(
-  usage: AiCookingStepResolution['steps'][number]['ingredients'][number]['usage'],
-  instruction: string,
-): CookingIngredientUsage | undefined | null {
-  if (!usage) return undefined
-  const quantityText = usage.quantityText?.trim().replace(/\s+/g, ' ')
-  const normalizedInstruction = instruction.trim().replace(/\s+/g, ' ').toLowerCase()
-  if (quantityText && !normalizedInstruction.includes(quantityText.toLowerCase())) return null
-  if (usage.kind === 'remaining' && !REMAINING_LANGUAGE.test(instruction)) return null
-  if (usage.kind === 'partial' && !quantityText && !PARTIAL_LANGUAGE.test(instruction)) return null
-  if (usage.kind === 'all' && !ALL_LANGUAGE.test(instruction)) return null
-  return quantityText ? { kind: usage.kind, quantityText } : { kind: usage.kind }
-}
-
 function competingIdentityIndexes(
   candidates: AiCookingStepResolution['steps'][number]['ingredients'],
   contexts: IngredientContext[],
@@ -154,31 +136,6 @@ function competingIdentityIndexes(
     for (const index of indexes) conflicts.add(index)
   }
   return conflicts
-}
-
-function groundedPreparedComponent(
-  label: string,
-  instructionIndex: number,
-  ingredients: string[],
-  instructions: string[],
-): string | null {
-  const concise = label.trim().replace(/\s+/g, ' ').replace(/^the\s+/i, '')
-  const normalized = normalizeText(concise)
-  if (!concise || concise.length > 80 || !normalized) return null
-  const tail = normalized.split(' ').at(-1)
-  if (!tail || !COMPONENT_WORDS.has(tail)) return null
-
-  const currentInstruction = instructions[instructionIndex] || ''
-  const headerGrounded = ingredients
-    .filter(isIngredientSubheader)
-    .some(header => containsNormalizedPhrase(header, concise) || containsNormalizedPhrase(concise, normalizeHeader(header)))
-  const nearbyInstructionGrounded = instructions
-    .slice(Math.max(0, instructionIndex - 2), instructionIndex + 1)
-    .some(instruction => containsNormalizedPhrase(instruction, concise))
-
-  return containsNormalizedPhrase(currentInstruction, concise) || headerGrounded || nearbyInstructionGrounded
-    ? concise
-    : null
 }
 
 /**
@@ -209,7 +166,7 @@ export function mergeValidatedAiCookingMappings(
   let acceptedAiAssociation = false
   const steps = deterministicMap.steps.map(step => {
     const proposals = proposalsByStep.get(step.instructionIndex)
-    if (!proposals?.length) return {
+    if (!proposals?.length || isNonActionableCookingInstruction(instructions[step.instructionIndex] || '')) return {
       ...step,
       ingredients: step.ingredients.map(reference => reference.usage
         ? { ...reference, usage: { ...reference.usage } }
@@ -226,14 +183,19 @@ export function mergeValidatedAiCookingMappings(
       const index = proposal.ingredientIndex
       if (proposal.confidence !== 'high' || !Number.isInteger(index) || index < 0 || index >= ingredients.length) continue
       if (contexts[index]?.header || conflicts.has(index) || deterministicIndexes.has(index) || acceptedIndexes.has(index)) continue
-      const usage = validateUsage(proposal.usage, instructions[step.instructionIndex] || '')
-      if (usage === null) continue
+      const grounding = validateAiCookingIngredientReference(
+        ingredients,
+        instructions[step.instructionIndex] || '',
+        index,
+        proposal.usage as CookingIngredientUsage | undefined,
+      )
+      if (!grounding.accepted) continue
       acceptedIndexes.add(index)
       aiIngredients.push({
         ingredientIndex: index,
         confidence: 'high',
         provenance: 'ai',
-        ...(usage ? { usage } : {}),
+        ...(grounding.usage ? { usage: grounding.usage } : {}),
       })
     }
 
@@ -241,7 +203,7 @@ export function mergeValidatedAiCookingMappings(
     const aiPreparedComponents: CookingPreparedComponentReference[] = []
     for (const proposal of proposals.flatMap(item => item.preparedComponents)) {
       if (proposal.confidence !== 'high') continue
-      const label = groundedPreparedComponent(proposal.label, step.instructionIndex, ingredients, instructions)
+      const label = groundCookingPreparedComponent(proposal.label, step.instructionIndex, ingredients, instructions)
       const normalized = label ? normalizeText(label) : ''
       if (!label || existingPreparedLabels.has(normalized)) continue
       existingPreparedLabels.add(normalized)
@@ -326,5 +288,6 @@ export async function resolveCookingStepMappingsWithAi(
     system: COOKING_STEP_MAPPING_SYSTEM_PROMPT,
     prompt: buildCookingStepMappingPrompt(deterministicMap, ingredients, instructions),
     schema: AI_COOKING_STEP_RESOLUTION_SCHEMA,
+    temperature: 0,
   })
 }

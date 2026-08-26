@@ -20,7 +20,7 @@ async function hybridIngredientMapFor(
   return {
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
-    engineVersion: 'hybrid-v1',
+    engineVersion: 'hybrid-v2',
     sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
     steps: [{
       instructionIndex: 0,
@@ -34,8 +34,8 @@ async function hybridIngredientMap(): Promise<{
   instructions: string[]
   mapping: CookingStepIngredientMap
 }> {
-  const ingredients = ['For the sauce:', '1 tbsp olive oil', 'For the salad:', '1 tbsp olive oil']
-  const instructions = ['Add the olive oil.']
+  const ingredients = ['For the sauce:', '1 tbsp olive oil']
+  const instructions = ['Add the oil to the marinade.']
   return {
     ingredients,
     instructions,
@@ -56,7 +56,7 @@ async function preparedComponentMap(): Promise<{
     mapping: {
       schemaVersion: 1,
       parserVersion: 'recipe-content-v1',
-      engineVersion: 'hybrid-v1',
+      engineVersion: 'hybrid-v2',
       sourceHash: await computeCookingMappingSourceHash(ingredients, instructions),
       steps: [{
         instructionIndex: 0,
@@ -109,8 +109,8 @@ describe('Cooking Mode mapping cutover', () => {
 
   it('does not let a stale async resolution overwrite newer effective content', async () => {
     const first = await hybridIngredientMap()
-    const secondIngredients = ['For the soup:', '1 tsp salt', 'For the garnish:', '1 tsp salt']
-    const secondInstructions = ['Add the salt.']
+    const secondIngredients = ['For the soup:', '1 tsp sesame oil']
+    const secondInstructions = ['Add the oil to the marinade.']
     const secondMapping = await hybridIngredientMapFor(secondIngredients, secondInstructions, 1)
     const actualDigest = crypto.subtle.digest.bind(crypto.subtle)
     const firstBytes = new TextEncoder().encode(canonicalizeCookingMappingSource(first.ingredients, first.instructions))
@@ -132,10 +132,10 @@ describe('Cooking Mode mapping cutover', () => {
 
     const toggle = await screen.findByRole('button', { name: /1 Ingredient/ })
     fireEvent.click(toggle)
-    expect(screen.getByRole('button', { name: '1 tsp salt' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: '1 tsp sesame oil' })).not.toBeNull()
     await act(async () => { releaseFirst() })
     await waitFor(() => expect(screen.queryByRole('button', { name: '1 tbsp olive oil' })).toBeNull())
-    expect(screen.getByRole('button', { name: '1 tsp salt' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: '1 tsp sesame oil' })).not.toBeNull()
   })
 
   it('uses deterministic mapping for garlic and optional Parmesan without a stored map', async () => {
