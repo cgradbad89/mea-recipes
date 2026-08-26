@@ -52,6 +52,13 @@ const NOTES_BOUNDARY = /^notes?:$/i
 const EXACT_INSTRUCTION_BOUNDARY = /^(?:PREP|ON THE STOVE)$/i
 const TERMINAL_PAGE_BLOCK = /^(?:OUR LATEST NEWSLETTER|5 Secrets of Authentic Chinese Cooking)$/i
 const PAGE_CONTROL_LINE = /^(?:add (?:ingredients? )?to (?:your )?grocery list|shop ingredients? on instacart|email grocery list|save recipe|(?:cook mode )?prevent your screen from going dark|get the guide for free)$/i
+const INSTRUCTION_REVIEW_BOUNDARY = /^(?:Have you cooked this\?(?: Mark as Cooked)?|COOKING NOTES|Comments?|Reviews?|Reader notes|Ratings?|.{1,80}\d+\s+years? ago)$/i
+const INSTRUCTION_FOOTER_BOUNDARY = /^(?:Storage(?: Suggestions?)?:\s*|(?:📊\s*)?Nutrition Estimate:|Nutrition(?:al Information)?:$)/i
+const INSTRUCTION_FOOTER_LINE = /^(?:Note:\s*The nutritional information\b|Recipe Source:\s*https?:\/\/\S+)/i
+const INSTRUCTION_PAGE_CONTROL = /^(?:Make the recipe with us|On Off)$/i
+const PREP_METHOD_HEADING = /^PREP:?$/i
+const STOVE_METHOD_HEADING = /^ON THE STOVE:?$/i
+const STANDALONE_STEP_HEADING = /^Step\s+(\d+):?$/i
 const METADATA_LABEL_LINE = /^(?:yield|scale|prep(?: time)?|cook(?: time)?|total(?: time)?|rating|nutrition(?:al information)?|serves?|servings?|units? usm|us customary\s*-\s*metric|metric conversion)(?::.*)?$/i
 const METADATA_TIME_VALUE = /^\d+(?:\.\d+)?\s+(?:minutes?|hours?)(?:\s+minutes?)?(?:\s*\(.*\))?$/i
 const METADATA_SERVINGS_VALUE = /^\d+(?:\s+(?:to|[-\u2013\u2014])\s+\d+)?\s+servings?$/i
@@ -160,6 +167,69 @@ function filterIngredientSpan(span: string[]): string[] {
   return ingredients
 }
 
+function findPrepMethodStart(lines: string[], ingredientStart: number): number {
+  if (ingredientStart === -1) return -1
+  const prepStart = lines.findIndex((line, index) =>
+    index > ingredientStart && PREP_METHOD_HEADING.test(sectionHeadingCandidate(line)),
+  )
+  if (prepStart === -1) return -1
+
+  const stoveStart = lines.findIndex((line, index) =>
+    index > prepStart && STOVE_METHOD_HEADING.test(sectionHeadingCandidate(line)),
+  )
+  if (stoveStart === -1) return -1
+
+  const hasPrepAction = lines.slice(prepStart + 1, stoveStart).some(line => line.length > 10)
+  const hasStoveAction = lines.slice(stoveStart + 1).some(line => line.length > 10)
+  return hasPrepAction && hasStoveAction ? prepStart : -1
+}
+
+function findSequentialStepMethod(lines: string[], ingredientStart: number): {
+  start: number
+  instructions: string[]
+} | null {
+  if (ingredientStart === -1) return null
+
+  const headings = lines.flatMap((line, index) => {
+    if (index <= ingredientStart) return []
+    const match = STANDALONE_STEP_HEADING.exec(line)
+    return match ? [{ index, number: Number(match[1]) }] : []
+  })
+  const first = headings.findIndex(heading => heading.number === 1)
+  if (first === -1) return null
+
+  const sequence = headings.slice(first)
+  if (sequence.length < 2 || sequence.some((heading, index) => heading.number !== index + 1)) {
+    return null
+  }
+
+  const instructions = sequence.map(heading => lines[heading.index + 1] || '')
+  if (instructions.some(line => line.length <= 10 || STANDALONE_STEP_HEADING.test(line))) {
+    return null
+  }
+
+  return { start: sequence[0].index, instructions }
+}
+
+function filterInstructionSpan(span: string[]): string[] {
+  const instructions: string[] = []
+  for (const line of span) {
+    if (INSTRUCTION_REVIEW_BOUNDARY.test(line) || INSTRUCTION_FOOTER_BOUNDARY.test(line)) break
+    if (
+      isExplicitUrl(line) ||
+      INSTRUCTION_FOOTER_LINE.test(line) ||
+      INSTRUCTION_PAGE_CONTROL.test(line) ||
+      PREP_METHOD_HEADING.test(line) ||
+      STOVE_METHOD_HEADING.test(line)
+    ) continue
+    if (line.length <= 10) continue
+
+    const stripped = line.replace(/^Step\s+\d+\s*/i, '').trim()
+    if (stripped.length > 10) instructions.push(stripped)
+  }
+  return instructions
+}
+
 // Parse ingredients and steps out of the raw content field
 export function parseRecipeContent(content: string): {
   sourceURL: string
@@ -179,7 +249,16 @@ export function parseRecipeContent(content: string): {
   // Multiple top-level ingredient sections are ambiguous in the single-recipe
   // content model. Refuse to collapse composite content into one ingredient list.
   const ingStart = ingredientHeadingIndexes.length === 1 ? ingredientHeadingIndexes[0] : -1
-  const instStart = lines.findIndex(isInstructionHeading)
+  const ordinaryInstStart = lines.findIndex(isInstructionHeading)
+  const prepInstStart = ordinaryInstStart === -1 ? findPrepMethodStart(lines, ingStart) : -1
+  const numberedStepMethod = ordinaryInstStart === -1 && prepInstStart === -1
+    ? findSequentialStepMethod(lines, ingStart)
+    : null
+  const instStart = ordinaryInstStart !== -1
+    ? ordinaryInstStart
+    : prepInstStart !== -1
+      ? prepInstStart
+      : numberedStepMethod?.start ?? -1
 
   let ingredients: string[] = []
   let instructions: string[] = []
@@ -194,12 +273,13 @@ export function parseRecipeContent(content: string): {
     )
   }
 
-  if (instStart !== -1) {
-    const rawSteps = lines.slice(instStart + 1)
-    instructions = rawSteps
-      .filter(l => l.length > 10)
-      .map(l => l.replace(/^Step\s+\d+\s*/i, '').trim())
-      .filter(l => l.length > 10)
+  if (numberedStepMethod) {
+    // This no-heading fallback is intentionally limited to the single content
+    // line immediately following each exact, sequential standalone Step N label.
+    // That bounds the method without making generic Tip/Notes prose terminal.
+    instructions = filterInstructionSpan(numberedStepMethod.instructions)
+  } else if (instStart !== -1) {
+    instructions = filterInstructionSpan(lines.slice(instStart + 1))
   }
 
   const descLines = lines.filter(

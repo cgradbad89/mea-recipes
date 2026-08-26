@@ -11,6 +11,7 @@ import {
 const ROOT = path.resolve(import.meta.dirname, '..')
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/audits/cooking-step-mapping-dryrun-v4-2026-08-26.json'), 'utf8'))
 const audit = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/audits/excluded-recipe-source-parser-audit-2026-08-26.json'), 'utf8'))
+const validation = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/audits/excluded-recipe-parser-wave1a-validation-2026-08-26.json'), 'utf8'))
 
 describe('excluded recipe source/parser audit', () => {
   it('covers exactly the 49 manifest-defined exclusions in deterministic recipe-id order', () => {
@@ -44,6 +45,43 @@ describe('excluded recipe source/parser audit', () => {
     expect(source).not.toMatch(/\.doc\s*\(/)
     expect(source).not.toMatch(/\.batch\s*\(|bulkWriter|runTransaction|FieldValue|setDoc|updateDoc|deleteDoc/)
     expect(source).not.toMatch(/--apply|apply=true/)
+  })
+
+  it('keeps the Wave 1A validator read-only and free of mapping/AI execution', () => {
+    const source = fs.readFileSync(path.join(ROOT, 'scripts/validate-excluded-recipe-parser-wave1a.mjs'), 'utf8')
+    expect(source.match(/\.collection\('recipes'\)\.get\(\)/g)).toHaveLength(1)
+    expect(source).not.toMatch(/\.doc\s*\(|\.batch\s*\(|bulkWriter|runTransaction|FieldValue|setDoc|updateDoc|deleteDoc/)
+    expect(source).not.toMatch(/generateText|generateObject|AI_GATEWAY|buildHashedDeterministicCookingStepMap|--apply|apply=true/)
+  })
+
+  it('locks the live all-236 Wave 1A safety result and excluded-population outcome', () => {
+    expect(validation.productionBaseline).toEqual({
+      sharedRecipes: 236,
+      mappedRecipes: 187,
+      excludedRecipes: 49,
+      existingMappedHashMismatches: 0,
+    })
+    expect(validation.allCorpusImpact).toEqual({
+      NO_CHANGE: 200,
+      EXPECTED_EXCLUDED_REPAIR: 36,
+      UNEXPECTED_CHANGE: 0,
+      unexpectedRecipeIds: [],
+      missingExpectedRecipeIds: [],
+    })
+    expect(validation.mappedCorpusSafety).toEqual({
+      ingredientArrayChanges: 0,
+      instructionArrayChanges: 0,
+      sourceHashChanges: 0,
+      currentStoredSourceHashMismatches: 0,
+      persistedMapInvalidations: 0,
+    })
+    expect(validation.excludedRecipeResults.previouslyExcluded).toBe(49)
+    expect(validation.excludedRecipeResults.excludedRecipesImproved).toBe(36)
+    expect(validation.excludedRecipeResults.parserOnlyRepaired).toBe(28)
+    expect(validation.excludedRecipeResults.stillExcluded).toBe(21)
+    expect(validation.excludedRecipeResults.affectedRecipes).toHaveLength(36)
+    expect(validation.parserVersion).toEqual({ value: 'recipe-content-v1', retained: true })
+    expect(validation.productionMutation).toEqual({ firestoreWrites: 0, recipeWrites: 0, mapWrites: 0, aiCalls: 0 })
   })
 
   it('simulations are pure and deterministic', () => {

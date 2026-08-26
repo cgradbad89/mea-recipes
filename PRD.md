@@ -349,7 +349,20 @@ retained as historical data and are not modified or deleted by this app.
 6. **Ingredient/instruction parsing** — `parseRecipeContent` (`lib/recipeContent.ts`, re-exported by
    `lib/recipes.ts`) splits the flat `content` string into ingredients/instructions by exact,
    case-insensitive header keywords (`INGREDIENTS`, `INSTRUCTIONS`, etc.) and strips `Step N`
-   prefixes. Both the normal two-heading path and the capped ingredient-heading-only fallback apply
+   prefixes. Instructions apply six evidence-bound Wave 1A controls: complete standalone absolute
+   HTTP(S) lines are filtered; exact review/comment chrome and the audited bounded author/date shape
+   terminate the method; exact storage/nutrition footer labels terminate while the exact nutritional-
+   information note and `Recipe Source: <absolute URL>` line are filtered; exact known page controls
+   (`Make the recipe with us`, `On Off`) are filtered; an exact `PREP` section followed by `ON THE
+   STOVE` can start a method only when no ordinary instruction heading exists and both phases contain
+   method content; and a no-heading fallback accepts an exact standalone `Step 1` only when followed by
+   at least `Step 2` in a complete sequential run, taking the single content line after each standalone
+   step label. Ordinary instruction headings always take precedence. `Prep: 20 minutes`, isolated Step
+   text, embedded/actionable URL prose, and broad human-language inference do not activate these rules.
+   Generic NOTES termination, generic Tip termination, and generic first-person termination are
+   prohibited: the corpus audit showed that NOTES and Tip would remove useful mapped cooking guidance
+   and invalidate 9 and 4 persisted source hashes, while first-person prose is not reliable review
+   evidence. Both the normal two-heading path and the capped ingredient-heading-only fallback apply
    the same conservative content controls: anchored audited metadata values/labels, bare HTTP(S)
    URLs, exact page controls, bounded rating-to-yield preambles, and exact terminal blocks (`Notes:`,
    `PREP`, `ON THE STOVE`, and the audited newsletter/guide markers). These are deliberately not a
@@ -1128,16 +1141,18 @@ retained as historical data and are not modified or deleted by this app.
   shared persisted map only when canonically source-equivalent and otherwise safely fall back to
   deterministic-v4; override-specific maps remain pending. See
   `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`.
-- **The 49 mapping-excluded recipes now have a source/parser remediation audit, but no repairs are
-  applied.** The 2026-08-26 read-only audit re-confirmed 236 shared / 187 mapped / 49 unmapped and
-  classified the exclusions as 28 parser-only, 15 source-only, and 6 mixed. Six evidence-bound
-  parser concepts (standalone URL filtering, precise review/comment boundaries, exact footer/page
-  chrome handling, and conservative PREP/numbered-step fallbacks) changed zero parsed ingredients,
-  instructions, or source hashes in the 187 mapped corpus. Broad NOTES and Tip terminators are unsafe:
-  they would make meaningful parse changes and invalidate 9 and 4 persisted maps respectively while
-  removing useful cooking guidance. Use the documented hybrid waves; any broader parser change must
-  rerun all-236 simulation and deliberately revalidate every affected mapped sourceHash. See
-  `docs/audits/excluded-recipe-source-parser-audit-2026-08-26.md`.
+- **Wave 1A repaired the zero-collateral parser subset; remaining source/data defects are still
+  excluded.** The 2026-08-26 implementation was simulated against all 236 live recipes by comparing
+  the immutable pre-change parser with the new parser on one production snapshot: 200 `NO_CHANGE`, 36
+  expected excluded-recipe improvements, and 0 unexpected changes. All 187 persisted-map recipes kept
+  byte-identical ingredient arrays, instruction arrays, and canonical source hashes, with 0 stored-hash
+  mismatches or map invalidations; `recipe-content-v1` therefore remains valid. The 28 parser-only rows
+  are parse-clean. Twenty-one recipes remain excluded: the six mixed parser/data rows, seven data-only
+  rows, five reimports, Maple Pecans manual-source recovery, and two product decisions. No recipe or map
+  was written, and newly parse-clean recipes still require fresh sourceHash-bound mapping generation,
+  semantic review, and a later separately authorized apply. Generic NOTES, Tip, and first-person
+  terminators remain prohibited. See
+  `docs/audits/excluded-recipe-parser-wave1a-validation-2026-08-26.md`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1227,7 +1242,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`mole-poblano`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
-| Cooking-step ingredient mapping | High | Partial (eligible-corpus backfill done; excluded-source and personal-override work pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done / remediation pending**: 49/49 audited; implement the zero-collateral six-rule parser package for 28 parser-only recipes, then six mixed source+parser repairs, seven recoverable data repairs, five re-imports, one manual-source recovery, and two product decisions. Every repaired recipe then needs a fresh v4 sourceHash/mapping audit; broad NOTES/Tip parser rules are rejected because they change 9/4 mapped recipes. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/excluded-recipe-source-parser-audit-2026-08-26.md`, and the preserved v1-v4 audit evidence. |
+| Cooking-step ingredient mapping | High | Partial (eligible-corpus backfill and Wave 1A parser remediation done; source/data and personal-override work pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A zero-collateral parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data cleanup — Pending** (six recipes). **Wave 3 recoverable data-only repair — Pending** (seven recipes). **Wave 4 re-import/manual source recovery — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). **Fresh mapping audit/review/apply for repaired recipes — Pending** and must remain separate from source writes. Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/excluded-recipe-parser-wave1a-validation-2026-08-26.md`, and the preserved v1-v4 audit evidence. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |

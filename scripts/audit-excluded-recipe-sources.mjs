@@ -20,8 +20,8 @@ const require = createRequire(import.meta.url)
 const { loadEnv, getAdmin } = require('./_lib.js')
 const DATE = '2026-08-26'
 const MANIFEST_PATH = 'docs/audits/cooking-step-mapping-dryrun-v4-2026-08-26.json'
-const OUTPUT_JSON = `docs/audits/excluded-recipe-source-parser-audit-${DATE}.json`
-const OUTPUT_MD = `docs/audits/excluded-recipe-source-parser-audit-${DATE}.md`
+const DEFAULT_OUTPUT_JSON = `docs/audits/excluded-recipe-source-parser-audit-${DATE}.json`
+const DEFAULT_OUTPUT_MD = `docs/audits/excluded-recipe-source-parser-audit-${DATE}.md`
 const APPLY_COMMIT = '8ae34a3daaa50b9ee41a55aec2d3a72520d73929'
 
 const DISPOSITIONS = new Set([
@@ -610,7 +610,17 @@ export async function main() {
   const inputIndex = process.argv.indexOf('--input')
   const inputPath = inputIndex === -1 ? null : process.argv[inputIndex + 1]
   if (inputIndex !== -1 && !inputPath) throw new Error('--input requires a path')
-  const unsupported = process.argv.slice(2).filter((arg, index, all) => arg !== '--input' && all[index - 1] !== '--input')
+  const outputJsonIndex = process.argv.indexOf('--output-json')
+  const outputJson = outputJsonIndex === -1 ? DEFAULT_OUTPUT_JSON : process.argv[outputJsonIndex + 1]
+  if (outputJsonIndex !== -1 && !outputJson) throw new Error('--output-json requires a path')
+  const outputMdIndex = process.argv.indexOf('--output-md')
+  const outputMd = outputMdIndex === -1 ? DEFAULT_OUTPUT_MD : process.argv[outputMdIndex + 1]
+  if (outputMdIndex !== -1 && !outputMd) throw new Error('--output-md requires a path')
+  const valueIndexes = new Set([inputIndex + 1, outputJsonIndex + 1, outputMdIndex + 1])
+  const supportedFlags = new Set(['--input', '--output-json', '--output-md'])
+  const unsupported = process.argv.slice(2).filter((arg, index) =>
+    !supportedFlags.has(arg) && !valueIndexes.has(index + 2),
+  )
   if (unsupported.length > 0) throw new Error(`Unsupported options: ${unsupported.join(', ')}`)
   const manifestRows = JSON.parse(fs.readFileSync(path.join(ROOT, MANIFEST_PATH), 'utf8'))
   const recipes = (await readRecipes(inputPath)).sort((a, b) => a.id.localeCompare(b.id))
@@ -674,14 +684,14 @@ export async function main() {
     if (!backfillCommitPresent) throw new Error(`Required backfill commit is not present: ${APPLY_COMMIT}`)
     if (Object.keys(REMEDIATION_SPECS).length !== 49) throw new Error(`Expected 49 remediation specs, got ${Object.keys(REMEDIATION_SPECS).length}`)
     if (rows.some(row => !DISPOSITIONS.has(row.recommendedDisposition) || !DEFECT_TYPES.has(row.primaryDefect))) throw new Error('Invalid classification')
-    fs.writeFileSync(path.join(ROOT, OUTPUT_JSON), `${JSON.stringify(audit, null, 2)}\n`)
-    fs.writeFileSync(path.join(ROOT, OUTPUT_MD), markdown(audit))
+    fs.writeFileSync(path.resolve(ROOT, outputJson), `${JSON.stringify(audit, null, 2)}\n`)
+    fs.writeFileSync(path.resolve(ROOT, outputMd), markdown(audit))
     console.log(JSON.stringify({
       executiveResult: audit.executiveResult,
       productionBaseline: audit.productionBaseline,
       primaryDefects: audit.summary.primaryDefects,
       dispositions: audit.summary.dispositions,
-      outputs: [OUTPUT_JSON, OUTPUT_MD],
+      outputs: [outputJson, outputMd],
     }, null, 2))
   } finally { await modules.close() }
 }

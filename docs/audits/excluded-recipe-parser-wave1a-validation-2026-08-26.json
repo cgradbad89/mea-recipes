@@ -1,0 +1,444 @@
+{
+  "validationDate": "2026-08-26",
+  "executiveResult": "PASS WITH LIMITATION",
+  "repository": {
+    "branch": "main",
+    "head": "8af7af7070ba17168a1ed29ec85c7503af718a39",
+    "baselineParserCommit": "8af7af7070ba17168a1ed29ec85c7503af718a39"
+  },
+  "productionBaseline": {
+    "sharedRecipes": 236,
+    "mappedRecipes": 187,
+    "excludedRecipes": 49,
+    "existingMappedHashMismatches": 0
+  },
+  "allCorpusImpact": {
+    "NO_CHANGE": 200,
+    "EXPECTED_EXCLUDED_REPAIR": 36,
+    "UNEXPECTED_CHANGE": 0,
+    "unexpectedRecipeIds": [],
+    "missingExpectedRecipeIds": []
+  },
+  "mappedCorpusSafety": {
+    "ingredientArrayChanges": 0,
+    "instructionArrayChanges": 0,
+    "sourceHashChanges": 0,
+    "currentStoredSourceHashMismatches": 0,
+    "persistedMapInvalidations": 0
+  },
+  "excludedRecipeResults": {
+    "previouslyExcluded": 49,
+    "excludedRecipesImproved": 36,
+    "parserOnlyRepaired": 28,
+    "stillExcluded": 21,
+    "affectedRecipes": [
+      {
+        "recipeId": "chana-masala",
+        "beforeExclusion": "EXCLUDE_METADATA",
+        "disposition": "DATA_FIX_ONLY",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "notes_appended_to_instruction_section",
+        "ingredientsBefore": 16,
+        "ingredientsAfter": 16,
+        "instructionsBefore": 12,
+        "instructionsAfter": 9
+      },
+      {
+        "recipeId": "chicken-enchiladas",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_AND_DATA_FIX",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "standalone_url_plus_mixed_note_content",
+        "ingredientsBefore": 11,
+        "ingredientsAfter": 11,
+        "instructionsBefore": 5,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "chicken-fajitas",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 10,
+        "ingredientsAfter": 10,
+        "instructionsBefore": 7,
+        "instructionsAfter": 6
+      },
+      {
+        "recipeId": "chicken-paprikash",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 13,
+        "ingredientsAfter": 13,
+        "instructionsBefore": 5,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "chicken-stew",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_AND_DATA_FIX",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "standalone_url_plus_mixed_note_content",
+        "ingredientsBefore": 20,
+        "ingredientsAfter": 20,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "chicken-tacos-w-pineapple",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 21,
+        "ingredientsAfter": 21,
+        "instructionsBefore": 9,
+        "instructionsAfter": 8
+      },
+      {
+        "recipeId": "chimichurri-chicken",
+        "beforeExclusion": "EXCLUDE_REVIEW_COMMENT",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 12,
+        "ingredientsAfter": 12,
+        "instructionsBefore": 15,
+        "instructionsAfter": 7
+      },
+      {
+        "recipeId": "chinese-chili-oil",
+        "beforeExclusion": "EXCLUDE_METADATA",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 14,
+        "ingredientsAfter": 14,
+        "instructionsBefore": 7,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "couscous-salad-with-lime-basil-vinaigrette",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_AND_DATA_FIX",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "standalone_url_plus_mixed_note_content",
+        "ingredientsBefore": 18,
+        "ingredientsAfter": 18,
+        "instructionsBefore": 5,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "crazy-good-dal-adas-spicy-red-lentil-tamarind-soup",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 14,
+        "ingredientsAfter": 14,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "creamy-cauliflower-soup-with-rosemary-olive-oil",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_AND_DATA_FIX",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "standalone_url_plus_mixed_note_content",
+        "ingredientsBefore": 14,
+        "ingredientsAfter": 14,
+        "instructionsBefore": 7,
+        "instructionsAfter": 6
+      },
+      {
+        "recipeId": "crisp-gnocchi-with-brussels-sprouts-and-brown-butter",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 9,
+        "ingredientsAfter": 9,
+        "instructionsBefore": 4,
+        "instructionsAfter": 3
+      },
+      {
+        "recipeId": "crispy-gnocchi-with-burst-tomatoes-and-mozzarella",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 9,
+        "ingredientsAfter": 9,
+        "instructionsBefore": 5,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "crispy-gnocchi-with-sausage-and-broccoli",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 11,
+        "ingredientsAfter": 11,
+        "instructionsBefore": 4,
+        "instructionsAfter": 3
+      },
+      {
+        "recipeId": "crunchy-queso-wrap",
+        "beforeExclusion": "EXCLUDE_NO_INSTRUCTIONS",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 19,
+        "ingredientsAfter": 20,
+        "instructionsBefore": 0,
+        "instructionsAfter": 6
+      },
+      {
+        "recipeId": "curried-red-bean-soup-with-kale",
+        "beforeExclusion": "EXCLUDE_REVIEW_COMMENT",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 15,
+        "ingredientsAfter": 15,
+        "instructionsBefore": 8,
+        "instructionsAfter": 7
+      },
+      {
+        "recipeId": "curry-tomatoes-and-chickpeas-with-cucumber-yogurt",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 12,
+        "ingredientsAfter": 12,
+        "instructionsBefore": 5,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "filipino-brased-chicken-tocino",
+        "beforeExclusion": "EXCLUDE_NO_INSTRUCTIONS",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 13,
+        "ingredientsAfter": 13,
+        "instructionsBefore": 0,
+        "instructionsAfter": 10
+      },
+      {
+        "recipeId": "huevos-rotos-broken-eggs",
+        "beforeExclusion": "EXCLUDE_REVIEW_COMMENT",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 10,
+        "ingredientsAfter": 10,
+        "instructionsBefore": 11,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "kung-pao-tofu",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 21,
+        "ingredientsAfter": 21,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "onepot-chicken-and-lentil",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 12,
+        "ingredientsAfter": 12,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "onepot-chicken-and-rice-with-caramelized-lemon",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 12,
+        "ingredientsAfter": 12,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "onepot-ratatouille-pasta",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 15,
+        "ingredientsAfter": 15,
+        "instructionsBefore": 4,
+        "instructionsAfter": 3
+      },
+      {
+        "recipeId": "peanut-butter-oat-protein-shake",
+        "beforeExclusion": "EXCLUDE_METADATA",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 9,
+        "ingredientsAfter": 9,
+        "instructionsBefore": 10,
+        "instructionsAfter": 1
+      },
+      {
+        "recipeId": "pearl-couscous-with-creamy-feta-and-chickpeas-meh",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 16,
+        "ingredientsAfter": 16,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "pepper-steak",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_AND_DATA_FIX",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "standalone_url_plus_mixed_note_content",
+        "ingredientsBefore": 13,
+        "ingredientsAfter": 13,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      },
+      {
+        "recipeId": "peruvian-chicken-w-green-sauce",
+        "beforeExclusion": "EXCLUDE_METADATA",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 21,
+        "ingredientsAfter": 21,
+        "instructionsBefore": 7,
+        "instructionsAfter": 6
+      },
+      {
+        "recipeId": "peruvian-roasted-chicken-with-spicy-cilantro-sauce",
+        "beforeExclusion": "EXCLUDE_REVIEW_COMMENT",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 26,
+        "ingredientsAfter": 26,
+        "instructionsBefore": 9,
+        "instructionsAfter": 7
+      },
+      {
+        "recipeId": "pork-fried-rice",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_AND_DATA_FIX",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "standalone_url_plus_mixed_note_content",
+        "ingredientsBefore": 16,
+        "ingredientsAfter": 16,
+        "instructionsBefore": 15,
+        "instructionsAfter": 14
+      },
+      {
+        "recipeId": "pozole-verde-wowza",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 23,
+        "ingredientsAfter": 23,
+        "instructionsBefore": 12,
+        "instructionsAfter": 11
+      },
+      {
+        "recipeId": "roasted-white-bean-and-tomato-pasta",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 12,
+        "ingredientsAfter": 12,
+        "instructionsBefore": 8,
+        "instructionsAfter": 7
+      },
+      {
+        "recipeId": "sheetpan-gochujang-chicken-and-roasted-vegetables",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 13,
+        "ingredientsAfter": 13,
+        "instructionsBefore": 5,
+        "instructionsAfter": 4
+      },
+      {
+        "recipeId": "spicy-ovenfried-rice-with-gochujang-and-fried-eggs",
+        "beforeExclusion": "EXCLUDE_REVIEW_COMMENT",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 13,
+        "ingredientsAfter": 13,
+        "instructionsBefore": 15,
+        "instructionsAfter": 6
+      },
+      {
+        "recipeId": "vegetarian-skillet-chili",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 15,
+        "ingredientsAfter": 15,
+        "instructionsBefore": 5,
+        "instructionsAfter": 3
+      },
+      {
+        "recipeId": "zesty-quinoa-salad",
+        "beforeExclusion": "EXCLUDE_METADATA",
+        "disposition": "REIMPORT_REQUIRED",
+        "afterParseStatus": "IMPROVED_STILL_EXCLUDED",
+        "remainingDefect": "wrong_recipe_method",
+        "ingredientsBefore": 13,
+        "ingredientsAfter": 13,
+        "instructionsBefore": 4,
+        "instructionsAfter": 3
+      },
+      {
+        "recipeId": "zibdiyit-gambari-spicy-shrimp-and-tomato-stew",
+        "beforeExclusion": "EXCLUDE_SOURCE_URL",
+        "disposition": "PARSER_FIX_ONLY",
+        "afterParseStatus": "PARSE_CLEAN",
+        "remainingDefect": null,
+        "ingredientsBefore": 14,
+        "ingredientsAfter": 14,
+        "instructionsBefore": 6,
+        "instructionsAfter": 5
+      }
+    ]
+  },
+  "parserVersion": {
+    "value": "recipe-content-v1",
+    "retained": true
+  },
+  "rejectedRulesImplemented": [],
+  "productionMutation": {
+    "firestoreWrites": 0,
+    "recipeWrites": 0,
+    "mapWrites": 0,
+    "aiCalls": 0
+  }
+}
