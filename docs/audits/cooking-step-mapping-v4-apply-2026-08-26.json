@@ -1,0 +1,84 @@
+{
+  "result": "PASS",
+  "execution": {
+    "applyStartedAt": "2026-08-26T16:03:19.162Z",
+    "externalPostApplyDryRunStartedAt": "2026-08-26T16:03:35.001Z"
+  },
+  "approvedManifest": {
+    "path": "docs/audits/cooking-step-mapping-dryrun-v4-2026-08-26.json",
+    "sha256": "b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88",
+    "rows": 236,
+    "ready": 187,
+    "review": 0,
+    "excluded": 49,
+    "error": 0,
+    "existingMap": 0
+  },
+  "validationEvidence": {
+    "path": "docs/audits/cooking-step-mapping-semantic-review-v4-2026-08-26.json",
+    "sha256": "2ccd255d9606960e9ac32fcc4ffa49937bbd3e2ffaf3ea2a95bbb620b31f60ae",
+    "purpose": "Precomputed deterministic-v4 validation baselines only; never used to select rows or candidates."
+  },
+  "repository": {
+    "branch": "main",
+    "startingSha": "4a333704537873444f7e2d531ff8f96ad5486caf",
+    "approvedAuditCommit": "4a333704537873444f7e2d531ff8f96ad5486caf",
+    "auditedMappingSha": "abd3e82e8d64ca4dd5dde6ca754f5d4260411525"
+  },
+  "preflight": {
+    "manifestReadyRows": 187,
+    "readyToWrite": 187,
+    "skipped": 0,
+    "skipRows": [],
+    "unexpectedErrors": 0
+  },
+  "apply": {
+    "attemptedWrites": 187,
+    "committedWrites": 187,
+    "batchCount": 1,
+    "writeField": "cookingStepIngredientMap only",
+    "updateTimePreconditions": 187,
+    "commitError": null
+  },
+  "readback": {
+    "writtenRowsReread": 187,
+    "exactCandidateMatches": 187,
+    "sourceHashMatches": 187,
+    "candidateValidationPasses": 187,
+    "nonMapFieldMismatches": 0,
+    "unexpectedStates": 0
+  },
+  "excluded": {
+    "rows": 49,
+    "preexistingMaps": 0,
+    "writesByThisApply": 0,
+    "postApplyMutations": 0
+  },
+  "nonReadyWrites": {
+    "review": 0,
+    "error": 0,
+    "existingMap": 0
+  },
+  "postApplyDryRun": {
+    "readyToWrite": 0,
+    "skipped": 187,
+    "skippedMapAlreadyPresent": 187,
+    "otherSkips": 0,
+    "unexpectedErrors": 0,
+    "excludedMapsPresent": 0
+  },
+  "aiAndRecomputation": {
+    "aiCalls": 0,
+    "deterministicMappingGenerations": 0,
+    "hybridMappingGenerations": 0,
+    "manifestCandidateSubstitutions": 0
+  },
+  "dataIntegrity": {
+    "rawNonMapDocumentMismatches": 0,
+    "contentChanges": 0,
+    "nutritionChanges": 0,
+    "categoryCuisineChanges": 0,
+    "timeServingsChanges": 0,
+    "unknownFieldChanges": 0
+  }
+}
