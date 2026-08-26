@@ -1,0 +1,594 @@
+{
+  "schemaVersion": 1,
+  "wave": "Wave 2 exact-content repair",
+  "executionDate": "2026-08-26",
+  "createdAt": "2026-08-26T21:12:26.524Z",
+  "authorizedRecipeIds": [
+    "chicken-enchiladas",
+    "chicken-stew",
+    "couscous-salad-with-lime-basil-vinaigrette",
+    "creamy-cauliflower-soup-with-rosemary-olive-oil",
+    "pepper-steak",
+    "pork-fried-rice"
+  ],
+  "counts": {
+    "rows": 6,
+    "READY": 6,
+    "SKIP": 0
+  },
+  "invariants": {
+    "parserChanges": 0,
+    "mappingGeneration": 0,
+    "mappingWrites": 0,
+    "aiCalls": 0,
+    "permittedWriteField": "content"
+  },
+  "rows": [
+    {
+      "recipeId": "chicken-enchiladas",
+      "title": "Chicken Enchiladas",
+      "beforeContentSha256": "95d6bf1bba9a7fa59c966b1af9618ff63917dfd2124f68c085d5f7be487636ef",
+      "beforeSourceHash": "b1bb32a6b99f0365df0b092195f4c250d9c11f496f64751e67fdb6edbc426a28",
+      "operation": "MOVE_EXISTING_TEXT",
+      "editOperations": [
+        {
+          "type": "MOVE_EXISTING_TEXT",
+          "currentDefect": "The final serving step mixes actionable method with freezer-storage guidance; raw source URL and ingredient metadata/chrome remain in the stored serialization.",
+          "exactContaminatingText": [
+            "Yield:",
+            "6 servings",
+            "Add ingredients to Grocery List",
+            "Shop ingredients on Instacart",
+            "Nutritional Information"
+          ],
+          "textRemaining": {
+            "ingredients": [
+              "¼ cup vegetable oil",
+              "12 (6-inch) corn tortillas",
+              "½ medium white onion, chopped",
+              "1 medium poblano or green bell pepper, stemmed, seeded and chopped",
+              "3 garlic cloves, finely chopped",
+              "2 large tomatoes, cored and finely chopped",
+              "Kosher salt (such as Diamond Crystal)",
+              "2 cups cooked shredded chicken (from a roast chicken or rotisserie chicken)",
+              "2 ½ cups enchilada sauce or from 2 (10-ounce) cans",
+              "12 ounces (3 cups) sharp Cheddar, shredded",
+              "Pico de gallo, for serving (optional)"
+            ],
+            "instructions": [
+              "Heat the oven to 400 degrees. Using 2 tablespoons of the oil, lightly brush both sides of each tortilla. Heat a large skillet or griddle over medium-high and, working in batches, cook tortillas until lightly browned and just starting to crisp but still pliable, 45 seconds to 1 minute per side. (This will prevent the tortillas from completely falling apart while cooking.) Set aside.",
+              "Heat the remaining 2 tablespoons of oil in a large skillet over medium-high and cook onion, poblano, garlic, tomatoes and juices, and 1 teaspoon salt, stirring and scraping up any browned bits, until most of the liquid has evaporated and tomatoes begin to stick to the skillet, 9 to 11 minutes. Stir in chicken, ½ cup enchilada sauce and ½ teaspoon salt until combined and just warmed through; remove from heat. Taste and season with additional salt, if necessary.",
+              "Pour ½ cup enchilada sauce into a 9-by-13-inch baking dish, spreading to cover the bottom. Working one at a time, arrange a scant ¼ cup of chicken down the center of the tortilla, roll to secure the filling and place seam side down in the baking dish. Repeat with remaining tortillas and chicken, making sure they’re nestled right up against each other.",
+              "Pour the remaining enchilada sauce over the tortillas, then scatter cheese on top. Bake until the sauce is bubbling and the cheese is just beginning to brown, 15 to 20 minutes. Serve warm topped with pico de gallo, if desired."
+            ],
+            "notes": [
+              "For leftovers, divide remaining enchiladas into portions of 2 or 3; wrap each portion tightly in plastic wrap or place in a freezer bag, squeeze out the air, seal and freeze for up to 3 months."
+            ]
+          },
+          "textRemoved": [
+            "Yield:",
+            "6 servings",
+            "Add ingredients to Grocery List",
+            "Shop ingredients on Instacart",
+            "Nutritional Information"
+          ],
+          "textRepositioned": [
+            "For leftovers, divide remaining enchiladas into portions of 2 or 3; wrap each portion tightly in plastic wrap or place in a freezer bag, squeeze out the air, seal and freeze for up to 3 months.",
+            "https://cooking.nytimes.com/recipes/1024437-chicken-enchiladas"
+          ],
+          "sourceSupport": "The audit identifies the exact “For leftovers” boundary in the existing final step and classifies the suffix as useful storage guidance rather than cooking method."
+        }
+      ],
+      "proposedContent": "https://cooking.nytimes.com/recipes/1024437-chicken-enchiladas\n\nNOTES\nFor leftovers, divide remaining enchiladas into portions of 2 or 3; wrap each portion tightly in plastic wrap or place in a freezer bag, squeeze out the air, seal and freeze for up to 3 months.\n\nINGREDIENTS\n¼ cup vegetable oil\n12 (6-inch) corn tortillas\n½ medium white onion, chopped\n1 medium poblano or green bell pepper, stemmed, seeded and chopped\n3 garlic cloves, finely chopped\n2 large tomatoes, cored and finely chopped\nKosher salt (such as Diamond Crystal)\n2 cups cooked shredded chicken (from a roast chicken or rotisserie chicken)\n2 ½ cups enchilada sauce or from 2 (10-ounce) cans\n12 ounces (3 cups) sharp Cheddar, shredded\nPico de gallo, for serving (optional)\n\nINSTRUCTIONS\nStep 1\nHeat the oven to 400 degrees. Using 2 tablespoons of the oil, lightly brush both sides of each tortilla. Heat a large skillet or griddle over medium-high and, working in batches, cook tortillas until lightly browned and just starting to crisp but still pliable, 45 seconds to 1 minute per side. (This will prevent the tortillas from completely falling apart while cooking.) Set aside.\nStep 2\nHeat the remaining 2 tablespoons of oil in a large skillet over medium-high and cook onion, poblano, garlic, tomatoes and juices, and 1 teaspoon salt, stirring and scraping up any browned bits, until most of the liquid has evaporated and tomatoes begin to stick to the skillet, 9 to 11 minutes. Stir in chicken, ½ cup enchilada sauce and ½ teaspoon salt until combined and just warmed through; remove from heat. Taste and season with additional salt, if necessary.\nStep 3\nPour ½ cup enchilada sauce into a 9-by-13-inch baking dish, spreading to cover the bottom. Working one at a time, arrange a scant ¼ cup of chicken down the center of the tortilla, roll to secure the filling and place seam side down in the baking dish. Repeat with remaining tortillas and chicken, making sure they’re nestled right up against each other.\nStep 4\nPour the remaining enchilada sauce over the tortillas, then scatter cheese on top. Bake until the sauce is bubbling and the cheese is just beginning to brown, 15 to 20 minutes. Serve warm topped with pico de gallo, if desired.",
+      "proposedContentSha256": "ba01c07fd1ed11a5696acd40db0f3b4795455262933f3413a4234e4605fd0f2d",
+      "proposedSourceHash": "8025b2ff8a67c98a30ba43a180bcd1dd7dd3f8593c94268a5725c275e1534de8",
+      "proposedParse": {
+        "ingredients": [
+          "¼ cup vegetable oil",
+          "12 (6-inch) corn tortillas",
+          "½ medium white onion, chopped",
+          "1 medium poblano or green bell pepper, stemmed, seeded and chopped",
+          "3 garlic cloves, finely chopped",
+          "2 large tomatoes, cored and finely chopped",
+          "Kosher salt (such as Diamond Crystal)",
+          "2 cups cooked shredded chicken (from a roast chicken or rotisserie chicken)",
+          "2 ½ cups enchilada sauce or from 2 (10-ounce) cans",
+          "12 ounces (3 cups) sharp Cheddar, shredded",
+          "Pico de gallo, for serving (optional)"
+        ],
+        "instructions": [
+          "Heat the oven to 400 degrees. Using 2 tablespoons of the oil, lightly brush both sides of each tortilla. Heat a large skillet or griddle over medium-high and, working in batches, cook tortillas until lightly browned and just starting to crisp but still pliable, 45 seconds to 1 minute per side. (This will prevent the tortillas from completely falling apart while cooking.) Set aside.",
+          "Heat the remaining 2 tablespoons of oil in a large skillet over medium-high and cook onion, poblano, garlic, tomatoes and juices, and 1 teaspoon salt, stirring and scraping up any browned bits, until most of the liquid has evaporated and tomatoes begin to stick to the skillet, 9 to 11 minutes. Stir in chicken, ½ cup enchilada sauce and ½ teaspoon salt until combined and just warmed through; remove from heat. Taste and season with additional salt, if necessary.",
+          "Pour ½ cup enchilada sauce into a 9-by-13-inch baking dish, spreading to cover the bottom. Working one at a time, arrange a scant ¼ cup of chicken down the center of the tortilla, roll to secure the filling and place seam side down in the baking dish. Repeat with remaining tortillas and chicken, making sure they’re nestled right up against each other.",
+          "Pour the remaining enchilada sauce over the tortillas, then scatter cheese on top. Bake until the sauce is bubbling and the cheese is just beginning to brown, 15 to 20 minutes. Serve warm topped with pico de gallo, if desired."
+        ]
+      },
+      "safety": {
+        "allAddedTextExistsInOriginal": true,
+        "inventedFacts": false,
+        "parserClean": true,
+        "existingMapAbsent": true
+      },
+      "classification": "READY"
+    },
+    {
+      "recipeId": "chicken-stew",
+      "title": "Chicken Stew",
+      "beforeContentSha256": "0450ed680c63ab86169f532bf1eac8457b5f3b45eb721c84cf448810282657ed",
+      "beforeSourceHash": "f1d62a826e78ed847d1091418e616347d122fc676be123daeb4de6c89fa16ac6",
+      "operation": "MOVE_EXISTING_TEXT",
+      "editOperations": [
+        {
+          "type": "MOVE_EXISTING_TEXT",
+          "currentDefect": "An exact Tip freezer/reheating note follows the completed method; yield metadata and the source URL are mixed into the raw section structure.",
+          "exactContaminatingText": [
+            "Yield: 4 servings"
+          ],
+          "textRemaining": {
+            "ingredients": [
+              "2 tablespoons butter",
+              "2 tablespoons olive oil",
+              "1 medium onion, diced (about 6 ounces)",
+              "2 medium carrots, peeled and diced (about 5 ounces)",
+              "3 stalks celery, diced (about 3 ounces)",
+              "4 garlic cloves, minced",
+              "½ teaspoon sweet paprika",
+              "Salt and black pepper",
+              "3 tablespoons all-purpose flour",
+              "4 cups chicken broth",
+              "1 tablespoon apple cider vinegar",
+              "1 ½ pounds boneless, skinless chicken thighs ( 3 to 4 depending on size)",
+              "1 pound baby potatoes, cut into quarters",
+              "2 red bell peppers",
+              "½ cup coconut milk",
+              "½ teaspoon dried sage",
+              "½ teaspoon dried thyme",
+              "½ teaspoon dried oregano",
+              "Fresh parsley, for serving",
+              "Lemon wedges, for serving"
+            ],
+            "instructions": [
+              "Heat a large pot or Dutch oven on medium. Add butter, olive oil, onion, carrots, celery, garlic, paprika and a big pinch of salt and cook, stirring frequently, until onion is translucent, 5 to 7 minutes.",
+              "Add flour and stir for 1 minute. Add chicken broth and vinegar and stir until flour is incorporated.",
+              "Add chicken thighs, potatoes, bell pepper, coconut milk, sage, thyme, oregano, and 1 teaspoon each of salt and black pepper. Bring the stew to a gentle boil on medium-high and then reduce heat to maintain a simmer. Simmer, with the lid partially covering the pot, until the chicken is cooked through, about 20 minutes.",
+              "Transfer the chicken to a plate. Completely cover the pot with the lid and let the vegetables cook for 5 to 10 minutes, until desired doneness. Meanwhile, shred the chicken into bite-size pieces with two forks, then return the chicken to the pot. Season to taste with more salt and pepper. Serve warm, garnished with parsley, with lemon wedges on the side if desired."
+            ],
+            "notes": [
+              "The stew can be frozen for up to 3 months, then defrosted for easy reheating."
+            ]
+          },
+          "textRemoved": [
+            "Yield: 4 servings"
+          ],
+          "textRepositioned": [
+            "The stew can be frozen for up to 3 months, then defrosted for easy reheating.",
+            "https://cooking.nytimes.com/recipes/1026609-chicken-stew"
+          ],
+          "sourceSupport": "The audit identifies the existing Tip line as useful storage guidance that belongs outside Cooking Mode."
+        }
+      ],
+      "proposedContent": "https://cooking.nytimes.com/recipes/1026609-chicken-stew\n\nNOTES\nThe stew can be frozen for up to 3 months, then defrosted for easy reheating.\n\nINGREDIENTS\n2 tablespoons butter\n2 tablespoons olive oil\n1 medium onion, diced (about 6 ounces)\n2 medium carrots, peeled and diced (about 5 ounces)\n3 stalks celery, diced (about 3 ounces)\n4 garlic cloves, minced\n½ teaspoon sweet paprika\nSalt and black pepper\n3 tablespoons all-purpose flour\n4 cups chicken broth\n1 tablespoon apple cider vinegar\n1 ½ pounds boneless, skinless chicken thighs ( 3 to 4 depending on size)\n1 pound baby potatoes, cut into quarters\n2 red bell peppers\n½ cup coconut milk\n½ teaspoon dried sage\n½ teaspoon dried thyme\n½ teaspoon dried oregano\nFresh parsley, for serving\nLemon wedges, for serving\n\nINSTRUCTIONS\nStep 1\nHeat a large pot or Dutch oven on medium. Add butter, olive oil, onion, carrots, celery, garlic, paprika and a big pinch of salt and cook, stirring frequently, until onion is translucent, 5 to 7 minutes.\nStep 2\nAdd flour and stir for 1 minute. Add chicken broth and vinegar and stir until flour is incorporated.\nStep 3\nAdd chicken thighs, potatoes, bell pepper, coconut milk, sage, thyme, oregano, and 1 teaspoon each of salt and black pepper. Bring the stew to a gentle boil on medium-high and then reduce heat to maintain a simmer. Simmer, with the lid partially covering the pot, until the chicken is cooked through, about 20 minutes.\nStep 4\nTransfer the chicken to a plate. Completely cover the pot with the lid and let the vegetables cook for 5 to 10 minutes, until desired doneness. Meanwhile, shred the chicken into bite-size pieces with two forks, then return the chicken to the pot. Season to taste with more salt and pepper. Serve warm, garnished with parsley, with lemon wedges on the side if desired.",
+      "proposedContentSha256": "25ae56dfc2018a5d799fcd40eb1c54bb59a235cc0ec1d1f9c1631a8ea86c1be7",
+      "proposedSourceHash": "4c92bd9c06a4d5f38ab2012a90741d8d36af0ac442d2723ca2e13787f7507d2f",
+      "proposedParse": {
+        "ingredients": [
+          "2 tablespoons butter",
+          "2 tablespoons olive oil",
+          "1 medium onion, diced (about 6 ounces)",
+          "2 medium carrots, peeled and diced (about 5 ounces)",
+          "3 stalks celery, diced (about 3 ounces)",
+          "4 garlic cloves, minced",
+          "½ teaspoon sweet paprika",
+          "Salt and black pepper",
+          "3 tablespoons all-purpose flour",
+          "4 cups chicken broth",
+          "1 tablespoon apple cider vinegar",
+          "1 ½ pounds boneless, skinless chicken thighs ( 3 to 4 depending on size)",
+          "1 pound baby potatoes, cut into quarters",
+          "2 red bell peppers",
+          "½ cup coconut milk",
+          "½ teaspoon dried sage",
+          "½ teaspoon dried thyme",
+          "½ teaspoon dried oregano",
+          "Fresh parsley, for serving",
+          "Lemon wedges, for serving"
+        ],
+        "instructions": [
+          "Heat a large pot or Dutch oven on medium. Add butter, olive oil, onion, carrots, celery, garlic, paprika and a big pinch of salt and cook, stirring frequently, until onion is translucent, 5 to 7 minutes.",
+          "Add flour and stir for 1 minute. Add chicken broth and vinegar and stir until flour is incorporated.",
+          "Add chicken thighs, potatoes, bell pepper, coconut milk, sage, thyme, oregano, and 1 teaspoon each of salt and black pepper. Bring the stew to a gentle boil on medium-high and then reduce heat to maintain a simmer. Simmer, with the lid partially covering the pot, until the chicken is cooked through, about 20 minutes.",
+          "Transfer the chicken to a plate. Completely cover the pot with the lid and let the vegetables cook for 5 to 10 minutes, until desired doneness. Meanwhile, shred the chicken into bite-size pieces with two forks, then return the chicken to the pot. Season to taste with more salt and pepper. Serve warm, garnished with parsley, with lemon wedges on the side if desired."
+        ]
+      },
+      "safety": {
+        "allAddedTextExistsInOriginal": true,
+        "inventedFacts": false,
+        "parserClean": true,
+        "existingMapAbsent": true
+      },
+      "classification": "READY"
+    },
+    {
+      "recipeId": "couscous-salad-with-lime-basil-vinaigrette",
+      "title": "Couscous Salad With Lime Basil Vinaigrette",
+      "beforeContentSha256": "a0e899d757eb158534980ef3e6fe1d95fa7831b4ebce7fbc706b289c4f129b1e",
+      "beforeSourceHash": "f622774fba7bb8632e4b0339803c38cc76e0802a62bff3588ad3759fec6c35dc",
+      "operation": "NORMALIZE_SECTION_STRUCTURE",
+      "editOperations": [
+        {
+          "type": "NORMALIZE_SECTION_STRUCTURE",
+          "currentDefect": "Recipe-card controls and scale metadata surround the ingredient/method sections, while weekly-storage guidance is embedded in the final toss/serve step.",
+          "exactContaminatingText": [
+            "PIN RECIPE",
+            "UNITS USM",
+            "SCALE",
+            "1/2 x",
+            "1 x",
+            "2 x",
+            "Cook Mode Prevent your screen from going dark",
+            "On Off"
+          ],
+          "textRemaining": {
+            "ingredients": [
+              "Couscous Sweet Potato Black Bean Salad",
+              "3/4 cup couscous",
+              "1 cup water",
+              "2 sweet potatoes, peeled and diced (about 3 cups)",
+              "one 14-ounce can black beans, drained and rinsed",
+              "2 cups baby spinach, cut into small pieces",
+              "4 ounces crumbled feta cheese",
+              "half a red onion, thinly sliced",
+              "1/2 cup chopped pistachios (optional)",
+              "black pepper to taste",
+              "Lime Basil Vinaigrette",
+              "1 bunch of fresh basil (1/2 cup packed)",
+              "1/2 cup olive oil",
+              "juice of 1–2 limes (to taste)",
+              "1 clove garlic",
+              "1/2 teaspoon kosher salt",
+              "1/2 teaspoon red pepper flakes",
+              "1/4 to 1/2 cup water, if needed"
+            ],
+            "instructions": [
+              "Pulse all dressing ingredients in a food processor until smooth-ish.",
+              "Cook couscous in 1 cup water, according to package directions. Fluff with a fork and cool.",
+              "Place sweet potatoes in a skillet with about 1/2 cup water and a sprinkle of salt. Cover and simmer until fork-tender. Drain and set aside to cool.",
+              "Toss all ingredients together with dressing, season with salt and pepper, and serve!"
+            ],
+            "notes": [
+              "(OR, store each ingredient individually for salads throughout the week.)"
+            ]
+          },
+          "textRemoved": [
+            "PIN RECIPE",
+            "UNITS USM",
+            "SCALE",
+            "1/2 x",
+            "1 x",
+            "2 x",
+            "Cook Mode Prevent your screen from going dark",
+            "On Off"
+          ],
+          "textRepositioned": [
+            "(OR, store each ingredient individually for salads throughout the week.)",
+            "https://pinchofyum.com/couscous-salad-with-lime-basil-vinaigrette#tasty-recipes-61664-jump-target"
+          ],
+          "sourceSupport": "The audit names the exact card chrome and exact parenthetical storage suffix; the remaining sentence is the complete actionable toss/serve step."
+        }
+      ],
+      "proposedContent": "https://pinchofyum.com/couscous-salad-with-lime-basil-vinaigrette#tasty-recipes-61664-jump-target\n\nA bright, zippy, unexpectedly delicious couscous salad that’s packed with sweet potatoes, black beans, spinach, feta, and more – all tossed with a life-changing lime basil vinaigrette!\n\nNOTES\n(OR, store each ingredient individually for salads throughout the week.)\n\nINGREDIENTS\nCouscous Sweet Potato Black Bean Salad\n3/4 cup couscous\n1 cup water\n2 sweet potatoes, peeled and diced (about 3 cups)\none 14-ounce can black beans, drained and rinsed\n2 cups baby spinach, cut into small pieces\n4 ounces crumbled feta cheese\nhalf a red onion, thinly sliced\n1/2 cup chopped pistachios (optional)\nblack pepper to taste\nLime Basil Vinaigrette\n1 bunch of fresh basil (1/2 cup packed)\n1/2 cup olive oil\njuice of 1–2 limes (to taste)\n1 clove garlic\n1/2 teaspoon kosher salt\n1/2 teaspoon red pepper flakes\n1/4 to 1/2 cup water, if needed\n\nINSTRUCTIONS\nStep 1\nPulse all dressing ingredients in a food processor until smooth-ish.\nStep 2\nCook couscous in 1 cup water, according to package directions. Fluff with a fork and cool.\nStep 3\nPlace sweet potatoes in a skillet with about 1/2 cup water and a sprinkle of salt. Cover and simmer until fork-tender. Drain and set aside to cool.\nStep 4\nToss all ingredients together with dressing, season with salt and pepper, and serve!",
+      "proposedContentSha256": "8d335c7178073a658d3c9a1b5b9f7a711d1c89e429e8e8123a380b21d101e8e0",
+      "proposedSourceHash": "00ba98fd6ba25573467103bc344ce5777125f0efb1d52532699de7babc35311a",
+      "proposedParse": {
+        "ingredients": [
+          "Couscous Sweet Potato Black Bean Salad",
+          "3/4 cup couscous",
+          "1 cup water",
+          "2 sweet potatoes, peeled and diced (about 3 cups)",
+          "one 14-ounce can black beans, drained and rinsed",
+          "2 cups baby spinach, cut into small pieces",
+          "4 ounces crumbled feta cheese",
+          "half a red onion, thinly sliced",
+          "1/2 cup chopped pistachios (optional)",
+          "black pepper to taste",
+          "Lime Basil Vinaigrette",
+          "1 bunch of fresh basil (1/2 cup packed)",
+          "1/2 cup olive oil",
+          "juice of 1–2 limes (to taste)",
+          "1 clove garlic",
+          "1/2 teaspoon kosher salt",
+          "1/2 teaspoon red pepper flakes",
+          "1/4 to 1/2 cup water, if needed"
+        ],
+        "instructions": [
+          "Pulse all dressing ingredients in a food processor until smooth-ish.",
+          "Cook couscous in 1 cup water, according to package directions. Fluff with a fork and cool.",
+          "Place sweet potatoes in a skillet with about 1/2 cup water and a sprinkle of salt. Cover and simmer until fork-tender. Drain and set aside to cool.",
+          "Toss all ingredients together with dressing, season with salt and pepper, and serve!"
+        ]
+      },
+      "safety": {
+        "allAddedTextExistsInOriginal": true,
+        "inventedFacts": false,
+        "parserClean": true,
+        "existingMapAbsent": true
+      },
+      "classification": "READY"
+    },
+    {
+      "recipeId": "creamy-cauliflower-soup-with-rosemary-olive-oil",
+      "title": "Creamy Cauliflower Soup With Rosemary Olive Oil",
+      "beforeContentSha256": "58d269f45df73515f8708fddc575254c95e1449123e1947c8f1fee1af294e210",
+      "beforeSourceHash": "729a1b11691ada4cc02f9bdf11d7d2aa59365e948db856485bb5be9744064a35",
+      "operation": "MOVE_EXISTING_TEXT",
+      "editOperations": [
+        {
+          "type": "MOVE_EXISTING_TEXT",
+          "currentDefect": "Reheating and one-week oil-storage guidance is embedded in the final serving step; yield metadata and the source URL remain in the raw serialization.",
+          "exactContaminatingText": [
+            "Yield: 6 servings"
+          ],
+          "textRemaining": {
+            "ingredients": [
+              "For the Rosemary Oil",
+              "1 cup olive oil",
+              "4 (4-inch) sprigs fresh rosemary",
+              "For the Soup",
+              "2 tablespoons olive oil",
+              "1 medium yellow onion, chopped (about 1 cup)",
+              "2 garlic cloves, minced (about 1 tablespoon)",
+              "1 quart low-sodium vegetable stock, plus more as needed for reheating",
+              "1 medium head cauliflower, cored and broken into 1 ½-inch florets (about 2 ½ pounds)",
+              "2 teaspoons kosher salt (such as Diamond Crystal), plus more to taste",
+              "1 teaspoon black pepper, plus more to taste",
+              "Freshly grated zest of 1 lemon, for serving",
+              "For the Croutons (optional)",
+              "3 cups diced rustic country bread (¾-inch pieces)"
+            ],
+            "instructions": [
+              "Make the rosemary oil: In a medium skillet, combine the olive oil and rosemary sprigs. Cook over low heat for 5 minutes, lowering the heat if the oil reaches a full simmer. (You want to cook it at a very gentle simmer to avoid frying the rosemary.) Carefully pour the oil and rosemary into a small bowl, leaving a slick of oil in the pan if you plan to make croutons. Allow the rosemary to cool completely in the oil while you make the soup.",
+              "Make the soup: In a heavy pot or Dutch oven, heat 2 tablespoons olive oil over medium-low. Add the onion and cook, stirring occasionally, until tender and translucent, 6 to 8 minutes. Add the garlic and cook until fragrant, about 30 seconds. (Be careful not to let the garlic scorch!)",
+              "Add the stock, cauliflower, salt and pepper, and bring to a boil over high. Lower the heat, cover, and simmer until the cauliflower is tender when pierced with a fork, about 10 minutes.",
+              "Meanwhile, make the optional croutons: Heat the reserved skillet with the residual rosemary oil over medium. Add the bread cubes, sprinkle generously with salt and pepper, and cook, tossing often, until toasted all over, 4 to 5 minutes. Transfer the croutons to a plate or board to cool.",
+              "Strain and discard the rosemary stems from the rosemary oil. Working in batches if necessary, carefully transfer the vegetables, stock and ¼ cup rosemary oil to a blender and blend on high until creamy. Add more rosemary oil to taste, and blend to combine. Return the soup to the pot and bring to a simmer. If the soup seems thin, let it simmer for 5 to 10 minutes to reduce slightly. (Remember: The soup will continue to thicken as it cools.) Season to taste with salt and pepper.",
+              "Serve hot. Garnish each serving with a swirl of rosemary oil, a few croutons, and a sprinkle of lemon zest."
+            ],
+            "notes": [
+              "The soup will thicken as it sits; add more stock as necessary when reheating. Leftover rosemary oil will keep in a sealed container at room temperature for up to 1 week."
+            ]
+          },
+          "textRemoved": [
+            "Yield: 6 servings"
+          ],
+          "textRepositioned": [
+            "The soup will thicken as it sits; add more stock as necessary when reheating. Leftover rosemary oil will keep in a sealed container at room temperature for up to 1 week.",
+            "https://cooking.nytimes.com/recipes/1020764-creamy-cauliflower-soup-with-rosemary-olive-oil"
+          ],
+          "sourceSupport": "The audit identifies the exact serving/action boundary and the existing reheating/storage suffix as useful non-method guidance."
+        }
+      ],
+      "proposedContent": "https://cooking.nytimes.com/recipes/1020764-creamy-cauliflower-soup-with-rosemary-olive-oil\n\nNOTES\nThe soup will thicken as it sits; add more stock as necessary when reheating. Leftover rosemary oil will keep in a sealed container at room temperature for up to 1 week.\n\nINGREDIENTS\nFor the Rosemary Oil\n1 cup olive oil\n4 (4-inch) sprigs fresh rosemary\nFor the Soup\n2 tablespoons olive oil\n1 medium yellow onion, chopped (about 1 cup)\n2 garlic cloves, minced (about 1 tablespoon)\n1 quart low-sodium vegetable stock, plus more as needed for reheating\n1 medium head cauliflower, cored and broken into 1 ½-inch florets (about 2 ½ pounds)\n2 teaspoons kosher salt (such as Diamond Crystal), plus more to taste\n1 teaspoon black pepper, plus more to taste\nFreshly grated zest of 1 lemon, for serving\nFor the Croutons (optional)\n3 cups diced rustic country bread (¾-inch pieces)\n\nINSTRUCTIONS\nStep 1\nMake the rosemary oil: In a medium skillet, combine the olive oil and rosemary sprigs. Cook over low heat for 5 minutes, lowering the heat if the oil reaches a full simmer. (You want to cook it at a very gentle simmer to avoid frying the rosemary.) Carefully pour the oil and rosemary into a small bowl, leaving a slick of oil in the pan if you plan to make croutons. Allow the rosemary to cool completely in the oil while you make the soup.\nStep 2\nMake the soup: In a heavy pot or Dutch oven, heat 2 tablespoons olive oil over medium-low. Add the onion and cook, stirring occasionally, until tender and translucent, 6 to 8 minutes. Add the garlic and cook until fragrant, about 30 seconds. (Be careful not to let the garlic scorch!)\nStep 3\nAdd the stock, cauliflower, salt and pepper, and bring to a boil over high. Lower the heat, cover, and simmer until the cauliflower is tender when pierced with a fork, about 10 minutes.\nStep 4\nMeanwhile, make the optional croutons: Heat the reserved skillet with the residual rosemary oil over medium. Add the bread cubes, sprinkle generously with salt and pepper, and cook, tossing often, until toasted all over, 4 to 5 minutes. Transfer the croutons to a plate or board to cool.\nStep 5\nStrain and discard the rosemary stems from the rosemary oil. Working in batches if necessary, carefully transfer the vegetables, stock and ¼ cup rosemary oil to a blender and blend on high until creamy. Add more rosemary oil to taste, and blend to combine. Return the soup to the pot and bring to a simmer. If the soup seems thin, let it simmer for 5 to 10 minutes to reduce slightly. (Remember: The soup will continue to thicken as it cools.) Season to taste with salt and pepper.\nStep 6\nServe hot. Garnish each serving with a swirl of rosemary oil, a few croutons, and a sprinkle of lemon zest.",
+      "proposedContentSha256": "722d0747fa4b6338b6bf0f72f57d9a80eb46664680cb2bc32b3ce41451ead4e1",
+      "proposedSourceHash": "66a9ba1ffea647f72b0999606c57fb4646bd38dd7feb7c79f5019846f29fdb1d",
+      "proposedParse": {
+        "ingredients": [
+          "For the Rosemary Oil",
+          "1 cup olive oil",
+          "4 (4-inch) sprigs fresh rosemary",
+          "For the Soup",
+          "2 tablespoons olive oil",
+          "1 medium yellow onion, chopped (about 1 cup)",
+          "2 garlic cloves, minced (about 1 tablespoon)",
+          "1 quart low-sodium vegetable stock, plus more as needed for reheating",
+          "1 medium head cauliflower, cored and broken into 1 ½-inch florets (about 2 ½ pounds)",
+          "2 teaspoons kosher salt (such as Diamond Crystal), plus more to taste",
+          "1 teaspoon black pepper, plus more to taste",
+          "Freshly grated zest of 1 lemon, for serving",
+          "For the Croutons (optional)",
+          "3 cups diced rustic country bread (¾-inch pieces)"
+        ],
+        "instructions": [
+          "Make the rosemary oil: In a medium skillet, combine the olive oil and rosemary sprigs. Cook over low heat for 5 minutes, lowering the heat if the oil reaches a full simmer. (You want to cook it at a very gentle simmer to avoid frying the rosemary.) Carefully pour the oil and rosemary into a small bowl, leaving a slick of oil in the pan if you plan to make croutons. Allow the rosemary to cool completely in the oil while you make the soup.",
+          "Make the soup: In a heavy pot or Dutch oven, heat 2 tablespoons olive oil over medium-low. Add the onion and cook, stirring occasionally, until tender and translucent, 6 to 8 minutes. Add the garlic and cook until fragrant, about 30 seconds. (Be careful not to let the garlic scorch!)",
+          "Add the stock, cauliflower, salt and pepper, and bring to a boil over high. Lower the heat, cover, and simmer until the cauliflower is tender when pierced with a fork, about 10 minutes.",
+          "Meanwhile, make the optional croutons: Heat the reserved skillet with the residual rosemary oil over medium. Add the bread cubes, sprinkle generously with salt and pepper, and cook, tossing often, until toasted all over, 4 to 5 minutes. Transfer the croutons to a plate or board to cool.",
+          "Strain and discard the rosemary stems from the rosemary oil. Working in batches if necessary, carefully transfer the vegetables, stock and ¼ cup rosemary oil to a blender and blend on high until creamy. Add more rosemary oil to taste, and blend to combine. Return the soup to the pot and bring to a simmer. If the soup seems thin, let it simmer for 5 to 10 minutes to reduce slightly. (Remember: The soup will continue to thicken as it cools.) Season to taste with salt and pepper.",
+          "Serve hot. Garnish each serving with a swirl of rosemary oil, a few croutons, and a sprinkle of lemon zest."
+        ]
+      },
+      "safety": {
+        "allAddedTextExistsInOriginal": true,
+        "inventedFacts": false,
+        "parserClean": true,
+        "existingMapAbsent": true
+      },
+      "classification": "READY"
+    },
+    {
+      "recipeId": "pepper-steak",
+      "title": "Pepper Steak",
+      "beforeContentSha256": "f2446d1a92f3f574c82cb5c11318bc07a4609aefea3792fc679dc40c41d01a9f",
+      "beforeSourceHash": "3284da932e6412b91b3eb6e73b79be98ad239fb95ddeba930b2cf8b144cb3cab",
+      "operation": "MOVE_EXISTING_TEXT",
+      "editOperations": [
+        {
+          "type": "MOVE_EXISTING_TEXT",
+          "currentDefect": "An exact Tip contains optional tenderizing guidance after the completed method; yield metadata and the source URL remain in the raw serialization.",
+          "exactContaminatingText": [
+            "Yield: 4 servings"
+          ],
+          "textRemaining": {
+            "ingredients": [
+              "1 pound beef flank or skirt steak (see Tip)",
+              "1 tablespoon cornstarch",
+              "2 ½ teaspoons freshly ground black pepper, plus more for serving",
+              "3 ½ tablespoons soy sauce, plus more to taste",
+              "2 tablespoons neutral oil, plus more for stir-frying",
+              "2 medium fresh green bell peppers or Cubanelle peppers, cut into 1-inch pieces",
+              "1 medium yellow onion, cut into 1-inch pieces",
+              "3 garlic cloves, crushed and thinly sliced",
+              "1 (1 ½-inch) piece ginger, peeled, crushed and thinly sliced",
+              "Salt",
+              "¼ cup Shaoxing wine or dry sherry",
+              "2 tablespoons honey",
+              "Cooked white rice, for serving"
+            ],
+            "instructions": [
+              "Marinate the beef: Cut the steak into 2- or 3-inch-wide pieces along the grain, then cut into thin slices against the grain. In a bowl, combine the steak, cornstarch, black pepper, 2 ½ tablespoons soy sauce and 2 tablespoons oil. Toss to mix, cover and marinate at room temperature for up to 30 minutes (see Tip), or in the refrigerator for up to 12 hours.",
+              "Stir-fry the beef: Heat a large wok or skillet over medium-high until a splash of water dropped into the pan evaporates quickly. Add enough oil to generously coat the pan, then add the beef in a single layer. Cook without flipping until the meat is browned around the edges, 2 ½ to 3 minutes, then stir constantly until browned all over, about 30 more seconds. Transfer to a plate.",
+              "Add the peppers, onion, garlic and ginger to the same wok, still over medium-high heat. Season with salt and pepper. Cook, stirring occasionally, until the vegetables start to soften, 1 to 1 ½ minutes.",
+              "Add the meat back to the pan, along with the Shaoxing wine, honey and the remaining 1 tablespoon soy sauce. Cook, stirring constantly and scraping up any stuck-on bits, until the liquid reduces greatly and slicks the vegetables and beef, 30 seconds to 1 minute. Taste and adjust seasoning with salt, pepper or soy sauce as desired. Serve immediately with rice."
+            ],
+            "notes": [
+              "If using a tougher cut like bottom round steak, add ¼ teaspoon baking soda to tenderize the meat, but don’t let it marinate for longer than 30 minutes or it’ll turn mushy."
+            ]
+          },
+          "textRemoved": [
+            "Yield: 4 servings"
+          ],
+          "textRepositioned": [
+            "If using a tougher cut like bottom round steak, add ¼ teaspoon baking soda to tenderize the meat, but don’t let it marinate for longer than 30 minutes or it’ll turn mushy.",
+            "https://cooking.nytimes.com/recipes/1024320-pepper-steak"
+          ],
+          "sourceSupport": "The audit identifies the existing Tip as useful conditional guidance that belongs outside the canonical actionable method."
+        }
+      ],
+      "proposedContent": "https://cooking.nytimes.com/recipes/1024320-pepper-steak\n\nNOTES\nIf using a tougher cut like bottom round steak, add ¼ teaspoon baking soda to tenderize the meat, but don’t let it marinate for longer than 30 minutes or it’ll turn mushy.\n\nINGREDIENTS\n1 pound beef flank or skirt steak (see Tip)\n1 tablespoon cornstarch\n2 ½ teaspoons freshly ground black pepper, plus more for serving\n3 ½ tablespoons soy sauce, plus more to taste\n2 tablespoons neutral oil, plus more for stir-frying\n2 medium fresh green bell peppers or Cubanelle peppers, cut into 1-inch pieces\n1 medium yellow onion, cut into 1-inch pieces\n3 garlic cloves, crushed and thinly sliced\n1 (1 ½-inch) piece ginger, peeled, crushed and thinly sliced\nSalt\n¼ cup Shaoxing wine or dry sherry\n2 tablespoons honey\nCooked white rice, for serving\n\nINSTRUCTIONS\nStep 1\nMarinate the beef: Cut the steak into 2- or 3-inch-wide pieces along the grain, then cut into thin slices against the grain. In a bowl, combine the steak, cornstarch, black pepper, 2 ½ tablespoons soy sauce and 2 tablespoons oil. Toss to mix, cover and marinate at room temperature for up to 30 minutes (see Tip), or in the refrigerator for up to 12 hours.\nStep 2\nStir-fry the beef: Heat a large wok or skillet over medium-high until a splash of water dropped into the pan evaporates quickly. Add enough oil to generously coat the pan, then add the beef in a single layer. Cook without flipping until the meat is browned around the edges, 2 ½ to 3 minutes, then stir constantly until browned all over, about 30 more seconds. Transfer to a plate.\nStep 3\nAdd the peppers, onion, garlic and ginger to the same wok, still over medium-high heat. Season with salt and pepper. Cook, stirring occasionally, until the vegetables start to soften, 1 to 1 ½ minutes.\nStep 4\nAdd the meat back to the pan, along with the Shaoxing wine, honey and the remaining 1 tablespoon soy sauce. Cook, stirring constantly and scraping up any stuck-on bits, until the liquid reduces greatly and slicks the vegetables and beef, 30 seconds to 1 minute. Taste and adjust seasoning with salt, pepper or soy sauce as desired. Serve immediately with rice.",
+      "proposedContentSha256": "9b8be71341f3e391be3b6675230fad5c94ac39929663b4ca34c918f39f84e496",
+      "proposedSourceHash": "f427dac6a2777f2fdc370680adb477ebc79767673ffddc6bba0f1d86bbb174df",
+      "proposedParse": {
+        "ingredients": [
+          "1 pound beef flank or skirt steak (see Tip)",
+          "1 tablespoon cornstarch",
+          "2 ½ teaspoons freshly ground black pepper, plus more for serving",
+          "3 ½ tablespoons soy sauce, plus more to taste",
+          "2 tablespoons neutral oil, plus more for stir-frying",
+          "2 medium fresh green bell peppers or Cubanelle peppers, cut into 1-inch pieces",
+          "1 medium yellow onion, cut into 1-inch pieces",
+          "3 garlic cloves, crushed and thinly sliced",
+          "1 (1 ½-inch) piece ginger, peeled, crushed and thinly sliced",
+          "Salt",
+          "¼ cup Shaoxing wine or dry sherry",
+          "2 tablespoons honey",
+          "Cooked white rice, for serving"
+        ],
+        "instructions": [
+          "Marinate the beef: Cut the steak into 2- or 3-inch-wide pieces along the grain, then cut into thin slices against the grain. In a bowl, combine the steak, cornstarch, black pepper, 2 ½ tablespoons soy sauce and 2 tablespoons oil. Toss to mix, cover and marinate at room temperature for up to 30 minutes (see Tip), or in the refrigerator for up to 12 hours.",
+          "Stir-fry the beef: Heat a large wok or skillet over medium-high until a splash of water dropped into the pan evaporates quickly. Add enough oil to generously coat the pan, then add the beef in a single layer. Cook without flipping until the meat is browned around the edges, 2 ½ to 3 minutes, then stir constantly until browned all over, about 30 more seconds. Transfer to a plate.",
+          "Add the peppers, onion, garlic and ginger to the same wok, still over medium-high heat. Season with salt and pepper. Cook, stirring occasionally, until the vegetables start to soften, 1 to 1 ½ minutes.",
+          "Add the meat back to the pan, along with the Shaoxing wine, honey and the remaining 1 tablespoon soy sauce. Cook, stirring constantly and scraping up any stuck-on bits, until the liquid reduces greatly and slicks the vegetables and beef, 30 seconds to 1 minute. Taste and adjust seasoning with salt, pepper or soy sauce as desired. Serve immediately with rice."
+        ]
+      },
+      "safety": {
+        "allAddedTextExistsInOriginal": true,
+        "inventedFacts": false,
+        "parserClean": true,
+        "existingMapAbsent": true
+      },
+      "classification": "READY"
+    },
+    {
+      "recipeId": "pork-fried-rice",
+      "title": "Pork Fried Rice",
+      "beforeContentSha256": "55d1d223be392f86a4c1ca9175406d751d4c321f3758e624ca74ad9afeeafb36",
+      "beforeSourceHash": "ac442c9929bf69ee39d95cf2e787fa783bf92dcc4bc436bb592eb770c8c598eb",
+      "operation": "NORMALIZE_SECTION_STRUCTURE",
+      "editOperations": [
+        {
+          "type": "NORMALIZE_SECTION_STRUCTURE",
+          "currentDefect": "Ingredient promotional chrome, a VIDEO marker, and three useful source notes are mixed into the canonical ingredient/method spans; four method subheadings parse as standalone instructions.",
+          "exactContaminatingText": [
+            "5 Secrets of Authentic Chinese Cooking",
+            "Get the guide for FREE",
+            "VIDEO"
+          ],
+          "textRemaining": {
+            "ingredients": [
+              "For the seasoning",
+              "2 tablespoon oyster sauce - see note 1 for substitutes",
+              "1 tablespoon light soy sauce",
+              "½ tablespoon dark soy sauce",
+              "⅛ teaspoon ground white pepper",
+              "For the stir-fry",
+              "2 tablespoon neutral cooking oil - divided",
+              "2 eggs, lightly beaten",
+              "1 cup minced pork - about 225 g/8 oz",
+              "1 small onion, diced",
+              "1 tablespoon minced garlic",
+              "1 teaspoon minced ginger",
+              "½ cup peas - about 50 g/1.8 oz",
+              "½ cup carrot, diced - about 50 g/1.8 oz",
+              "3 cups cold cooked white rice - about 400 g/14 oz (see note 2)",
+              "Scallions, finely chopped - for garnishing"
+            ],
+            "instructions": [
+              "Mix the sauce: In a small bowl, mix oyster sauce, light soy sauce, dark soy sauce and white pepper. Set aside.",
+              "Fry the egg: Heat an empty, well-seasoned wok over high heat until smoking hot. Add 1 tablespoon of oil (see note 3 if using other cookware). Swirl to coat a bigger perimeter.",
+              "Pour in the beaten egg. Once it begins to set at the bottom, stir to help the running part flow. Use a spatula to scramble so that it turns into small pieces. Transfer out and set aside.",
+              "Fry the pork: Pour the remaining 1 tablespoon of oil into the wok. Add minced pork. Spread and flatten it to ensure maximum contact with the wok. Wait for the bottom part to get lightly browned. Then flip and stir to fry it thoroughly.",
+              "Once the pork loses its pink colour, add onion, garlic and ginger. Fry until the onion becomes a little transparent.",
+              "Fry the vegetables & rice: Stir in peas and carrots. Retain the high heat to fry for 30 seconds or so. Add rice and return the egg to the wok. Cook for a further 30-40 seconds.",
+              "Pour the sauce mixture over. Toss and stir constantly to ensure an even coating. Once all the ingredients are piping hot, turn off the heat. Sprinkle scallions over and give everything a final toss."
+            ],
+            "notes": [
+              "1. You may replace oyster sauce with vegetarian stir-fry sauce (素食蚝油), or mushroom vegetarian stir-fry sauce (香菇素食蚝油).",
+              "2. For the optimal fluffiness, check out my post on Three Ways to Cook Rice On the Stove which includes two methods (strainer and steamer) that produce firm, al dente rice that’s perfect for making any fried rice dish.",
+              "3. Please feel free to use a deep skillet/frying pan if you don’t have a wok. No matter which cookware you use, it’s important you never heat it empty if it has a non-stick coating. In this case, add oil first then heat up."
+            ]
+          },
+          "textRemoved": [
+            "5 Secrets of Authentic Chinese Cooking",
+            "Get the guide for FREE",
+            "VIDEO"
+          ],
+          "textRepositioned": [
+            "1. You may replace oyster sauce with vegetarian stir-fry sauce (素食蚝油), or mushroom vegetarian stir-fry sauce (香菇素食蚝油).",
+            "2. For the optimal fluffiness, check out my post on Three Ways to Cook Rice On the Stove which includes two methods (strainer and steamer) that produce firm, al dente rice that’s perfect for making any fried rice dish.",
+            "3. Please feel free to use a deep skillet/frying pan if you don’t have a wok. No matter which cookware you use, it’s important you never heat it empty if it has a non-stick coating. In this case, add oil first then heat up.",
+            "https://redhousespice.com/pork-fried-rice/"
+          ],
+          "sourceSupport": "The audit identifies the exact VIDEO/NOTES footer. Existing method labels are joined to their immediately following action text using punctuation only."
+        }
+      ],
+      "proposedContent": "https://redhousespice.com/pork-fried-rice/\n\nNOTES\n1. You may replace oyster sauce with vegetarian stir-fry sauce (素食蚝油), or mushroom vegetarian stir-fry sauce (香菇素食蚝油).\n2. For the optimal fluffiness, check out my post on Three Ways to Cook Rice On the Stove which includes two methods (strainer and steamer) that produce firm, al dente rice that’s perfect for making any fried rice dish.\n3. Please feel free to use a deep skillet/frying pan if you don’t have a wok. No matter which cookware you use, it’s important you never heat it empty if it has a non-stick coating. In this case, add oil first then heat up.\n\nINGREDIENTS\nFor the seasoning\n2 tablespoon oyster sauce - see note 1 for substitutes\n1 tablespoon light soy sauce\n½ tablespoon dark soy sauce\n⅛ teaspoon ground white pepper\nFor the stir-fry\n2 tablespoon neutral cooking oil - divided\n2 eggs, lightly beaten\n1 cup minced pork - about 225 g/8 oz\n1 small onion, diced\n1 tablespoon minced garlic\n1 teaspoon minced ginger\n½ cup peas - about 50 g/1.8 oz\n½ cup carrot, diced - about 50 g/1.8 oz\n3 cups cold cooked white rice - about 400 g/14 oz (see note 2)\nScallions, finely chopped - for garnishing\n\nINSTRUCTIONS\nStep 1\nMix the sauce: In a small bowl, mix oyster sauce, light soy sauce, dark soy sauce and white pepper. Set aside.\nStep 2\nFry the egg: Heat an empty, well-seasoned wok over high heat until smoking hot. Add 1 tablespoon of oil (see note 3 if using other cookware). Swirl to coat a bigger perimeter.\nStep 3\nPour in the beaten egg. Once it begins to set at the bottom, stir to help the running part flow. Use a spatula to scramble so that it turns into small pieces. Transfer out and set aside.\nStep 4\nFry the pork: Pour the remaining 1 tablespoon of oil into the wok. Add minced pork. Spread and flatten it to ensure maximum contact with the wok. Wait for the bottom part to get lightly browned. Then flip and stir to fry it thoroughly.\nStep 5\nOnce the pork loses its pink colour, add onion, garlic and ginger. Fry until the onion becomes a little transparent.\nStep 6\nFry the vegetables & rice: Stir in peas and carrots. Retain the high heat to fry for 30 seconds or so. Add rice and return the egg to the wok. Cook for a further 30-40 seconds.\nStep 7\nPour the sauce mixture over. Toss and stir constantly to ensure an even coating. Once all the ingredients are piping hot, turn off the heat. Sprinkle scallions over and give everything a final toss.",
+      "proposedContentSha256": "e871bc7857f8c085c7b164b4631434e9927cc9ffea8140f61f74ee593ccc0a38",
+      "proposedSourceHash": "ffe104ddb51f04c1a026d912eb29ef29468cd8c450bde1d8da6407642edc9676",
+      "proposedParse": {
+        "ingredients": [
+          "For the seasoning",
+          "2 tablespoon oyster sauce - see note 1 for substitutes",
+          "1 tablespoon light soy sauce",
+          "½ tablespoon dark soy sauce",
+          "⅛ teaspoon ground white pepper",
+          "For the stir-fry",
+          "2 tablespoon neutral cooking oil - divided",
+          "2 eggs, lightly beaten",
+          "1 cup minced pork - about 225 g/8 oz",
+          "1 small onion, diced",
+          "1 tablespoon minced garlic",
+          "1 teaspoon minced ginger",
+          "½ cup peas - about 50 g/1.8 oz",
+          "½ cup carrot, diced - about 50 g/1.8 oz",
+          "3 cups cold cooked white rice - about 400 g/14 oz (see note 2)",
+          "Scallions, finely chopped - for garnishing"
+        ],
+        "instructions": [
+          "Mix the sauce: In a small bowl, mix oyster sauce, light soy sauce, dark soy sauce and white pepper. Set aside.",
+          "Fry the egg: Heat an empty, well-seasoned wok over high heat until smoking hot. Add 1 tablespoon of oil (see note 3 if using other cookware). Swirl to coat a bigger perimeter.",
+          "Pour in the beaten egg. Once it begins to set at the bottom, stir to help the running part flow. Use a spatula to scramble so that it turns into small pieces. Transfer out and set aside.",
+          "Fry the pork: Pour the remaining 1 tablespoon of oil into the wok. Add minced pork. Spread and flatten it to ensure maximum contact with the wok. Wait for the bottom part to get lightly browned. Then flip and stir to fry it thoroughly.",
+          "Once the pork loses its pink colour, add onion, garlic and ginger. Fry until the onion becomes a little transparent.",
+          "Fry the vegetables & rice: Stir in peas and carrots. Retain the high heat to fry for 30 seconds or so. Add rice and return the egg to the wok. Cook for a further 30-40 seconds.",
+          "Pour the sauce mixture over. Toss and stir constantly to ensure an even coating. Once all the ingredients are piping hot, turn off the heat. Sprinkle scallions over and give everything a final toss."
+        ]
+      },
+      "safety": {
+        "allAddedTextExistsInOriginal": true,
+        "inventedFacts": false,
+        "parserClean": true,
+        "existingMapAbsent": true
+      },
+      "classification": "READY"
+    }
+  ]
+}
