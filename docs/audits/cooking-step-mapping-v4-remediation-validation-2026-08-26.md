@@ -85,7 +85,8 @@ unchanged source/parser eligibility rules. AI calls were zero and writes were ze
 | Prepared components | 76 | 76 | 0 |
 | No-ingredient-use | 54 | 54 | 0 |
 | Non-actionable | 17 | 17 | 0 |
-| AI-eligible recipes | 144 | 145 | +1 |
+| AI-eligible steps | 144 | 145 | +1 |
+| AI-eligible recipes | 95 | 94 | -1 |
 
 The coverage decrease is the intended precision-first outcome and was not optimized away.
 
