@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit:cooking-step-mappings": "node scripts/audit-cooking-step-mappings.mjs"
   },
   "engines": {
     "node": "24.x"
