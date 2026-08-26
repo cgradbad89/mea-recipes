@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "audit:excluded-recipe-sources": "node scripts/audit-excluded-recipe-sources.mjs",
     "audit:cooking-step-mappings": "node scripts/audit-cooking-step-mappings.mjs",
     "apply:cooking-step-mappings-v4": "node scripts/apply-cooking-step-mapping-v4-manifest.mjs"
   },
