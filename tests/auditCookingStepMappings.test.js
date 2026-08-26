@@ -9,7 +9,9 @@ import {
   isAuditAiEligible,
   mapConcurrent,
   parserDefectEvidence,
+  readyManifestInvariant,
   selectStabilitySubset,
+  STABILITY_CLASSIFICATIONS,
   sortManifestRows,
 } from '../scripts/audit-cooking-step-mappings-core.mjs'
 
@@ -37,14 +39,14 @@ describe('cooking-step audit source eligibility', () => {
       { ingredients: ['chicken'], instructions: ['Cook the chicken.'] },
       limits,
     )
-    expect(result.status).toBe('EXCLUDE_PARSER_DEFECT')
+    expect(result.status).toBe('EXCLUDE_STRUCTURAL_DEFECT')
   })
 
   it('records production parse-limit failures deterministically', () => {
     const first = classifyRecipeSource({ content: 'x'.repeat(64_001) }, { ingredients: [], instructions: [] }, limits)
     const second = classifyRecipeSource({ content: 'x'.repeat(64_001) }, { ingredients: [], instructions: [] }, limits)
     expect(first).toEqual(second)
-    expect(first.status).toBe('EXCLUDE_INVALID_CONTENT')
+    expect(first.status).toBe('EXCLUDE_STRUCTURAL_DEFECT')
   })
 })
 
@@ -68,11 +70,17 @@ describe('cooking-step audit AI controls', () => {
     const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
     expect(source).not.toMatch(/\.(?:set|update|delete|create|add|batch|runTransaction)\s*\(/)
     expect(source).not.toMatch(/--apply\b/)
+    expect(source).not.toMatch(/--(?:write|commit|persist)\b/)
   })
 
   it('never loads the historical v1 manifest as candidate input', () => {
     const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
-    expect(source).not.toMatch(/readFileSync\([^\n]*cooking-step-mapping-dryrun-2026-08-25\.json/)
+    expect(source).not.toMatch(/JSON\.parse\(fs\.readFileSync\([^\n]*cooking-step-mapping-dryrun-2026-08-25\.json/)
+  })
+
+  it('never loads the historical v2 manifest as candidate input', () => {
+    const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
+    expect(source).not.toMatch(/JSON\.parse\(fs\.readFileSync\([^\n]*cooking-step-mapping-dryrun-v2-2026-08-26\.json/)
   })
 
   it('uses current live content to parse and hash every baseline candidate', () => {
@@ -87,6 +95,12 @@ describe('cooking-step audit AI controls', () => {
     expect(source).toContain('COOKING_STEP_MAPPING_PROMPT_VERSION')
     expect(source).toContain('COOKING_STEP_MAPPING_TEMPERATURE')
     expect(source).toMatch(/auditVersion,/)
+  })
+
+  it('loads no AI mapper in deterministic-only mode and asserts zero requests', () => {
+    const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
+    expect(source).toContain("mappingAi: mode !== 'deterministic-only'")
+    expect(source).toContain("throw new Error('Deterministic mode attempted AI')")
   })
 
   it('does not retry a successful request', async () => {
@@ -149,6 +163,31 @@ describe('cooking-step audit classification and determinism', () => {
       .map(row => row.recipeId)).toEqual(['a', 'm', 'z'])
   })
 
+  it('requires every READY row to carry a valid candidate, source hash, and absent-map precondition', () => {
+    const hash = 'a'.repeat(64)
+    const ready = {
+      classification: 'READY', sourceHash: hash,
+      candidateMap: { sourceHash: hash },
+      precondition: { currentMapAbsent: true, contentSourceHash: hash },
+      audit: { candidateValidation: { valid: true } },
+    }
+    expect(readyManifestInvariant(ready)).toBe(true)
+    expect(readyManifestInvariant({ ...ready, precondition: { ...ready.precondition, currentMapAbsent: false } })).toBe(false)
+    expect(readyManifestInvariant({ ...ready, sourceHash: null })).toBe(false)
+  })
+
+  it('finalizes and validates the manifest before hashing its exact bytes', () => {
+    const source = fs.readFileSync(new URL('../scripts/audit-cooking-step-mappings.mjs', import.meta.url), 'utf8')
+    const reviews = source.indexOf('assertReviewsFinal(reviews)')
+    const finalize = source.indexOf('const manifest = finalizeRows')
+    const integrity = source.lastIndexOf('assertFinalManifestIntegrity(manifest')
+    const hash = source.indexOf('const manifestSha256 = sha256(manifestBytes)')
+    expect(reviews).toBeGreaterThan(-1)
+    expect(reviews).toBeLessThan(finalize)
+    expect(finalize).toBeLessThan(integrity)
+    expect(integrity).toBeLessThan(hash)
+  })
+
   it('selects only AI-attempted rows for the stability rerun', () => {
     const base = {
       aiAdditions: [], parsed: { ingredients: ['salt'], instructions: ['Season.'] },
@@ -157,7 +196,7 @@ describe('cooking-step audit classification and determinism', () => {
     const selected = selectStabilitySubset([
       { ...base, recipeId: 'called', hybridStats: { aiAttempted: true } },
       { ...base, recipeId: 'not-called', hybridStats: { aiAttempted: false } },
-    ], 30)
+    ], 40)
     expect(selected.map(row => row.recipeId)).toEqual(['called'])
   })
 })
@@ -167,10 +206,21 @@ describe('semantic stability comparison', () => {
     schemaVersion: 1, parserVersion: 'recipe-content-v1', engineVersion: 'hybrid-v1', sourceHash: 'a'.repeat(64),
     steps: [{ instructionIndex: 0, ingredients: [{ ingredientIndex: 1, confidence: 'high', provenance: 'ai' }] }],
   }
-  it('distinguishes exact and material semantic output', () => {
+  it('persists all four v3 stability categories correctly', () => {
+    expect(STABILITY_CLASSIFICATIONS).toEqual([
+      'EXACT_STABLE', 'SEMANTICALLY_STABLE', 'SAFE_OMISSION_DIFFERENCE', 'UNSAFE_MATERIAL_DIFFERENCE',
+    ])
     expect(compareStability(base, structuredClone(base))).toBe('EXACT_STABLE')
     const changed = structuredClone(base)
     changed.steps[0].ingredients[0].ingredientIndex = 2
-    expect(compareStability(base, changed)).toBe('MATERIAL_DIFFERENCE')
+    expect(compareStability(base, changed)).toBe('UNSAFE_MATERIAL_DIFFERENCE')
+    const omitted = structuredClone(base)
+    omitted.steps[0].ingredients = []
+    expect(compareStability(base, omitted)).toBe('SAFE_OMISSION_DIFFERENCE')
+    const reordered = structuredClone(base)
+    reordered.steps[0].ingredients.push({ ingredientIndex: 2, confidence: 'high', provenance: 'ai' })
+    const reverse = structuredClone(reordered)
+    reverse.steps[0].ingredients.reverse()
+    expect(compareStability(reordered, reverse)).toBe('SEMANTICALLY_STABLE')
   })
 })

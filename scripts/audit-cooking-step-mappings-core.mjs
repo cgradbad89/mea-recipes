@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto'
 
 export const AUDIT_CLASSIFICATIONS = ['READY', 'REVIEW', 'EXCLUDED', 'ERROR', 'EXISTING_MAP']
+export const STABILITY_CLASSIFICATIONS = [
+  'EXACT_STABLE',
+  'SEMANTICALLY_STABLE',
+  'SAFE_OMISSION_DIFFERENCE',
+  'UNSAFE_MATERIAL_DIFFERENCE',
+]
 
 const EXACT_URL = /^https?:\/\/\S+$/i
 const PAYWALL_PLACEHOLDER = /^(?:not available|unavailable)\b.*(?:paywall|could not be fetched)/i
@@ -20,22 +26,30 @@ export function parserDefectEvidence(instructions) {
   instructions.forEach((instruction, instructionIndex) => {
     const text = String(instruction || '').trim()
     let defect = null
-    if (EXACT_URL.test(text)) defect = 'source URL parsed as a cooking instruction'
-    else if (PAYWALL_PLACEHOLDER.test(text)) defect = 'unavailable/paywalled placeholder parsed as a cooking instruction'
-    else if (STANDALONE_NON_COOKING_STEP.test(text)) defect = 'standalone nutrition, storage, or source metadata parsed as a cooking instruction'
-    else if (STANDALONE_SOURCE_NOTE.test(text)) defect = 'standalone source note parsed as a cooking instruction'
-    else if (REVIEW_CHROME_OR_COMMENT.test(text) || REVIEW_AUTHOR_LINE.test(text)) defect = 'review/comment chrome parsed as a cooking instruction'
-    if (defect) evidence.push({ instructionIndex, instruction: text, defect })
+    let status = null
+    if (EXACT_URL.test(text)) {
+      defect = 'source URL parsed as a cooking instruction'; status = 'EXCLUDE_SOURCE_URL'
+    } else if (PAYWALL_PLACEHOLDER.test(text)) {
+      defect = 'unavailable/paywalled placeholder parsed as a cooking instruction'; status = 'EXCLUDE_PAYWALL'
+    } else if (STANDALONE_NON_COOKING_STEP.test(text) || STANDALONE_SOURCE_NOTE.test(text)) {
+      defect = STANDALONE_SOURCE_NOTE.test(text)
+        ? 'standalone source note parsed as a cooking instruction'
+        : 'standalone nutrition, storage, or source metadata parsed as a cooking instruction'
+      status = 'EXCLUDE_METADATA'
+    } else if (REVIEW_CHROME_OR_COMMENT.test(text) || REVIEW_AUTHOR_LINE.test(text)) {
+      defect = 'review/comment chrome parsed as a cooking instruction'; status = 'EXCLUDE_REVIEW_COMMENT'
+    }
+    if (defect) evidence.push({ instructionIndex, instruction: text, defect, status })
   })
   return evidence
 }
 
 export function classifyRecipeSource(data, parsed, limits) {
   if (typeof data.content !== 'string' || data.content.trim().length === 0) {
-    return { status: 'EXCLUDE_INVALID_CONTENT', reason: 'Shared recipe content is missing or not a nonempty string.', evidence: [] }
+    return { status: 'EXCLUDE_STRUCTURAL_DEFECT', reason: 'Shared recipe content is missing or not a nonempty string.', evidence: [] }
   }
   if (data.content.length > limits.maxContentLength) {
-    return { status: 'EXCLUDE_INVALID_CONTENT', reason: `Shared content exceeds the production ${limits.maxContentLength}-character limit.`, evidence: [] }
+    return { status: 'EXCLUDE_STRUCTURAL_DEFECT', reason: `Shared content exceeds the production ${limits.maxContentLength}-character limit.`, evidence: [] }
   }
   if (parsed.ingredients.length === 0) {
     return { status: 'EXCLUDE_NO_INGREDIENTS', reason: 'parseRecipeContent returned no ingredients from shared content.', evidence: [] }
@@ -44,19 +58,19 @@ export function classifyRecipeSource(data, parsed, limits) {
     return { status: 'EXCLUDE_NO_INSTRUCTIONS', reason: 'parseRecipeContent returned no instructions from shared content.', evidence: [] }
   }
   if (parsed.ingredients.length > limits.maxIngredients || parsed.instructions.length > limits.maxInstructions) {
-    return { status: 'EXCLUDE_INVALID_CONTENT', reason: 'Parsed source exceeds the production ingredient/instruction count limit.', evidence: [] }
+    return { status: 'EXCLUDE_STRUCTURAL_DEFECT', reason: 'Parsed source exceeds the production ingredient/instruction count limit.', evidence: [] }
   }
   if ([...parsed.ingredients, ...parsed.instructions].some(line => line.length > limits.maxLineLength)) {
-    return { status: 'EXCLUDE_INVALID_CONTENT', reason: `A parsed source line exceeds the production ${limits.maxLineLength}-character limit.`, evidence: [] }
+    return { status: 'EXCLUDE_STRUCTURAL_DEFECT', reason: `A parsed source line exceeds the production ${limits.maxLineLength}-character limit.`, evidence: [] }
   }
   const knownDefect = KNOWN_SOURCE_DEFECTS.get(data.recipeId)
   if (knownDefect) {
-    return { status: 'EXCLUDE_PARSER_DEFECT', reason: knownDefect, evidence: [{ defect: knownDefect }] }
+    return { status: 'EXCLUDE_STRUCTURAL_DEFECT', reason: knownDefect, evidence: [{ defect: knownDefect, status: 'EXCLUDE_STRUCTURAL_DEFECT' }] }
   }
   const evidence = parserDefectEvidence(parsed.instructions)
   if (evidence.length > 0) {
     return {
-      status: 'EXCLUDE_PARSER_DEFECT',
+      status: evidence[0].status,
       reason: evidence.map(item => `Step ${item.instructionIndex}: ${item.defect}.`).join(' '),
       evidence,
     }
@@ -130,10 +144,17 @@ export function aiSemanticSignature(map) {
 
 export function compareStability(primaryMap, repeatMap) {
   if (JSON.stringify(primaryMap) === JSON.stringify(repeatMap)) return 'EXACT_STABLE'
-  if (JSON.stringify(aiSemanticSignature(primaryMap)) === JSON.stringify(aiSemanticSignature(repeatMap))) {
+  const primary = aiSemanticSignature(primaryMap)
+  const repeat = aiSemanticSignature(repeatMap)
+  if (JSON.stringify(primary) === JSON.stringify(repeat)) {
     return 'SEMANTICALLY_STABLE'
   }
-  return 'MATERIAL_DIFFERENCE'
+  const primarySet = new Set(primary)
+  const repeatSet = new Set(repeat)
+  const primarySubset = primary.every(item => repeatSet.has(item))
+  const repeatSubset = repeat.every(item => primarySet.has(item))
+  if (primarySubset || repeatSubset) return 'SAFE_OMISSION_DIFFERENCE'
+  return 'UNSAFE_MATERIAL_DIFFERENCE'
 }
 
 export function isTransientProviderError(error) {
@@ -186,6 +207,16 @@ export function auditPrecondition(row) {
   }
 }
 
+export function readyManifestInvariant(row) {
+  return row?.classification !== 'READY' || (
+    row.precondition?.currentMapAbsent === true &&
+    typeof row.sourceHash === 'string' && /^[a-f0-9]{64}$/.test(row.sourceHash) &&
+    row.precondition?.contentSourceHash === row.sourceHash &&
+    row.candidateMap?.sourceHash === row.sourceHash &&
+    row.audit?.candidateValidation?.valid === true
+  )
+}
+
 export function classifyAuditRecipe(evidence) {
   if (evidence.sourceStatus?.startsWith('EXCLUDE_')) {
     return { classification: 'EXCLUDED', reason: evidence.sourceReason }
@@ -216,7 +247,10 @@ export function classifyAuditRecipe(evidence) {
   if (evidence.deterministicFalsePositive) {
     return { classification: 'EXCLUDED', reason: 'Deterministic semantic sample found an obvious false positive.' }
   }
-  if (evidence.stabilityStatus === 'MATERIAL_DIFFERENCE' || evidence.stabilityStatus === 'ERROR') {
+  if (evidence.stabilityStatus === 'SAFE_OMISSION_DIFFERENCE') {
+    return { classification: 'REVIEW', reason: 'A safe-omission stability difference affects which candidate relationship would be persisted.' }
+  }
+  if (evidence.stabilityStatus === 'UNSAFE_MATERIAL_DIFFERENCE' || evidence.stabilityStatus === 'ERROR') {
     return { classification: 'REVIEW', reason: `Stability check result: ${evidence.stabilityStatus}.` }
   }
   return { classification: 'READY', reason: null }
@@ -226,7 +260,7 @@ export function sortManifestRows(rows) {
   return [...rows].sort((a, b) => a.recipeId.localeCompare(b.recipeId))
 }
 
-export function selectStabilitySubset(rows, target = 30) {
+export function selectStabilitySubset(rows, target = 40) {
   const scored = rows.filter(row => row.hybridStats?.aiAttempted).map(row => {
     const text = row.parsed.instructions.join(' ').toLowerCase()
     const ingredients = row.parsed.ingredients.map(item => item.toLowerCase())
@@ -244,7 +278,7 @@ export function selectStabilitySubset(rows, target = 30) {
     .slice(0, target).map(item => item.row)
 }
 
-export function selectDeterministicSample(rows, target = 80) {
+export function selectDeterministicSample(rows, target = 100) {
   const requiredIds = [
     '194', 'charlie-bird-s-farro-salad', 'easy-spaghetti-with-meat-sauce', 'pesto',
     'roasted-asparagus-with-lemon', 'taco-soup', 'japanese-teriyaki-salmon-bowl',
