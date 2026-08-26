@@ -66,8 +66,8 @@ export const AUTHORIZED_RECIPE_IDS = Object.freeze(Object.values(REPAIR_WAVES).f
 export const EXPECTED_CONFIGURATION = Object.freeze({
   schemaVersion: 1,
   parserVersion: 'recipe-content-v1',
-  deterministicEngineVersion: 'deterministic-v4',
-  hybridEngineVersion: 'hybrid-v4',
+  deterministicEngineVersion: 'deterministic-v5',
+  hybridEngineVersion: 'hybrid-v5',
   promptVersion: 'v2',
   model: 'openai/gpt-5.6-luna',
   temperature: 0,

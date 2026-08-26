@@ -1,0 +1,5902 @@
+[
+  {
+    "recipeId": "chana-masala",
+    "title": "Chana Masala",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "d3bc276df66de4b389bb17060f08b663efa40b2426f0d62ca3af552cb0d30c50",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "d3bc276df66de4b389bb17060f08b663efa40b2426f0d62ca3af552cb0d30c50"
+    },
+    "deterministicStats": {
+      "ingredientCount": 16,
+      "instructionCount": 6,
+      "ingredientReferences": 6,
+      "mappedIngredientReferences": 6,
+      "mappedSteps": 3,
+      "unmappedSteps": 3,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "d3bc276df66de4b389bb17060f08b663efa40b2426f0d62ca3af552cb0d30c50"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chicken-enchiladas",
+    "title": "Chicken Enchiladas",
+    "repairWave": "WAVE_2",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "8025b2ff8a67c98a30ba43a180bcd1dd7dd3f8593c94268a5725c275e1534de8",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "2 tablespoons"
+              }
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1 teaspoon"
+              }
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "½ cup"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "remaining"
+              }
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "8025b2ff8a67c98a30ba43a180bcd1dd7dd3f8593c94268a5725c275e1534de8"
+    },
+    "deterministicStats": {
+      "ingredientCount": 11,
+      "instructionCount": 4,
+      "ingredientReferences": 8,
+      "mappedIngredientReferences": 8,
+      "mappedSteps": 2,
+      "unmappedSteps": 2,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "8025b2ff8a67c98a30ba43a180bcd1dd7dd3f8593c94268a5725c275e1534de8"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chicken-fajitas",
+    "title": "Chicken Fajitas",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "a689d31e5b2b1910f6efa96246d70e8dd8778d937a90b2109a1a99f797b325a2",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [],
+          "unresolvedReason": "prepared-component"
+        }
+      ],
+      "sourceHash": "a689d31e5b2b1910f6efa96246d70e8dd8778d937a90b2109a1a99f797b325a2"
+    },
+    "deterministicStats": {
+      "ingredientCount": 10,
+      "instructionCount": 6,
+      "ingredientReferences": 4,
+      "mappedIngredientReferences": 4,
+      "mappedSteps": 2,
+      "unmappedSteps": 4,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "a689d31e5b2b1910f6efa96246d70e8dd8778d937a90b2109a1a99f797b325a2"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chicken-paprikash",
+    "title": "Chicken Paprikash",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "85b181d18284c0cb8aedc920c6188c9c21ff5a6cffae51aa01b5cca7ee6d6707",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "85b181d18284c0cb8aedc920c6188c9c21ff5a6cffae51aa01b5cca7ee6d6707"
+    },
+    "deterministicStats": {
+      "ingredientCount": 13,
+      "instructionCount": 4,
+      "ingredientReferences": 5,
+      "mappedIngredientReferences": 5,
+      "mappedSteps": 4,
+      "unmappedSteps": 0,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "85b181d18284c0cb8aedc920c6188c9c21ff5a6cffae51aa01b5cca7ee6d6707"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chicken-stew",
+    "title": "Chicken Stew",
+    "repairWave": "WAVE_2",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "4c92bd9c06a4d5f38ab2012a90741d8d36af0ac442d2723ca2e13787f7507d2f",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "4c92bd9c06a4d5f38ab2012a90741d8d36af0ac442d2723ca2e13787f7507d2f"
+    },
+    "deterministicStats": {
+      "ingredientCount": 20,
+      "instructionCount": 4,
+      "ingredientReferences": 9,
+      "mappedIngredientReferences": 9,
+      "mappedSteps": 3,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "4c92bd9c06a4d5f38ab2012a90741d8d36af0ac442d2723ca2e13787f7507d2f"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chicken-tacos-w-pineapple",
+    "title": "Chicken Tacos w/ Pineapple",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "14ae2855766c1917392d86ea910fd3229f5e80df025e150a0132c2464fa26f03",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "2 tablespoons"
+              }
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "preparedComponents": [
+            {
+              "label": "marinade",
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 18,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 20,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1 tablespoon"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 7,
+          "ingredients": [
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        }
+      ],
+      "sourceHash": "14ae2855766c1917392d86ea910fd3229f5e80df025e150a0132c2464fa26f03"
+    },
+    "deterministicStats": {
+      "ingredientCount": 21,
+      "instructionCount": 8,
+      "ingredientReferences": 19,
+      "mappedIngredientReferences": 19,
+      "mappedSteps": 6,
+      "unmappedSteps": 2,
+      "ambiguousSteps": 2,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 2,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 4,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 1,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 3
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 1,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "14ae2855766c1917392d86ea910fd3229f5e80df025e150a0132c2464fa26f03"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chimichurri-chicken",
+    "title": "Chimichurri Chicken",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "79015c852248f272c0b900307588d17099f9ece5ef3d23a9208194599b5b558f",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1/2 teaspoon"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "79015c852248f272c0b900307588d17099f9ece5ef3d23a9208194599b5b558f"
+    },
+    "deterministicStats": {
+      "ingredientCount": 12,
+      "instructionCount": 7,
+      "ingredientReferences": 6,
+      "mappedIngredientReferences": 6,
+      "mappedSteps": 3,
+      "unmappedSteps": 4,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "79015c852248f272c0b900307588d17099f9ece5ef3d23a9208194599b5b558f"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "chinese-chili-oil",
+    "title": "Chinese Chili Oil",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "20ea30f788a9a3ec59eac67523e984b6313766b31b55488ed76c4b735010990a",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "20ea30f788a9a3ec59eac67523e984b6313766b31b55488ed76c4b735010990a"
+    },
+    "deterministicStats": {
+      "ingredientCount": 14,
+      "instructionCount": 5,
+      "ingredientReferences": 5,
+      "mappedIngredientReferences": 5,
+      "mappedSteps": 1,
+      "unmappedSteps": 4,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 2,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 2
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "20ea30f788a9a3ec59eac67523e984b6313766b31b55488ed76c4b735010990a"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "couscous-salad-with-lime-basil-vinaigrette",
+    "title": "Couscous Salad With Lime Basil Vinaigrette",
+    "repairWave": "WAVE_2",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "00ba98fd6ba25573467103bc344ce5777125f0efb1d52532699de7babc35311a",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1 cup"
+              }
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        }
+      ],
+      "sourceHash": "00ba98fd6ba25573467103bc344ce5777125f0efb1d52532699de7babc35311a"
+    },
+    "deterministicStats": {
+      "ingredientCount": 18,
+      "instructionCount": 4,
+      "ingredientReferences": 10,
+      "mappedIngredientReferences": 10,
+      "mappedSteps": 3,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 2,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 3,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 3
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "00ba98fd6ba25573467103bc344ce5777125f0efb1d52532699de7babc35311a"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "crazy-good-dal-adas-spicy-red-lentil-tamarind-soup",
+    "title": "Crazy good Dal Adas (Spicy Red Lentil Tamarind Soup)",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "52cc5f8312300f85ced752be99bce30c7d349f84af26982b7b67fd52c9d1dac6",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "52cc5f8312300f85ced752be99bce30c7d349f84af26982b7b67fd52c9d1dac6"
+    },
+    "deterministicStats": {
+      "ingredientCount": 14,
+      "instructionCount": 5,
+      "ingredientReferences": 8,
+      "mappedIngredientReferences": 8,
+      "mappedSteps": 4,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "52cc5f8312300f85ced752be99bce30c7d349f84af26982b7b67fd52c9d1dac6"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "creamy-cauliflower-soup-with-rosemary-olive-oil",
+    "title": "Creamy Cauliflower Soup With Rosemary Olive Oil",
+    "repairWave": "WAVE_2",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "66a9ba1ffea647f72b0999606c57fb4646bd38dd7feb7c79f5019846f29fdb1d",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "2 tablespoons"
+              }
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "66a9ba1ffea647f72b0999606c57fb4646bd38dd7feb7c79f5019846f29fdb1d"
+    },
+    "deterministicStats": {
+      "ingredientCount": 14,
+      "instructionCount": 6,
+      "ingredientReferences": 5,
+      "mappedIngredientReferences": 5,
+      "mappedSteps": 3,
+      "unmappedSteps": 3,
+      "ambiguousSteps": 1,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "66a9ba1ffea647f72b0999606c57fb4646bd38dd7feb7c79f5019846f29fdb1d"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "crisp-gnocchi-with-brussels-sprouts-and-brown-butter",
+    "title": "Crisp Gnocchi With Brussels Sprouts and Brown Butter",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "6a8578298ec3acfbd0602f020d61fb2e4cc86359b99c024c77268d4b31de40a6",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "6a8578298ec3acfbd0602f020d61fb2e4cc86359b99c024c77268d4b31de40a6"
+    },
+    "deterministicStats": {
+      "ingredientCount": 9,
+      "instructionCount": 3,
+      "ingredientReferences": 5,
+      "mappedIngredientReferences": 5,
+      "mappedSteps": 2,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "6a8578298ec3acfbd0602f020d61fb2e4cc86359b99c024c77268d4b31de40a6"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "crispy-gnocchi-with-burst-tomatoes-and-mozzarella",
+    "title": "Crispy Gnocchi With Burst Tomatoes and Mozzarella",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "49bb6dcfe64e70c2f47d8db1b30c0f483f9ded4583b19300a11773d46922b0ec",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "49bb6dcfe64e70c2f47d8db1b30c0f483f9ded4583b19300a11773d46922b0ec"
+    },
+    "deterministicStats": {
+      "ingredientCount": 9,
+      "instructionCount": 4,
+      "ingredientReferences": 4,
+      "mappedIngredientReferences": 4,
+      "mappedSteps": 1,
+      "unmappedSteps": 3,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "49bb6dcfe64e70c2f47d8db1b30c0f483f9ded4583b19300a11773d46922b0ec"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "crispy-gnocchi-with-sausage-and-broccoli",
+    "title": "Crispy Gnocchi With Sausage and Broccoli",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "3668b1421797914fcc6a14a0f50d9eedd34b2c6129a809318fd4073b91b08072",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "3668b1421797914fcc6a14a0f50d9eedd34b2c6129a809318fd4073b91b08072"
+    },
+    "deterministicStats": {
+      "ingredientCount": 11,
+      "instructionCount": 3,
+      "ingredientReferences": 5,
+      "mappedIngredientReferences": 5,
+      "mappedSteps": 2,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "3668b1421797914fcc6a14a0f50d9eedd34b2c6129a809318fd4073b91b08072"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "crunchy-queso-wrap",
+    "title": "Crunchy Queso Wrap",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "90694fd2c8418e164113f36d5355d422edd63fc5d5370b3df96cffdd383a8ee1",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 19,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "90694fd2c8418e164113f36d5355d422edd63fc5d5370b3df96cffdd383a8ee1"
+    },
+    "deterministicStats": {
+      "ingredientCount": 20,
+      "instructionCount": 6,
+      "ingredientReferences": 3,
+      "mappedIngredientReferences": 3,
+      "mappedSteps": 2,
+      "unmappedSteps": 4,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "SAFE_OMISSION_DIFFERENCE",
+      "details": "The repeat accepts the correctly established filling used in assembly while the primary safely omits it; neither run asserts an incorrect relationship."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "90694fd2c8418e164113f36d5355d422edd63fc5d5370b3df96cffdd383a8ee1"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "curried-red-bean-soup-with-kale",
+    "title": "Curried Red Bean Soup With Kale",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "f676ae7d502f2f3c00a870138e7f222e34f42c114a085c027d659ac1c4db7f1b",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "½ teaspoon"
+              }
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "f676ae7d502f2f3c00a870138e7f222e34f42c114a085c027d659ac1c4db7f1b"
+    },
+    "deterministicStats": {
+      "ingredientCount": 15,
+      "instructionCount": 7,
+      "ingredientReferences": 10,
+      "mappedIngredientReferences": 10,
+      "mappedSteps": 4,
+      "unmappedSteps": 3,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "f676ae7d502f2f3c00a870138e7f222e34f42c114a085c027d659ac1c4db7f1b"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "curry-tomatoes-and-chickpeas-with-cucumber-yogurt",
+    "title": "Curry Tomatoes and Chickpeas With Cucumber Yogurt",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "6632f42e7d1b6fc49210727b88def918e2371adf52e22d553a6353e12ede93bb",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "half"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "6632f42e7d1b6fc49210727b88def918e2371adf52e22d553a6353e12ede93bb"
+    },
+    "deterministicStats": {
+      "ingredientCount": 12,
+      "instructionCount": 4,
+      "ingredientReferences": 6,
+      "mappedIngredientReferences": 6,
+      "mappedSteps": 3,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "6632f42e7d1b6fc49210727b88def918e2371adf52e22d553a6353e12ede93bb"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "dads-chili",
+    "title": "Dad's Chili",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "6e072c4302cadb4a526b5862f51f286e25487bb41863dee541d9da04b26dfab9",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 25,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 27,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 19,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        }
+      ],
+      "sourceHash": "6e072c4302cadb4a526b5862f51f286e25487bb41863dee541d9da04b26dfab9"
+    },
+    "deterministicStats": {
+      "ingredientCount": 30,
+      "instructionCount": 7,
+      "ingredientReferences": 10,
+      "mappedIngredientReferences": 10,
+      "mappedSteps": 3,
+      "unmappedSteps": 4,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 2,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 2
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "6e072c4302cadb4a526b5862f51f286e25487bb41863dee541d9da04b26dfab9"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "easy-chicken-ramen",
+    "title": "Easy Chicken Ramen",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "39766fc66075ea093fb56dd5c05d8fc9f82dddef3a9769794a13e4acc9b5e310",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1/4 cup"
+              }
+            },
+            {
+              "ingredientIndex": 18,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1/4 cup"
+              }
+            },
+            {
+              "ingredientIndex": 19,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "3/4 cup"
+              }
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1 cup"
+              }
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 7,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 8,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "39766fc66075ea093fb56dd5c05d8fc9f82dddef3a9769794a13e4acc9b5e310"
+    },
+    "deterministicStats": {
+      "ingredientCount": 26,
+      "instructionCount": 9,
+      "ingredientReferences": 11,
+      "mappedIngredientReferences": 11,
+      "mappedSteps": 4,
+      "unmappedSteps": 5,
+      "ambiguousSteps": 2,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 2,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 2
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "39766fc66075ea093fb56dd5c05d8fc9f82dddef3a9769794a13e4acc9b5e310"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "filipino-brased-chicken-tocino",
+    "title": "Filipino Brased Chicken Tocino",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "63701f1b95a653f35f50244f672e4966d5007cce77af1261ef9ac4d6c9e05081",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "ai"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "4 tbsp"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 7,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 8,
+          "ingredients": [
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 9,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "63701f1b95a653f35f50244f672e4966d5007cce77af1261ef9ac4d6c9e05081"
+    },
+    "deterministicStats": {
+      "ingredientCount": 13,
+      "instructionCount": 10,
+      "ingredientReferences": 5,
+      "mappedIngredientReferences": 5,
+      "mappedSteps": 5,
+      "unmappedSteps": 5,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 2,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 2,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 2,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "63701f1b95a653f35f50244f672e4966d5007cce77af1261ef9ac4d6c9e05081"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "huevos-rotos-broken-eggs",
+    "title": "Huevos Rotos (Broken Eggs)",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "8800779d66efbe51ddc24ed38f9f754e9730b805cef83c8cfe11f8b54ea21d53",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "8800779d66efbe51ddc24ed38f9f754e9730b805cef83c8cfe11f8b54ea21d53"
+    },
+    "deterministicStats": {
+      "ingredientCount": 10,
+      "instructionCount": 4,
+      "ingredientReferences": 3,
+      "mappedIngredientReferences": 3,
+      "mappedSteps": 2,
+      "unmappedSteps": 2,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "8800779d66efbe51ddc24ed38f9f754e9730b805cef83c8cfe11f8b54ea21d53"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "kung-pao-tofu",
+    "title": "Kung Pao Tofu",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "cd10dddc14ecd314e514e782d783bc561997f8eef36b9b66a4521aca70ef5202",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "preparedComponents": [
+            {
+              "label": "sauce",
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "cd10dddc14ecd314e514e782d783bc561997f8eef36b9b66a4521aca70ef5202"
+    },
+    "deterministicStats": {
+      "ingredientCount": 21,
+      "instructionCount": 5,
+      "ingredientReferences": 13,
+      "mappedIngredientReferences": 13,
+      "mappedSteps": 4,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 1,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 1,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "cd10dddc14ecd314e514e782d783bc561997f8eef36b9b66a4521aca70ef5202"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "lemon-herb-pasta-salad-with-marinated-chickpeas",
+    "title": "Lemon Herb Pasta Salad with Marinated Chickpeas",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "809135acecd87bd83134bf61694d1e0fabed57ff634ef655fc79b6ad2af2432c",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        }
+      ],
+      "sourceHash": "809135acecd87bd83134bf61694d1e0fabed57ff634ef655fc79b6ad2af2432c"
+    },
+    "deterministicStats": {
+      "ingredientCount": 13,
+      "instructionCount": 3,
+      "ingredientReferences": 6,
+      "mappedIngredientReferences": 6,
+      "mappedSteps": 2,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 1,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "809135acecd87bd83134bf61694d1e0fabed57ff634ef655fc79b6ad2af2432c"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "lemongrass-chicken",
+    "title": "Lemongrass Chicken",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "3f2b476a05b0372359e43e4f422592894d74e383a60ccf50a44b14a7b55c029d",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "3f2b476a05b0372359e43e4f422592894d74e383a60ccf50a44b14a7b55c029d"
+    },
+    "deterministicStats": {
+      "ingredientCount": 17,
+      "instructionCount": 6,
+      "ingredientReferences": 7,
+      "mappedIngredientReferences": 7,
+      "mappedSteps": 3,
+      "unmappedSteps": 3,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "3f2b476a05b0372359e43e4f422592894d74e383a60ccf50a44b14a7b55c029d"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "mole-poblano",
+    "title": "Mole Poblano",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "43d334f8bdfe40b5da6766d8ed2ba5bb6e6b11c8f451116822a94be8fbfb534d",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        },
+        {
+          "instructionIndex": 7,
+          "ingredients": [
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "2 tablespoons"
+              }
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 8,
+          "ingredients": [
+            {
+              "ingredientIndex": 29,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 9,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 10,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 11,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 12,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 13,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        },
+        {
+          "instructionIndex": 14,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 15,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 16,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "preparedComponents": [
+            {
+              "label": "sauce",
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "43d334f8bdfe40b5da6766d8ed2ba5bb6e6b11c8f451116822a94be8fbfb534d"
+    },
+    "deterministicStats": {
+      "ingredientCount": 31,
+      "instructionCount": 17,
+      "ingredientReferences": 3,
+      "mappedIngredientReferences": 3,
+      "mappedSteps": 3,
+      "unmappedSteps": 14,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 5,
+      "preparedComponentSteps": 2,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 7,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 1,
+      "acceptedPreparedComponents": 1,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 5
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 2,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "SAFE_OMISSION_DIFFERENCE",
+      "details": "Both runs accept the explicitly cooked chicken; the primary additionally accepts the established mole sauce at serving while the repeat safely omits it."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "43d334f8bdfe40b5da6766d8ed2ba5bb6e6b11c8f451116822a94be8fbfb534d"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "onepot-chicken-and-lentil",
+    "title": "One-Pot Chicken and Lentil",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "a6a4048a6051ad2b2e3506c2ee1d4c35ed0c59f795cd7232725e9e2f995ba91d",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "half"
+              }
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        }
+      ],
+      "sourceHash": "a6a4048a6051ad2b2e3506c2ee1d4c35ed0c59f795cd7232725e9e2f995ba91d"
+    },
+    "deterministicStats": {
+      "ingredientCount": 12,
+      "instructionCount": 5,
+      "ingredientReferences": 7,
+      "mappedIngredientReferences": 7,
+      "mappedSteps": 3,
+      "unmappedSteps": 2,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 2,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 1,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 1,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "a6a4048a6051ad2b2e3506c2ee1d4c35ed0c59f795cd7232725e9e2f995ba91d"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "onepot-chicken-and-rice-with-caramelized-lemon",
+    "title": "One-Pot Chicken and Rice With Caramelized Lemon",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "353c7388f511762c5f1cdb099f6d63fdf9816e85b78e73266fa44e6aaef9d158",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "353c7388f511762c5f1cdb099f6d63fdf9816e85b78e73266fa44e6aaef9d158"
+    },
+    "deterministicStats": {
+      "ingredientCount": 12,
+      "instructionCount": 5,
+      "ingredientReferences": 6,
+      "mappedIngredientReferences": 6,
+      "mappedSteps": 4,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "353c7388f511762c5f1cdb099f6d63fdf9816e85b78e73266fa44e6aaef9d158"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "onepot-ratatouille-pasta",
+    "title": "One-Pot Ratatouille Pasta",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "320a1357116107d5e64c325fcae6a8d2b101537d1083174e663d7ebc3bfbf518",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "prepared-component"
+        }
+      ],
+      "sourceHash": "320a1357116107d5e64c325fcae6a8d2b101537d1083174e663d7ebc3bfbf518"
+    },
+    "deterministicStats": {
+      "ingredientCount": 15,
+      "instructionCount": 3,
+      "ingredientReferences": 7,
+      "mappedIngredientReferences": 7,
+      "mappedSteps": 3,
+      "unmappedSteps": 0,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "320a1357116107d5e64c325fcae6a8d2b101537d1083174e663d7ebc3bfbf518"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "peanut-butter-oat-protein-shake",
+    "title": "Peanut Butter Oat Protein Shake",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "0f51f75724461b9ded030f9a250e451e34e212262931fe091e1c1e14fb19ed8f",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [],
+          "unresolvedReason": "implicit-reference"
+        }
+      ],
+      "sourceHash": "0f51f75724461b9ded030f9a250e451e34e212262931fe091e1c1e14fb19ed8f"
+    },
+    "deterministicStats": {
+      "ingredientCount": 9,
+      "instructionCount": 1,
+      "ingredientReferences": 0,
+      "mappedIngredientReferences": 0,
+      "mappedSteps": 0,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "0f51f75724461b9ded030f9a250e451e34e212262931fe091e1c1e14fb19ed8f"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "pearl-couscous-with-creamy-feta-and-chickpeas-meh",
+    "title": "Pearl Couscous With Creamy Feta and Chickpeas - meh",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "f7922ee00e012f32ca49a706dbfee686635f815b73b4669ba2b6ee4b4740c645",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "½ teaspoon"
+              }
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "remaining"
+              }
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "remaining"
+              }
+            }
+          ]
+        }
+      ],
+      "sourceHash": "f7922ee00e012f32ca49a706dbfee686635f815b73b4669ba2b6ee4b4740c645"
+    },
+    "deterministicStats": {
+      "ingredientCount": 16,
+      "instructionCount": 5,
+      "ingredientReferences": 11,
+      "mappedIngredientReferences": 11,
+      "mappedSteps": 4,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "f7922ee00e012f32ca49a706dbfee686635f815b73b4669ba2b6ee4b4740c645"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "pepper-steak",
+    "title": "Pepper Steak",
+    "repairWave": "WAVE_2",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "f427dac6a2777f2fdc370680adb477ebc79767673ffddc6bba0f1d86bbb174df",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "2 ½ tablespoons"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "remaining"
+              }
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "f427dac6a2777f2fdc370680adb477ebc79767673ffddc6bba0f1d86bbb174df"
+    },
+    "deterministicStats": {
+      "ingredientCount": 13,
+      "instructionCount": 4,
+      "ingredientReferences": 9,
+      "mappedIngredientReferences": 9,
+      "mappedSteps": 3,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "f427dac6a2777f2fdc370680adb477ebc79767673ffddc6bba0f1d86bbb174df"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "peruvian-chicken-w-green-sauce",
+    "title": "Peruvian Chicken w/ green sauce",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "896c486ac6d337384a42ce213036725112af6b3698381e2c8418bc4fbf0e21ce",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [],
+          "unresolvedReason": "non-actionable"
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [],
+          "preparedComponents": [
+            {
+              "label": "green sauce",
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [],
+          "unresolvedReason": "non-actionable"
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [],
+          "preparedComponents": [
+            {
+              "label": "green sauce",
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "896c486ac6d337384a42ce213036725112af6b3698381e2c8418bc4fbf0e21ce"
+    },
+    "deterministicStats": {
+      "ingredientCount": 21,
+      "instructionCount": 6,
+      "ingredientReferences": 0,
+      "mappedIngredientReferences": 0,
+      "mappedSteps": 0,
+      "unmappedSteps": 6,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 2,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 2,
+      "aiEligibleSteps": 3,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 1,
+      "acceptedPreparedComponents": 2,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 3,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "SAFE_OMISSION_DIFFERENCE",
+      "details": "Both runs accept the established green sauce relationships; the primary additionally accepts the explicitly marinated whole chicken while the repeat safely omits it."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "896c486ac6d337384a42ce213036725112af6b3698381e2c8418bc4fbf0e21ce"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "peruvian-roasted-chicken-with-spicy-cilantro-sauce",
+    "title": "Peruvian Roasted Chicken With Spicy Cilantro Sauce",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "4ed35d91d3e6d936f8c56375a381c0c444ecbfd10a3c5c6024d3fa3c20b06608",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 18,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 19,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 20,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 21,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 22,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 23,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 24,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 25,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "preparedComponents": [
+            {
+              "label": "sauce",
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "4ed35d91d3e6d936f8c56375a381c0c444ecbfd10a3c5c6024d3fa3c20b06608"
+    },
+    "deterministicStats": {
+      "ingredientCount": 26,
+      "instructionCount": 7,
+      "ingredientReferences": 13,
+      "mappedIngredientReferences": 13,
+      "mappedSteps": 4,
+      "unmappedSteps": 3,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 1,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 1,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "4ed35d91d3e6d936f8c56375a381c0c444ecbfd10a3c5c6024d3fa3c20b06608"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "pork-fried-rice",
+    "title": "Pork Fried Rice",
+    "repairWave": "WAVE_2",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "ffe104ddb51f04c1a026d912eb29ef29468cd8c450bde1d8da6407642edc9676",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [
+            {
+              "ingredientIndex": 15,
+              "confidence": "high",
+              "provenance": "ai"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "ffe104ddb51f04c1a026d912eb29ef29468cd8c450bde1d8da6407642edc9676"
+    },
+    "deterministicStats": {
+      "ingredientCount": 16,
+      "instructionCount": 7,
+      "ingredientReferences": 4,
+      "mappedIngredientReferences": 4,
+      "mappedSteps": 2,
+      "unmappedSteps": 5,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 1,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 1,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 1,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "ffe104ddb51f04c1a026d912eb29ef29468cd8c450bde1d8da6407642edc9676"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "pozole-verde-wowza",
+    "title": "Pozole Verde - WOWZA",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "b88b2d29b27b3ece5f4111f9c59d0b487b4568a4791d6b1b7b1a1284832cbdf8",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 7,
+          "ingredients": [],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 8,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 9,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 10,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 19,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 22,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ],
+          "unresolvedReason": "ambiguous"
+        }
+      ],
+      "sourceHash": "b88b2d29b27b3ece5f4111f9c59d0b487b4568a4791d6b1b7b1a1284832cbdf8"
+    },
+    "deterministicStats": {
+      "ingredientCount": 23,
+      "instructionCount": 11,
+      "ingredientReferences": 10,
+      "mappedIngredientReferences": 10,
+      "mappedSteps": 4,
+      "unmappedSteps": 7,
+      "ambiguousSteps": 2,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 3,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 3
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "b88b2d29b27b3ece5f4111f9c59d0b487b4568a4791d6b1b7b1a1284832cbdf8"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "roasted-white-bean-and-tomato-pasta",
+    "title": "Roasted White Bean and Tomato Pasta",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "e037deeb8d9bfb84dd1152b718ce800d9253d849af1bf80ad8f759f43e74e7a1",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "hybrid-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "ai",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "¼ cup"
+              }
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "e037deeb8d9bfb84dd1152b718ce800d9253d849af1bf80ad8f759f43e74e7a1"
+    },
+    "deterministicStats": {
+      "ingredientCount": 12,
+      "instructionCount": 7,
+      "ingredientReferences": 6,
+      "mappedIngredientReferences": 6,
+      "mappedSteps": 3,
+      "unmappedSteps": 4,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 1,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 1,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 1,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "e037deeb8d9bfb84dd1152b718ce800d9253d849af1bf80ad8f759f43e74e7a1"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "sheetpan-gochujang-chicken-and-roasted-vegetables",
+    "title": "Sheet-Pan Gochujang Chicken and Roasted Vegetables",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "1be65c556272e3cbefb211ddd5fc1f5656675f6f4f77af4eef4d5ff52c4f7f05",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [],
+          "unresolvedReason": "no-ingredient-use"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "1be65c556272e3cbefb211ddd5fc1f5656675f6f4f77af4eef4d5ff52c4f7f05"
+    },
+    "deterministicStats": {
+      "ingredientCount": 13,
+      "instructionCount": 4,
+      "ingredientReferences": 11,
+      "mappedIngredientReferences": 11,
+      "mappedSteps": 3,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 1,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "1be65c556272e3cbefb211ddd5fc1f5656675f6f4f77af4eef4d5ff52c4f7f05"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "spicy-ovenfried-rice-with-gochujang-and-fried-eggs",
+    "title": "Spicy Oven-Fried Rice With Gochujang and Fried Eggs",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "2ba40ba08da68c5f1ee97f04e82940595ea318ab909786d310b15a7d59204573",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "1 tablespoon"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 6,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "remaining"
+              }
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "2ba40ba08da68c5f1ee97f04e82940595ea318ab909786d310b15a7d59204573"
+    },
+    "deterministicStats": {
+      "ingredientCount": 13,
+      "instructionCount": 6,
+      "ingredientReferences": 8,
+      "mappedIngredientReferences": 8,
+      "mappedSteps": 4,
+      "unmappedSteps": 2,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "2ba40ba08da68c5f1ee97f04e82940595ea318ab909786d310b15a7d59204573"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "tuscan-bean-soup",
+    "title": "Tuscan Bean Soup",
+    "repairWave": "WAVE_3",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "5fd4e2856d7483cde122a3b5fc0f395c6ab23164fa9675d7d854b36b923cd709",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 19,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 20,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 21,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            },
+            {
+              "ingredientIndex": 22,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "all"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 5,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 10,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": [
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 14,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 5,
+          "ingredients": []
+        },
+        {
+          "instructionIndex": 6,
+          "ingredients": [
+            {
+              "ingredientIndex": 16,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 17,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        }
+      ],
+      "sourceHash": "5fd4e2856d7483cde122a3b5fc0f395c6ab23164fa9675d7d854b36b923cd709"
+    },
+    "deterministicStats": {
+      "ingredientCount": 23,
+      "instructionCount": 7,
+      "ingredientReferences": 15,
+      "mappedIngredientReferences": 15,
+      "mappedSteps": 6,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "5fd4e2856d7483cde122a3b5fc0f395c6ab23164fa9675d7d854b36b923cd709"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "vegetarian-skillet-chili",
+    "title": "Vegetarian Skillet Chili",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "a1157c4d0648f6dc761d5d8d43017ba844a5631001b887bce3c8b9bb5b17274e",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 1,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 2,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 3,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 4,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [
+            {
+              "ingredientIndex": 7,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 8,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 9,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            },
+            {
+              "ingredientIndex": 13,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "a1157c4d0648f6dc761d5d8d43017ba844a5631001b887bce3c8b9bb5b17274e"
+    },
+    "deterministicStats": {
+      "ingredientCount": 15,
+      "instructionCount": 3,
+      "ingredientReferences": 9,
+      "mappedIngredientReferences": 9,
+      "mappedSteps": 2,
+      "unmappedSteps": 1,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 0,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 0,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": false,
+      "aiAttempted": false,
+      "aiStatus": "not_needed",
+      "primaryAttempts": 0,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 0
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "a1157c4d0648f6dc761d5d8d43017ba844a5631001b887bce3c8b9bb5b17274e"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  },
+  {
+    "recipeId": "zibdiyit-gambari-spicy-shrimp-and-tomato-stew",
+    "title": "Zibdiyit Gambari (Spicy Shrimp and Tomato Stew)",
+    "repairWave": "WAVE_1A",
+    "classification": "READY",
+    "reason": null,
+    "auditVersion": {
+      "gitSha": "52157d937b78a1cef41e95c0882285c1234150cd",
+      "behaviorFingerprint": "33b4cf11faa559c8c5f7e291d152f6675031984ff8897da92c5cab30f5a7374b",
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "deterministicEngineVersion": "deterministic-v5",
+      "hybridEngineVersion": "hybrid-v5",
+      "promptVersion": "v2",
+      "model": "openai/gpt-5.6-luna",
+      "temperature": 0
+    },
+    "sourceHash": "754733a21d23180b80434c4dd6863c6e8745ca6f8b47e8e1c4641b0b95583958",
+    "candidateMap": {
+      "schemaVersion": 1,
+      "parserVersion": "recipe-content-v1",
+      "engineVersion": "deterministic-v5",
+      "steps": [
+        {
+          "instructionIndex": 0,
+          "ingredients": [
+            {
+              "ingredientIndex": 0,
+              "confidence": "high",
+              "provenance": "deterministic",
+              "usage": {
+                "kind": "partial",
+                "quantityText": "2 tablespoons"
+              }
+            }
+          ]
+        },
+        {
+          "instructionIndex": 1,
+          "ingredients": [],
+          "unresolvedReason": "prepared-component"
+        },
+        {
+          "instructionIndex": 2,
+          "ingredients": [
+            {
+              "ingredientIndex": 11,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 3,
+          "ingredients": [
+            {
+              "ingredientIndex": 12,
+              "confidence": "high",
+              "provenance": "deterministic"
+            }
+          ]
+        },
+        {
+          "instructionIndex": 4,
+          "ingredients": []
+        }
+      ],
+      "sourceHash": "754733a21d23180b80434c4dd6863c6e8745ca6f8b47e8e1c4641b0b95583958"
+    },
+    "deterministicStats": {
+      "ingredientCount": 14,
+      "instructionCount": 5,
+      "ingredientReferences": 3,
+      "mappedIngredientReferences": 3,
+      "mappedSteps": 3,
+      "unmappedSteps": 2,
+      "ambiguousSteps": 0,
+      "implicitReferenceSteps": 0,
+      "preparedComponentSteps": 1,
+      "noIngredientUseSteps": 0,
+      "nonActionableSteps": 0,
+      "aiEligibleSteps": 1,
+      "preparedComponents": 0
+    },
+    "hybridStats": {
+      "aiEligible": true,
+      "aiAttempted": true,
+      "aiStatus": "completed",
+      "primaryAttempts": 1,
+      "acceptedIngredientAdditions": 0,
+      "acceptedPreparedComponents": 0,
+      "acceptedUsageQualifiers": 0,
+      "remainingUnresolvedSemantics": 1
+    },
+    "semanticReview": {
+      "deterministicSafe": true,
+      "aiCorrect": 0,
+      "aiAmbiguous": 0,
+      "aiIncorrect": 0
+    },
+    "stability": {
+      "classification": "EXACT_STABLE",
+      "details": "Validated candidate maps are byte-identical."
+    },
+    "precondition": {
+      "currentMapAbsent": true,
+      "contentSourceHash": "754733a21d23180b80434c4dd6863c6e8745ca6f8b47e8e1c4641b0b95583958"
+    },
+    "audit": {
+      "sourceStatus": "SOURCE_CLEAN",
+      "sourceEvidence": {
+        "status": "SOURCE_CLEAN",
+        "reason": null,
+        "contamination": []
+      },
+      "candidateValidation": {
+        "valid": true
+      }
+    }
+  }
+]

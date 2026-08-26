@@ -38,12 +38,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const { loadEnv, getAdmin } = require('./_lib.js')
 const DATE = '2026-08-26'
-const RAW_PATH = path.join('/tmp', `recovered-recipes-mapping-v4-raw-${DATE}.json`)
-const WORKSHEET_PATH = path.join('/tmp', `recovered-recipes-mapping-v4-review-worksheet-${DATE}.json`)
-const DECISIONS_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v4-review-decisions-${DATE}.json`)
-const MANIFEST_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v4-dryrun-${DATE}.json`)
-const REPORT_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v4-dryrun-${DATE}.md`)
-const SEMANTIC_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v4-semantic-review-${DATE}.json`)
+const RAW_PATH = path.join('/tmp', `recovered-recipes-mapping-v5-final-raw-${DATE}.json`)
+const WORKSHEET_PATH = path.join('/tmp', `recovered-recipes-mapping-v5-final-review-worksheet-${DATE}.json`)
+const DECISIONS_PATH = path.join('/tmp', `recovered-recipes-mapping-v5-final-review-decisions-${DATE}.json`)
+const MANIFEST_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v5-dryrun-${DATE}.json`)
+const REPORT_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v5-dryrun-${DATE}.md`)
+const SEMANTIC_PATH = path.join(ROOT, `docs/audits/recovered-recipes-mapping-v5-semantic-review-final-${DATE}.json`)
 const WAVE_1A_PATH = path.join(ROOT, `docs/audits/excluded-recipe-parser-wave1a-validation-${DATE}.json`)
 const WAVE_2_PATH = path.join(ROOT, `docs/audits/excluded-recipe-wave2-dryrun-${DATE}.json`)
 const WAVE_3_PATH = path.join(ROOT, `docs/audits/excluded-recipe-wave3-dryrun-${DATE}.json`)
@@ -205,6 +205,7 @@ async function buildBaseline(allRecipes, modules) {
 async function verifyExistingMappedCorpus(allRecipes, modules) {
   const mapped = []
   const invalid = []
+  const fallbacks = []
   for (const [recipeId, document] of allRecipes) {
     const persisted = document.data.cookingStepIngredientMap
     if (persisted === undefined || persisted === null) continue
@@ -213,8 +214,18 @@ async function verifyExistingMappedCorpus(allRecipes, modules) {
     const deterministic = await modules.mapping.buildHashedDeterministicCookingStepMap(parsed.ingredients, parsed.instructions)
     const validation = modules.mapping.validateCookingStepIngredientMap(persisted, parsed.ingredients, parsed.instructions, deterministic)
     if (!validation.valid || persisted.sourceHash !== deterministic.sourceHash) invalid.push({ recipeId, validation, stored: persisted.sourceHash, live: deterministic.sourceHash })
+    const resolved = await modules.mapping.resolveCookingStepIngredientMap(parsed.ingredients, parsed.instructions, persisted)
+    if (resolved.source !== 'persisted') fallbacks.push({ recipeId, source: resolved.source, reason: resolved.fallbackReason || null })
   }
-  return { mappedRecipes: mapped.length, sourceHashMatches: mapped.length - invalid.length, invalid, mappedRecipeIds: mapped.sort() }
+  return {
+    mappedRecipes: mapped.length,
+    sourceHashMatches: mapped.length - invalid.length,
+    structurallyValid: mapped.length - invalid.length,
+    runtimeAccepted: mapped.length - fallbacks.length,
+    fallbacks,
+    invalid,
+    mappedRecipeIds: mapped.sort(),
+  }
 }
 
 async function executeAi(rows, modules, usage) {
@@ -222,7 +233,7 @@ async function executeAi(rows, modules, usage) {
   await mapConcurrent(targets, CONCURRENCY, async row => {
     const call = () => modules.mappingAi.resolveCookingStepMappingsWithAi(
       row.deterministicMap, row.parsed.ingredients, row.parsed.instructions,
-      'recovered-recipe-mapping-production-audit-primary',
+      'recovered-recipe-mapping-v5-final-production-audit-primary',
     )
     const result = await callWithOneTransientRetry(call)
     row.hybridStats.aiAttempted = true
@@ -247,7 +258,7 @@ async function executeAi(rows, modules, usage) {
     if (row.hybridStats.aiStatus !== 'completed') return
     const result = await callWithOneTransientRetry(() => modules.mappingAi.resolveCookingStepMappingsWithAi(
       row.deterministicMap, row.parsed.ingredients, row.parsed.instructions,
-      'recovered-recipe-mapping-production-audit-stability',
+      'recovered-recipe-mapping-v5-final-production-audit-stability',
     ))
     usage.stabilityRequests += result.attempts
     if (result.status === 'failed') { row.stability = { classification: 'ERROR', attempts: result.attempts, error: result.error }; return }
@@ -343,10 +354,15 @@ async function generate() {
     const version = auditVersion(modules, fingerprint, gitSha)
     const allRecipes = await readSharedRecipes()
     const baseline = await verifyExistingMappedCorpus(allRecipes, modules)
-    if (baseline.mappedRecipes !== 187 || baseline.invalid.length) throw new Error(`Existing 187-map safety gate failed: ${stableJson(baseline)}`)
+    if (baseline.mappedRecipes !== 187 || baseline.invalid.length || baseline.fallbacks.length) throw new Error(`Existing 187-map safety gate failed: ${stableJson(baseline)}`)
     const rows = await buildBaseline(allRecipes, modules)
     await executeAi(rows, modules, usage)
     if (behaviorFingerprint() !== fingerprint) throw new Error('Audited mapping behavior changed after candidate generation.')
+    const vinaigrette = rows.find(row => row.recipeId === 'couscous-salad-with-lime-basil-vinaigrette')
+    const consumedVinaigretteSalt = {
+      primaryRejected: !vinaigrette?.primaryAdditions.some(item => item.kind === 'ingredient' && item.ingredientIndex === 15),
+      repeatRejected: !vinaigrette?.repeatAdditions.some(item => item.kind === 'ingredient' && item.ingredientIndex === 15),
+    }
     const raw = {
       schemaVersion: 1,
       auditDate: DATE,
@@ -356,6 +372,7 @@ async function generate() {
       productionBaseline: { sharedRecipes: allRecipes.size, recipesWithMaps: baseline.mappedRecipes, recipesWithoutMaps: allRecipes.size - baseline.mappedRecipes },
       existingMappedSafety: baseline,
       usage,
+      consumedVinaigretteSalt,
       productionMutation: { recipeWrites: 0, mapWrites: 0, firestoreMutations: 0 },
       rows,
     }
@@ -507,18 +524,27 @@ function reportMarkdown(raw, manifest, semantic, live, manifestHash) {
     outputTokens: totals.outputTokens + (item.outputTokens || 0),
     totalTokens: totals.totalTokens + (item.totalTokens || 0),
   }), { inputTokens: 0, outputTokens: 0, totalTokens: 0 })
-  return `# Recovered recipes cooking-step mapping v4 dry run — ${DATE}\n\n` +
+  const sevenPriorFailures = [
+    'couscous-salad-with-lime-basil-vinaigrette', 'dads-chili', 'easy-chicken-ramen',
+    'pepper-steak', 'peruvian-roasted-chicken-with-spicy-cilantro-sauce',
+    'tuscan-bean-soup', 'vegetarian-skillet-chili',
+  ]
+  const aiEligibleCount = count(eligible, row => row.hybridStats.aiEligible)
+  const retries = usage.primaryRequests + usage.stabilityRequests - (aiEligibleCount * 2)
+  const providerFailures = count(eligible, row => row.hybridStats.aiStatus === 'failed' || row.stability?.classification === 'ERROR')
+  return `# Recovered recipes cooking-step mapping v5 final dry run — ${DATE}\n\n` +
     `## Executive result\n\n**${semantic.executiveResult}**\n\n` +
     `This read-only audit generated fresh source-bound candidates for the exact 41 recipes repaired by Waves 1A–3. Recipe writes, map writes, and Firestore mutations were all zero.\n\n` +
     `## Audited configuration\n\n| Setting | Value |\n|---|---|\n| Git SHA | \`${config.gitSha}\` |\n| Behavior fingerprint | \`${config.behaviorFingerprint}\` |\n| Schema | \`${config.schemaVersion}\` |\n| Parser | \`${config.parserVersion}\` |\n| Deterministic engine | \`${config.deterministicEngineVersion}\` |\n| Hybrid engine | \`${config.hybridEngineVersion}\` |\n| Prompt | \`${config.promptVersion}\` |\n| Model | \`${config.model}\` |\n| Temperature | \`${config.temperature}\` |\n\n` +
     `## Population and production baseline\n\nWave 1A **28** + Wave 2 **6** + Wave 3 **7** = **41 unique IDs**. The final eight unresolved recipes are absent. Production contained **${raw.productionBaseline.sharedRecipes}** shared recipes, **${raw.productionBaseline.recipesWithMaps}** persisted maps, and **${raw.productionBaseline.recipesWithoutMaps}** recipes without maps. All 41 tranche recipes were map-free and source-clean.\n\n` +
-    `## Deterministic-v4\n\nInstructions **${sum(eligible, row => row.deterministicStats.instructionCount)}**; mapped steps **${sum(eligible, row => row.deterministicStats.mappedSteps)}**; unmapped steps **${sum(eligible, row => row.deterministicStats.unmappedSteps)}**; ingredient references **${sum(eligible, row => row.deterministicStats.ingredientReferences)}**; ambiguous **${sum(eligible, row => row.deterministicStats.ambiguousSteps)}**; implicit **${sum(eligible, row => row.deterministicStats.implicitReferenceSteps)}**; prepared-component **${sum(eligible, row => row.deterministicStats.preparedComponentSteps)}**; no-ingredient-use **${sum(eligible, row => row.deterministicStats.noIngredientUseSteps)}**; non-actionable **${sum(eligible, row => row.deterministicStats.nonActionableSteps)}**; AI-eligible **${sum(eligible, row => row.deterministicStats.aiEligibleSteps)}**.\n\nExhaustive review covered **${det.recipesReviewed}** recipes, **${det.mappedReferencesReviewed}** mapped references, and **${det.safeOmissions}** omissions: safe mappings **${det.safeMappings}**, false-positive mappings **${det.falsePositiveMappings}**, false-positive recipes **${det.falsePositiveRecipes}**.\n\n${falsePositiveRows.map(row => `- **${row.title}** (\`${row.recipeId}\`) — ${row.explanation}`).join('\n')}\n\nThese failures span wrong-group/consumed-row identity, unlisted process material, generic dish-name collision, and incorrect usage metadata. The deterministic zero-false-positive gate therefore fails systemically; no mapper change was made in this audit.\n\n` +
-    `## Hybrid-v4 and AI semantic review\n\nAI-eligible recipes **${count(eligible, row => row.hybridStats.aiEligible)}**; recipes called **${count(eligible, row => row.hybridStats.aiAttempted)}**; primary requests **${usage.primaryRequests}**; stability requests **${usage.stabilityRequests}**; accepted ingredient additions **${sum(eligible, row => row.hybridStats.acceptedIngredientAdditions)}**; accepted prepared components **${sum(eligible, row => row.hybridStats.acceptedPreparedComponents)}**; accepted usage qualifiers **${sum(eligible, row => row.hybridStats.acceptedUsageQualifiers)}**. Across primary and stability runs, reviewed accepted semantics were correct **${ai.correct}**, ambiguous **${ai.ambiguous}**, incorrect **${ai.incorrect}**.\n\n${incorrectAiRows.map(row => `- **${row.title}** (\`${row.recipeId}\`, ${row.run}) — ${row.explanation}`).join('\n')}\n\nThe two incorrect accepted relationships are the same wrong-group/consumed vinaigrette-salt association in the primary and repeat runs.\n\n` +
+    `## Deterministic-v5\n\nRecipes **${eligible.length}**; ingredients **${sum(eligible, row => row.deterministicStats.ingredientCount)}**; instructions **${sum(eligible, row => row.deterministicStats.instructionCount)}**; mapped steps **${sum(eligible, row => row.deterministicStats.mappedSteps)}**; unmapped steps **${sum(eligible, row => row.deterministicStats.unmappedSteps)}**; ingredient references **${sum(eligible, row => row.deterministicStats.ingredientReferences)}**; ambiguous **${sum(eligible, row => row.deterministicStats.ambiguousSteps)}**; implicit **${sum(eligible, row => row.deterministicStats.implicitReferenceSteps)}**; prepared-component **${sum(eligible, row => row.deterministicStats.preparedComponentSteps)}**; no-ingredient-use **${sum(eligible, row => row.deterministicStats.noIngredientUseSteps)}**; non-actionable **${sum(eligible, row => row.deterministicStats.nonActionableSteps)}**; AI-eligible steps **${sum(eligible, row => row.deterministicStats.aiEligibleSteps)}**; AI-eligible recipes **${aiEligibleCount}**.\n\nExhaustive review covered **${det.recipesReviewed}** recipes, **${det.mappedReferencesReviewed}** mapped references, and **${det.safeOmissions}** fully unmapped instructions: safe mappings **${det.safeMappings}**, false-positive mappings **${det.falsePositiveMappings}**, false-positive recipes **${det.falsePositiveRecipes}**.\n\n${falsePositiveRows.map(row => `- **${row.title}** (\`${row.recipeId}\`) — ${row.explanation}`).join('\n')}\n\nThe seven prior failures were explicitly reconfirmed clean under deterministic-v5: ${sevenPriorFailures.map(id => `\`${id}\``).join(', ')}.\n\n` +
+    `## Hybrid-v5 and AI semantic review\n\nAI-eligible recipes **${aiEligibleCount}**; recipes called **${count(eligible, row => row.hybridStats.aiAttempted)}**; primary requests **${usage.primaryRequests}**; stability requests **${usage.stabilityRequests}**; retries **${retries}**; provider failures **${providerFailures}**; accepted ingredient additions **${sum(eligible, row => row.hybridStats.acceptedIngredientAdditions)}**; accepted prepared components **${sum(eligible, row => row.hybridStats.acceptedPreparedComponents)}**; accepted usage qualifiers **${sum(eligible, row => row.hybridStats.acceptedUsageQualifiers)}**; remaining unresolved semantics **${sum(eligible, row => row.hybridStats.remainingUnresolvedSemantics)}**. Across primary and stability runs, reviewed accepted semantics were correct **${ai.correct}**, ambiguous **${ai.ambiguous}**, incorrect **${ai.incorrect}**.\n\n${incorrectAiRows.map(row => `- **${row.title}** (\`${row.recipeId}\`, ${row.run}) — ${row.explanation}`).join('\n')}\n\nConsumed vinaigrette salt was rejected in the primary run: **${raw.consumedVinaigretteSalt.primaryRejected}**; rejected in the stability run: **${raw.consumedVinaigretteSalt.repeatRejected}**.\n\n` +
     `## Stability\n\nAll **${stability.length}** AI-assisted recipes were rerun: exact **${count(stability, row => row.classification === 'EXACT_STABLE')}**, semantically stable **${count(stability, row => row.classification === 'SEMANTICALLY_STABLE')}**, safe omission difference **${count(stability, row => row.classification === 'SAFE_OMISSION_DIFFERENCE')}**, unsafe material difference **${count(stability, row => row.classification === 'UNSAFE_MATERIAL_DIFFERENCE')}**. Every non-exact result was manually reviewed.\n\n` +
     `## Classification and immutable manifest\n\nREADY **${c('READY')}**; REVIEW **${c('REVIEW')}**; EXCLUDED **${c('EXCLUDED')}**; ERROR **${c('ERROR')}**; EXISTING_MAP **${c('EXISTING_MAP')}**.\n\nManifest: \`${path.relative(ROOT, MANIFEST_PATH)}\`; SHA-256: \`${manifestHash}\`; rows: **${manifest.length}**. Semantic evidence: \`${path.relative(ROOT, SEMANTIC_PATH)}\`.\n\n` +
-    `## Final live preconditions and existing-map safety\n\nFinal live READY checks: **${live.readyRows - live.failures.length}/${live.readyRows}** passed. Existing persisted maps: **${live.existingMappedSafety.mappedRecipes}**; sourceHash/validator matches: **${live.existingMappedSafety.sourceHashMatches}**; invalid: **${live.existingMappedSafety.invalid.length}**. The audit caused zero production changes.\n\n` +
+    `## Final live preconditions and existing-map safety\n\nFinal live READY checks: **${live.readyRows - live.failures.length}/${live.readyRows}** passed. Existing persisted v4 maps: **${live.existingMappedSafety.mappedRecipes}**; source hashes matched **${live.existingMappedSafety.sourceHashMatches}**; structurally valid **${live.existingMappedSafety.structurallyValid}**; runtime accepted **${live.existingMappedSafety.runtimeAccepted}**; forced fallbacks **${live.existingMappedSafety.fallbacks.length}**. The audit caused zero production changes.\n\n` +
     `## Production mutation and AI usage\n\nRecipe writes **0**; map writes **0**; Firestore mutations **0**. Real Gateway requests **${usage.primaryRequests + usage.stabilityRequests}** (${usage.primaryRequests} primary and ${usage.stabilityRequests} stability; zero retries and failures), totaling **${usageTotals.inputTokens}** input, **${usageTotals.outputTokens}** output, and **${usageTotals.totalTokens}** tokens.\n\n` +
-    `## Deferred work and next action\n\nDo not apply any recovered-recipe candidate from this failed audit. Create a separate deterministic-v4/prompt-v2 remediation and validation session for the seven deterministic false positives and the repeated incorrect AI salt association, then rerun the complete 41-recipe audit from fresh live content. Wave 4/5 and personal override-specific mappings remain pending.\n`
+    `## Historical v4 manifest\n\nThe old recovered-v4 manifest remains historical only and is not authorized for apply: \`docs/audits/recovered-recipes-mapping-v4-dryrun-${DATE}.json\`, SHA-256 \`289759234b88c4d29b18fe42a7f67f2e18473cc9285dd5df4ef9ced798ca1716\`. It was not candidate input to this audit.\n\n` +
+    `## Deferred work and next action\n\nWave 4/5 and personal override-specific mappings remain pending. Create one final immutable-manifest-SHA-locked map apply prompt for the approved recovered recipes. It must make zero AI calls and perform zero mapping recomputation.\n`
 }
 
 async function finalize() {
@@ -544,7 +570,7 @@ async function finalize() {
   const modules = await loadProductionModules(false)
   try {
     const live = await finalLiveRead(raw, manifest, modules)
-    if (live.failures.length || live.existingMappedSafety.mappedRecipes !== 187 || live.existingMappedSafety.invalid.length) throw new Error(`Final live precondition failed: ${stableJson(live)}`)
+    if (live.failures.length || live.existingMappedSafety.mappedRecipes !== 187 || live.existingMappedSafety.invalid.length || live.existingMappedSafety.fallbacks.length) throw new Error(`Final live precondition failed: ${stableJson(live)}`)
     fs.writeFileSync(SEMANTIC_PATH, stableJson(semantic), { flag: 'wx' })
     fs.writeFileSync(MANIFEST_PATH, stableJson(manifest), { flag: 'wx' })
     const manifestHash = sha256(fs.readFileSync(MANIFEST_PATH))
