@@ -1044,14 +1044,14 @@ retained as historical data and are not modified or deleted by this app.
   Web-Audio beep + `navigator.vibrate` — is best-effort and feature-detected: it may be blocked while
   the tab is backgrounded/locked, but the visual "Done!" flash and the correct remaining-time-on-return
   always work (the wake lock above keeps the screen on while in Cooking Mode).
-- **Cooking-step mapping still has pre-backfill and override limitations.** Production Cooking Mode
-  now rejects stale/unsupported/malformed persisted maps and uses the conservative deterministic engine;
-  the legacy terminal-token mapper has no production use. Personal content overrides do not persist
-  override-specific maps, so changed overrides fall back deterministically even when the shared recipe
-  has a valid hybrid map. Most existing recipes predate publish-time persistence and therefore receive
-  deterministic mappings only; AI-assisted prepared-component and implicit-reference improvements remain
-  unavailable for them until the existing-recipe dry-run/backfill phase. Parser-defective legacy recipe
-  content remains outside mapping correctness and must be remediated separately.
+- **Cooking-step mapping still has override and recall limitations.** Production Cooking Mode rejects
+  stale/unsupported/malformed persisted maps and uses the conservative deterministic engine; the legacy
+  terminal-token mapper has no production use. The shared corpus now has persisted maps on 228/236
+  recipes (187 v4 plus 41 v5). Personal content overrides do not persist override-specific maps, so a
+  source-hash-changing override falls back to deterministic-v5 even when the shared recipe has a valid
+  hybrid map. Parser-defective legacy recipe content remains outside mapping correctness and must be
+  remediated separately. The full completeness audit below proves that a valid persisted map is not by
+  itself evidence of adequate recall.
 - **The 2026-08-25 existing-corpus hybrid dry run is not safe to backfill.** The read-only audit
   inspected all 236 shared recipes (zero persisted maps), classified 187 as source-eligible and 49
   as parser/content exclusions, and reviewed every one of 214 validator-accepted AI additions.
@@ -1284,6 +1284,32 @@ retained as historical data and are not modified or deleted by this app.
   41 reviewed v5 maps; runtime supports both, and the remaining eight recipes have no persisted map.
   No AI or mapping generation ran. See
   `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`.
+- **The full 228-recipe Cooking Mode completeness audit requires recall remediation.** Prior mapping
+  audits exhaustively protected precision of accepted references and reviewed "safe omissions," but
+  they did not independently construct a per-step expected map and therefore did not adequately measure
+  recall. The 2026-08-26 read-only audit reproduced the exact effective runtime path (shared recipe +
+  owner content override -> canonical parser -> runtime persisted-map validation/fallback -> rendered
+  ingredient indexes), browser-verified the three reported recipes, ran two independent blind
+  `openai/gpt-5.6-luna` reviews for every mapped recipe, and adjudicated every discrepancy. All 228
+  recipes had at least one discrepancy, so the no-discrepancy control population was empty and all 228
+  instead received full adjudication. Results: **TP 1,375 / FP 12 / FN 2,677; precision 99.13%; recall
+  33.93%; F1 50.56%**. Explicit-active-use recall is 1,355/3,528 (38.41%); CRITICAL-ingredient recall
+  244/980 (24.90%); seasoning/herb recall 529/1,445 (36.61%); prepared-component recall 27/663
+  (4.07%). Every mapped recipe has a confirmed omission; 736 missing associations are CRITICAL and 801
+  HIGH. The reported failures reproduce exactly: Steak Bites Step 1 omits potatoes and Step 2 omits
+  steak; Caprese Step 1 omits mozzarella; Grilled Zucchini/Squash Step 2 omits Italian herbs and pepper
+  (and also yellow summer squash). Persisted v4 runtime rows measured TP 1,051 / FP 9 / FN 2,019
+  (99.15% precision, 34.23% recall); persisted v5 rows TP 298 / FP 1 / FN 624 (99.67%, 32.32%); four
+  override-driven deterministic-v5 fallbacks TP 26 / FP 2 / FN 34 (92.86%, 43.33%). Of the 2,677
+  omissions, 1,965 were on steps not eligible for the current AI pass; current deterministic-v5 would
+  recover only 23 and still miss 2,654. Dominant causes are persisted-map false negatives (2,643),
+  deterministic steps classified resolved too early / AI never eligible (1,965 each), active-use misses
+  (464), seasoning misses (372), prepared-component overrestriction (320), and group-scope
+  overrestriction (227). Either blind reviewer found 2,675/2,677 confirmed omissions and both found
+  2,575, supporting a future whole-recipe AI completeness pass followed by deterministic safety
+  validation; regeneration/manual cleanup alone is insufficient. Firestore, recipe, map, parser, and UI
+  mutations were zero. See `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`, the per-recipe
+  JSON evidence, and the review-only remediation candidates.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1374,6 +1400,8 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Cooking-step ingredient mapping | High | Partial (228/236 shared recipes mapped; Wave 4/5 and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping audit — Failed / historical**: seven deterministic false positives and repeated incorrect AI salt acceptance; its immutable manifest is never reusable. **Mapping v5 remediation — Done / PASS**: 41/41 recipes, 295 references, 111 omissions, 0 false positives; bounded AI 25/25 correct with 0 unsafe stability differences; all 187 persisted v4 maps remain runtime accepted. **Recovered 41-recipe v5 map audit — Done**: 41/41 READY, 295 deterministic references and 111 omissions safe, 25/25 accepted AI relationships correct, zero unsafe stability differences, immutable manifest SHA `5d4ddaa10c788f9192ae74a5887859bc2847496706461b655752d86e62741170`. **Recovered 41-recipe v5 map apply — Done**: 41 exact field-only writes, 41/41 exact readback/hash/validation matches, zero non-map changes, zero AI/recomputation, 0/187 original maps changed, 0/8 unresolved recipes changed, and post-apply READY_TO_WRITE 0. Production has 228 mapped and eight unmapped recipes. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`, and the preserved v1-v5 audit evidence. |
+| Cooking Mode completeness audit | High | Done | Full 228-recipe actual-runtime precision + recall audit: two blind reviews per recipe, every discrepancy adjudicated, mandatory UI regressions reproduced, TP 1,375 / FP 12 / FN 2,677, precision 99.13%, recall 33.93%, production mutations 0. See §6 and `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`. |
+| Cooking Mode recall remediation | High | Pending | Do not patch individual recipes first. Create the next architecture prompt from the measured false-negative taxonomy; evaluate a whole-recipe AI completeness pass after deterministic/hybrid generation, retain deterministic validation, and enforce 100% CRITICAL plus >=98% explicit-active-use recall gates. No remediation or map apply is authorized by the audit. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
