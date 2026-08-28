@@ -911,6 +911,32 @@ retained as historical data and are not modified or deleted by this app.
     reproduction have no production route/runtime import. This checkpoint does not mutate or repair any
     persisted Cooking Mode map.
 
+    **Frozen-candidate principal-target/generic-seasoning V10D experiment (2026-08-28; failed and
+    audit-only):** V10D reproduced the exact V10C 669 TP / 2 FP / 164 FN baseline (18/20 target
+    rejections, 9/9 quantity repairs), then investigated the two remaining semantic classes named in
+    the V10C boundary. Source inspection of the ratatouille salt/pepper case showed V10C's two false
+    accepts were themselves benchmark-consistent, not a labeling error: salt/pepper's sole `CORRECT`
+    link is the instruction where they are first combined, and the later generic “taste and adjust
+    seasoning” correctly does not re-trigger them even though the row itself reads “more to taste.”
+    Every bare generic-seasoning instruction in the frozen population (only two exist) was checked;
+    verdict **BENCHMARK REVIEW NOT REQUIRED**. V10D added a truth-blind principal-target extractor
+    (source-evidence-gated: title match or two-plus actively-manipulated mentions), conservative
+    category aliases, an active-object timeline, and a generic-seasoning-eligibility contract that
+    requires a seasoning row have no earlier established use. An unguarded first pass over-accepted
+    four new false positives via principal continuation — all four already had a pre-existing
+    established component membership (e.g. pork chops laid over an established rice mixture before
+    “cover and cook”) — so continuation eligibility was tightened to require zero prior component
+    membership, which repaired all four with no new regressions. The corrected bounded run (392 risk
+    candidates plus 82 historical, 71/71 successful Gateway calls across both passes, zero retries or
+    failures) reached 642 TP / 0 FP / 191 FN, 100% precision, 77.07% candidate recall, and 20/20
+    target-FP protection (better than V10C's 18/20), but historical `LOCKED_TRUTH` protection fell to
+    4/12 (from V10C's 9/12) and candidate recall remained far below the 99.5% gate. The 164-FN
+    taxonomy shows why: only 11 were `PRINCIPAL_TARGET_CONTINUATION` and 3 `DIVIDED_OR_RESERVED_USE`;
+    the bulk (49 `COLLECTIVE_CONTINUATION`, 87 `OTHER`, 13 misclassified passive-carry) sit outside
+    this phase's two named categories. Verdict: **MORE INGREDIENT PRECISION WORK REQUIRED**. No
+    production map, recipe, Firestore, route, reviewer, or full-corpus mutation occurred. See
+    `docs/audits/cooking-mode-v10d-principal-target-analysis-2026-08-28.md`.
+
     **Prompt 3 Cooking Mode consumption:** runtime precedence is the effective recipe content
     (`meta.overrides.content || recipe.content`) → parse the exact displayed ingredients and
     instructions → synchronously build the conservative deterministic mapping → compute the
@@ -1548,12 +1574,22 @@ retained as historical data and are not modified or deleted by this app.
   instruction-quantity scope. V10C rejected 18/20 target false positives, but its final 669 TP / 2 FP /
   164 FN result missed both zero-FP and 99.5%-recall requirements. Generic “taste and adjust seasoning”
   still falsely activates the already-listed salt/pepper rows, while valid unnamed continuation is
-  over-classified as passive carry (116 correct rejections used `PASSIVE_COMPONENT_CONSTITUENT`). Before
-  further architecture work, source state must resolve generic seasoning language and identify the
-  principal/category target of unnamed continuation without reactivating every contained row. Prepared-
-  component establishment/reuse, final production architecture, and persisted-map migration remain
-  pending and separate. Production stays on v4/v5; V6–V10 are nonproduction. See
+  over-classified as passive carry (116 correct rejections used `PASSIVE_COMPONENT_CONSTITUENT`). See
   `docs/audits/cooking-mode-v10c-active-target-analysis-2026-08-28.md`.
+- **The 2026-08-28 V10D principal-target/generic-seasoning pass reached zero-FP but recall is capped
+  far below gate by categories outside its scope.** The V10C ratatouille salt/pepper false accepts are
+  benchmark-consistent (salt/pepper's `CORRECT` link is only the row's first-combination instruction;
+  generic seasoning language afterward correctly does not re-trigger it) — confirmed by checking every
+  generic-seasoning instruction in the frozen population (there are only two). A truth-blind
+  principal-target/alias/timeline/generic-seasoning contract, with continuation eligibility requiring
+  zero prior established component membership, reached 642 TP / 0 FP / 191 FN, 100% precision, 20/20
+  target-FP protection, and kept 9/9 quantity repairs — but only 77.07% candidate recall (gate is
+  99.5%) and historical `LOCKED_TRUTH` protection fell to 4/12 (from V10C's 9/12). The 164-FN taxonomy
+  shows only 11 were `PRINCIPAL_TARGET_CONTINUATION`; the bulk (49 `COLLECTIVE_CONTINUATION`, 87
+  `OTHER`, 13 misclassified passive-carry) need a different semantic layer before further architecture
+  work. Prepared-component establishment/reuse, final production architecture, and persisted-map
+  migration remain pending and separate. Production stays on v4/v5; V6–V10 are nonproduction. See
+  `docs/audits/cooking-mode-v10d-principal-target-analysis-2026-08-28.md`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1645,7 +1681,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Cooking-step ingredient mapping | High | Partial (228/236 shared recipes mapped; Wave 4/5 and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping audit — Failed / historical**: seven deterministic false positives and repeated incorrect AI salt acceptance; its immutable manifest is never reusable. **Mapping v5 remediation — Done / PASS**: 41/41 recipes, 295 references, 111 omissions, 0 false positives; bounded AI 25/25 correct with 0 unsafe stability differences; all 187 persisted v4 maps remain runtime accepted. **Recovered 41-recipe v5 map audit — Done**: 41/41 READY, 295 deterministic references and 111 omissions safe, 25/25 accepted AI relationships correct, zero unsafe stability differences, immutable manifest SHA `5d4ddaa10c788f9192ae74a5887859bc2847496706461b655752d86e62741170`. **Recovered 41-recipe v5 map apply — Done**: 41 exact field-only writes, 41/41 exact readback/hash/validation matches, zero non-map changes, zero AI/recomputation, 0/187 original maps changed, 0/8 unresolved recipes changed, and post-apply READY_TO_WRITE 0. Production has 228 mapped and eight unmapped recipes. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`, and the preserved v1-v5 audit evidence. |
 | Cooking Mode completeness audit | High | Done | Full 228-recipe actual-runtime precision + recall audit: two blind reviews per recipe, every discrepancy adjudicated, mandatory UI regressions reproduced, TP 1,375 / FP 12 / FN 2,677, precision 99.13%, recall 33.93%, production mutations 0. See §6 and `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`. |
-| Cooking Mode recall remediation | High | V10C ingredient precision gate failed; remaining active-use/passive-carry boundary required | V9 failed at four independent layers. V10A froze 863 ingredient candidates (833 correct/30 incorrect); disagreement-only reached 831 TP / 20 FP / 2 FN with 91 AI decisions. V10B measured 748 TP / 9 FP / 85 FN and exposed nine invalid quantity rejections. V10C repaired all 9/9 quantity regressions and rejected 18/20 target FP with clean 71/71 transport, but over-rejected correct candidates: 669 TP / 2 FP / 164 FN, 99.70% precision, 80.31% recall; historical locked protection was 9/12. Generic “taste and adjust seasoning” still creates two salt/pepper false accepts, while unnamed principal/category continuations create 116 passive-component false rejections. Production remains approved v4/v5; V6–V10 are audit-only/nonproduction. Prepared-component semantics, final architecture, and persisted-map migration remain pending. See §5.25, §6 and `docs/audits/cooking-mode-v10c-active-target-analysis-2026-08-28.md`. |
+| Cooking Mode recall remediation | High | V10D reached zero-FP but candidate recall is capped by categories outside its scope; a different semantic layer is required next | V9 failed at four independent layers. V10A froze 863 ingredient candidates (833 correct/30 incorrect); disagreement-only reached 831 TP / 20 FP / 2 FN with 91 AI decisions. V10B measured 748 TP / 9 FP / 85 FN and exposed nine invalid quantity rejections. V10C repaired all 9/9 quantity regressions and rejected 18/20 target FP with clean 71/71 transport, but over-rejected correct candidates: 669 TP / 2 FP / 164 FN, 99.70% precision, 80.31% recall; historical locked protection was 9/12. V10D confirmed the two ratatouille salt/pepper false accepts are benchmark-consistent (not a labeling error — salt/pepper's `CORRECT` link is only the row's first-combination instruction), then added a truth-blind principal-target/alias/timeline/generic-seasoning contract (continuation requires zero prior established component membership). The corrected bounded run (392 risk + 82 historical candidates, 71/71 successful across two full passes, zero retries/failures) reached 642 TP / 0 FP / 191 FN — 100% precision, 20/20 target-FP protection, 9/9 quantity repairs kept — but only 77.07% candidate recall (gate 99.5%) and historical locked protection fell to 4/12. The 164-FN taxonomy shows only 11/164 were true principal-continuation cases; the bulk (49 collective-continuation, 87 other, 13 misclassified passive-carry) need a different semantic layer. Production remains approved v4/v5; V6–V10 are audit-only/nonproduction. Prepared-component semantics, final architecture, and persisted-map migration remain pending. See §5.25, §6 and `docs/audits/cooking-mode-v10d-principal-target-analysis-2026-08-28.md`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
