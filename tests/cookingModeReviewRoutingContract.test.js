@@ -5,6 +5,12 @@ import {
   evaluateReviewRoutingContract,
   REVIEW_ROUTING_BENCHMARK_SIZE,
 } from '../scripts/analyze-cooking-mode-review-routing-contract-core.mjs'
+import { extractCandidateRiskFacts } from '../scripts/analyze-cooking-mode-v10b-ingredient-precision-core.mjs'
+import {
+  FROZEN_V10B_SOURCE_EXTRACTOR_SHA256,
+  deriveMappingV1Evidence,
+} from '../lib/cookingModeMappingEvidence.ts'
+import { routeMappingCandidate } from '../lib/cookingModeMappingRouter.ts'
 
 const root = path.resolve(process.cwd())
 const readJson = file => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'))
@@ -72,6 +78,52 @@ describe('Cooking Mode review-routing policy arithmetic', () => {
     expect(frontier.autoAccept).toEqual({ count: 773, truePositives: 773, falsePositives: 0, precision: 1 })
     expect(frontier.reviewRequired).toEqual({ count: 88, correctCandidates: 60, incorrectCandidates: 28 })
     expect(frontier.recipesRequiringReview).toBe(21)
+  })
+
+  it('reproduces the selected 382/479 policy through the production evidence adapter and router', () => {
+    const reviewerUnion = evidence.frozen.populations.INGREDIENT_RELATIONSHIPS
+      .filter(candidate => candidate.provenanceClass !== 'DETERMINISTIC_ONLY')
+    const recipeById = new Map(evidence.benchmark.recipes.map(recipe => [recipe.recipeId, recipe]))
+    const componentCandidates = evidence.frozen.populations.PREPARED_COMPONENT_RELATIONSHIPS
+    const allIngredientCandidates = evidence.frozen.populations.INGREDIENT_RELATIONSHIPS
+    const vote = (slot, accepted) => ({
+      reviewerSlot: slot,
+      vote: accepted ? 'ACCEPT' : 'REJECT',
+      reviewerContractVersion: 'frozen-reviewer-v1',
+      promptVersion: 'frozen-prompt-v1',
+      modelId: 'frozen/model',
+      runId: `frozen-run-${slot}`,
+      attemptId: `frozen-attempt-${slot}`,
+      completedAt: '2026-08-28T00:00:00Z',
+      parseStatus: 'VALID',
+      normalizedOutputHash: `frozen-hash-${slot}`,
+      confidence: null,
+      sourceEvidence: null,
+    })
+
+    const decisions = reviewerUnion.map(candidate => {
+      const facts = extractCandidateRiskFacts(
+        candidate,
+        recipeById.get(candidate.recipeId),
+        allIngredientCandidates,
+        componentCandidates,
+      )
+      return routeMappingCandidate({
+        candidateType: 'INGREDIENT_STEP_RELATIONSHIP',
+        reviewerA: vote('A', candidate.origins.includes('REVIEWER_A')),
+        reviewerB: vote('B', candidate.origins.includes('REVIEWER_B')),
+        deterministicEvidence: deriveMappingV1Evidence({
+          status: 'COMPLETE',
+          extractorFingerprint: FROZEN_V10B_SOURCE_EXTRACTOR_SHA256,
+          frozenRiskFacts: facts,
+        }),
+        structuralValidation: { valid: true, reasons: [] },
+      }).routingDecision
+    })
+
+    expect(decisions.filter(decision => decision === 'AUTO_ACCEPT')).toHaveLength(382)
+    expect(decisions.filter(decision => decision === 'REVIEW_REQUIRED')).toHaveLength(479)
+    expect(decisions).not.toContain('AUTO_REJECT')
   })
 })
 
