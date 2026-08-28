@@ -693,3 +693,99 @@ This contract is complete enough to implement without inventing routing semantic
 15. Prepared components are deferred.
 16. Selected frozen burden: 55.63% relationships reviewed, 34/36 recipes affected, 14.09 review items per affected recipe.
 17. The next implementation prompt is contract types + a pure, frozen deterministic router prototype with no persistence or runtime integration.
+
+## 25. Persistence layer (Implementation 3, 2026-08-28)
+
+Section 20's deferred physical model is now resolved and implemented. This section documents the
+concrete paths, types, and identity rules; it changes no reviewer semantics, no routing precedence,
+and no runtime behavior. Full production types live in `types/cookingModeMappingPersistence.ts`;
+services live in `lib/cookingModeMapping{Firestore,PersistenceIdentity,ProposalPersistence,
+ReviewPersistence,ApprovedPersistence}.ts`.
+
+### 25.1 Physical paths
+
+```text
+recipes/{recipeId}/mappingProposals/{proposalId}
+recipes/{recipeId}/mappingProposals/{proposalId}/candidates/{candidateId}
+recipes/{recipeId}/mappingProposals/{proposalId}/reviewEvents/{decisionId}
+recipes/{recipeId}/approvedMappings/{mapId}
+recipes/{recipeId}/cookingModeMappingPointer/current
+```
+
+Kept under the shared `recipes/{id}` catalog root rather than `users/{uid}` — see PRD.md §3 for the
+full rationale. No composite index is required anywhere: every read is either a get-by-known-id or
+an unfiltered read of one small, bounded subcollection (observed union sizes are tens of
+relationships per recipe).
+
+### 25.2 Naming deviation from this document's illustrative snippets
+
+§14 and §15 above already normatively name `MappingReviewDecisionV1` and
+`ApprovedCookingStepMapV1`/`ApprovedIngredientStepRelationshipV1`. The Implementation-3 task prompt's
+illustrative persistence snippets used different shapes under the *same* `MappingReviewDecisionV1`
+name and a *different* name (`ApprovedCookingModeMapV1`) for the same two concepts. To avoid two
+conflicting definitions of one normative type name, the implementation reuses this document's exact
+names/shapes for the domain concepts and prefixes only the Firestore-shaped persistence variants
+with `Persisted` (`PersistedMappingReviewDecisionV1`, `PersistedApprovedCookingStepMapV1`) — see the
+doc comment at the top of `types/cookingModeMappingPersistence.ts`.
+
+### 25.3 Proposal and candidate persistence
+
+`PersistedMappingProposalV1` adds a `persistenceStatus: 'WRITING' | 'READY' | 'FAILED'` field,
+orthogonal to the `MappingProposalStatus` workflow states in §15 — it exists only so a reader can
+never observe a `READY` header next to an incomplete candidate population. `saveMappingProposal`
+writes the header as `WRITING`, batch-writes candidates (`lib/chunkItems.ts`'s existing 450-write
+safety chunking), reads the candidate population back, and only then flips the header to `READY`
+(or `FAILED` if the readback count does not reconcile). It is idempotent for an exact replay
+(unchanged candidates are left untouched, preserving any materialized human-review state) and fails
+closed with a conflict error if an existing record under the same deterministic identity carries
+different immutable generation content (reviewer votes, evidence, routing, provenance — explicitly
+*not* the human-owned `reviewStatus`/`finalDecision`/`decisionSource` fields, which legitimately
+evolve after generation).
+
+### 25.4 Review-decision identity
+
+New prefix `mr1:`, alongside the existing frozen `mc1:`/`mp1:`. Deterministic over
+`(proposalId, candidateId, decision, reasonCode, note, decidedBy, supersedesDecisionId)`, so an
+exact-replay submission is idempotent (returns the existing event, `decidedAt` untouched) and any
+actually-different decision — including a bare correction — always yields a new id.
+`appendMappingReviewDecision` enforces a single linear supersession chain per candidate (a
+correction must reference the candidate's current `effectiveReviewEventId`), materializes the
+candidate's current decision in the same transaction as the event write, and never lets a client
+supply its own `decidedBy` — that must already be a server-verified identity from the caller.
+
+### 25.5 Approved-map identity and hash
+
+New prefix `am1:` for `mapId` (reusing §15's existing `am1:` convention exactly, not inventing a new
+one), `mapVersion = routingContractVersion + ':' + mapHash.slice(0, 16)`. `mapHash` is SHA-256 over
+a fixed-key-order JSON serialization of recipe/proposal/contract identity plus the sorted,
+candidateId-deduplicated accepted-relationship set — explicitly excluding `mapId`/`mapVersion`/
+`mapHash` themselves, server timestamps, and the diagnostic `provenance` field (reviewer run/attempt
+identifiers are not identity-relevant: two generation attempts for the same logical proposal can
+carry different reviewer run ids while accepting the exact same relationships, and the hash must
+still match). `buildApprovedMapping` is a pure function (no Firestore I/O); `persistApprovedMapping`
+verifies the map's own hash before writing, is idempotent on exact replay, and fails closed if an
+existing record at the same `mapId` ever carries different content.
+
+### 25.6 Current-approved pointer and staleness
+
+`CurrentApprovedMappingPointerV1` at `cookingModeMappingPointer/current` only ever updates after the
+referenced approved map has been persisted and its hash re-verified on readback.
+`getCurrentApprovedMappingPointer` classifies the read as `CURRENT`/`STALE`/`NOT_FOUND` by comparing
+the pointer's `recipeRevision` against the caller-supplied live revision — staleness is a read-time
+classification, never written onto the immutable map. **Nothing reads this pointer yet**; Cooking
+Mode runtime cutover is a separate, later, explicitly gated task.
+
+### 25.7 Authorization
+
+All persistence services are trusted-server-only (`import 'server-only'`) and resolve Firestore via
+the Admin SDK (`lib/firebaseAdmin.ts`'s `getAdminDb()`), the same trust boundary as other global
+recipe writes. They accept an already-verified actor identity (e.g. `decidedBy`, `approvedBy`) as a
+plain parameter — they do not themselves inspect a request or verify a bearer token, so any future
+API route wrapping them **must** call `verifyAdminToken` first and pass its result through; a
+client-supplied identity must never reach these functions directly. No API route exists yet — see
+PRD.md's Feature Backlog entry for current status.
+
+### 25.8 Firestore rules
+
+Not deployed. See PRD.md "Firestore rules" for the exact manual Console addition required (admin-only
+read+write on every new path, since no runtime/UI reader exists yet to justify a public read rule).
