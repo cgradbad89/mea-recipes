@@ -17,6 +17,7 @@ interface AIRequestBase {
   promptVersion?: string
   temperature?: number
   timeout?: number
+  maxRetries?: number
 }
 
 interface AIPromptRequest extends AIRequestBase {
@@ -55,6 +56,7 @@ export async function generateAIText(request: AIRequest): Promise<string> {
     system: request.system,
     ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
+    ...(request.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
     ...requestInput(request),
     providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
   })
@@ -70,6 +72,7 @@ export async function generateAIObject<T>(
     system: request.system,
     ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
+    ...(request.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
     ...requestInput(request),
     output: Output.object({ schema: request.schema }),
     providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
@@ -86,6 +89,7 @@ export async function generateAIArray<T>(
     system: request.system,
     ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
     ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
+    ...(request.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
     ...requestInput(request),
     output: Output.array({ element: request.element }),
     providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),

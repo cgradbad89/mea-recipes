@@ -1,5 +1,7 @@
 export const MAPPING_ROUTING_CONTRACT_VERSION = 'cooking-review-routing-v1' as const
 export const MAPPING_EVIDENCE_CONTRACT_VERSION = 'cooking-routing-evidence-v1' as const
+export const MAPPING_REVIEWER_CONTRACT_VERSION = 'cooking-mapping-reviewer-v1' as const
+export const MAPPING_PROPOSAL_SCHEMA_VERSION = 1 as const
 
 export const MAPPING_REVIEWER_VOTE_VALUES = [
   'ACCEPT',
@@ -166,6 +168,109 @@ export interface MappingRevisionSource {
   parserVersion: string
   ingredients: string[]
   instructions: string[]
+}
+
+export interface MappingReviewerRelationshipV1 {
+  ingredientRowIndex: number
+  stepIndex: number
+}
+
+export interface MappingReviewerCoverageV1 {
+  ingredientRowCount: number
+  nonHeaderIngredientRowCount: number
+  stepCount: number
+  reviewedCellCount: number
+}
+
+export interface MappingReviewerResponseV1 {
+  reviewerContractVersion: typeof MAPPING_REVIEWER_CONTRACT_VERSION
+  promptVersion: string
+  recipeRevision: string
+  coverage: MappingReviewerCoverageV1
+  acceptedRelationships: MappingReviewerRelationshipV1[]
+}
+
+export type MappingReviewerAttemptFailure =
+  | 'AI_EXECUTION_FAILURE'
+  | 'TIMEOUT'
+  | 'SCHEMA_FAILURE'
+  | 'PARSE_FAILURE'
+  | 'MISSING_REQUIRED_OUTPUT'
+
+export interface MappingReviewerAttemptV1 {
+  reviewerSlot: 'A' | 'B'
+  runId: string
+  attemptId: string
+  attempt: number
+  startedAt: string
+  completedAt: string | null
+  parseStatus: MappingReviewerParseStatus
+  outputHash: string | null
+  failure: MappingReviewerAttemptFailure | null
+  diagnosticCode: string | null
+}
+
+export interface MappingReviewerExecutionResultV1 {
+  reviewerSlot: 'A' | 'B'
+  reviewerContractVersion: typeof MAPPING_REVIEWER_CONTRACT_VERSION
+  promptVersion: string
+  modelId: string
+  recipeRevision: string
+  parseStatus: MappingReviewerParseStatus
+  acceptedRelationships: MappingReviewerRelationshipV1[]
+  coverage: MappingReviewerCoverageV1 | null
+  normalizedOutputHash: string | null
+  completedAt: string | null
+  runId: string
+  attemptId: string
+  attempt: number
+  attempts: MappingReviewerAttemptV1[]
+}
+
+export interface MappingBlindReviewResultV1 {
+  recipeId: string
+  recipeRevision: string
+  source: MappingRevisionSource
+  reviewerA: MappingReviewerExecutionResultV1
+  reviewerB: MappingReviewerExecutionResultV1
+}
+
+export const MAPPING_PROPOSAL_BLOCKING_REASON_VALUES = [
+  'REVIEWER_A_INCOMPLETE',
+  'REVIEWER_B_INCOMPLETE',
+  'CANDIDATE_REVIEW_REQUIRED',
+  'STRUCTURAL_INVALIDITY',
+  'DETERMINISTIC_EVIDENCE_FAILURE',
+  'SOURCE_IDENTITY_MISMATCH',
+] as const
+
+export type MappingProposalBlockingReason = (typeof MAPPING_PROPOSAL_BLOCKING_REASON_VALUES)[number]
+
+export interface MappingProposalSummaryV1 {
+  candidateCount: number
+  autoAcceptCount: number
+  reviewRequiredCount: number
+  autoRejectCount: number
+}
+
+export interface MappingProposalV1 {
+  schemaVersion: typeof MAPPING_PROPOSAL_SCHEMA_VERSION
+  proposalId: string
+  recipeId: string
+  recipeRevision: string
+  parserVersion: string
+  mappingSourceHash: string
+  reviewerContractVersion: typeof MAPPING_REVIEWER_CONTRACT_VERSION
+  evidenceContractVersion: typeof MAPPING_EVIDENCE_CONTRACT_VERSION
+  routingContractVersion: typeof MAPPING_ROUTING_CONTRACT_VERSION
+  reviewerA: MappingReviewerExecutionResultV1
+  reviewerB: MappingReviewerExecutionResultV1
+  candidates: MappingCandidateV1[]
+  summary: MappingProposalSummaryV1
+  approvalBlocked: boolean
+  blockingReasons: MappingProposalBlockingReason[]
+  reviewCompleteWithoutHuman: boolean
+  createdAt: string
 }
 
 export interface MappingCandidateIdentityInput {

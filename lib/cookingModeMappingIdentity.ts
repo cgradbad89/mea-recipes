@@ -7,7 +7,12 @@ import type {
   MappingStructuralReason,
   MappingStructuralValidation,
 } from '@/types/cookingModeMapping'
-import { MAPPING_STRUCTURAL_REASON_ORDER } from '@/types/cookingModeMapping'
+import {
+  MAPPING_EVIDENCE_CONTRACT_VERSION,
+  MAPPING_REVIEWER_CONTRACT_VERSION,
+  MAPPING_ROUTING_CONTRACT_VERSION,
+  MAPPING_STRUCTURAL_REASON_ORDER,
+} from '@/types/cookingModeMapping'
 
 export function canonicalizeMappingRecipeRevisionSource(input: MappingRevisionSource): string {
   return canonicalizeCookingMappingSource(input.ingredients, input.instructions)
@@ -37,6 +42,30 @@ async function sha256(value: string): Promise<string> {
 
 export async function computeMappingCandidateId(input: MappingCandidateIdentityInput): Promise<string> {
   return `mc1:${await sha256(canonicalizeMappingCandidateIdentity(input))}`
+}
+
+export function canonicalizeMappingProposalIdentity(input: {
+  recipeId: string
+  recipeRevision: string
+  reviewerContractVersion?: string
+  evidenceContractVersion?: string
+  routingContractVersion?: string
+}): string {
+  return JSON.stringify([
+    'mapping-proposal',
+    1,
+    input.recipeId,
+    input.recipeRevision,
+    input.reviewerContractVersion ?? MAPPING_REVIEWER_CONTRACT_VERSION,
+    input.evidenceContractVersion ?? MAPPING_EVIDENCE_CONTRACT_VERSION,
+    input.routingContractVersion ?? MAPPING_ROUTING_CONTRACT_VERSION,
+  ])
+}
+
+export async function computeMappingProposalId(
+  input: Parameters<typeof canonicalizeMappingProposalIdentity>[0],
+): Promise<string> {
+  return `mp1:${await sha256(canonicalizeMappingProposalIdentity(input))}`
 }
 
 function candidateIdentityTuple(candidate: MappingCandidateStructuralInput): string {

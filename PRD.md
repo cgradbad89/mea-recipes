@@ -1056,6 +1056,42 @@ retained as historical data and are not modified or deleted by this app.
     persistence, review UI, approved-map storage, Cooking Mode runtime integration, migration, or
     activation. Those remain separate backlog work.
 
+    **2026-08-28 blind review execution and proposal orchestration (production-capable,
+    in-memory, not activated):** Reviewer contract `cooking-mapping-reviewer-v1` and prompt
+    `cooking-mapping-reviewer-prompt-v1` now define a flat strict response containing exact
+    contract/prompt/revision values, whole-grid coverage counts, and a bounded array of accepted
+    `{ingredientRowIndex, stepIndex}` relationships. `lib/cookingModeMappingReviewer.ts` sends two
+    concurrent blind calls through the existing `lib/ai.ts` `generateAIObject` Gateway helper and
+    current `AI_MODEL`; both receive the same copied `MappingRevisionSource`, system prompt, user
+    prompt, and schema, while slot identity exists only in safe feature/provenance metadata. Neither
+    receives the other's output. Exact duplicate relationships normalize before a fixed-order
+    SHA-256 output hash. Invalid JSON/schema, revision, coverage, header, or index output is
+    `UNPARSEABLE`; timeout/unavailability is `MISSING`. Omission becomes `REJECT` only for a complete
+    valid whole-grid result.
+
+    Each slot has at most two attempts for execution, timeout, schema, parse, or missing-coverage
+    failure. Every attempt has distinct run/attempt IDs, timing, parse status, output hash when
+    available, and a bounded diagnostic code. The central call disables hidden AI SDK retries so
+    every model attempt has visible orchestration provenance, and the input is bounded to 200 ingredient
+    rows, 150 steps, and 4,000 characters per line. A valid empty semantic result is not retried. Retry
+    exhaustion never falls back to one reviewer. `lib/cookingModeMappingOrchestrator.ts` owns the
+    execution-to-build handoff, while `lib/cookingModeMappingProposal.ts` remains AI-free and
+    separates AI execution from the deterministic proposal build: it deduplicates the A/B union,
+    computes existing `mc1` candidate IDs and source snapshots, ports the frozen V10B source-risk facts through the
+    existing V1 evidence adapter, validates structure, and invokes the unchanged router. Evidence
+    failure, either incomplete reviewer, any review-required candidate, structural invalidity, or
+    source-identity mismatch sets `approvalBlocked`; no failure is interpreted as no risk or semantic
+    rejection. `reviewCompleteWithoutHuman` is diagnostic readiness only and creates no approved map.
+
+    Logical proposal identity is the normative `mp1:` SHA-256 of
+    `['mapping-proposal', 1, recipeId, recipeRevision, reviewerContractVersion,
+    evidenceContractVersion, routingContractVersion]`. It excludes timestamps and attempt metadata,
+    so retries cannot duplicate logical proposals or candidates. `generateMappingProposal` detects a
+    caller-side source/revision change across execution and fails closed at proposal readiness. This
+    slice adds no route, Firestore read/write/path, persistence, recipe-publish/edit trigger, review
+    UI, approved-map creation, Cooking Mode change, corpus run, migration, or activation. Live reviewer
+    behavior and the complete recall/activation gates remain unverified; tests use mocked AI only.
+
     **Prompt 3 Cooking Mode consumption:** runtime precedence is the effective recipe content
     (`meta.overrides.content || recipe.content`) → parse the exact displayed ingredients and
     instructions → synchronously build the conservative deterministic mapping → compute the

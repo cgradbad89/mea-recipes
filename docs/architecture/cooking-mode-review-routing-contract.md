@@ -88,7 +88,7 @@ candidateId = `mc1:${lowercaseHex(SHA256(UTF8(identityTuple)))}`
 
 The identifier includes neither reviewer explanation, confidence, prompt wording, model output, timestamps, nor deterministic evidence. It is stable across retries for the same recipe revision and relationship. A changed revision produces a different identifier even if the row and step indexes remain the same.
 
-On insert/read, the stored identity fields MUST be recomputed and compared with `candidateId`. If two different identity tuples ever produce the same digest, processing MUST fail closed with `CANDIDATE_ID_COLLISION`; neither record may be approved. Duplicate proposals of the same identity are normalized into one candidate with two reviewer votes; duplicate entries inside one reviewer output invalidate that reviewer result rather than create another candidate.
+On insert/read, the stored identity fields MUST be recomputed and compared with `candidateId`. If two different identity tuples ever produce the same digest, processing MUST fail closed with `CANDIDATE_ID_COLLISION`; neither record may be approved. Duplicate proposals of the same identity are normalized into one candidate with two reviewer votes. Exact duplicate relationships inside one otherwise valid reviewer output are normalized before hashing and never create another candidate; conflicting or structurally invalid entries invalidate that reviewer attempt.
 
 ## 5. Canonical candidate contract
 
@@ -194,6 +194,32 @@ Confidence and `sourceEvidence` are evidence-only. They never override vote coun
 A valid whole-recipe output that omits a union candidate becomes `REJECT`; absence is not `MISSING`. Any whole-output parse/coverage failure marks that reviewer slot `UNPARSEABLE` for the attempt and prevents map approval.
 
 Canonical state retains normalized outputs and their SHA-256 hashes. Raw provider output is diagnostic-only: encrypt/restrict it, retain it for 30 days or until the associated audit incident closes (whichever is later), then delete it. Do not retain hidden reasoning or unbounded model explanations.
+
+### 6.1 Implemented reviewer transport contract
+
+The in-memory execution implementation uses reviewer contract `cooking-mapping-reviewer-v1` and prompt `cooking-mapping-reviewer-prompt-v1`. Both blind slots receive byte-identical system/prompt source content and schema; the slot appears only in execution feature/provenance metadata. The central `lib/ai.ts` `generateAIObject` helper executes the currently configured Gateway model from `lib/aiConfig.ts` (`openai/gpt-5.6-luna` at implementation time). No reviewer output is ever supplied to the other slot.
+
+The structured response is flat and bounded:
+
+```ts
+interface MappingReviewerResponseV1 {
+  reviewerContractVersion: 'cooking-mapping-reviewer-v1'
+  promptVersion: 'cooking-mapping-reviewer-prompt-v1'
+  recipeRevision: string
+  coverage: {
+    ingredientRowCount: number
+    nonHeaderIngredientRowCount: number
+    stepCount: number
+    reviewedCellCount: number
+  }
+  acceptedRelationships: Array<{
+    ingredientRowIndex: number
+    stepIndex: number
+  }>
+}
+```
+
+`reviewedCellCount` MUST equal `nonHeaderIngredientRowCount * stepCount`, and every coverage count, contract version, prompt version, and recipe revision MUST exactly match the immutable request. Only then may an omitted cell normalize to `REJECT`. Invalid JSON/schema, missing or mismatched coverage, stale revision, header indexes, or out-of-range indexes make the attempt `UNPARSEABLE`; any structurally invalid returned relationship may be retained only as a bounded diagnostic `AUTO_REJECT` candidate while the entire proposal remains blocked. Exact duplicate accepted relationships are deduplicated and sorted by `(ingredientRowIndex, stepIndex)` before hashing. Successful output hashes cover that normalized fixed-key-order response. When the AI SDK exposes invalid generated text on schema failure, only its SHA-256 may be retained by this slice; the raw text is not stored.
 
 ## 7. Deterministic evidence contract
 
@@ -519,6 +545,8 @@ The ingestion key is the SHA-256 of the fixed tuple:
  reviewerContractVersion, evidenceContractVersion, routingContractVersion]
 ```
 
+The implemented logical identifier is `proposalId = "mp1:" + lowercaseHex(SHA256(UTF8(JSON.stringify(tuple))))`. It excludes timestamps, model run IDs, attempt IDs, output hashes, candidate order, and reviewer content. The same source revision plus the same reviewer/evidence/routing contract versions therefore yields the same logical proposal identity across retries.
+
 New recipe flow:
 
 1. finalize exact content and canonical parse;
@@ -547,6 +575,10 @@ Reviewer failure behavior:
 - parse/schema/coverage failure: affected slot `UNPARSEABLE`, proposal blocked;
 - timeout/unavailability: affected slot `MISSING`, proposal blocked;
 - no path silently degrades from two reviewers to one.
+
+The in-memory execution helper uses at most two attempts per slot and sets the AI SDK call's internal `maxRetries` to zero, so every model execution attempt has visible orchestration provenance. AI execution failure, timeout, provider schema failure, local parse failure, and missing/mismatched coverage are retryable. A complete valid empty relationship array is a semantic result and is not retried. Each retry receives a new `runId` and `attemptId`; attempts retain start/completion time, parse status, bounded failure code, and output hash when available. Inputs retain the existing cooking-mapping bounds: at most 200 ingredient rows, 150 instruction steps, and 4,000 characters per source line.
+
+`executeBlindMappingReviewers` copies one immutable `MappingRevisionSource` snapshot and starts A and B concurrently from that snapshot. `generateMappingProposal` in `lib/cookingModeMappingOrchestrator.ts` owns the execution-to-build handoff and verifies that the caller-visible source still matches the snapshot afterward. `buildMappingProposal` in the separate AI-free module is the deterministic constructor: it deduplicates the union, computes `mc1` identities/source snapshots, derives the frozen nine-risk V1 evidence, validates structure, and calls the unchanged pure router. Its result includes routing summary counts, `approvalBlocked`, ordered blocking reasons, and `reviewCompleteWithoutHuman`. The latter means only that both reviewer results and all current candidates need no human candidate decision; it does not approve, persist, activate, or create a runtime map.
 
 ## 17. Recipe edits and runtime behavior
 
