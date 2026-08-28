@@ -1,0 +1,3814 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T16:59:25.857Z",
+  "verdict": "MORE INGREDIENT PRECISION WORK REQUIRED",
+  "frozenPopulation": {
+    "total": 863,
+    "correct": 833,
+    "incorrect": 30,
+    "source": "docs/audits/cooking-mode-arbiter-v10a-frozen-candidates-2026-08-28.json"
+  },
+  "v10aBestStrategyReproduction": {
+    "truePositives": 831,
+    "falsePositives": 20,
+    "falseNegatives": 2,
+    "precision": 0.9764982373678026,
+    "recall": 0.9975990396158463,
+    "f1": 0.9869358669833729
+  },
+  "twentyFalsePositiveProvenance": {
+    "1_OF_2": 10,
+    "2_OF_2": 9,
+    "DETERMINISTIC_ONLY": 1
+  },
+  "twentyFalsePositiveTaxonomy": {
+    "COMPONENT_LEAKAGE": 11,
+    "CONSUMED_ROW": 4,
+    "CONTEXTUAL_MENTION": 4,
+    "PROCESS_MATERIAL": 1
+  },
+  "twoOfTwoAutoAcceptCanReachZeroFalsePositives": false,
+  "twoOfTwoBlockingFalsePositives": 9,
+  "riskFactContract": {
+    "lifecycle": [
+      "priorInstructionMentions",
+      "laterInstructionMentions",
+      "priorReviewerUses",
+      "quantityEvidence",
+      "remainingLanguage",
+      "lifecycleRisk"
+    ],
+    "componentContainment": [
+      "possibleConstituent",
+      "componentLabels",
+      "establishedInstructionIndex",
+      "currentInstructionRefersToComponent"
+    ],
+    "truthFieldsIncluded": false
+  },
+  "routeCoverage": {
+    "correctCandidatesRouted": 447,
+    "incorrectCandidatesRouted": 30,
+    "correctCandidatesNotRouted": 386,
+    "incorrectCandidatesNotRouted": 0
+  },
+  "routedCandidateCount": 477,
+  "riskRejectionOnly": {
+    "truePositives": 829,
+    "falsePositives": 19,
+    "falseNegatives": 4,
+    "precision": 0.9775943396226415,
+    "recall": 0.9951980792316927,
+    "f1": 0.9863176680547293
+  },
+  "stateAwareArbiter": {
+    "truePositives": 748,
+    "falsePositives": 9,
+    "falseNegatives": 85,
+    "precision": 0.988110964332893,
+    "recall": 0.8979591836734694,
+    "f1": 0.9408805031446541
+  },
+  "stateAwareErrors": {
+    "falseAccepts": [
+      {
+        "candidateId": "ingredient::176::6::17",
+        "ingredientText": "- 1 teaspoon kosher salt",
+        "instructionText": "7. Toss asparagus with olive oil, salt, pepper; roast 20 minutes",
+        "decision": {
+          "candidateId": "ingredient::176::6::17",
+          "decision": "ACCEPT",
+          "basis": "DIRECT_ACTIVE_USE",
+          "evidenceText": "Instruction 7 says “Toss asparagus with olive oil, salt, pepper,” directly using the listed “1 teaspoon kosher salt” row."
+        }
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::7",
+        "ingredientText": "1 teaspoon salt, more to taste",
+        "instructionText": "Transfer to oven and roast, stirring occasionally, until vegetables are lightly browned and tender and some water has been released from the tomatoes to create a sauce, 30 to 40 minutes.",
+        "decision": {
+          "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::7",
+          "decision": "ACCEPT",
+          "basis": "VALID_CONTINUING_USE",
+          "evidenceText": "The salt was already incorporated with the roasting ingredients, and the current roasting instruction continues cooking the mixture containing the listed salt."
+        }
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::8",
+        "ingredientText": "Black pepper to taste",
+        "instructionText": "Transfer to oven and roast, stirring occasionally, until vegetables are lightly browned and tender and some water has been released from the tomatoes to create a sauce, 30 to 40 minutes.",
+        "decision": {
+          "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::8",
+          "decision": "ACCEPT",
+          "basis": "VALID_CONTINUING_USE",
+          "evidenceText": "The black pepper was already incorporated in the roasting pan; “Transfer to oven and roast, stirring occasionally” continues cooking the mixture containing it."
+        }
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::9",
+        "ingredientText": "¼ cup olive oil",
+        "instructionText": "Transfer to oven and roast, stirring occasionally, until vegetables are lightly browned and tender and some water has been released from the tomatoes to create a sauce, 30 to 40 minutes.",
+        "decision": {
+          "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::9",
+          "decision": "ACCEPT",
+          "basis": "VALID_CONTINUING_USE",
+          "evidenceText": "The olive oil was used to coat and combine the ingredients, and the current instruction continues the cooking process by saying “Transfer to oven and roast.”"
+        }
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::7",
+        "ingredientText": "1 teaspoon salt, more to taste",
+        "instructionText": "Add chickpeas, stir and return to oven until beans heat through, 5 to 10 minutes. Add herbs and stir. Taste and adjust seasoning and serve hot, warm or at room temperature.",
+        "decision": {
+          "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::7",
+          "decision": "ACCEPT",
+          "basis": "DIRECT_ACTIVE_USE",
+          "evidenceText": "The instruction says “Taste and adjust seasoning,” which directly authorizes adjustment of the listed salt."
+        }
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::8",
+        "ingredientText": "Black pepper to taste",
+        "instructionText": "Add chickpeas, stir and return to oven until beans heat through, 5 to 10 minutes. Add herbs and stir. Taste and adjust seasoning and serve hot, warm or at room temperature.",
+        "decision": {
+          "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::8",
+          "decision": "ACCEPT",
+          "basis": "DIRECT_ACTIVE_USE",
+          "evidenceText": "The instruction says “Taste and adjust seasoning,” directly using the listed black pepper as seasoning."
+        }
+      },
+      {
+        "candidateId": "ingredient::dads-chili::6::15",
+        "ingredientText": "Chili Sauce 1 TBSP",
+        "instructionText": "Once everything is in the pot bring a boil then turn down and simmer for a couple hours",
+        "decision": {
+          "candidateId": "ingredient::dads-chili::6::15",
+          "decision": "ACCEPT",
+          "basis": "VALID_CONTINUING_USE",
+          "evidenceText": "The ingredient row’s Chili Sauce is included by the source’s sauce mixture in instruction 0, “In a large pot combine ... Simmer,” and the current instruction continues cooking everything in that pot: “bring a boil then turn down and simmer for a couple hours.”"
+        }
+      },
+      {
+        "candidateId": "ingredient::tacos-al-pastor::1::0",
+        "ingredientText": "2-3 pound Pork Loin cut into thin slices",
+        "instructionText": "Blend all of the ingredients together until completely combined.",
+        "decision": {
+          "candidateId": "ingredient::tacos-al-pastor::1::0",
+          "decision": "ACCEPT",
+          "basis": "DIRECT_ACTIVE_USE",
+          "evidenceText": "The instruction says “Blend all of the ingredients together until completely combined,” which directly includes the listed “2-3 pound Pork Loin cut into thin slices.”"
+        }
+      },
+      {
+        "candidateId": "ingredient::tacos-al-pastor::4::0",
+        "ingredientText": "2-3 pound Pork Loin cut into thin slices",
+        "instructionText": "Cover with aluminum foil and refrigerate for at least 4 hours (overnight is best)",
+        "decision": {
+          "candidateId": "ingredient::tacos-al-pastor::4::0",
+          "decision": "ACCEPT",
+          "basis": "VALID_CONTINUING_USE",
+          "evidenceText": "Instruction 4 says “Cover with aluminum foil and refrigerate for at least 4 hours,” continuing the marinating process involving the listed “2-3 pound Pork Loin cut into thin slices”; the pork is not exhausted."
+        }
+      }
+    ],
+    "falseRejects": [
+      {
+        "candidateId": "ingredient::157::3::0",
+        "ingredientText": "- 1.5 lbs pork chops",
+        "instructionText": "4. Lay browned pork chops over rice mixture",
+        "decision": {
+          "candidateId": "ingredient::157::3::0",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "The instruction directly says \"Lay browned pork chops over rice mixture,\" but the candidate row lists \"1.5 lbs pork chops\" while its source quantity evidence says \"5 lbs\"; the conflicting quantity prevents accepting this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::171::0::7",
+        "ingredientText": "- 3/4 tsp mustard powder",
+        "instructionText": "1. Mix rub ingredients and apply generously to brisket; refrigerate if time permits",
+        "decision": {
+          "candidateId": "ingredient::171::0::7",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "Instruction 1 would use the rub ingredients, but the listed row says \"3/4 tsp mustard powder\" while the supplied quantity evidence records \"4 tsp,\" so the source quantity conflicts for this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::171::0::9",
+        "ingredientText": "- 1/2 tsp black pepper",
+        "instructionText": "1. Mix rub ingredients and apply generously to brisket; refrigerate if time permits",
+        "decision": {
+          "candidateId": "ingredient::171::0::9",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "Instruction 1 would use the rub ingredients, but the listed row says \"1/2 tsp black pepper\" while the supplied quantity evidence records \"2 tsp,\" creating an exact-row quantity conflict."
+        }
+      },
+      {
+        "candidateId": "ingredient::171::1::13",
+        "ingredientText": "- 1/2 cup brown sugar, packed",
+        "instructionText": "2. Combine BBQ sauce ingredients in slow cooker, mix thoroughly, then add brisket",
+        "decision": {
+          "candidateId": "ingredient::171::1::13",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "Instruction 2 would combine the BBQ-sauce ingredients, but the listed row is \"1/2 cup brown sugar, packed\" while the supplied quantity evidence records \"2 cup,\" conflicting for this exact sauce row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::1",
+        "ingredientText": "- 4 cloves garlic",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::1",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "Instruction 5 says \"Remove lid, stir, and shred chicken using tongs\"; the exact garlic row is not separately acted on, so the collective stir does not establish active use."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::2",
+        "ingredientText": "- 1/2 Tbsp oregano",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::2",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "Instruction 5 says \"Remove lid, stir, and shred chicken using tongs\"; the exact oregano row is not separately acted on, so the collective stir does not establish active use."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::3",
+        "ingredientText": "- 1 tsp cumin",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::3",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "Instruction 5 says \"Remove lid, stir, and shred chicken using tongs\"; the exact cumin row is not separately acted on, so the collective stir does not establish active use."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::4",
+        "ingredientText": "- 1/8 tsp red pepper flakes",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::4",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "Instruction 5 says \"Remove lid, stir, and shred chicken using tongs\"; the exact red pepper flakes row is not separately acted on, so the collective stir does not establish active use."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::5",
+        "ingredientText": "- Freshly cracked black pepper",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::5",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Remove lid, stir, and shred chicken using tongs.” The row is black pepper; the current instruction specifically shreds chicken, while stirring the collective mixture does not separately act on the pepper row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::6",
+        "ingredientText": "- 1 medium yellow onion",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::6",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Remove lid, stir, and shred chicken using tongs.” The row is yellow onion; only chicken is separately acted on, and collective stirring does not by itself reactivate the onion row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::7",
+        "ingredientText": "- 1 medium green bell pepper",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::7",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Remove lid, stir, and shred chicken using tongs.” The row is green bell pepper; only chicken is separately acted on, and collective stirring does not by itself reactivate the pepper row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::8",
+        "ingredientText": "- 1 medium red bell pepper",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::8",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Remove lid, stir, and shred chicken using tongs.” The row is red bell pepper; only chicken is separately acted on, and collective stirring does not by itself reactivate the pepper row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::9",
+        "ingredientText": "- 1 15 oz can diced tomatoes",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::9",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Remove lid, stir, and shred chicken using tongs.” The diced tomatoes are only part of the collectively stirred mixture; the instruction does not separately act on this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::4::10",
+        "ingredientText": "- 3 Tbsp tomato paste",
+        "instructionText": "5. Remove lid, stir, and shred chicken using tongs",
+        "decision": {
+          "candidateId": "ingredient::173::4::10",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Remove lid, stir, and shred chicken using tongs.” The tomato paste is only part of the collectively stirred mixture; the instruction does not separately act on this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::0",
+        "ingredientText": "- 1.5 to 2 lbs boneless skinless chicken pieces",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::0",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” This is a collective dish-level simmering instruction and does not separately identify or act on the listed chicken row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::1",
+        "ingredientText": "- 4 cloves garlic",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::1",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Garlic is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::2",
+        "ingredientText": "- 1/2 Tbsp oregano",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::2",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Oregano is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::3",
+        "ingredientText": "- 1 tsp cumin",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::3",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Cumin is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::4",
+        "ingredientText": "- 1/8 tsp red pepper flakes",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::4",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Red pepper flakes are only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::5",
+        "ingredientText": "- Freshly cracked black pepper",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::5",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Black pepper is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::6",
+        "ingredientText": "- 1 medium yellow onion",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::6",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Yellow onion is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::7",
+        "ingredientText": "- 1 medium green bell pepper",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::7",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Green bell pepper is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::173::5::8",
+        "ingredientText": "- 1 medium red bell pepper",
+        "instructionText": "6. Simmer uncovered 15 minutes if thicker consistency desired",
+        "decision": {
+          "candidateId": "ingredient::173::5::8",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction says “Simmer uncovered 15 minutes if thicker consistency desired.” Red bell pepper is only a constituent of the simmering mixture; no separate current action targets this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::176::6::9",
+        "ingredientText": "- Salt to taste",
+        "instructionText": "7. Toss asparagus with olive oil, salt, pepper; roast 20 minutes",
+        "decision": {
+          "candidateId": "ingredient::176::6::9",
+          "decision": "REJECT",
+          "basis": "WRONG_DUPLICATE_OR_GROUP",
+          "evidenceText": "Although instruction 7 says “salt,” the exact asparagus salt row is the separate listed “1 teaspoon kosher salt” row; “Salt to taste” is the wrong duplicate for this purpose."
+        }
+      },
+      {
+        "candidateId": "ingredient::chicken-fajitas::2::8",
+        "ingredientText": "1 large red onion",
+        "instructionText": "Gently shaking off excess marinade as you go, transfer the chicken to a second sheet pan. Roast the chicken and vegetables until the chicken is cooked through and the peppers are soft, 15 to 20 minutes.",
+        "decision": {
+          "candidateId": "ingredient::chicken-fajitas::2::8",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction acts on “the chicken and vegetables” without separately naming or acting on the onion row; the onion is only a constituent of the vegetable component."
+        }
+      },
+      {
+        "candidateId": "ingredient::chicken-fajitas::3::7",
+        "ingredientText": "3 bell peppers, any color or a combination",
+        "instructionText": "Once the chicken is out of the oven, move an oven rack close to the broiler. Turn on the broiler and transfer the sheet pan of vegetables to the rack. Broil until charred to your liking, 2 to 5 minutes.",
+        "decision": {
+          "candidateId": "ingredient::chicken-fajitas::3::7",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “transfer the sheet pan of vegetables” and “Broil until charred,” acting on the prepared vegetable component rather than separately on the listed bell peppers."
+        }
+      },
+      {
+        "candidateId": "ingredient::chicken-fajitas::3::8",
+        "ingredientText": "1 large red onion",
+        "instructionText": "Once the chicken is out of the oven, move an oven rack close to the broiler. Turn on the broiler and transfer the sheet pan of vegetables to the rack. Broil until charred to your liking, 2 to 5 minutes.",
+        "decision": {
+          "candidateId": "ingredient::chicken-fajitas::3::8",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “transfer the sheet pan of vegetables” and “Broil until charred,” acting on the prepared vegetable component rather than separately on the listed onion."
+        }
+      },
+      {
+        "candidateId": "ingredient::chicken-fajitas::5::7",
+        "ingredientText": "3 bell peppers, any color or a combination",
+        "instructionText": "Serve chicken and vegetables with tortillas and desired toppings.",
+        "decision": {
+          "candidateId": "ingredient::chicken-fajitas::5::7",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The serving instruction says “Serve chicken and vegetables,” a collective finished-dish action that does not separately reactivate the listed bell-pepper row."
+        }
+      },
+      {
+        "candidateId": "ingredient::chicken-fajitas::5::8",
+        "ingredientText": "1 large red onion",
+        "instructionText": "Serve chicken and vegetables with tortillas and desired toppings.",
+        "decision": {
+          "candidateId": "ingredient::chicken-fajitas::5::8",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The serving instruction says “Serve chicken and vegetables,” a collective finished-dish action that does not separately reactivate the listed onion row."
+        }
+      },
+      {
+        "candidateId": "ingredient::chopped-thai-shrimp-salad-with-garlic-lime-dressing::3::14",
+        "ingredientText": "4 large carrots, peeled",
+        "instructionText": "Serve: Toss the chopped veggies, chopped shrimp, greens, and dressing together. Top with wonton strips if you have them (see notes).",
+        "decision": {
+          "candidateId": "ingredient::chopped-thai-shrimp-salad-with-garlic-lime-dressing::3::14",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction acts on the prepared component “chopped veggies” and does not separately act on the listed carrots row."
+        }
+      },
+      {
+        "candidateId": "ingredient::chopped-thai-shrimp-salad-with-garlic-lime-dressing::3::15",
+        "ingredientText": "2 cups edamame, shelled and cooked",
+        "instructionText": "Serve: Toss the chopped veggies, chopped shrimp, greens, and dressing together. Top with wonton strips if you have them (see notes).",
+        "decision": {
+          "candidateId": "ingredient::chopped-thai-shrimp-salad-with-garlic-lime-dressing::3::15",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction acts on the prepared component “chopped veggies” and does not separately act on the listed edamame row."
+        }
+      },
+      {
+        "candidateId": "ingredient::chopped-thai-shrimp-salad-with-garlic-lime-dressing::3::16",
+        "ingredientText": "3/4 cup cashews",
+        "instructionText": "Serve: Toss the chopped veggies, chopped shrimp, greens, and dressing together. Top with wonton strips if you have them (see notes).",
+        "decision": {
+          "candidateId": "ingredient::chopped-thai-shrimp-salad-with-garlic-lime-dressing::3::16",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction acts on the prepared component “chopped veggies” and does not separately act on the listed cashews row."
+        }
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::2::14",
+        "ingredientText": "¾ cup jarred or homemade queso",
+        "instructionText": "Prepare the assembly line: On a large flat surface, set out the flour tortillas. (You’ll need your tortillas to be pliable without tearing, so if need be, you can warm them directly in the skillet over medium heat to soften just until soft and pliable.) Add ½ cup filling to the center of one tortilla, flattening the filling into an even, 4-inch circle just a bit smaller than the width of your tostadas. Spread with 3 tablespoons queso over the filling. Top the mixture with a tostada, pressing it slightly to make sure the meat mixture is evenly distributed. Evenly spread 2 scant tablespoons of the spicy sour cream on top of the tostada. Top evenly with a heaping ¼ cup shredded lettuce, then 3 tablespoons drained pico de gallo.",
+        "decision": {
+          "candidateId": "ingredient::crunchy-queso-wrap::2::14",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "Although the instruction says “Spread with 3 tablespoons queso,” the supplied source quantity evidence conflicts with the listed queso quantity, so the exact row cannot be accepted."
+        }
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::2::16",
+        "ingredientText": "¾ cup homemade or storebought pico de gallo, drained",
+        "instructionText": "Prepare the assembly line: On a large flat surface, set out the flour tortillas. (You’ll need your tortillas to be pliable without tearing, so if need be, you can warm them directly in the skillet over medium heat to soften just until soft and pliable.) Add ½ cup filling to the center of one tortilla, flattening the filling into an even, 4-inch circle just a bit smaller than the width of your tostadas. Spread with 3 tablespoons queso over the filling. Top the mixture with a tostada, pressing it slightly to make sure the meat mixture is evenly distributed. Evenly spread 2 scant tablespoons of the spicy sour cream on top of the tostada. Top evenly with a heaping ¼ cup shredded lettuce, then 3 tablespoons drained pico de gallo.",
+        "decision": {
+          "candidateId": "ingredient::crunchy-queso-wrap::2::16",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "Although the instruction says “3 tablespoons drained pico de gallo,” the supplied source quantity evidence conflicts with the listed pico de gallo quantity."
+        }
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::6::16",
+        "ingredientText": "¾ cup homemade or storebought pico de gallo, drained",
+        "instructionText": "If you can’t find 10-inch tortillas, opt for the very largest ones you can find. Ideally, you want the tortilla to fully cover the fillings. If you’re having trouble cut (or tear!) 2- or 3-inch pieces from another tortilla and set it on top of your salsa, in the center, before folding over the tortilla to fully enclose.",
+        "decision": {
+          "candidateId": "ingredient::crunchy-queso-wrap::6::16",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says to place the tortilla piece “on top of your salsa”; it acts on the assembled salsa/filling context and does not separately use the listed pico de gallo row."
+        }
+      },
+      {
+        "candidateId": "ingredient::dads-chili::5::2",
+        "ingredientText": "Celery 2 stalks",
+        "instructionText": "OPTIONAL - Blend veggies until smooth after saute (or maybe just blend half for a smooth sauce with substance)- most professionals do this for a smoother chili though for your work may be too different for folks.",
+        "decision": {
+          "candidateId": "ingredient::dads-chili::5::2",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Blend veggies until smooth” after sautéing; it acts on the prepared vegetable mixture/component rather than separately on the listed celery row."
+        }
+      },
+      {
+        "candidateId": "ingredient::dads-chili::5::3",
+        "ingredientText": "Onion 1/2",
+        "instructionText": "OPTIONAL - Blend veggies until smooth after saute (or maybe just blend half for a smooth sauce with substance)- most professionals do this for a smoother chili though for your work may be too different for folks.",
+        "decision": {
+          "candidateId": "ingredient::dads-chili::5::3",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Blend veggies until smooth” after sautéing; it acts on the prepared vegetable mixture/component rather than separately on the listed onion row."
+        }
+      },
+      {
+        "candidateId": "ingredient::dads-chili::5::4",
+        "ingredientText": "Green Pepper 1/2",
+        "instructionText": "OPTIONAL - Blend veggies until smooth after saute (or maybe just blend half for a smooth sauce with substance)- most professionals do this for a smoother chili though for your work may be too different for folks.",
+        "decision": {
+          "candidateId": "ingredient::dads-chili::5::4",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Blend veggies until smooth” after sautéing; it acts on the prepared vegetable mixture/component rather than separately on the listed green pepper row."
+        }
+      },
+      {
+        "candidateId": "ingredient::dads-chili::5::5",
+        "ingredientText": "Garlic (at least) 6 cloves",
+        "instructionText": "OPTIONAL - Blend veggies until smooth after saute (or maybe just blend half for a smooth sauce with substance)- most professionals do this for a smoother chili though for your work may be too different for folks.",
+        "decision": {
+          "candidateId": "ingredient::dads-chili::5::5",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Blend veggies until smooth” after sautéing; it acts on the prepared vegetable mixture/component rather than separately on the listed garlic row."
+        }
+      },
+      {
+        "candidateId": "ingredient::dads-chili::5::6",
+        "ingredientText": "Mushrooms 3",
+        "instructionText": "OPTIONAL - Blend veggies until smooth after saute (or maybe just blend half for a smooth sauce with substance)- most professionals do this for a smoother chili though for your work may be too different for folks.",
+        "decision": {
+          "candidateId": "ingredient::dads-chili::5::6",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Blend veggies until smooth” after sautéing; it acts on the prepared vegetable mixture/component rather than separately on the listed mushrooms row."
+        }
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::3::6",
+        "ingredientText": "1 1/2 cups flour",
+        "instructionText": "FRY: Heat the peanut oil in a frying pan until a speck of water sizzles across the top. Using tongs, shake excess liquid off the chicken pieces. Coat each piece in the dry flour mix. Add to the hot oil. Fry for 5 minutes on one side, then 2-3 minutes on the other side until golden brown and crispy. Drain on a paper towel lined plate and sprinkle with a little more salt (to taste).",
+        "decision": {
+          "candidateId": "ingredient::fried-chicken-sandwich::3::6",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction says “Coat each piece in the dry flour mix,” acting on the prepared mix formed in the prior batter step, not separately on the listed flour row."
+        }
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::3::7",
+        "ingredientText": "1/2 cup cornstarch",
+        "instructionText": "FRY: Heat the peanut oil in a frying pan until a speck of water sizzles across the top. Using tongs, shake excess liquid off the chicken pieces. Coat each piece in the dry flour mix. Add to the hot oil. Fry for 5 minutes on one side, then 2-3 minutes on the other side until golden brown and crispy. Drain on a paper towel lined plate and sprinkle with a little more salt (to taste).",
+        "decision": {
+          "candidateId": "ingredient::fried-chicken-sandwich::3::7",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction says “Coat each piece in the dry flour mix,” acting on the prepared mix containing cornstarch, not separately on the listed cornstarch row."
+        }
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::3::8",
+        "ingredientText": "1 teaspoon baking powder",
+        "instructionText": "FRY: Heat the peanut oil in a frying pan until a speck of water sizzles across the top. Using tongs, shake excess liquid off the chicken pieces. Coat each piece in the dry flour mix. Add to the hot oil. Fry for 5 minutes on one side, then 2-3 minutes on the other side until golden brown and crispy. Drain on a paper towel lined plate and sprinkle with a little more salt (to taste).",
+        "decision": {
+          "candidateId": "ingredient::fried-chicken-sandwich::3::8",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "Instruction 1 combines the dry ingredients, and instruction 3 says only to \"Coat each piece in the dry flour mix.\" The current instruction acts on the prepared mix, not separately on the listed \"1 teaspoon baking powder.\""
+        }
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::3::10",
+        "ingredientText": "1 tablespoon seasoning mix",
+        "instructionText": "FRY: Heat the peanut oil in a frying pan until a speck of water sizzles across the top. Using tongs, shake excess liquid off the chicken pieces. Coat each piece in the dry flour mix. Add to the hot oil. Fry for 5 minutes on one side, then 2-3 minutes on the other side until golden brown and crispy. Drain on a paper towel lined plate and sprinkle with a little more salt (to taste).",
+        "decision": {
+          "candidateId": "ingredient::fried-chicken-sandwich::3::10",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "Instruction 3 acts on the prepared \"dry flour mix\" with \"Coat each piece in the dry flour mix.\" It does not separately manipulate the listed dry-ingredient \"1 tablespoon seasoning mix,\" and the duplicate wet-ingredient row is a distinct group."
+        }
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::4::1",
+        "ingredientText": "4 boneless skinless chicken breasts (see notes!)",
+        "instructionText": "ASSEMBLE: Build your ideal summertime fried chicken sandwich! I like bacon, Swiss cheese, honey dijonnaise, pickles, and slaw!",
+        "decision": {
+          "candidateId": "ingredient::fried-chicken-sandwich::4::1",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The chicken breasts were already marinated and fried in instructions 0 and 3. Instruction 4 only says \"Build your ideal summertime fried chicken sandwich!\" and does not separately act on the exact chicken row."
+        }
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::4::20",
+        "ingredientText": "Brioche buns",
+        "instructionText": "ASSEMBLE: Build your ideal summertime fried chicken sandwich! I like bacon, Swiss cheese, honey dijonnaise, pickles, and slaw!",
+        "decision": {
+          "candidateId": "ingredient::fried-chicken-sandwich::4::20",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "Instruction 4 says \"Build your ideal summertime fried chicken sandwich! I like bacon, Swiss cheese, honey dijonnaise, pickles, and slaw!\" It does not name or separately act on the listed \"Brioche buns\"; their active use appears only in the later toasting note."
+        }
+      },
+      {
+        "candidateId": "ingredient::garlic-butter-herb-steak-bites-with-potatoes::2::4",
+        "ingredientText": "1 teaspoon thyme, chopped",
+        "instructionText": "Top the steak with fresh chopped herbs.",
+        "decision": {
+          "candidateId": "ingredient::garlic-butter-herb-steak-bites-with-potatoes::2::4",
+          "decision": "REJECT",
+          "basis": "ALREADY_CONSUMED",
+          "evidenceText": "The prior instruction already says to “add ... thyme” and cook it with the potatoes. The current instruction only says “Top the steak with fresh chopped herbs,” without identifying thyme or supporting reuse of the previously added row."
+        }
+      },
+      {
+        "candidateId": "ingredient::garlic-butter-herb-steak-bites-with-potatoes::2::5",
+        "ingredientText": "1 teaspoon rosemary, chopped",
+        "instructionText": "Top the steak with fresh chopped herbs.",
+        "decision": {
+          "candidateId": "ingredient::garlic-butter-herb-steak-bites-with-potatoes::2::5",
+          "decision": "REJECT",
+          "basis": "ALREADY_CONSUMED",
+          "evidenceText": "The prior instruction already says to “add ... rosemary” and cook it with the potatoes. The current instruction only says “Top the steak with fresh chopped herbs,” without identifying rosemary or supporting reuse of the previously added row."
+        }
+      },
+      {
+        "candidateId": "ingredient::garlic-butter-herb-steak-bites-with-potatoes::2::6",
+        "ingredientText": "1 teaspoon oregano, chopped",
+        "instructionText": "Top the steak with fresh chopped herbs.",
+        "decision": {
+          "candidateId": "ingredient::garlic-butter-herb-steak-bites-with-potatoes::2::6",
+          "decision": "REJECT",
+          "basis": "ALREADY_CONSUMED",
+          "evidenceText": "The prior instruction already says to “add ... oregano” and cook it with the potatoes. The current instruction only says “Top the steak with fresh chopped herbs,” without identifying oregano or supporting reuse of the previously added row."
+        }
+      },
+      {
+        "candidateId": "ingredient::grilled-fish-tacos::1::1",
+        "ingredientText": "½ cup sour cream or mayo or a blend",
+        "instructionText": "Make a white salsa by mixing the sour cream, chipotle, and salt in a small bowl. Refrigerate. You can use powdered chipotle, about 1/2 teaspoon, but the salsa will need to sit for about an hour to let the flavors marry. With chipotle in adobo, the marriage is consummated immediately. And I like the flavor better.",
+        "decision": {
+          "candidateId": "ingredient::grilled-fish-tacos::1::1",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "The row lists “½ cup sour cream or mayo or a blend,” while the supplied quantity evidence reports a conflicting current quantity of “2 teaspoon”; the source does not support that quantity for this exact row."
+        }
+      },
+      {
+        "candidateId": "ingredient::grilled-fish-tacos::1::2",
+        "ingredientText": "1 teaspoon chopped canned chipotle in adobo sauce",
+        "instructionText": "Make a white salsa by mixing the sour cream, chipotle, and salt in a small bowl. Refrigerate. You can use powdered chipotle, about 1/2 teaspoon, but the salsa will need to sit for about an hour to let the flavors marry. With chipotle in adobo, the marriage is consummated immediately. And I like the flavor better.",
+        "decision": {
+          "candidateId": "ingredient::grilled-fish-tacos::1::2",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "The instruction says “mixing the sour cream, chipotle, and salt,” but the supplied quantity evidence conflicts with the row: listed “1 teaspoon” versus current “2 teaspoon” for the exact canned chipotle row."
+        }
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::3::8",
+        "ingredientText": "1 tablespoon olive oil",
+        "instructionText": "While the soup cooks, heat the olive oil in a small skillet over low heat. Add the minced garlic and 2 teaspoons salt and fry just until golden, swirling the pan, 2 to 3 minutes. Set aside.",
+        "decision": {
+          "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::3::8",
+          "decision": "REJECT",
+          "basis": "QUANTITY_CONFLICT",
+          "evidenceText": "Although the instruction says “heat the olive oil,” the listed row is 1 tablespoon while the source quantity evidence gives “2 teaspoons,” so the exact row’s quantity conflicts."
+        }
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::0",
+        "ingredientText": "1 cup roasted, unsalted pumpkin seeds",
+        "instructionText": "Add the garlic mixture to the large pot with the soup, along with the potatoes, carrots and the ground seed mixture. Cook on medium heat, stirring occasionally, for 15 to 20 minutes, until the vegetables are fork-tender and the soup thickens.",
+        "decision": {
+          "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::0",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says to add “the ground seed mixture,” not the pumpkin seeds separately; the listed row is used only as a constituent of that prepared component."
+        }
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::1",
+        "ingredientText": "¼ cup white sesame seeds",
+        "instructionText": "Add the garlic mixture to the large pot with the soup, along with the potatoes, carrots and the ground seed mixture. Cook on medium heat, stirring occasionally, for 15 to 20 minutes, until the vegetables are fork-tender and the soup thickens.",
+        "decision": {
+          "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::1",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says to add “the ground seed mixture,” not the sesame seeds separately; the listed row is used only as a constituent of that prepared component."
+        }
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::9",
+        "ingredientText": "2 garlic cloves, minced",
+        "instructionText": "Add the garlic mixture to the large pot with the soup, along with the potatoes, carrots and the ground seed mixture. Cook on medium heat, stirring occasionally, for 15 to 20 minutes, until the vegetables are fork-tender and the soup thickens.",
+        "decision": {
+          "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::9",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Add the garlic mixture,” without separately acting on the minced garlic; the listed row is used only through the prepared garlic mixture."
+        }
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::10",
+        "ingredientText": "Salt",
+        "instructionText": "Add the garlic mixture to the large pot with the soup, along with the potatoes, carrots and the ground seed mixture. Cook on medium heat, stirring occasionally, for 15 to 20 minutes, until the vegetables are fork-tender and the soup thickens.",
+        "decision": {
+          "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::5::10",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “Add the garlic mixture,” without separately acting on the listed salt; the salt is used only through that prepared component."
+        }
+      },
+      {
+        "candidateId": "ingredient::mediterranean-grilled-salmon::6::4",
+        "ingredientText": "one large tomato sliced in half",
+        "instructionText": "Divide quinoa among two bowls. Top with a handful of greens. Add any fresh veggies you like and drizzle with a little olive oil, sprinkle with salt and pepper and a squeeze of the grilled lemon. Arrange the grilled vegetables and salmon over top. Squeeze more of the grilled lemon over the whole bowl. Spoon a few generous spoonfuls of tzatziki sauce over top of the salmon. Scatter with fresh dill or other herbs.",
+        "decision": {
+          "candidateId": "ingredient::mediterranean-grilled-salmon::6::4",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction only says “Arrange the grilled vegetables”; it does not separately act on the listed tomato row, so the collective finished-vegetable action does not by itself reactivate this constituent."
+        }
+      },
+      {
+        "candidateId": "ingredient::mediterranean-grilled-salmon::6::5",
+        "ingredientText": "one small eggplant, sliced (or sub zucchini)",
+        "instructionText": "Divide quinoa among two bowls. Top with a handful of greens. Add any fresh veggies you like and drizzle with a little olive oil, sprinkle with salt and pepper and a squeeze of the grilled lemon. Arrange the grilled vegetables and salmon over top. Squeeze more of the grilled lemon over the whole bowl. Spoon a few generous spoonfuls of tzatziki sauce over top of the salmon. Scatter with fresh dill or other herbs.",
+        "decision": {
+          "candidateId": "ingredient::mediterranean-grilled-salmon::6::5",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction only says “Arrange the grilled vegetables”; it does not separately act on the listed eggplant row, so the collective finished-vegetable action does not by itself reactivate this constituent."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::7",
+        "ingredientText": "6 Mulato peppers",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::7",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "Instruction 13 acts on the prepared component, saying to \"gradually blend the fried ingredients\" until \"everything has been pureed\"; it does not separately act on the already fried mulato peppers row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::8",
+        "ingredientText": "4 Ancho peppers",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::8",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “gradually add the spice mixture” and “blend the fried ingredients,” acting on the prepared component rather than separately using the listed “4 Ancho peppers” row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::9",
+        "ingredientText": "6 Pasilla peppers",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::9",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “gradually add the spice mixture” and “blend the fried ingredients,” acting on the prepared component rather than separately using the listed “6 Pasilla peppers” row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::10",
+        "ingredientText": "1 Tablespoon of reserved pepper seeds",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::10",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The listed reserved pepper seeds were previously incorporated into the spice mixture; the current instruction only says “gradually add the spice mixture,” not to add the seed row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::11",
+        "ingredientText": "6 Whole cloves",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::11",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "Although the instruction names peeled garlic, it otherwise acts on “the spice mixture” and “the fried ingredients”; the listed “6 Whole cloves” were already ground into that component and are not separately used here."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::12",
+        "ingredientText": "½ Teaspoon black peppercorn",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::12",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction acts on “the spice mixture,” while the listed black peppercorns were previously incorporated into that prepared mixture; it does not separately use the peppercorn row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::13",
+        "ingredientText": "¼ Teaspoon coriander seeds",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::13",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The coriander seeds were toasted and incorporated into a spice mixture; the current instruction only says “gradually add the spice mixture,” not to use the listed coriander-seed row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::14",
+        "ingredientText": "¼ Teaspoonanises seeds",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::14",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The anise seeds were toasted and incorporated into a spice mixture; the current instruction only says “gradually add the spice mixture,” not to use the listed anise-seed row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::15",
+        "ingredientText": "¾ Cup sesame seeds",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::15",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction acts on “the spice mixture” and “the fried ingredients”; the sesame seeds, including the reserved serving portion, are not separately named or added in this step."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::16",
+        "ingredientText": "¾ Inch of mexican cinnamon stick",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::16",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The cinnamon was previously ground with the toasted ingredients into the spice mixture, and the current instruction only says “gradually add the spice mixture,” not to add the cinnamon row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::17",
+        "ingredientText": "½ Cup of raisins",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::17",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The raisins were previously fried and placed with the other ingredients; the current instruction says to “gradually blend the fried ingredients,” which acts on the prepared component rather than separately on the raisin row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::18",
+        "ingredientText": "⅓ Cup unskinned almonds",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::18",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The almonds were previously fried and placed with the other ingredients; the current instruction says to “gradually blend the fried ingredients,” not to use the almond row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::20",
+        "ingredientText": "1 Corn tortilla",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::20",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The tortilla was previously fried and then placed in the component; the current instruction only says to “gradually blend the fried ingredients,” not to use the tortilla row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::21",
+        "ingredientText": "3 Small slices of french bread",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::21",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The bread was previously fried and placed in the component; the current instruction only says to “gradually blend the fried ingredients,” not to use the bread row separately."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::22",
+        "ingredientText": "⅓ Cup of raw pumpkin seeds",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::22",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The pumpkin seeds were previously fried and placed with the other ingredients; the current instruction says to “gradually blend the fried ingredients,” acting on the prepared component rather than separately on the pumpkin-seed row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::23",
+        "ingredientText": "½ Small white onion sliced",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::23",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says to \"gradually blend the fried ingredients\" and puree \"everything\"; it does not separately act on the listed \"½ Small white onion sliced\" row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::24",
+        "ingredientText": "2 Medium roasted tomatoes",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::24",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The roasted tomatoes were previously placed in the bowl, and the current instruction only says to \"gradually blend the fried ingredients\" and puree the mixture; it does not separately act on this tomato row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::26",
+        "ingredientText": "½ Large ripe dark-skinned plantain peeled, thickly sliced",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::26",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The plantain was previously fried and transferred to the bowl; the current instruction acts on the combined \"fried ingredients\" and puree, without separately naming or manipulating the plantain row."
+        }
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::27",
+        "ingredientText": "1 Tablet of Mexican drinking Chocolate* About 3.1 ounces.",
+        "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+        "decision": {
+          "candidateId": "ingredient::mole-poblano::13::27",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The chocolate was previously placed with the peppers to soak, while the current instruction only blends the combined spice and fried ingredient mixture; it does not separately act on the chocolate row."
+        }
+      },
+      {
+        "candidateId": "ingredient::pearl-couscous-with-creamy-feta-and-chickpeas-meh::2::8",
+        "ingredientText": "2 cups vegetable stock or water",
+        "instructionText": "Remove tomatoes from oven and fold in couscous, chickpeas and hot stock mixture. Cover pan tightly with foil, and return to oven for 20 minutes.",
+        "decision": {
+          "candidateId": "ingredient::pearl-couscous-with-creamy-feta-and-chickpeas-meh::2::8",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says to fold in “hot stock mixture,” while the stock row was already acted on in the prior instruction: “heat the stock until it boils... Stir in cilantro, lemon zest and cumin.” The current step acts on the prepared mixture rather than separately acting on the listed stock row."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheet-pan-bibimbap::3::0",
+        "ingredientText": "6 ounces oyster mushrooms, torn into bite-size pieces",
+        "instructionText": "To serve, divide the rice evenly among four bowls. Now divide the vegetables evenly as well, placing them in four neat piles over each portion of rice. Use a spatula to slide the eggs over the vegetables. Drizzle each bowl with 1 teaspoon of sesame oil and dollop with 1 teaspoon of gochujang, adding more if desired. Mix everything together with a spoon or chopsticks before diving in, and serve kimchi alongside, if you prefer.",
+        "decision": {
+          "candidateId": "ingredient::sheet-pan-bibimbap::3::0",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “divide the vegetables evenly” and later “Mix everything together”; it acts on the prepared vegetable component rather than separately acting on the listed oyster mushrooms."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheet-pan-bibimbap::3::1",
+        "ingredientText": "1 medium sweet potato (about 6 ounces), scrubbed and thinly sliced into half-moons",
+        "instructionText": "To serve, divide the rice evenly among four bowls. Now divide the vegetables evenly as well, placing them in four neat piles over each portion of rice. Use a spatula to slide the eggs over the vegetables. Drizzle each bowl with 1 teaspoon of sesame oil and dollop with 1 teaspoon of gochujang, adding more if desired. Mix everything together with a spoon or chopsticks before diving in, and serve kimchi alongside, if you prefer.",
+        "decision": {
+          "candidateId": "ingredient::sheet-pan-bibimbap::3::1",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “divide the vegetables evenly” and later “Mix everything together”; it acts on the prepared vegetable component rather than separately acting on the listed sweet potato."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheet-pan-bibimbap::3::2",
+        "ingredientText": "1 small red onion (about 6 ounces), thinly sliced crosswise into half-moons",
+        "instructionText": "To serve, divide the rice evenly among four bowls. Now divide the vegetables evenly as well, placing them in four neat piles over each portion of rice. Use a spatula to slide the eggs over the vegetables. Drizzle each bowl with 1 teaspoon of sesame oil and dollop with 1 teaspoon of gochujang, adding more if desired. Mix everything together with a spoon or chopsticks before diving in, and serve kimchi alongside, if you prefer.",
+        "decision": {
+          "candidateId": "ingredient::sheet-pan-bibimbap::3::2",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “divide the vegetables evenly” and later “Mix everything together”; it acts on the prepared vegetable component rather than separately acting on the listed red onion."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheet-pan-bibimbap::3::3",
+        "ingredientText": "3 packed cups coarsely chopped Tuscan or curly kale (from 1 small bunch)",
+        "instructionText": "To serve, divide the rice evenly among four bowls. Now divide the vegetables evenly as well, placing them in four neat piles over each portion of rice. Use a spatula to slide the eggs over the vegetables. Drizzle each bowl with 1 teaspoon of sesame oil and dollop with 1 teaspoon of gochujang, adding more if desired. Mix everything together with a spoon or chopsticks before diving in, and serve kimchi alongside, if you prefer.",
+        "decision": {
+          "candidateId": "ingredient::sheet-pan-bibimbap::3::3",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The instruction says “divide the vegetables evenly” and later “Mix everything together”; it acts on the prepared vegetable component rather than separately acting on the listed kale."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::4",
+        "ingredientText": "2 pounds squash, such as butternut, acorn or delicata, unpeeled, seeded and cut into 2-inch pieces (about 5 loose cups)",
+        "instructionText": "Top the roast chicken and vegetables with the quick-pickled scallion-radish mix and transfer to serving plates. Serve with steamed rice, if desired.",
+        "decision": {
+          "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::4",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction only refers collectively to the finished dish: “Top the roast chicken and vegetables with the quick-pickled scallion-radish mix.” It does not separately act on the listed squash row."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::5",
+        "ingredientText": "1 pound turnips, trimmed and cut into 2-inch pieces (about 3 ½ loose cups)",
+        "instructionText": "Top the roast chicken and vegetables with the quick-pickled scallion-radish mix and transfer to serving plates. Serve with steamed rice, if desired.",
+        "decision": {
+          "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::5",
+          "decision": "REJECT",
+          "basis": "CONTEXT_ONLY",
+          "evidenceText": "The instruction only refers collectively to the finished dish: “Top the roast chicken and vegetables with the quick-pickled scallion-radish mix.” It does not separately act on the listed turnips row."
+        }
+      },
+      {
+        "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::6",
+        "ingredientText": "10 scallions, ends trimmed, green and white parts separated, but not chopped",
+        "instructionText": "Top the roast chicken and vegetables with the quick-pickled scallion-radish mix and transfer to serving plates. Serve with steamed rice, if desired.",
+        "decision": {
+          "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::6",
+          "decision": "REJECT",
+          "basis": "COMPONENT_CONSTITUENT_ONLY",
+          "evidenceText": "The current instruction acts on the prepared component, “the quick-pickled scallion-radish mix,” rather than separately manipulating the listed scallion row."
+        }
+      }
+    ],
+    "falseAcceptsByBasis": {
+      "VALID_CONTINUING_USE": 5,
+      "DIRECT_ACTIVE_USE": 4
+    },
+    "falseRejectsByBasis": {
+      "COMPONENT_CONSTITUENT_ONLY": 49,
+      "CONTEXT_ONLY": 23,
+      "QUANTITY_CONFLICT": 9,
+      "ALREADY_CONSUMED": 3,
+      "WRONG_DUPLICATE_OR_GROUP": 1
+    }
+  },
+  "twentyFalsePositives": [
+    {
+      "candidateId": "ingredient::157::4::0",
+      "recipeId": "157",
+      "instructionIndex": 4,
+      "ingredientIndex": 0,
+      "reviewerA": true,
+      "reviewerB": false,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "- 1.5 lbs pork chops",
+      "instructionText": "5. Cover and cook on HIGH for 3.5 hours",
+      "falsePositiveClass": "CONSUMED_ROW",
+      "riskFacts": {
+        "candidateId": "ingredient::157::4::0",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          1,
+          3
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 3,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "5 lbs"
+        },
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [],
+          "establishedInstructionIndex": 3,
+          "currentInstructionRefersToComponent": false
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "QUANTITY_CONFLICT",
+      "arbiterEvidence": "\"Cover and cook on HIGH for 3.5 hours\" would continue cooking the pork chops, but the candidate row lists \"1.5 lbs pork chops\" while its source quantity evidence says \"5 lbs,\" creating a source quantity conflict for the exact row."
+    },
+    {
+      "candidateId": "ingredient::chicken-tikka::5::15",
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 5,
+      "ingredientIndex": 15,
+      "reviewerA": true,
+      "reviewerB": false,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "Wooden skewers, soaked in water for 30 minutes",
+      "instructionText": "If grilling, cook for 12-15 minutes, turning every 3-4 minutes until chicken is charred and cooked through",
+      "falsePositiveClass": "PROCESS_MATERIAL",
+      "riskFacts": {
+        "candidateId": "ingredient::chicken-tikka::5::15",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          4
+        ],
+        "laterInstructionMentions": [
+          6
+        ],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 4,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [],
+          "establishedInstructionIndex": 4,
+          "currentInstructionRefersToComponent": false
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": true,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE",
+          "PROCESS_MATERIAL"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "FRESH_PROCESS_MATERIAL",
+      "arbiterEvidence": "The instruction says “cook ... until chicken is charred and cooked through”; it acts on the chicken, while the wooden skewers are only supporting process material and are not separately acted on."
+    },
+    {
+      "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::7",
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 7,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "1 teaspoon salt, more to taste",
+      "instructionText": "Transfer to oven and roast, stirring occasionally, until vegetables are lightly browned and tender and some water has been released from the tomatoes to create a sauce, 30 to 40 minutes.",
+      "falsePositiveClass": "CONSUMED_ROW",
+      "riskFacts": {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::7",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "1 teaspoon"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "sauce"
+          ],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "VALID_CONTINUING_USE",
+      "arbiterEvidence": "The salt was already incorporated with the roasting ingredients, and the current roasting instruction continues cooking the mixture containing the listed salt."
+    },
+    {
+      "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::8",
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 8,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "Black pepper to taste",
+      "instructionText": "Transfer to oven and roast, stirring occasionally, until vegetables are lightly browned and tender and some water has been released from the tomatoes to create a sauce, 30 to 40 minutes.",
+      "falsePositiveClass": "CONSUMED_ROW",
+      "riskFacts": {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::8",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "sauce"
+          ],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "VALID_CONTINUING_USE",
+      "arbiterEvidence": "The black pepper was already incorporated in the roasting pan; “Transfer to oven and roast, stirring occasionally” continues cooking the mixture containing it."
+    },
+    {
+      "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::9",
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 9,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "¼ cup olive oil",
+      "instructionText": "Transfer to oven and roast, stirring occasionally, until vegetables are lightly browned and tender and some water has been released from the tomatoes to create a sauce, 30 to 40 minutes.",
+      "falsePositiveClass": "CONSUMED_ROW",
+      "riskFacts": {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::9",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          0
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "4 cup"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "sauce"
+          ],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "VALID_CONTINUING_USE",
+      "arbiterEvidence": "The olive oil was used to coat and combine the ingredients, and the current instruction continues the cooking process by saying “Transfer to oven and roast.”"
+    },
+    {
+      "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::7",
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 7,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "1 teaspoon salt, more to taste",
+      "instructionText": "Add chickpeas, stir and return to oven until beans heat through, 5 to 10 minutes. Add herbs and stir. Taste and adjust seasoning and serve hot, warm or at room temperature.",
+      "falsePositiveClass": "CONTEXTUAL_MENTION",
+      "riskFacts": {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::7",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "1 teaspoon"
+        },
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [],
+          "establishedInstructionIndex": 1,
+          "currentInstructionRefersToComponent": false
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "DIRECT_ACTIVE_USE",
+      "arbiterEvidence": "The instruction says “Taste and adjust seasoning,” which directly authorizes adjustment of the listed salt."
+    },
+    {
+      "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::8",
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 8,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "Black pepper to taste",
+      "instructionText": "Add chickpeas, stir and return to oven until beans heat through, 5 to 10 minutes. Add herbs and stir. Taste and adjust seasoning and serve hot, warm or at room temperature.",
+      "falsePositiveClass": "CONTEXTUAL_MENTION",
+      "riskFacts": {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::8",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [],
+          "establishedInstructionIndex": 1,
+          "currentInstructionRefersToComponent": false
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "DIRECT_ACTIVE_USE",
+      "arbiterEvidence": "The instruction says “Taste and adjust seasoning,” directly using the listed black pepper as seasoning."
+    },
+    {
+      "candidateId": "ingredient::crunchy-queso-wrap::2::11",
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 2,
+      "ingredientIndex": 11,
+      "reviewerA": false,
+      "reviewerB": false,
+      "deterministic": true,
+      "voteClass": "DETERMINISTIC_ONLY",
+      "ingredientText": "⅔ cup sour cream",
+      "ingredientGroup": "assembly",
+      "instructionText": "Prepare the assembly line: On a large flat surface, set out the flour tortillas. (You’ll need your tortillas to be pliable without tearing, so if need be, you can warm them directly in the skillet over medium heat to soften just until soft and pliable.) Add ½ cup filling to the center of one tortilla, flattening the filling into an even, 4-inch circle just a bit smaller than the width of your tostadas. Spread with 3 tablespoons queso over the filling. Top the mixture with a tostada, pressing it slightly to make sure the meat mixture is evenly distributed. Evenly spread 2 scant tablespoons of the spicy sour cream on top of the tostada. Top evenly with a heaping ¼ cup shredded lettuce, then 3 tablespoons drained pico de gallo.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::crunchy-queso-wrap::2::11",
+        "isExplicitlyNamedInInstruction": true,
+        "ingredientGroup": "assembly",
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          1
+        ],
+        "laterInstructionMentions": [
+          5
+        ],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "3 cup",
+          "currentInstructionQuantity": "2 cup"
+        },
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [
+            "filling",
+            "spicy sour cream",
+            "mixture",
+            "cream"
+          ],
+          "establishedInstructionIndex": 1,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": true,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE",
+          "QUANTITY_CONFLICT"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction uses “the spicy sour cream,” a prepared component made in instruction 1, rather than separately acting on the listed sour cream row."
+    },
+    {
+      "candidateId": "ingredient::crunchy-queso-wrap::4::13",
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 4,
+      "ingredientIndex": 13,
+      "reviewerA": true,
+      "reviewerB": false,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "4 extra-large, burrito-size (10-inch) flour tortillas (see Tip)",
+      "ingredientGroup": "assembly",
+      "instructionText": "Heat 1 tablespoon oil in the skillet over medium, then carefully add the wrap, setting it seam side down. Cook until golden and crisp, 2 to 3 minutes per side.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::crunchy-queso-wrap::4::13",
+        "isExplicitlyNamedInInstruction": false,
+        "ingredientGroup": "assembly",
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          2,
+          3
+        ],
+        "laterInstructionMentions": [
+          6
+        ],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 2,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 3,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "currentInstructionQuantity": "1 tablespoon",
+          "priorUseQuantity": "2 cup"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "assembled wrap",
+            "wrap"
+          ],
+          "establishedInstructionIndex": 3,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "“carefully add the wrap” and “Cook until golden and crisp” act on the assembled wrap, not separately on the listed tortilla row."
+    },
+    {
+      "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::0",
+      "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "instructionIndex": 2,
+      "ingredientIndex": 0,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "2 cucumbers, sliced",
+      "instructionText": "Pour the dressing over the salad and toss to combine.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::0",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          0
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "dressing",
+            "salad"
+          ],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction says, \"Pour the dressing over the salad and toss to combine.\" The cucumber row was previously used in \"Combine cucumbers, cherry tomatoes, and red onion in a large bowl,\" so the current action is only on the prepared salad component, not separately on the cucumbers."
+    },
+    {
+      "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::1",
+      "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "instructionIndex": 2,
+      "ingredientIndex": 1,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "2 cups cherry tomatoes, halved",
+      "instructionText": "Pour the dressing over the salad and toss to combine.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::1",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          0
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "2 cups"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "dressing",
+            "salad"
+          ],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction says, \"Pour the dressing over the salad and toss to combine.\" The cherry tomatoes were previously incorporated by \"Combine cucumbers, cherry tomatoes, and red onion in a large bowl,\" and are not separately acted on now."
+    },
+    {
+      "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::2",
+      "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "instructionIndex": 2,
+      "ingredientIndex": 2,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "1/4 red onion, thinly sliced",
+      "instructionText": "Pour the dressing over the salad and toss to combine.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::2",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          0,
+          1
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "dressing",
+            "salad"
+          ],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction says, \"Pour the dressing over the salad and toss to combine.\" The red onion was previously incorporated into the salad by \"Combine cucumbers, cherry tomatoes, and red onion in a large bowl,\" with no separate current action on the onion."
+    },
+    {
+      "candidateId": "ingredient::dads-chili::6::15",
+      "recipeId": "dads-chili",
+      "instructionIndex": 6,
+      "ingredientIndex": 15,
+      "reviewerA": true,
+      "reviewerB": false,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "Chili Sauce 1 TBSP",
+      "instructionText": "Once everything is in the pot bring a boil then turn down and simmer for a couple hours",
+      "falsePositiveClass": "CONTEXTUAL_MENTION",
+      "riskFacts": {
+        "candidateId": "ingredient::dads-chili::6::15",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          0,
+          1,
+          5
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 0,
+            "reviewerCount": 1
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "1 tbsp"
+        },
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [],
+          "establishedInstructionIndex": 0,
+          "currentInstructionRefersToComponent": false
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": true,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE",
+          "CONTEXT_ONLY",
+          "COLLECTIVE_REFERENCE"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "VALID_CONTINUING_USE",
+      "arbiterEvidence": "The ingredient row’s Chili Sauce is included by the source’s sauce mixture in instruction 0, “In a large pot combine ... Simmer,” and the current instruction continues cooking everything in that pot: “bring a boil then turn down and simmer for a couple hours.”"
+    },
+    {
+      "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::2",
+      "recipeId": "jocn-chicken-and-tomatillo-stew",
+      "instructionIndex": 4,
+      "ingredientIndex": 2,
+      "reviewerA": false,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "1 pound tomatillos (about 9 medium), husked and washed",
+      "instructionText": "Remove the chicken from the broth and set aside in a medium bowl. Add the scallions and cilantro to the broth. Purée the broth in a blender, or directly in the pot using an immersion blender.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::2",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          1,
+          2
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 2,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "1 pound"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "pure ed broth",
+            "broth"
+          ],
+          "establishedInstructionIndex": 2,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction acts on “the broth” and says to “Purée the broth”; it does not separately act on the tomatillos as an exact row."
+    },
+    {
+      "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::3",
+      "recipeId": "jocn-chicken-and-tomatillo-stew",
+      "instructionIndex": 4,
+      "ingredientIndex": 3,
+      "reviewerA": false,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "3 medium green bell peppers, halved and destemmed",
+      "instructionText": "Remove the chicken from the broth and set aside in a medium bowl. Add the scallions and cilantro to the broth. Purée the broth in a blender, or directly in the pot using an immersion blender.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::3",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          1,
+          2
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 2,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "pure ed broth",
+            "broth"
+          ],
+          "establishedInstructionIndex": 2,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction acts on “the broth” and says to “Purée the broth”; it does not separately act on the green bell peppers as an exact row."
+    },
+    {
+      "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::4",
+      "recipeId": "jocn-chicken-and-tomatillo-stew",
+      "instructionIndex": 4,
+      "ingredientIndex": 4,
+      "reviewerA": false,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "1 sweet onion, peeled and quartered",
+      "instructionText": "Remove the chicken from the broth and set aside in a medium bowl. Add the scallions and cilantro to the broth. Purée the broth in a blender, or directly in the pot using an immersion blender.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::4",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          1,
+          2
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 2,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "pure ed broth",
+            "broth"
+          ],
+          "establishedInstructionIndex": 2,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction acts on “the broth” and says to “Purée the broth”; it does not separately act on the sweet onion as an exact row."
+    },
+    {
+      "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::5",
+      "recipeId": "jocn-chicken-and-tomatillo-stew",
+      "instructionIndex": 4,
+      "ingredientIndex": 5,
+      "reviewerA": false,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "1 jalapeño, split lengthwise",
+      "instructionText": "Remove the chicken from the broth and set aside in a medium bowl. Add the scallions and cilantro to the broth. Purée the broth in a blender, or directly in the pot using an immersion blender.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::5",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          1,
+          2
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 2
+          },
+          {
+            "instructionIndex": 2,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {},
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "pure ed broth",
+            "broth"
+          ],
+          "establishedInstructionIndex": 2,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction acts on “the broth” and says to “Purée the broth”; it does not separately act on the jalapeño as an exact row."
+    },
+    {
+      "candidateId": "ingredient::mole-poblano::13::19",
+      "recipeId": "mole-poblano",
+      "instructionIndex": 13,
+      "ingredientIndex": 19,
+      "reviewerA": true,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "2_OF_2",
+      "ingredientText": "⅓ Cup peanuts",
+      "ingredientGroup": "sauce",
+      "instructionText": "Put ½ cup of the chicken broth into the blender jar, don’t forget to add peeled garlic. Gradually add the spice mixture and blend well; then add another ½ cup of broth and gradually blend the fried ingredients to a slightly fine paste. Try not to add more liquid (unless your blender motor is heating or smoking) but constantly release the blades with a rubber spatula. You will have to do this step in 2 or 3 batches until everything has been pureed. I use my Vitamix and grind the whole sauce twice. If the end results are still coarse, pass the whole mixture through a strainer.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::mole-poblano::13::19",
+        "isExplicitlyNamedInInstruction": false,
+        "ingredientGroup": "sauce",
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [],
+        "quantityEvidence": {
+          "listedQuantity": "3 cup",
+          "currentInstructionQuantity": "2 cup"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "ground spice and seed mixture",
+            "ground spice mixture",
+            "mole paste",
+            "soaked pepper and chocolate mixture",
+            "sauce",
+            "mixture",
+            "broth",
+            "paste"
+          ],
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": false,
+        "collectiveReferenceRisk": true,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "COLLECTIVE_REFERENCE"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The current instruction refers to the prepared component through “the spice mixture” and “the fried ingredients”; it does not separately act on the listed peanuts row."
+    },
+    {
+      "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::9",
+      "recipeId": "sheetpan-gochujang-chicken-and-roasted-vegetables",
+      "instructionIndex": 3,
+      "ingredientIndex": 9,
+      "reviewerA": false,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "1 bunch radishes (about 10 ounces), trimmed",
+      "instructionText": "Top the roast chicken and vegetables with the quick-pickled scallion-radish mix and transfer to serving plates. Serve with steamed rice, if desired.",
+      "falsePositiveClass": "COMPONENT_LEAKAGE",
+      "riskFacts": {
+        "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::9",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [
+          2
+        ],
+        "laterInstructionMentions": [],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 2,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "1 bunch"
+        },
+        "componentContext": {
+          "possibleConstituent": true,
+          "componentLabels": [
+            "quick pickled scallion radish mix",
+            "mix"
+          ],
+          "establishedInstructionIndex": 2,
+          "currentInstructionRefersToComponent": true
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": true,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "COMPONENT_CONTAINMENT",
+          "LIFECYCLE",
+          "CONTEXT_ONLY"
+        ]
+      },
+      "arbiterDecision": "REJECT",
+      "arbiterBasis": "COMPONENT_CONSTITUENT_ONLY",
+      "arbiterEvidence": "The instruction acts only on “the quick-pickled scallion-radish mix”; the listed radishes are merely a constituent of that prepared component and are not separately acted on."
+    },
+    {
+      "candidateId": "ingredient::tacos-al-pastor::4::0",
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 4,
+      "ingredientIndex": 0,
+      "reviewerA": false,
+      "reviewerB": true,
+      "deterministic": false,
+      "voteClass": "1_OF_2",
+      "ingredientText": "2-3 pound Pork Loin cut into thin slices",
+      "instructionText": "Cover with aluminum foil and refrigerate for at least 4 hours (overnight is best)",
+      "falsePositiveClass": "CONTEXTUAL_MENTION",
+      "riskFacts": {
+        "candidateId": "ingredient::tacos-al-pastor::4::0",
+        "isExplicitlyNamedInInstruction": false,
+        "duplicateSiblingIndexes": [],
+        "priorInstructionMentions": [],
+        "laterInstructionMentions": [
+          6
+        ],
+        "priorReviewerUses": [
+          {
+            "instructionIndex": 1,
+            "reviewerCount": 1
+          },
+          {
+            "instructionIndex": 3,
+            "reviewerCount": 2
+          }
+        ],
+        "quantityEvidence": {
+          "listedQuantity": "3 pound"
+        },
+        "componentContext": {
+          "possibleConstituent": false,
+          "componentLabels": [],
+          "establishedInstructionIndex": 3,
+          "currentInstructionRefersToComponent": false
+        },
+        "remainingLanguage": false,
+        "processMaterialRisk": false,
+        "contextualMentionRisk": false,
+        "duplicateRowRisk": false,
+        "groupConflictRisk": false,
+        "quantityConflictRisk": false,
+        "lifecycleRisk": true,
+        "collectiveReferenceRisk": false,
+        "partialIdentityMatchRisk": false
+      },
+      "routing": {
+        "route": "RISK_REVIEW_REQUIRED",
+        "reasons": [
+          "LIFECYCLE"
+        ]
+      },
+      "arbiterDecision": "ACCEPT",
+      "arbiterBasis": "VALID_CONTINUING_USE",
+      "arbiterEvidence": "Instruction 4 says “Cover with aluminum foil and refrigerate for at least 4 hours,” continuing the marinating process involving the listed “2-3 pound Pork Loin cut into thin slices”; the pork is not exhausted."
+    }
+  ],
+  "historicalRegression": {
+    "total": 82,
+    "rejected": 47,
+    "accepted": 35,
+    "unavailable": 0,
+    "byFamily": {
+      "OTHER": {
+        "total": 27,
+        "rejected": 16
+      },
+      "CONSUMED_ROW": {
+        "total": 16,
+        "rejected": 4
+      },
+      "WRONG_DUPLICATE": {
+        "total": 13,
+        "rejected": 10
+      },
+      "CONTEXTUAL_MENTION": {
+        "total": 11,
+        "rejected": 8
+      },
+      "COMPONENT_LEAKAGE": {
+        "total": 10,
+        "rejected": 6
+      },
+      "QUANTITY_CONFLICT": {
+        "total": 3,
+        "rejected": 3
+      },
+      "FRESH_PROCESS_MATERIAL": {
+        "total": 1,
+        "rejected": 0
+      },
+      "WRONG_GROUP": {
+        "total": 1,
+        "rejected": 0
+      }
+    },
+    "outcomes": [
+      {
+        "candidateId": "ingredient::157::4::0",
+        "origins": [
+          "V6_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The pork chops were previously browned and then 'Lay browned pork chops over rice mixture'; the current instruction says 'Cover and cook on HIGH for 3.5 hours,' which continues cooking the exact listed pork chops."
+      },
+      {
+        "candidateId": "historical::176::6::12",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The current instruction says “Toss asparagus with olive oil, salt, pepper; roast 20 minutes.” This directly uses the listed extra-virgin olive oil row; the prior olive-oil mention was for brushing chicken skin and does not exhaust this separate row."
+      },
+      {
+        "candidateId": "ingredient::176::6::17",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The current instruction says “Toss asparagus with olive oil, salt, pepper; roast 20 minutes.” This directly names salt as an active ingredient for the asparagus, supporting use of the listed “1 teaspoon kosher salt” row despite the separate duplicate salt row."
+      },
+      {
+        "candidateId": "historical::192::1::20",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "OTHER",
+        "evidenceText": "The instruction says “Saute onions and chilies in ghee 8-10 min until golden; remove half,” while the exact listed row is “1/2-1 teaspoon Kashmiri red chili powder.” “Chilies” does not clearly establish use of this specific powdered ingredient."
+      },
+      {
+        "candidateId": "historical::blue-corn-green-chili-chicken-enchiladas::5::0",
+        "origins": [
+          "V6_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The ingredient row is \"Green Chile Sauce!\" and the current instruction explicitly says, \"Spoon green chile enchilada sauce over the tortillas,\" which is a clear exact alias and direct use of the sauce row."
+      },
+      {
+        "candidateId": "historical::chicken-meatballs-with-peppers-and-orzo::3::3",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The current instruction explicitly says, “Season with salt, Parmesan, and parsley.” This directly uses the listed “1/2 cup grated Parmesan” row; the quantity discrepancy in the risk metadata does not establish a source-supported conflict."
+      },
+      {
+        "candidateId": "historical::chicken-paprikash::3::1",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The instruction says, “Serve the chicken paprikash with Hungarian nokedli,” which acts on the finished dish rather than separately using the listed chicken pieces."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::5::13",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 4 says to \"Thread marinated chicken onto skewers alternating with onion,\" and instruction 5 says to \"cook for 12-15 minutes, turning every 3-4 minutes.\" The listed onion row is on the skewers and is actively cooked."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::5::14",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 4 says to \"Thread marinated chicken onto skewers alternating with ... bell pepper chunks,\" and instruction 5 says to \"cook for 12-15 minutes, turning every 3-4 minutes.\" The listed bell pepper row is on the skewers and is actively cooked."
+      },
+      {
+        "candidateId": "ingredient::chicken-tikka::5::15",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "FRESH_PROCESS_MATERIAL",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "PROCESS_MATERIAL"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 4 says to \"Thread marinated chicken onto skewers,\" and instruction 5 directs cooking while \"turning every 3-4 minutes.\" The listed soaked wooden skewers are the active process material being used during grilling."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::6::13",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 4 says to \"Thread marinated chicken onto skewers alternating with onion,\" and instruction 6 says to \"place skewers on a baking sheet and cook for 15-18 minutes, turning once halfway through.\" The listed onion row continues to be cooked."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::6::14",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 4 says to \"Thread marinated chicken onto skewers alternating with ... bell pepper chunks,\" and instruction 6 says to \"place skewers on a baking sheet and cook for 15-18 minutes, turning once halfway through.\" The listed bell pepper row continues to be cooked."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::8::13",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "Instruction 8 only says \"Remove from heat and let rest for 2-3 minutes.\" This is a collective resting action on the cooked dish or skewers and does not separately act on the listed onion row."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::8::14",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "Instruction 8 only says \"Remove from heat and let rest for 2-3 minutes.\" This is a collective resting action on the cooked dish or skewers and does not separately act on the listed bell pepper row."
+      },
+      {
+        "candidateId": "ingredient::chicken-tikka::9::0",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 9 says \"serve hot with naan, rice, or salad\" after the chicken has been cooked and rested. The listed chicken-thigh row is the principal cooked food being served, so it remains actively used."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::9::13",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "Instruction 9 says \"Garnish with fresh cilantro and serve hot with naan, rice, or salad.\" It does not separately name or act on the listed onion row; any connection is only through the referenced accompaniment or finished dish."
+      },
+      {
+        "candidateId": "historical::chicken-tikka::9::14",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "Instruction 9 says \"Garnish with fresh cilantro and serve hot with naan, rice, or salad.\" It does not separately name or act on the listed bell pepper row; any connection is only through the referenced accompaniment or finished dish."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::7",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The source says, \"Transfer to oven and roast, stirring occasionally,\" continuing to cook the roasted mixture containing this salt row after it was combined in instruction 0."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::8",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The source says, \"Transfer to oven and roast, stirring occasionally,\" continuing to cook the roasted mixture containing this pepper row after it was combined in instruction 0."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::9",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Instruction 0 says, \"Drizzle with oil and toss to combine,\" and the current instruction continues, \"Transfer to oven and roast, stirring occasionally,\" actively cooking the mixture containing this olive oil row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::0",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" which acts on the finished ratatouille collectively and does not separately act on the eggplant row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::1",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" which acts on the finished ratatouille collectively and does not separately act on the zucchini row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::2",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" referring to the finished dish rather than separately using the tomato row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::3",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" which is a collective finished-dish action and not a separate use of the onion row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::4",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" acting on the completed mixture collectively rather than separately on the bell-pepper row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::5",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" which does not separately act on the fennel row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::6",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" a collective action on the finished ratatouille with no separate use of the garlic row."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::7",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The current source says, \"Taste and adjust seasoning,\" which directly calls for active adjustment of the listed salt row."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::8",
+        "origins": [
+          "V7_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The current source says, \"Taste and adjust seasoning,\" which directly calls for active adjustment of the listed black pepper row."
+      },
+      {
+        "candidateId": "historical::chickpea-and-fennel-ratatouille::2::9",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "CONTEXT_ONLY"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current source says, \"Add chickpeas, stir and return to oven until beans heat through,\" and does not separately use the previously added olive oil row."
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::2::11",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "QUANTITY_CONFLICT",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE",
+            "QUANTITY_CONFLICT"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The instruction says to spread \"2 scant tablespoons of the spicy sour cream\"; this acts on the prepared spicy sour cream component from instruction 1, not separately on the listed \"⅔ cup sour cream\" row."
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::4::13",
+        "origins": [
+          "V6_FALSE_POSITIVE",
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The instruction says to \"carefully add the wrap\" and cook it, acting on the assembled wrap rather than separately on the listed flour tortillas."
+      },
+      {
+        "candidateId": "historical::crunchy-queso-wrap::5::13",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The instruction refers to \"the remaining spicy sour cream\" and \"remaining wraps\" for serving and repeating; these are prepared components/assembled wraps, not separate active use of the listed flour tortillas."
+      },
+      {
+        "candidateId": "historical::dads-chili::0::29",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The instruction says “combine ... spices ... and pepper powder,” which is a direct use of the listed Hatch powder as the pepper-powder ingredient."
+      },
+      {
+        "candidateId": "historical::dads-chili::6::29",
+        "origins": [
+          "V6_FALSE_POSITIVE"
+        ],
+        "family": "CONTEXTUAL_MENTION",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "CONTEXT_ONLY",
+            "COLLECTIVE_REFERENCE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The instruction says “Once everything is in the pot bring a boil then turn down and simmer for a couple hours.” Hatch powder was previously added with the spices at instruction 0, so this is continuing cooking of the same mixture, not evidence that the row is exhausted."
+      },
+      {
+        "candidateId": "historical::grilled-zucchini-and-summer-squash::2::2",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Prior instruction says, \"Toss zucchini and squash slices with olive oil...\" and the current instruction says, \"Grill for 3-4 minutes per side.\" Grilling continues cooking the zucchini and squash together with the listed olive oil."
+      },
+      {
+        "candidateId": "historical::grilled-zucchini-and-summer-squash::2::3",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Prior instruction says, \"Toss zucchini and squash slices with ... garlic...\" and the current instruction says, \"Grill for 3-4 minutes per side.\" Grilling continues cooking the zucchini with the listed minced garlic."
+      },
+      {
+        "candidateId": "historical::grilled-zucchini-and-summer-squash::2::4",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Prior instruction says, \"Toss zucchini and squash slices with ... Italian herbs...\" and the current instruction says, \"Grill for 3-4 minutes per side.\" The herbs remain on and continue cooking with the squash."
+      },
+      {
+        "candidateId": "historical::grilled-zucchini-and-summer-squash::2::5",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Prior instruction says, \"Toss zucchini and squash slices with ... salt...\" and the current instruction says, \"Grill for 3-4 minutes per side.\" The salt remains part of the seasoned squash during grilling."
+      },
+      {
+        "candidateId": "historical::grilled-zucchini-and-summer-squash::2::6",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "Prior instruction says, \"Toss zucchini and squash slices with ... pepper.\" and the current instruction says, \"Grill for 3-4 minutes per side.\" The pepper remains on and continues with the squash during grilling."
+      },
+      {
+        "candidateId": "historical::indian-spiced-roasted-vegetables::6::0",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says “Remove from oven and sprinkle with fresh cilantro and lemon juice before serving”; it does not name or separately act on the red onions. The onions were already cut, coated, spread, and roasted, while the current action is limited to finishing the dish with cilantro and lemon juice."
+      },
+      {
+        "candidateId": "historical::indian-spiced-roasted-vegetables::6::1",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says “Remove from oven and sprinkle with fresh cilantro and lemon juice before serving”; it does not name or separately act on the bell peppers. The peppers were already cut, coated, spread, and roasted, while the current action is limited to finishing the dish with cilantro and lemon juice."
+      },
+      {
+        "candidateId": "historical::indian-spiced-roasted-vegetables::6::2",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says “Remove from oven and sprinkle with fresh cilantro and lemon juice before serving”; it does not name or separately act on the zucchini. The zucchini was already sliced, coated, spread, and roasted, while the current action is limited to finishing the dish with cilantro and lemon juice."
+      },
+      {
+        "candidateId": "historical::indian-spiced-roasted-vegetables::6::3",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says “Remove from oven and sprinkle with fresh cilantro and lemon juice before serving”; it does not name or separately act on the eggplant. The eggplant was already cubed, coated, spread, and roasted, while the current action is limited to finishing the dish with cilantro and lemon juice."
+      },
+      {
+        "candidateId": "historical::kimchi-ramen::1::16",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "QUANTITY_CONFLICT",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "QUANTITY_CONFLICT"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "QUANTITY_CONFLICT",
+        "evidenceText": "The row lists “3/4 cup water” in the “For The Ramen Egg**” group, but the instruction says “Add 2½ cups water”; the source quantity and purpose do not match this exact row."
+      },
+      {
+        "candidateId": "historical::mexican-oaxacan-bowl::1::0",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "“Mix cumin, chipotle and salt together in a small bowl.” This instruction actively prepares the listed Spice Rub as the named spice mix component."
+      },
+      {
+        "candidateId": "historical::mexican-oaxacan-bowl::2::0",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_PARTIAL_USE",
+        "evidenceText": "“sprinkle generously with spice mix... Use about ½ or ⅔ of the spice.” The spice mix is the exact alias of the listed Spice Rub, and the explicit partial quantity supports active use with some remaining."
+      },
+      {
+        "candidateId": "historical::mexican-oaxacan-bowl::4::0",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "“toss the pecans with 2 teaspoons maple syrup and 1 teaspoon of the spice mix.” This is a later, explicitly quantified continuing use of the listed Spice Rub after the earlier partial use."
+      },
+      {
+        "candidateId": "historical::mexican-oaxacan-bowl::5::12",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "“make the slaw. Finely chop or shred the cabbage and place in a medium bowl with the rest of the ingredients, toss.” The instruction explicitly acts on the listed Quick Cabbage Slaw, with “remaining” language supporting continuing use."
+      },
+      {
+        "candidateId": "historical::mole-poblano::3::2",
+        "origins": [
+          "V7_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The instruction explicitly says, “Have a large pot ready with simmering chicken broth or water to soak all the ingredients.” This directly uses the listed “About 8 cups of water” as the stated water alternative."
+      },
+      {
+        "candidateId": "historical::mole-poblano::6::7",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COLLECTIVE_REFERENCE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The row’s mulato peppers were previously toasted and soaked, and the current instruction says to grind “all the toasted ingredients except the sesame seeds.” This is continuing manipulation of the same peppers, not a new or exhausted use."
+      },
+      {
+        "candidateId": "historical::mole-poblano::6::8",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COLLECTIVE_REFERENCE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The ancho peppers were previously prepared in instructions 2 and 4; the current instruction directs grinding “all the toasted ingredients except the sesame seeds.” This validly continues processing the same ancho peppers."
+      },
+      {
+        "candidateId": "historical::mole-poblano::6::9",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COLLECTIVE_REFERENCE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "The pasilla peppers were previously toasted and soaked, and the current instruction says to grind “all the toasted ingredients except the sesame seeds.” That is continuing manipulation of the listed pasilla peppers."
+      },
+      {
+        "candidateId": "historical::mole-poblano::9::28",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_GROUP",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "GROUP_CONFLICT"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The instruction explicitly states, “Every ingredient will be added to the pot with the chicken broth.” This directly uses the listed “reserved broth from the cooked chicken,” an exact alias for the chicken broth."
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::19",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "COLLECTIVE_REFERENCE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The current instruction acts on prepared components—“the spice mixture,” “the fried ingredients,” and “the whole sauce”—without separately naming or acting on the listed peanuts. The row is therefore only a possible constituent of the blended mixture, not exact active use."
+      },
+      {
+        "candidateId": "historical::moqueca-brazilian-fish-stew::0::6",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "QUANTITY_CONFLICT",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW",
+            "QUANTITY_CONFLICT"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "WRONG_DUPLICATE_OR_GROUP",
+        "evidenceText": "The instruction says, “Add salt, zest from half the lime and 1 tablespoon lime juice” while this row is the “Stew/ Sauce” salt and has a duplicate sibling salt row. The salt used in this fish-seasoning step is therefore not uniquely attributable to this sauce-group row."
+      },
+      {
+        "candidateId": "historical::pad-thai::8::12",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_PARTIAL_USE",
+        "evidenceText": "The current instruction says “a handful of extra beansprouts on the side if desired,” and the risk facts mark “remainingLanguage”: true. This supports valid remaining use of the listed stir-fry beansprouts row, rather than treating the serving mention as context only."
+      },
+      {
+        "candidateId": "historical::pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta::0::13",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "WRONG_DUPLICATE_OR_GROUP",
+        "evidenceText": "The row is \"3 tablespoons olive oil\" in the \"Massaged Kale Salad\" group, while the instruction says \"Add the olive oil to a skillet\" and the duplicate sibling is the separate 2-tablespoon olive-oil row. This action targets the skillet duplicate, not this salad-group row."
+      },
+      {
+        "candidateId": "historical::pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta::4::12",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The kale row was manipulated in instruction 3: \"Massage the kale with the dressing ingredients...\" The current instruction only says \"Serve couscous with a little side of the massaged kale,\" acting on the prepared component rather than separately using the listed kale row."
+      },
+      {
+        "candidateId": "historical::sesame-apricot-tofu::2::6",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "WRONG_DUPLICATE_OR_GROUP",
+        "evidenceText": "The current instruction says, “Toss with soy sauce and a teaspoon or two of olive oil,” but this row is the “Apricot Sauce:” soy sauce and has a duplicate sibling soy sauce row at ingredient index 2. The sauce-group row was already used when the source says, “Whisk the sauce ingredients together”; the current tofu-toss action therefore maps to the duplicate row, not this exact sauce-group row."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::1",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"4 Guajillo Chile boiled, de-seeded, and cleaned.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::2",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1 Ancho Chile boiled, de-seeded, and cleaned.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::3",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"4 cloves of garlic.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::4",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1/2 onion.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::5",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1/2 cup of orange juice.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::6",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"3/4 cup of pineapple juice fresh is better.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::7",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1 Tablespoon of Oregano.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::8",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1 Tablespoon of Thyme.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::9",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1 Tablespoon of Pepper.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::10",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1 Tablespoon of Cumin.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::11",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1-2 Tablespoons of Paprika.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::12",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"1-2 Tablespoons of Salt.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::0::13",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The instruction only says \"For the Al Pastor Meat/Marinade\"; this heading does not actively use the listed \"3 Cloves.\""
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::2::0",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "COMPONENT_LEAKAGE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "COMPONENT_CONTAINMENT",
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "COMPONENT_CONSTITUENT_ONLY",
+        "evidenceText": "The instruction says \"Strain the liquid over a bowl to end up with a smooth marinade.\" It acts on the marinade component, not separately on the listed \"2-3 pound Pork Loin cut into thin slices.\""
+      },
+      {
+        "candidateId": "ingredient::tacos-al-pastor::4::0",
+        "origins": [
+          "V7_FALSE_POSITIVE"
+        ],
+        "family": "CONSUMED_ROW",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "LIFECYCLE"
+          ]
+        },
+        "decision": "ACCEPT",
+        "basis": "VALID_CONTINUING_USE",
+        "evidenceText": "After the prior instruction says to layer the meat and marinade, the current instruction says \"Cover with aluminum foil and refrigerate for at least 4 hours (overnight is best).\" This is continuing handling of the listed pork loin, not a contextual mention."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::11::22",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "ACCEPT",
+        "basis": "DIRECT_ACTIVE_USE",
+        "evidenceText": "The current instruction says, \"Heat the tortillas with a little bit of oil.\" This directly uses the listed \"15 Corn Tortillas\" row."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::12::23",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says, \"Heat the tortillas with a little bit of oil,\" and does not act on the listed \"Chopped cilantro\" row."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::12::24",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says, \"Heat the tortillas with a little bit of oil,\" and does not act on the listed \"Chopped Onions\" row."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::12::25",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says, \"Heat the tortillas with a little bit of oil,\" and does not act on the listed \"Lime juice\" row."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::12::27",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says, \"Heat the tortillas with a little bit of oil,\" and does not act on the listed \"Grilled pineapple\" row."
+      },
+      {
+        "candidateId": "historical::tacos-al-pastor::12::28",
+        "origins": [
+          "V8_RAW_FALSE_POSITIVE"
+        ],
+        "family": "OTHER",
+        "routing": {
+          "route": "LOW_RISK",
+          "reasons": []
+        },
+        "decision": "REJECT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "The current instruction says, \"Heat the tortillas with a little bit of oil,\" and does not act on the listed \"Tacos al pastor meat\" row."
+      },
+      {
+        "candidateId": "historical::turkish-red-lentil-soup::0::15",
+        "origins": [
+          "EXISTING_PRODUCTION_FALSE_POSITIVE"
+        ],
+        "family": "WRONG_DUPLICATE",
+        "routing": {
+          "route": "RISK_REVIEW_REQUIRED",
+          "reasons": [
+            "DUPLICATE_ROW"
+          ]
+        },
+        "decision": "REJECT",
+        "basis": "WRONG_DUPLICATE_OR_GROUP",
+        "evidenceText": "The instruction says, “Stir in tomato paste, cumin, paprika and turmeric; cook 2 minutes,” but this row is “1 teaspoon paprika” under “Paprika Butter (optional):” and has a duplicate sibling, “1 teaspoon sweet paprika, plus more for serving.” The paprika used in the soup base is the sibling row, not this optional paprika-butter row."
+      }
+    ]
+  },
+  "strategies": {
+    "reviewerUnion": {
+      "truePositives": 833,
+      "falsePositives": 28,
+      "falseNegatives": 0,
+      "precision": 0.967479674796748,
+      "recall": 1,
+      "f1": 0.9834710743801653,
+      "aiDecisions": 0
+    },
+    "reviewerIntersection": {
+      "truePositives": 763,
+      "falsePositives": 9,
+      "falseNegatives": 70,
+      "precision": 0.9883419689119171,
+      "recall": 0.9159663865546218,
+      "f1": 0.950778816199377,
+      "aiDecisions": 0
+    },
+    "v10aDisagreementOnly": {
+      "truePositives": 831,
+      "falsePositives": 20,
+      "falseNegatives": 2,
+      "precision": 0.9764982373678026,
+      "recall": 0.9975990396158463,
+      "f1": 0.9869358669833729,
+      "aiDecisions": 91
+    },
+    "riskRejectionOnly": {
+      "truePositives": 829,
+      "falsePositives": 19,
+      "falseNegatives": 4,
+      "precision": 0.9775943396226415,
+      "recall": 0.9951980792316927,
+      "f1": 0.9863176680547293,
+      "aiDecisions": 0
+    },
+    "riskRoutedStateAwareArbiter": {
+      "truePositives": 748,
+      "falsePositives": 9,
+      "falseNegatives": 85,
+      "precision": 0.988110964332893,
+      "recall": 0.8979591836734694,
+      "f1": 0.9408805031446541,
+      "aiDecisions": 477
+    },
+    "arbiterEverything": {
+      "truePositives": 828,
+      "falsePositives": 20,
+      "falseNegatives": 5,
+      "precision": 0.9764150943396226,
+      "recall": 0.9939975990396158,
+      "f1": 0.9851279000594882,
+      "aiDecisions": 863
+    }
+  },
+  "finalMetrics": {
+    "truePositives": 748,
+    "falsePositives": 9,
+    "falseNegatives": 85,
+    "precision": 0.988110964332893,
+    "recall": 0.8979591836734694,
+    "f1": 0.9408805031446541
+  },
+  "transport": {
+    "logicalBatches": 68,
+    "gatewayCalls": 72,
+    "retries": 0,
+    "schemaFailures": 0,
+    "parseFailures": 0,
+    "localRequestRejections": 0,
+    "otherFailures": 0
+  },
+  "recipe190": {
+    "requests": 4,
+    "successes": 4,
+    "failures": 0
+  },
+  "aiUsage": {
+    "requests": 72,
+    "successfulRequests": 72,
+    "inputTokens": 294525,
+    "outputTokens": 68997,
+    "totalTokens": 363522
+  },
+  "aiDecisionCounts": {
+    "frozenRiskCandidates": 477,
+    "historicalAdversarialCandidates": 82,
+    "recipe190ControlCandidatesPerRequest": 4,
+    "recipe190ControlRequests": 4
+  },
+  "componentAppendix": {
+    "excludedFromPrimaryGate": true,
+    "v10aMetrics": {
+      "population": 196,
+      "correctCandidates": 75,
+      "incorrectCandidates": 121,
+      "correctAccept": 66,
+      "correctReject": 9,
+      "incorrectAccept": 97,
+      "incorrectReject": 24,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": 0.88,
+      "incorrectCandidateAcceptanceRate": 0.8016528925619835,
+      "precision": 0.4049079754601227
+    },
+    "candidateLevelV9FalseAccepts": 27,
+    "falsePositiveTaxonomy": {
+      "labelOrIdentityProblem": 18,
+      "establishmentOrUseProblem": 0,
+      "other": 9
+    },
+    "containmentSignal": "Reviewer component proposals and conservative component nouns are used only to flag possible constituent-only ingredient relations; component labels are not promoted to user-facing output."
+  },
+  "productionMutations": {
+    "firestoreWrites": 0,
+    "recipeWrites": 0,
+    "mapWrites": 0,
+    "productionCodeActivation": 0,
+    "productionFilesEditedByV10B": []
+  },
+  "workspace": {
+    "branch": "main",
+    "head": "030a590d8bc17be1e53a91e29633b2904ef73d0c"
+  },
+  "failureAnalysis": {
+    "targetFalsePositivesStillAcceptedByClass": {
+      "CONTEXTUAL_MENTION": 4,
+      "CONSUMED_ROW": 3
+    },
+    "inseparableFamily": "PASSIVE_CARRIED_FORWARD_CONSTITUENT_VS_ACTIVE_CONTINUING_USE",
+    "finding": "The prompt treated continued cooking, chilling, serving, or seasoning of a containing food as active use of both legitimate principal rows and passively carried-forward constituent rows. The source facts do not yet encode an active-target/component-membership boundary precise enough to separate those cases.",
+    "knownFactExtractionDefect": "All nine correct-candidate QUANTITY_CONFLICT rejections were driven by invalid evidence: decimal/fraction punctuation was normalized away or an unrelated quantity in the current instruction was attached to the candidate row. This must be fixed and independently tested before another arbiter experiment.",
+    "nextExperimentPrerequisite": "Define source-derived active targets and component membership/lifecycle at row granularity, repair row-scoped quantity extraction, then test the inseparable family in a new frozen prompt experiment. Do not rerun reviewer discovery."
+  },
+  "verification": {
+    "lint": "PENDING",
+    "typecheck": "PENDING",
+    "build": "PENDING",
+    "tests": "PENDING",
+    "diffCheck": "PENDING",
+    "newTests": 10
+  },
+  "artifacts": {
+    "json": "docs/audits/cooking-mode-v10b-ingredient-precision-analysis-2026-08-28.json",
+    "markdown": "docs/audits/cooking-mode-v10b-ingredient-precision-analysis-2026-08-28.md"
+  },
+  "unverifiableItems": [
+    "Historical regression family labels are source-signal taxonomies because the locked regression artifact stores origins but not manual family adjudications.",
+    "The provider supplies token usage but no authoritative dollar cost or model-revision identifier."
+  ]
+}

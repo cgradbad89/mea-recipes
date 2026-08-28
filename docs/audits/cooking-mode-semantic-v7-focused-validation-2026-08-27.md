@@ -1,0 +1,411 @@
+# Cooking Mode semantic v7 focused validation — 2026-08-27
+
+## Executive result
+
+**FAIL — V7 FOCUSED GATE**
+
+This run was read-only. Firestore recipe writes: **0**. Firestore map writes: **0**.
+
+## Metrics
+
+- Recipes: 36
+- TP / FP / FN: 649 / 10 / 219
+- Precision: 98.48%
+- Recall: 74.77%
+- F1: 85.00%
+- Explicit-active-use recall: 87.35%
+- CRITICAL recall: 80.14%
+- HIGH recall: 69.76%
+- Seasoning/herb recall: 72.00%
+- Prepared-component recall: 38.18%
+- Prepared-component false positives: 46
+
+## Raw AI versus validator
+
+- expectedBenchmarkAssociations: 868
+- aiSemanticPlanFound: 699
+- aiSemanticPlanMissed: 169
+- aiCorrectProposalsAccepted: 647
+- aiCorrectProposalsRejected: 52
+- aiIncorrectProposalsRejected: 10
+- aiIncorrectProposalsAccepted: 9
+
+## Gate checks
+
+- precision: FAIL
+- overallRecall: FAIL
+- explicitActiveUseRecall: FAIL
+- criticalRecall: FAIL
+- highRecall: FAIL
+- seasoningRecall: FAIL
+- preparedComponentRecall: FAIL
+- preparedComponentPrecision: FAIL
+
+## Errors
+
+- Ingredient false positives: 10
+- Ingredient false negatives: 219
+- Prepared-component misses: 102
+- Invalid semantic plans that used deterministic-v5 fallback: 2
+
+False negatives by class:
+
+- GARNISH: 3
+- MAIN_STRUCTURAL: 56
+- OTHER: 9
+- SEASONING_HERB: 77
+- SUBSTANTIAL: 74
+
+Ingredient false positives:
+
+- 176 step 6, ingredient 17: - 1 teaspoon kosher salt
+- chickpea-and-fennel-ratatouille step 2, ingredient 0: 1 pound eggplant (smaller is better), peeled if you like, and cut into large chunks
+- chickpea-and-fennel-ratatouille step 2, ingredient 1: ¾ pound zucchini, cut into large chunks
+- chickpea-and-fennel-ratatouille step 2, ingredient 2: 1 pound Roma (plum) tomatoes, cored and chopped, or 1 28-ounce can, drained
+- chickpea-and-fennel-ratatouille step 2, ingredient 3: 1 onion, sliced
+- chickpea-and-fennel-ratatouille step 2, ingredient 5: 1 fennel bulb (about 1 pound), trimmed and cut into large chunks
+- chickpea-and-fennel-ratatouille step 2, ingredient 6: 5 garlic cloves, halved
+- chickpea-and-fennel-ratatouille step 2, ingredient 8: Black pepper to taste
+- mole-poblano step 3, ingredient 2: About 8 cups of water
+- tacos-al-pastor step 4, ingredient 0: 2-3 pound Pork Loin cut into thin slices
+
+Remaining ingredient false negatives:
+
+- 157 step 3, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5 lbs pork chops
+- 164 step 2, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 2 (10 oz) cans diced tomatoes with green chiles
+- 164 step 2, ingredient 1 (HIGH/SUBSTANTIAL): - 1 (16 oz) can chili beans
+- 164 step 2, ingredient 2 (HIGH/SUBSTANTIAL): - 1 (15 oz) can black beans
+- 164 step 2, ingredient 3 (HIGH/SUBSTANTIAL): - 1 (15 oz) can whole kernel corn, drained
+- 164 step 2, ingredient 4 (HIGH/SUBSTANTIAL): - 1 (12 fl oz) can or bottle beer
+- 164 step 2, ingredient 5 (HIGH/SUBSTANTIAL): - 1 (8 oz) can tomato sauce
+- 164 step 2, ingredient 6 (MEDIUM/SEASONING_HERB): - 1 onion, chopped
+- 164 step 2, ingredient 7 (MEDIUM/SEASONING_HERB): - 1 (1.25 oz) package taco seasoning
+- 164 step 2, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): - 3 boneless skinless chicken breasts
+- 164 step 4, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 2 (10 oz) cans diced tomatoes with green chiles
+- 164 step 4, ingredient 1 (HIGH/SUBSTANTIAL): - 1 (16 oz) can chili beans
+- 164 step 4, ingredient 2 (HIGH/SUBSTANTIAL): - 1 (15 oz) can black beans
+- 164 step 4, ingredient 3 (HIGH/SUBSTANTIAL): - 1 (15 oz) can whole kernel corn, drained
+- 164 step 4, ingredient 4 (HIGH/SUBSTANTIAL): - 1 (12 fl oz) can or bottle beer
+- 164 step 4, ingredient 5 (HIGH/SUBSTANTIAL): - 1 (8 oz) can tomato sauce
+- 164 step 4, ingredient 6 (MEDIUM/SEASONING_HERB): - 1 onion, chopped
+- 164 step 4, ingredient 7 (MEDIUM/SEASONING_HERB): - 1 (1.25 oz) package taco seasoning
+- 164 step 4, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): - 3 boneless skinless chicken breasts
+- 168 step 4, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5 lbs boneless skinless chicken thighs
+- 171 step 0, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 0, ingredient 2 (MEDIUM/SEASONING_HERB): - 1 tbsp brown sugar
+- 171 step 0, ingredient 3 (MEDIUM/SEASONING_HERB): - 2 tsp paprika powder
+- 171 step 0, ingredient 4 (MEDIUM/SEASONING_HERB): - 1 tsp onion powder
+- 171 step 0, ingredient 5 (MEDIUM/SEASONING_HERB): - 1 tsp garlic powder
+- 171 step 0, ingredient 6 (MEDIUM/SEASONING_HERB): - 1/2 tsp cumin powder
+- 171 step 0, ingredient 7 (MEDIUM/SEASONING_HERB): - 3/4 tsp mustard powder
+- 171 step 0, ingredient 8 (MEDIUM/SEASONING_HERB): - 1 tsp salt
+- 171 step 0, ingredient 9 (MEDIUM/SEASONING_HERB): - 1/2 tsp black pepper
+- 171 step 1, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 1, ingredient 10 (MEDIUM/SEASONING_HERB): - 2 garlic cloves, minced
+- 171 step 1, ingredient 11 (HIGH/SUBSTANTIAL): - 1/2 cup apple cider vinegar
+- 171 step 1, ingredient 12 (HIGH/SUBSTANTIAL): - 1 1/2 cups ketchup
+- 171 step 1, ingredient 13 (HIGH/SUBSTANTIAL): - 1/2 cup brown sugar, packed
+- 171 step 1, ingredient 14 (MEDIUM/SEASONING_HERB): - 2 tsp black pepper
+- 171 step 1, ingredient 15 (MEDIUM/SEASONING_HERB): - 2 tsp onion powder
+- 171 step 1, ingredient 16 (MEDIUM/SEASONING_HERB): - 2 tsp mustard powder
+- 171 step 1, ingredient 17 (MEDIUM/SEASONING_HERB): - 1 tsp cayenne pepper
+- 171 step 1, ingredient 18 (HIGH/SUBSTANTIAL): - 1 tbsp Worcestershire sauce
+- 171 step 2, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 3, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 5, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 5, ingredient 1 (HIGH/SUBSTANTIAL): - 1 tbsp olive oil
+- 171 step 6, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 7, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 171 step 8, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5-2 kg beef brisket
+- 173 step 3, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5 to 2 lbs boneless skinless chicken pieces
+- 173 step 3, ingredient 1 (MEDIUM/OTHER): - 4 cloves garlic
+- 173 step 3, ingredient 2 (MEDIUM/SEASONING_HERB): - 1/2 Tbsp oregano
+- 173 step 3, ingredient 3 (MEDIUM/SEASONING_HERB): - 1 tsp cumin
+- 173 step 3, ingredient 4 (MEDIUM/SEASONING_HERB): - 1/8 tsp red pepper flakes
+- 173 step 3, ingredient 5 (MEDIUM/SEASONING_HERB): - Freshly cracked black pepper
+- 173 step 3, ingredient 6 (HIGH/SUBSTANTIAL): - 1 medium yellow onion
+- 173 step 3, ingredient 7 (HIGH/SUBSTANTIAL): - 1 medium green bell pepper
+- 173 step 3, ingredient 8 (HIGH/SUBSTANTIAL): - 1 medium red bell pepper
+- 173 step 3, ingredient 9 (CRITICAL/MAIN_STRUCTURAL): - 1 15 oz can diced tomatoes
+- 173 step 3, ingredient 10 (HIGH/SUBSTANTIAL): - 3 Tbsp tomato paste
+- 173 step 4, ingredient 1 (MEDIUM/OTHER): - 4 cloves garlic
+- 173 step 4, ingredient 2 (MEDIUM/SEASONING_HERB): - 1/2 Tbsp oregano
+- 173 step 4, ingredient 3 (MEDIUM/SEASONING_HERB): - 1 tsp cumin
+- 173 step 4, ingredient 4 (MEDIUM/SEASONING_HERB): - 1/8 tsp red pepper flakes
+- 173 step 4, ingredient 5 (MEDIUM/SEASONING_HERB): - Freshly cracked black pepper
+- 173 step 4, ingredient 6 (HIGH/SUBSTANTIAL): - 1 medium yellow onion
+- 173 step 4, ingredient 7 (HIGH/SUBSTANTIAL): - 1 medium green bell pepper
+- 173 step 4, ingredient 8 (HIGH/SUBSTANTIAL): - 1 medium red bell pepper
+- 173 step 4, ingredient 9 (CRITICAL/MAIN_STRUCTURAL): - 1 15 oz can diced tomatoes
+- 173 step 4, ingredient 10 (HIGH/SUBSTANTIAL): - 3 Tbsp tomato paste
+- 173 step 5, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): - 1.5 to 2 lbs boneless skinless chicken pieces
+- 173 step 5, ingredient 1 (MEDIUM/OTHER): - 4 cloves garlic
+- 173 step 5, ingredient 2 (MEDIUM/SEASONING_HERB): - 1/2 Tbsp oregano
+- 173 step 5, ingredient 3 (MEDIUM/SEASONING_HERB): - 1 tsp cumin
+- 173 step 5, ingredient 4 (MEDIUM/SEASONING_HERB): - 1/8 tsp red pepper flakes
+- 173 step 5, ingredient 5 (MEDIUM/SEASONING_HERB): - Freshly cracked black pepper
+- 173 step 5, ingredient 6 (HIGH/SUBSTANTIAL): - 1 medium yellow onion
+- 173 step 5, ingredient 7 (HIGH/SUBSTANTIAL): - 1 medium green bell pepper
+- 173 step 5, ingredient 8 (HIGH/SUBSTANTIAL): - 1 medium red bell pepper
+- 173 step 5, ingredient 9 (CRITICAL/MAIN_STRUCTURAL): - 1 15 oz can diced tomatoes
+- 173 step 5, ingredient 10 (HIGH/SUBSTANTIAL): - 3 Tbsp tomato paste
+- 176 step 6, ingredient 8 (MEDIUM/SEASONING_HERB): - 1 teaspoon crushed red pepper flakes
+- 176 step 8, ingredient 14 (MEDIUM/SEASONING_HERB): - 2 cloves garlic, chopped
+- 189 step 1, ingredient 1 (CRITICAL/MAIN_STRUCTURAL): - 6-12 large eggs
+- 189 step 3, ingredient 1 (CRITICAL/MAIN_STRUCTURAL): - 6-12 large eggs
+- chicken-tikka step 2, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): 2 lbs boneless chicken thighs, cut into 1-inch cubes
+- chicken-tikka step 4, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): 2 lbs boneless chicken thighs, cut into 1-inch cubes
+- chicken-tikka step 6, ingredient 15 (HIGH/OTHER): Wooden skewers, soaked in water for 30 minutes
+- chickpea-and-fennel-ratatouille step 1, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): 1 pound eggplant (smaller is better), peeled if you like, and cut into large chunks
+- chickpea-and-fennel-ratatouille step 1, ingredient 1 (CRITICAL/MAIN_STRUCTURAL): ¾ pound zucchini, cut into large chunks
+- chickpea-and-fennel-ratatouille step 1, ingredient 3 (CRITICAL/MAIN_STRUCTURAL): 1 onion, sliced
+- chickpea-and-fennel-ratatouille step 1, ingredient 4 (CRITICAL/MAIN_STRUCTURAL): 2 red or yellow bell peppers, cored, seeded and sliced
+- chickpea-and-fennel-ratatouille step 1, ingredient 5 (CRITICAL/MAIN_STRUCTURAL): 1 fennel bulb (about 1 pound), trimmed and cut into large chunks
+- chickpea-and-fennel-ratatouille step 1, ingredient 6 (HIGH/SUBSTANTIAL): 5 garlic cloves, halved
+- chopped-thai-shrimp-salad-with-garlic-lime-dressing step 0, ingredient 5 (MEDIUM/SEASONING_HERB): 2 cloves garlic
+- chopped-thai-shrimp-salad-with-garlic-lime-dressing step 3, ingredient 12 (CRITICAL/MAIN_STRUCTURAL): 1 lb. shrimp
+- chopped-thai-shrimp-salad-with-garlic-lime-dressing step 3, ingredient 14 (CRITICAL/MAIN_STRUCTURAL): 4 large carrots, peeled
+- chopped-thai-shrimp-salad-with-garlic-lime-dressing step 3, ingredient 15 (CRITICAL/MAIN_STRUCTURAL): 2 cups edamame, shelled and cooked
+- chopped-thai-shrimp-salad-with-garlic-lime-dressing step 3, ingredient 16 (HIGH/SUBSTANTIAL): 3/4 cup cashews
+- crunchy-queso-wrap step 4, ingredient 18 (HIGH/SUBSTANTIAL): Canola or vegetable oil, for frying
+- crunchy-queso-wrap step 5, ingredient 18 (HIGH/SUBSTANTIAL): Canola or vegetable oil, for frying
+- crunchy-queso-wrap step 6, ingredient 16 (LOW/GARNISH): ¾ cup homemade or storebought pico de gallo, drained
+- dads-chili step 0, ingredient 28 (MEDIUM/SEASONING_HERB): North Carolina Reaper 1 tsp (use 1/4 tsp)
+- dads-chili step 6, ingredient 10 (CRITICAL/MAIN_STRUCTURAL): V-8 17 oz.
+- dads-chili step 6, ingredient 11 (HIGH/SUBSTANTIAL): Worchestershire Sauce 2 TBSP
+- dads-chili step 6, ingredient 12 (HIGH/SUBSTANTIAL): Chicken stock 1 cup
+- dads-chili step 6, ingredient 13 (HIGH/SUBSTANTIAL): Tomato Paste 2 TBSP
+- dads-chili step 6, ingredient 14 (HIGH/SUBSTANTIAL): Barbq sauce 1 TBSP
+- dads-chili step 6, ingredient 16 (HIGH/SUBSTANTIAL): Grey Poupon 1 TBSP
+- dads-chili step 6, ingredient 17 (HIGH/SUBSTANTIAL): Beer 1/2 a bottle
+- dads-chili step 6, ingredient 18 (MEDIUM/SEASONING_HERB): Cumin 1 TBSP
+- dads-chili step 6, ingredient 19 (MEDIUM/SEASONING_HERB): Black Pepper 1 Tsp
+- dads-chili step 6, ingredient 20 (MEDIUM/SEASONING_HERB): Cayenne Pepper 1 tsp
+- dads-chili step 6, ingredient 21 (MEDIUM/SEASONING_HERB): Basil 1 tsp
+- dads-chili step 6, ingredient 22 (MEDIUM/SEASONING_HERB): Thyme 1 tsp
+- dads-chili step 6, ingredient 23 (MEDIUM/SEASONING_HERB): oregano 1 tsp
+- dads-chili step 6, ingredient 24 (MEDIUM/SEASONING_HERB): Crushed coriandeer 2 tsp
+- dads-chili step 6, ingredient 25 (MEDIUM/OTHER): Coffee 1 tsp
+- dads-chili step 6, ingredient 26 (MEDIUM/OTHER): Chocolate couple squares
+- dads-chili step 6, ingredient 27 (MEDIUM/OTHER): Brown sugar 1/2 TBSP
+- fried-chicken-sandwich step 2, ingredient 18 (MEDIUM/SEASONING_HERB): 1/4 teaspoon salt
+- fried-chicken-sandwich step 3, ingredient 6 (CRITICAL/MAIN_STRUCTURAL): 1 1/2 cups flour
+- fried-chicken-sandwich step 3, ingredient 7 (HIGH/SUBSTANTIAL): 1/2 cup cornstarch
+- fried-chicken-sandwich step 3, ingredient 8 (MEDIUM/OTHER): 1 teaspoon baking powder
+- fried-chicken-sandwich step 3, ingredient 10 (MEDIUM/SEASONING_HERB): 1 tablespoon seasoning mix
+- fried-chicken-sandwich step 4, ingredient 1 (CRITICAL/MAIN_STRUCTURAL): 4 boneless skinless chicken breasts (see notes!)
+- fried-chicken-sandwich step 4, ingredient 20 (CRITICAL/MAIN_STRUCTURAL): Brioche buns
+- fried-chicken-sandwich step 5, ingredient 1 (CRITICAL/MAIN_STRUCTURAL): 4 boneless skinless chicken breasts (see notes!)
+- garlic-butter-herb-steak-bites-with-potatoes step 2, ingredient 7 (CRITICAL/MAIN_STRUCTURAL): 1 ¼ pounds sirloin steaks, cut into 1 inch cubes
+- grilled-fish-tacos step 1, ingredient 2 (MEDIUM/SEASONING_HERB): 1 teaspoon chopped canned chipotle in adobo sauce
+- grilled-fish-tacos step 4, ingredient 0 (LOW/GARNISH): 2 cups Pico de Gallo
+- grilled-fish-tacos step 5, ingredient 8 (HIGH/SUBSTANTIAL): Extra virgin olive oil
+- grilled-fish-tacos step 5, ingredient 10 (MEDIUM/SEASONING_HERB): 1 tablespoon Morton Coarse Kosher Salt
+- grilled-fish-tacos step 6, ingredient 8 (HIGH/SUBSTANTIAL): Extra virgin olive oil
+- grilled-fish-tacos step 7, ingredient 0 (LOW/GARNISH): 2 cups Pico de Gallo
+- grilled-fish-tacos step 7, ingredient 7 (CRITICAL/MAIN_STRUCTURAL): 1 pound fresh, mild white-fleshed fish fillets
+- jocn-chicken-and-tomatillo-stew step 2, ingredient 2 (CRITICAL/MAIN_STRUCTURAL): 1 pound tomatillos (about 9 medium), husked and washed
+- jocn-chicken-and-tomatillo-stew step 2, ingredient 3 (HIGH/SUBSTANTIAL): 3 medium green bell peppers, halved and destemmed
+- jocn-chicken-and-tomatillo-stew step 2, ingredient 4 (HIGH/SUBSTANTIAL): 1 sweet onion, peeled and quartered
+- jocn-chicken-and-tomatillo-stew step 2, ingredient 5 (MEDIUM/SEASONING_HERB): 1 jalapeño, split lengthwise
+- jocn-chicken-and-tomatillo-stew step 5, ingredient 0 (HIGH/SUBSTANTIAL): 1 cup roasted, unsalted pumpkin seeds
+- jocn-chicken-and-tomatillo-stew step 5, ingredient 1 (HIGH/SUBSTANTIAL): ¼ cup white sesame seeds
+- jocn-chicken-and-tomatillo-stew step 5, ingredient 9 (MEDIUM/SEASONING_HERB): 2 garlic cloves, minced
+- jocn-chicken-and-tomatillo-stew step 5, ingredient 10 (MEDIUM/SEASONING_HERB): Salt
+- mapo-rag-crazy-good step 2, ingredient 2 (MEDIUM/SEASONING_HERB): Pinch of kosher salt, or to taste
+- mapo-rag-crazy-good step 2, ingredient 5 (CRITICAL/MAIN_STRUCTURAL): 10-15 frozen cylindrical rice cakes (optional), or rice noodles, or pasta, or steamed rice
+- mediterranean-grilled-salmon step 5, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): 8–12 ounces salmon (serves 2)
+- mediterranean-grilled-salmon step 5, ingredient 4 (HIGH/SUBSTANTIAL): one large tomato sliced in half
+- mediterranean-grilled-salmon step 5, ingredient 5 (HIGH/SUBSTANTIAL): one small eggplant, sliced (or sub zucchini)
+- mediterranean-grilled-salmon step 6, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): 8–12 ounces salmon (serves 2)
+- mediterranean-grilled-salmon step 6, ingredient 3 (MEDIUM/OTHER): one lemon- sliced in half
+- mediterranean-grilled-salmon step 6, ingredient 4 (HIGH/SUBSTANTIAL): one large tomato sliced in half
+- mediterranean-grilled-salmon step 6, ingredient 5 (HIGH/SUBSTANTIAL): one small eggplant, sliced (or sub zucchini)
+- mediterranean-grilled-salmon step 6, ingredient 6 (HIGH/SUBSTANTIAL): Make this Tzatziki Sauce Recipe! (or use store-bought)
+- mediterranean-grilled-salmon step 6, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): Everyday Quinoa (tastes great here) or rice,
+- mediterranean-grilled-salmon step 11, ingredient 6 (HIGH/SUBSTANTIAL): Make this Tzatziki Sauce Recipe! (or use store-bought)
+- mexican-oaxacan-bowl step 2, ingredient 14 (HIGH/SUBSTANTIAL): 1 tablespoon olive oil
+- mole-poblano step 1, ingredient 1 (CRITICAL/MAIN_STRUCTURAL): 1 Large chicken cut up in pieces
+- mole-poblano step 1, ingredient 2 (HIGH/SUBSTANTIAL): About 8 cups of water
+- mole-poblano step 1, ingredient 3 (MEDIUM/SEASONING_HERB): 1 Small onion cut up in pieces
+- mole-poblano step 1, ingredient 4 (MEDIUM/SEASONING_HERB): 3 Garlic cloves
+- mole-poblano step 1, ingredient 5 (MEDIUM/SEASONING_HERB): Salt to taste
+- mole-poblano step 1, ingredient 7 (CRITICAL/MAIN_STRUCTURAL): 6 Mulato peppers
+- mole-poblano step 1, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): 4 Ancho peppers
+- mole-poblano step 1, ingredient 9 (CRITICAL/MAIN_STRUCTURAL): 6 Pasilla peppers
+- mole-poblano step 1, ingredient 10 (MEDIUM/SEASONING_HERB): 1 Tablespoon of reserved pepper seeds
+- mole-poblano step 1, ingredient 11 (MEDIUM/SEASONING_HERB): 6 Whole cloves
+- mole-poblano step 1, ingredient 12 (MEDIUM/SEASONING_HERB): ½ Teaspoon black peppercorn
+- mole-poblano step 1, ingredient 13 (MEDIUM/SEASONING_HERB): ¼ Teaspoon coriander seeds
+- mole-poblano step 1, ingredient 14 (MEDIUM/SEASONING_HERB): ¼ Teaspoonanises seeds
+- mole-poblano step 1, ingredient 15 (MEDIUM/SEASONING_HERB): ¾ Cup sesame seeds
+- mole-poblano step 1, ingredient 16 (MEDIUM/SEASONING_HERB): ¾ Inch of mexican cinnamon stick
+- mole-poblano step 1, ingredient 17 (HIGH/SUBSTANTIAL): ½ Cup of raisins
+- mole-poblano step 1, ingredient 18 (HIGH/SUBSTANTIAL): ⅓ Cup unskinned almonds
+- mole-poblano step 1, ingredient 19 (HIGH/SUBSTANTIAL): ⅓ Cup peanuts
+- mole-poblano step 1, ingredient 20 (HIGH/SUBSTANTIAL): 1 Corn tortilla
+- mole-poblano step 1, ingredient 21 (HIGH/SUBSTANTIAL): 3 Small slices of french bread
+- mole-poblano step 1, ingredient 22 (HIGH/SUBSTANTIAL): ⅓ Cup of raw pumpkin seeds
+- mole-poblano step 1, ingredient 23 (MEDIUM/SEASONING_HERB): ½ Small white onion sliced
+- mole-poblano step 1, ingredient 24 (HIGH/SUBSTANTIAL): 2 Medium roasted tomatoes
+- mole-poblano step 1, ingredient 25 (MEDIUM/SEASONING_HERB): 3 Garlic gloves roasted
+- mole-poblano step 1, ingredient 26 (HIGH/SUBSTANTIAL): ½ Large ripe dark-skinned plantain peeled, thickly sliced
+- mole-poblano step 1, ingredient 27 (HIGH/SUBSTANTIAL): 1 Tablet of Mexican drinking Chocolate* About 3.1 ounces.
+- mole-poblano step 1, ingredient 28 (HIGH/SUBSTANTIAL): The reserved broth from the cooked chicken.
+- mole-poblano step 1, ingredient 29 (HIGH/SUBSTANTIAL): ½ Cup of oil or lard to fry the ingredients
+- mole-poblano step 1, ingredient 30 (MEDIUM/SEASONING_HERB): Salt to taste
+- mole-poblano step 3, ingredient 28 (HIGH/SUBSTANTIAL): The reserved broth from the cooked chicken.
+- mole-poblano step 4, ingredient 28 (HIGH/SUBSTANTIAL): The reserved broth from the cooked chicken.
+- mole-poblano step 5, ingredient 13 (MEDIUM/SEASONING_HERB): ¼ Teaspoon coriander seeds
+- mole-poblano step 5, ingredient 14 (MEDIUM/SEASONING_HERB): ¼ Teaspoonanises seeds
+- mole-poblano step 6, ingredient 10 (MEDIUM/SEASONING_HERB): 1 Tablespoon of reserved pepper seeds
+- mole-poblano step 6, ingredient 13 (MEDIUM/SEASONING_HERB): ¼ Teaspoon coriander seeds
+- mole-poblano step 6, ingredient 14 (MEDIUM/SEASONING_HERB): ¼ Teaspoonanises seeds
+- mole-poblano step 9, ingredient 29 (HIGH/SUBSTANTIAL): ½ Cup of oil or lard to fry the ingredients
+- mole-poblano step 13, ingredient 7 (CRITICAL/MAIN_STRUCTURAL): 6 Mulato peppers
+- mole-poblano step 13, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): 4 Ancho peppers
+- mole-poblano step 13, ingredient 9 (CRITICAL/MAIN_STRUCTURAL): 6 Pasilla peppers
+- mole-poblano step 13, ingredient 10 (MEDIUM/SEASONING_HERB): 1 Tablespoon of reserved pepper seeds
+- mole-poblano step 13, ingredient 11 (MEDIUM/SEASONING_HERB): 6 Whole cloves
+- mole-poblano step 13, ingredient 12 (MEDIUM/SEASONING_HERB): ½ Teaspoon black peppercorn
+- mole-poblano step 13, ingredient 13 (MEDIUM/SEASONING_HERB): ¼ Teaspoon coriander seeds
+- mole-poblano step 13, ingredient 14 (MEDIUM/SEASONING_HERB): ¼ Teaspoonanises seeds
+- mole-poblano step 13, ingredient 15 (MEDIUM/SEASONING_HERB): ¾ Cup sesame seeds
+- mole-poblano step 13, ingredient 16 (MEDIUM/SEASONING_HERB): ¾ Inch of mexican cinnamon stick
+- mole-poblano step 13, ingredient 17 (HIGH/SUBSTANTIAL): ½ Cup of raisins
+- mole-poblano step 13, ingredient 18 (HIGH/SUBSTANTIAL): ⅓ Cup unskinned almonds
+- mole-poblano step 13, ingredient 20 (HIGH/SUBSTANTIAL): 1 Corn tortilla
+- mole-poblano step 13, ingredient 21 (HIGH/SUBSTANTIAL): 3 Small slices of french bread
+- mole-poblano step 13, ingredient 22 (HIGH/SUBSTANTIAL): ⅓ Cup of raw pumpkin seeds
+- mole-poblano step 13, ingredient 23 (MEDIUM/SEASONING_HERB): ½ Small white onion sliced
+- mole-poblano step 13, ingredient 25 (MEDIUM/SEASONING_HERB): 3 Garlic gloves roasted
+- mole-poblano step 13, ingredient 26 (HIGH/SUBSTANTIAL): ½ Large ripe dark-skinned plantain peeled, thickly sliced
+- mole-poblano step 13, ingredient 27 (HIGH/SUBSTANTIAL): 1 Tablet of Mexican drinking Chocolate* About 3.1 ounces.
+- mole-poblano step 13, ingredient 28 (HIGH/SUBSTANTIAL): The reserved broth from the cooked chicken.
+- onepot-chicken-and-rice-with-caramelized-lemon step 4, ingredient 0 (CRITICAL/MAIN_STRUCTURAL): 4 bone-in, skin-on chicken thighs (about 1 ½ pounds)
+- pearl-couscous-with-creamy-feta-and-chickpeas-meh step 1, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): 2 cups vegetable stock or water
+- pearl-couscous-with-creamy-feta-and-chickpeas-meh step 2, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): 2 cups vegetable stock or water
+- sheet-pan-bibimbap step 3, ingredient 8 (MEDIUM/SEASONING_HERB): 4 teaspoons toasted sesame oil, plus more to taste, for serving
+- sheetpan-gochujang-chicken-and-roasted-vegetables step 3, ingredient 4 (CRITICAL/MAIN_STRUCTURAL): 2 pounds squash, such as butternut, acorn or delicata, unpeeled, seeded and cut into 2-inch pieces (about 5 loose cups)
+- sheetpan-gochujang-chicken-and-roasted-vegetables step 3, ingredient 5 (CRITICAL/MAIN_STRUCTURAL): 1 pound turnips, trimmed and cut into 2-inch pieces (about 3 ½ loose cups)
+- sheetpan-gochujang-chicken-and-roasted-vegetables step 3, ingredient 6 (MEDIUM/SEASONING_HERB): 10 scallions, ends trimmed, green and white parts separated, but not chopped
+- sheetpan-gochujang-chicken-and-roasted-vegetables step 3, ingredient 8 (CRITICAL/MAIN_STRUCTURAL): 2 ½ to 3 pounds bone-in, skin-on chicken thighs, drumsticks or breasts, patted dry
+
+Remaining prepared-component misses:
+
+- 157 step 4: browned pork chops
+- 157 step 4: rice mixture
+- 164 step 2: assembled soup
+- 164 step 3: shredded chicken
+- 164 step 4: soup
+- 168 step 2: cooked al dente pasta
+- 168 step 4: shredded chicken
+- 171 step 0: rub
+- 171 step 1: bbq sauce
+- 171 step 2: bbq sauce
+- 171 step 3: cooking liquid / bbq sauce
+- 171 step 4: bbq sauce
+- 171 step 6: bbq sauce
+- 171 step 7: bbq sauce
+- 171 step 8: remaining bbq sauce
+- 176 step 1: garlic-basil butter-parmesan mixture
+- 176 step 3: garlic-basil butter-parmesan mixture
+- 176 step 7: finely chopped charred lemon
+- 176 step 8: finely chopped charred lemon
+- blue-corn-green-chili-chicken-enchiladas step 0: green chile sauce
+- blue-corn-green-chili-chicken-enchiladas step 4: shredded chicken
+- blue-corn-green-chili-chicken-enchiladas step 5: green chile enchilada sauce
+- chicken-fajitas step 0: marinated chicken
+- chicken-fajitas step 1: seasoned vegetables
+- chicken-fajitas step 2: marinated chicken
+- chicken-fajitas step 2: seasoned vegetables
+- chicken-fajitas step 3: roasted vegetables
+- chicken-fajitas step 4: warmed tortillas
+- chicken-fajitas step 5: charred vegetables
+- chicken-fajitas step 5: cooked chicken
+- chicken-fajitas step 5: warmed tortillas
+- chicken-tikka step 2: marinated chicken
+- chickpea-and-fennel-ratatouille step 1: roasting-pan vegetables
+- chickpea-and-fennel-ratatouille step 2: roasted vegetables
+- crunchy-queso-wrap step 2: layered wrap
+- crunchy-queso-wrap step 3: enclosed wrap
+- crunchy-queso-wrap step 3: layered wrap
+- crunchy-queso-wrap step 4: enclosed wrap
+- crunchy-queso-wrap step 5: enclosed wrap
+- crunchy-queso-wrap step 6: pico de gallo
+- cucumber-tomato-salad-with-red-wine-vinaigrette step 0: salad
+- dads-chili step 0: seasoned chili base
+- dads-chili step 1: browned meat
+- dads-chili step 2: sauteed vegetables
+- dads-chili step 3: roasted anaheim peppers
+- dads-chili step 5: sauteed vegetables
+- dads-chili step 6: browned meat
+- dads-chili step 6: roasted anaheim peppers
+- dads-chili step 6: sauteed vegetables
+- dads-chili step 6: seasoned chili base
+- fried-chicken-sandwich step 0: marinated chicken
+- fried-chicken-sandwich step 3: fried chicken
+- fried-chicken-sandwich step 4: fried chicken
+- fried-chicken-sandwich step 4: honey dijonnaise
+- grilled-zucchini-and-summer-squash step 2: seasoned zucchini and squash slices
+- grilled-zucchini-and-summer-squash step 3: grilled zucchini and squash
+- jocn-chicken-and-tomatillo-stew step 1: blistered vegetables
+- jocn-chicken-and-tomatillo-stew step 2: blistered vegetables
+- jocn-chicken-and-tomatillo-stew step 4: puréed broth
+- jocn-chicken-and-tomatillo-stew step 5: puréed broth
+- jocn-chicken-and-tomatillo-stew step 6: puréed soup
+- jocn-chicken-and-tomatillo-stew step 7: puréed soup
+- mapo-rag-crazy-good step 1: cooked onions
+- mapo-rag-crazy-good step 3: cooked onions
+- mapo-rag-crazy-good step 3: cooked pork
+- mediterranean-grilled-salmon step 5: grilled eggplant
+- mediterranean-grilled-salmon step 5: grilled salmon
+- mediterranean-grilled-salmon step 5: grilled tomato
+- mole-poblano step 0: cooked chicken
+- mole-poblano step 0: reserved chicken broth
+- mole-poblano step 3: reserved chicken broth
+- mole-poblano step 4: soaked peppers and chocolate
+- mole-poblano step 5: toasted seeds
+- mole-poblano step 6: ground spice mixture
+- mole-poblano step 7: ground spice mixture
+- mole-poblano step 8: fried raisins, almonds, and pumpkin seeds
+- mole-poblano step 9: fried and roasted ingredients
+- mole-poblano step 10: fried tortilla and bread
+- mole-poblano step 11: fried plantain
+- mole-poblano step 12: prepared fried and roasted ingredients
+- mole-poblano step 13: fried ingredients
+- mole-poblano step 13: ground spice mixture
+- mole-poblano step 13: pureed mole base
+- mole-poblano step 13: soaked peppers and chocolate
+- mole-poblano step 14: mole sauce
+- mole-poblano step 15: mole sauce
+- mole-poblano step 16: hot mole sauce
+- onepot-chicken-and-lentil step 4: sauce
+- onepot-chicken-and-rice-with-caramelized-lemon step 4: caramelized lemon slices
+- pearl-couscous-with-creamy-feta-and-chickpeas-meh step 2: roasted tomatoes
+- roasted-white-bean-and-tomato-pasta step 1: shallot-tomato dressing
+- roasted-white-bean-and-tomato-pasta step 5: roasted beans
+- roasted-white-bean-and-tomato-pasta step 5: roasted tomatoes
+- sheet-pan-bibimbap step 3: baked eggs
+- sheet-pan-bibimbap step 3: cooked rice
+- sheet-pan-bibimbap step 3: roasted vegetables
+- tacos-al-pastor step 1: al pastor marinade
+- tacos-al-pastor step 2: al pastor marinade
+- tacos-al-pastor step 3: al pastor marinade
+- tacos-al-pastor step 8: roasted tomatillo, onion, and garlic
+- tacos-al-pastor step 9: roasted tomatillo, onion, and garlic
+- tacos-al-pastor step 13: roasted tomatillo chipotle salsa
+
+## AI usage for this final focused pass
+
+- Successful calls: 36
+- Input tokens: 62582
+- Output tokens: 112461
+- Total tokens: 175043
+- Model: openai/gpt-5.6-luna
+- Temperature: 0
+- Prompt version: v1
+
+## Decision
+
+STOP. The full 228-recipe run, production activation, manifest creation, commit, and push are not authorized.

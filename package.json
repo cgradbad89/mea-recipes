@@ -14,6 +14,7 @@
     "audit:excluded-recipe-sources": "node scripts/audit-excluded-recipe-sources.mjs",
     "audit:cooking-step-mappings": "node scripts/audit-cooking-step-mappings.mjs",
     "audit:cooking-mode-completeness": "node scripts/audit-cooking-mode-completeness.mjs",
+    "validate:cooking-step-consensus-v9": "node scripts/validate-cooking-step-consensus-v9.mjs",
     "apply:cooking-step-mappings-v4": "node scripts/apply-cooking-step-mapping-v4-manifest.mjs"
   },
   "engines": {

@@ -315,3 +315,25 @@ describe('persisted v4 compatibility under the v5 runtime', () => {
     }
   })
 })
+
+describe('failed experimental engine compatibility', () => {
+  it.each(['hybrid-v6', 'hybrid-v7', 'hybrid-v8', 'hybrid-v9', 'hybrid-v10'])('fails closed for nonproduction engine %s', async engineVersion => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    persisted.engineVersion = engineVersion
+    await expect(resolveCookingStepIngredientMap(ingredients, instructions, persisted)).resolves.toMatchObject({
+      source: 'deterministic-fallback', fallbackReason: 'unsupported-engine',
+    })
+  })
+
+  it('still fails closed for an unsupported engine', async () => {
+    const ingredients = ['salt']
+    const instructions = ['Add salt.']
+    const persisted = await buildHashedDeterministicCookingStepMap(ingredients, instructions)
+    persisted.engineVersion = 'hybrid-v3'
+    const resolved = await resolveCookingStepIngredientMap(ingredients, instructions, persisted)
+    expect(resolved.source).toBe('deterministic-fallback')
+    expect(resolved.fallbackReason).toBe('unsupported-engine')
+  })
+})

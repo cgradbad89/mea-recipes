@@ -1,0 +1,658 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T14:55:00.923Z",
+  "verdict": "MORE ARBITER WORK REQUIRED",
+  "productionMutations": {
+    "firestoreWrites": 0,
+    "mapWrites": 0,
+    "recipeWrites": 0,
+    "productionFilesEditedByV10A": []
+  },
+  "workspace": {
+    "branch": "main",
+    "head": "030a590d8bc17be1e53a91e29633b2904ef73d0c",
+    "status": [
+      "M PRD.md",
+      " M app/api/cooking-step-map/route.ts",
+      " M app/discover/page.tsx",
+      " M app/queue/page.tsx",
+      " M lib/aiConfig.ts",
+      " M lib/cookingStepMapping.ts",
+      " M lib/recipes.ts",
+      " M package.json",
+      " M tests/cookingStepMapRoute.test.ts",
+      " M tests/cookingStepMappingPublish.test.ts",
+      " M tests/cookingStepMappingV5.test.ts",
+      " M tests/recipeQueueCategories.test.tsx",
+      "?? .eslintrc.json",
+      "?? \"app/error 2.tsx\"",
+      "?? \"app/global-error 2.tsx\"",
+      "?? \"app/loading 2.tsx\"",
+      "?? docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.json",
+      "?? docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.md",
+      "?? docs/audits/cooking-mode-arbiter-v10a-error-matrix-2026-08-28.md",
+      "?? docs/audits/cooking-mode-arbiter-v10a-frozen-candidates-2026-08-28.json",
+      "?? docs/audits/cooking-mode-completeness-v6-focused-validation-2026-08-27.md",
+      "?? docs/audits/cooking-mode-consensus-v9-focused-validation-2026-08-28.md",
+      "?? docs/audits/cooking-mode-consensus-v9-regression-input-2026-08-28.json",
+      "?? docs/audits/cooking-mode-recall-root-cause-analysis-2026-08-28.json",
+      "?? docs/audits/cooking-mode-recall-root-cause-analysis-2026-08-28.md",
+      "?? docs/audits/cooking-mode-semantic-v7-focused-validation-2026-08-27.md",
+      "?? docs/audits/cooking-mode-usage-matrix-v8-design-input-2026-08-27.json",
+      "?? docs/audits/cooking-mode-usage-matrix-v8-focused-validation-2026-08-27.md",
+      "?? docs/audits/cooking-mode-v7-focused-failure-matrix-2026-08-27.md",
+      "?? \"firebase-debug 2.log\"",
+      "?? \"firebase-debug 3.log\"",
+      "?? \"firebase-debug 4.log\"",
+      "?? firebase-debug.log",
+      "?? firestore-debug.log",
+      "?? \"lib/admin 2.ts\"",
+      "?? \"lib/chunkItems 2.ts\"",
+      "?? lib/cookingStepBlindReviewerAi.ts",
+      "?? lib/cookingStepMapArbiterAi.ts",
+      "?? lib/cookingStepMapConsensus.ts",
+      "?? \"lib/firestoreBatch 2.ts\"",
+      "?? \"lib/safeFetch 2.ts\"",
+      "?? scripts/analyze-cooking-mode-recall-root-cause-core.mjs",
+      "?? scripts/analyze-cooking-mode-recall-root-cause.mjs",
+      "?? scripts/analyze-cooking-step-arbiter-v10a-core.mjs",
+      "?? scripts/analyze-cooking-step-arbiter-v10a.mjs",
+      "?? scripts/build-cooking-mode-v7-failure-matrix.mjs",
+      "?? scripts/build-cooking-mode-v8-design-input.mjs",
+      "?? scripts/evaluate-cooking-step-completeness-v6-core.mjs",
+      "?? scripts/evaluate-cooking-step-semantic-v7-core.mjs",
+      "?? scripts/run-cooking-mode-recall-diagnostics.mjs",
+      "?? scripts/run-cooking-step-arbiter-v10a.mjs",
+      "?? scripts/validate-cooking-step-completeness-v6.mjs",
+      "?? scripts/validate-cooking-step-consensus-v9.mjs",
+      "?? scripts/validate-cooking-step-semantic-v7.mjs",
+      "?? scripts/validate-cooking-step-usage-matrix-v8.mjs",
+      "?? \"tests/admin.test 2.ts\"",
+      "?? tests/cookingModeRecallRootCauseAnalysis.test.ts",
+      "?? tests/cookingStepArbiterV10A.test.js",
+      "?? tests/cookingStepBlindReviewerAi.test.ts",
+      "?? tests/cookingStepMapArbiterAi.test.ts",
+      "?? tests/cookingStepMapConsensus.test.ts",
+      "?? \"tests/firestoreBatch.test 2.ts\"",
+      "?? \"tests/ingredientParser.test 2.ts\"",
+      "?? \"tests/safeFetch.test 2.ts\""
+    ]
+  },
+  "frozenPopulation": {
+    "ingredientRelationships": {
+      "population": 863,
+      "correctCandidates": 833,
+      "incorrectCandidates": 30,
+      "correctAccept": 721,
+      "correctReject": 108,
+      "incorrectAccept": 9,
+      "incorrectReject": 21,
+      "unavailable": 4,
+      "correctCandidateAcceptanceRate": 0.865546218487395,
+      "incorrectCandidateAcceptanceRate": 0.3,
+      "precision": 0.9876712328767123
+    },
+    "preparedComponentRelationships": {
+      "population": 196,
+      "correctCandidates": 75,
+      "incorrectCandidates": 121,
+      "correctAccept": 47,
+      "correctReject": 28,
+      "incorrectAccept": 27,
+      "incorrectReject": 94,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": 0.6266666666666667,
+      "incorrectCandidateAcceptanceRate": 0.2231404958677686,
+      "precision": 0.6351351351351351
+    },
+    "historicalDiscrepancy": "The 833/28 reviewer-union summary is not the arbiter pool. Deterministic-only additions make the exact ingredient pool 863: 833 correct and 30 incorrect. Recipe 190 contributes four correct candidates with unavailable V9 decisions. Therefore V9 outcomes are 721 correct ACCEPT, 108 correct REJECT, 4 correct UNAVAILABLE, 9 incorrect ACCEPT, and 21 incorrect REJECT."
+  },
+  "historicalCountDiscrepancy": "The 833/28 reviewer-union summary is not the arbiter pool. Deterministic-only additions make the exact ingredient pool 863: 833 correct and 30 incorrect. Recipe 190 contributes four correct candidates with unavailable V9 decisions. Therefore V9 outcomes are 721 correct ACCEPT, 108 correct REJECT, 4 correct UNAVAILABLE, 9 incorrect ACCEPT, and 21 incorrect REJECT.",
+  "v9ErrorTaxonomy": {
+    "correctRejects": {
+      "CONTINUING_USE": 41,
+      "PREPARED_COMPONENT": 23,
+      "GROUP_REFERENCE": 11,
+      "ALIAS_NORMALIZATION": 9,
+      "SEASONING_HERB": 9,
+      "MAIN_INGREDIENT": 7,
+      "OBVIOUS_EXPLICIT_ACTIVE_USE": 7,
+      "QUANTITY_OR_PARTIAL_USE": 1
+    },
+    "incorrectAccepts": {
+      "CONSUMED_ROW": 4,
+      "COMPONENT_LEAKAGE": 3,
+      "CONTEXTUAL_MENTION": 2
+    }
+  },
+  "baselines": {
+    "reviewerUnion": {
+      "truePositives": 833,
+      "falsePositives": 28,
+      "falseNegatives": 0,
+      "precision": 0.967479674796748,
+      "recall": 1,
+      "f1": 0.9834710743801653,
+      "accepted": 861,
+      "aiCandidateCount": 0
+    },
+    "reviewerIntersection": {
+      "truePositives": 763,
+      "falsePositives": 9,
+      "falseNegatives": 70,
+      "precision": 0.9883419689119171,
+      "recall": 0.9159663865546218,
+      "f1": 0.950778816199377,
+      "accepted": 772,
+      "aiCandidateCount": 0
+    }
+  },
+  "truthRatesByProvenance": {
+    "2_OF_2_REVIEWERS": {
+      "population": 772,
+      "correctCandidates": 763,
+      "incorrectCandidates": 9,
+      "correctAccept": 760,
+      "correctReject": 3,
+      "incorrectAccept": 9,
+      "incorrectReject": 0,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": 0.9960681520314548,
+      "incorrectCandidateAcceptanceRate": 1,
+      "precision": 0.988296488946684
+    },
+    "1_OF_2_REVIEWERS": {
+      "population": 89,
+      "correctCandidates": 70,
+      "incorrectCandidates": 19,
+      "correctAccept": 68,
+      "correctReject": 2,
+      "incorrectAccept": 10,
+      "incorrectReject": 9,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": 0.9714285714285714,
+      "incorrectCandidateAcceptanceRate": 0.5263157894736842,
+      "precision": 0.8717948717948718
+    },
+    "DETERMINISTIC_ONLY": {
+      "population": 2,
+      "correctCandidates": 0,
+      "incorrectCandidates": 2,
+      "correctAccept": 0,
+      "correctReject": 0,
+      "incorrectAccept": 1,
+      "incorrectReject": 1,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": null,
+      "incorrectCandidateAcceptanceRate": 0.5,
+      "precision": 0
+    }
+  },
+  "minimalArbiterArchitecture": {
+    "candidateCentric": true,
+    "binary": true,
+    "uncertainAllowed": false,
+    "flatOutput": true,
+    "batchSizeMaximum": 15,
+    "retryLimit": 1,
+    "hardSafetyInPrimaryEvaluation": false
+  },
+  "structuredOutput": {
+    "batchSizeMaximum": 15,
+    "logicalBatches": 107,
+    "requests": 122,
+    "retries": 5,
+    "parseOrSchemaFailures": 0,
+    "requestConfigurationFailures": 11,
+    "successfulLogicalBatches": 107,
+    "successRateAfterRetry": 1
+  },
+  "experimentA": {
+    "population": 863,
+    "correctCandidates": 833,
+    "incorrectCandidates": 30,
+    "correctAccept": 828,
+    "correctReject": 5,
+    "incorrectAccept": 20,
+    "incorrectReject": 10,
+    "unavailable": 0,
+    "correctCandidateAcceptanceRate": 0.9939975990396158,
+    "incorrectCandidateAcceptanceRate": 0.6666666666666666,
+    "precision": 0.9764150943396226
+  },
+  "experimentAErrors": {
+    "correctRejects": [
+      {
+        "candidateId": "ingredient::dads-chili::0::28",
+        "recipeId": "dads-chili",
+        "instructionIndex": 0,
+        "ingredientIndex": 28,
+        "classification": "SEASONING_HERB",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "“pepper powder” — This generic phrase does not specifically establish the North Carolina Reaper row in instruction 0."
+      },
+      {
+        "candidateId": "ingredient::dads-chili::6::0",
+        "recipeId": "dads-chili",
+        "instructionIndex": 6,
+        "ingredientIndex": 0,
+        "classification": "OTHER",
+        "basis": "CONSUMED_OR_UNAVAILABLE",
+        "evidenceText": "“saute in butter ... until onions are clear” — the butter was used as the saute medium and is not established as an ingredient continuing into the simmer."
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::4::1",
+        "recipeId": "fried-chicken-sandwich",
+        "instructionIndex": 4,
+        "ingredientIndex": 1,
+        "classification": "MAIN_INGREDIENT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "“Build your ideal summertime fried chicken sandwich!” The chicken is only part of the finished-dish phrase here, not an active ingredient action."
+      },
+      {
+        "candidateId": "ingredient::fried-chicken-sandwich::4::20",
+        "recipeId": "fried-chicken-sandwich",
+        "instructionIndex": 4,
+        "ingredientIndex": 20,
+        "classification": "MAIN_INGREDIENT",
+        "basis": "CONTEXT_ONLY",
+        "evidenceText": "“I like bacon, Swiss cheese, honey dijonnaise, pickles, and slaw!” Brioche buns are not named or otherwise specifically used in this instruction."
+      },
+      {
+        "candidateId": "ingredient::mexican-oaxacan-bowl::2::14",
+        "recipeId": "mexican-oaxacan-bowl",
+        "instructionIndex": 2,
+        "ingredientIndex": 14,
+        "classification": "OBVIOUS_EXPLICIT_ACTIVE_USE",
+        "basis": "WRONG_ROW_OR_GROUP",
+        "evidenceText": "“Drizzle onion and potato with a little olive oil” refers to sheet-pan process oil, while the listed olive-oil row is the slaw ingredient used later."
+      }
+    ],
+    "incorrectAccepts": [
+      {
+        "candidateId": "ingredient::157::4::0",
+        "recipeId": "157",
+        "instructionIndex": 4,
+        "ingredientIndex": 0,
+        "classification": "CONSUMED_ROW",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Cover and cook on HIGH for 3.5 hours” — continues cooking the pork chops already placed over the rice mixture."
+      },
+      {
+        "candidateId": "ingredient::chicken-tikka::5::15",
+        "recipeId": "chicken-tikka",
+        "instructionIndex": 5,
+        "ingredientIndex": 15,
+        "classification": "PROCESS_MATERIAL",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "\"If grilling, cook for 12-15 minutes, turning every 3-4 minutes\" — the skewers holding the chicken are part of the ongoing grilling operation."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::7",
+        "recipeId": "chickpea-and-fennel-ratatouille",
+        "instructionIndex": 1,
+        "ingredientIndex": 7,
+        "classification": "CONSUMED_ROW",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Transfer to oven and roast, stirring occasionally” — the salt already added with the other ingredients continues seasoning the roasting mixture."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::8",
+        "recipeId": "chickpea-and-fennel-ratatouille",
+        "instructionIndex": 1,
+        "ingredientIndex": 8,
+        "classification": "CONSUMED_ROW",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Transfer to oven and roast, stirring occasionally” — the pepper already added continues seasoning the roasting mixture."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::1::9",
+        "recipeId": "chickpea-and-fennel-ratatouille",
+        "instructionIndex": 1,
+        "ingredientIndex": 9,
+        "classification": "CONSUMED_ROW",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Transfer to oven and roast, stirring occasionally” — the olive oil drizzled over and tossed with the ingredients continues cooking with them."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::7",
+        "recipeId": "chickpea-and-fennel-ratatouille",
+        "instructionIndex": 2,
+        "ingredientIndex": 7,
+        "classification": "CONTEXTUAL_MENTION",
+        "basis": "EXPLICIT_ACTIVE_USE",
+        "evidenceText": "“Taste and adjust seasoning” — the listed salt is explicitly active for final seasoning adjustment."
+      },
+      {
+        "candidateId": "ingredient::chickpea-and-fennel-ratatouille::2::8",
+        "recipeId": "chickpea-and-fennel-ratatouille",
+        "instructionIndex": 2,
+        "ingredientIndex": 8,
+        "classification": "CONTEXTUAL_MENTION",
+        "basis": "EXPLICIT_ACTIVE_USE",
+        "evidenceText": "“Taste and adjust seasoning” — the listed black pepper is explicitly active for final seasoning adjustment."
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::2::11",
+        "recipeId": "crunchy-queso-wrap",
+        "instructionIndex": 2,
+        "ingredientIndex": 11,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CLEAR_ALIAS",
+        "evidenceText": "“spread 2 scant tablespoons of the spicy sour cream” — actively uses the sour cream prepared from the listed sour cream row."
+      },
+      {
+        "candidateId": "ingredient::crunchy-queso-wrap::4::13",
+        "recipeId": "crunchy-queso-wrap",
+        "instructionIndex": 4,
+        "ingredientIndex": 13,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“carefully add the wrap, setting it seam side down” — continues cooking the assembled wrap made with the listed tortilla."
+      },
+      {
+        "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::0",
+        "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+        "instructionIndex": 2,
+        "ingredientIndex": 0,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "GROUP_OR_COMPONENT_USE",
+        "evidenceText": "\"Pour the dressing over the salad and toss to combine.\" The cucumber row is part of the salad being tossed."
+      },
+      {
+        "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::1",
+        "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+        "instructionIndex": 2,
+        "ingredientIndex": 1,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "GROUP_OR_COMPONENT_USE",
+        "evidenceText": "\"Pour the dressing over the salad and toss to combine.\" The cherry tomato row is part of the salad being tossed."
+      },
+      {
+        "candidateId": "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::2",
+        "recipeId": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+        "instructionIndex": 2,
+        "ingredientIndex": 2,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "GROUP_OR_COMPONENT_USE",
+        "evidenceText": "\"Pour the dressing over the salad and toss to combine.\" The red onion row is part of the salad being tossed."
+      },
+      {
+        "candidateId": "ingredient::dads-chili::6::15",
+        "recipeId": "dads-chili",
+        "instructionIndex": 6,
+        "ingredientIndex": 15,
+        "classification": "CONTEXTUAL_MENTION",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Once everything is in the pot bring a boil then turn down and simmer for a couple hours” — continues cooking the chili sauce as part of everything in the pot."
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::2",
+        "recipeId": "jocn-chicken-and-tomatillo-stew",
+        "instructionIndex": 4,
+        "ingredientIndex": 2,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Purée the broth in a blender” — the tomatillos previously added to the broth are actively puréed as part of it."
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::3",
+        "recipeId": "jocn-chicken-and-tomatillo-stew",
+        "instructionIndex": 4,
+        "ingredientIndex": 3,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Purée the broth in a blender” — the bell peppers previously added to the broth are actively puréed as part of it."
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::4",
+        "recipeId": "jocn-chicken-and-tomatillo-stew",
+        "instructionIndex": 4,
+        "ingredientIndex": 4,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Purée the broth in a blender” — the onion previously added to the broth is actively puréed as part of it."
+      },
+      {
+        "candidateId": "ingredient::jocn-chicken-and-tomatillo-stew::4::5",
+        "recipeId": "jocn-chicken-and-tomatillo-stew",
+        "instructionIndex": 4,
+        "ingredientIndex": 5,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Purée the broth in a blender” — the jalapeño previously added to the broth is actively puréed as part of it."
+      },
+      {
+        "candidateId": "ingredient::mole-poblano::13::19",
+        "recipeId": "mole-poblano",
+        "instructionIndex": 13,
+        "ingredientIndex": 19,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "GROUP_OR_COMPONENT_USE",
+        "evidenceText": "“gradually blend the fried ingredients to a slightly fine paste” — the peanuts are part of the fried ingredients."
+      },
+      {
+        "candidateId": "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::9",
+        "recipeId": "sheetpan-gochujang-chicken-and-roasted-vegetables",
+        "instructionIndex": 3,
+        "ingredientIndex": 9,
+        "classification": "COMPONENT_LEAKAGE",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Top the roast chicken and vegetables with the quick-pickled scallion-radish mix” — the listed radishes continue as the quick-pickled topping."
+      },
+      {
+        "candidateId": "ingredient::tacos-al-pastor::4::0",
+        "recipeId": "tacos-al-pastor",
+        "instructionIndex": 4,
+        "ingredientIndex": 0,
+        "classification": "CONTEXTUAL_MENTION",
+        "basis": "CONTINUING_USE",
+        "evidenceText": "“Cover with aluminum foil and refrigerate for at least 4 hours” — the marinated pork remains the active item being refrigerated."
+      }
+    ],
+    "correctRejectTaxonomy": {
+      "MAIN_INGREDIENT": 2,
+      "OBVIOUS_EXPLICIT_ACTIVE_USE": 1,
+      "OTHER": 1,
+      "SEASONING_HERB": 1
+    },
+    "incorrectAcceptTaxonomy": {
+      "COMPONENT_LEAKAGE": 11,
+      "CONSUMED_ROW": 4,
+      "CONTEXTUAL_MENTION": 4,
+      "PROCESS_MATERIAL": 1
+    }
+  },
+  "experimentB": {
+    "truePositives": 831,
+    "falsePositives": 20,
+    "falseNegatives": 2,
+    "precision": 0.9764982373678026,
+    "recall": 0.9975990396158463,
+    "f1": 0.9869358669833729,
+    "accepted": 851,
+    "aiCandidateCount": 91
+  },
+  "experimentC": {
+    "reviewerUnion": {
+      "truePositives": 833,
+      "falsePositives": 28,
+      "falseNegatives": 0,
+      "precision": 0.967479674796748,
+      "recall": 1,
+      "f1": 0.9834710743801653,
+      "accepted": 861,
+      "aiCandidateCount": 0
+    },
+    "reviewerIntersection": {
+      "truePositives": 763,
+      "falsePositives": 9,
+      "falseNegatives": 70,
+      "precision": 0.9883419689119171,
+      "recall": 0.9159663865546218,
+      "f1": 0.950778816199377,
+      "accepted": 772,
+      "aiCandidateCount": 0
+    },
+    "disagreementOnly": {
+      "truePositives": 831,
+      "falsePositives": 20,
+      "falseNegatives": 2,
+      "precision": 0.9764982373678026,
+      "recall": 0.9975990396158463,
+      "f1": 0.9869358669833729,
+      "accepted": 851,
+      "aiCandidateCount": 91
+    },
+    "arbitrateEverything": {
+      "truePositives": 828,
+      "falsePositives": 20,
+      "falseNegatives": 5,
+      "precision": 0.9764150943396226,
+      "recall": 0.9939975990396158,
+      "f1": 0.9851279000594882,
+      "accepted": 848,
+      "aiCandidateCount": 863
+    }
+  },
+  "historicalRegression": {
+    "priorCorrectRejectsRecovered": 107,
+    "priorCorrectRejectsTotal": 108,
+    "priorFalseAcceptsRejected": 0,
+    "priorFalseAcceptsTotal": 9,
+    "frozenHistoricalFalsePositiveCasesRejected": 2,
+    "frozenHistoricalFalsePositiveCasesTotal": 13
+  },
+  "componentExperiment": {
+    "population": 196,
+    "correctCandidates": 75,
+    "incorrectCandidates": 121,
+    "correctAccept": 66,
+    "correctReject": 9,
+    "incorrectAccept": 97,
+    "incorrectReject": 24,
+    "unavailable": 0,
+    "correctCandidateAcceptanceRate": 0.88,
+    "incorrectCandidateAcceptanceRate": 0.8016528925619835,
+    "precision": 0.4049079754601227
+  },
+  "hardSafetyAblation": {
+    "bestArbiterAlone": {
+      "population": 863,
+      "correctCandidates": 833,
+      "incorrectCandidates": 30,
+      "correctAccept": 828,
+      "correctReject": 5,
+      "incorrectAccept": 20,
+      "incorrectReject": 10,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": 0.9939975990396158,
+      "incorrectCandidateAcceptanceRate": 0.6666666666666666,
+      "precision": 0.9764150943396226
+    },
+    "bestArbiterPlusCurrentHardSafety": {
+      "population": 863,
+      "correctCandidates": 833,
+      "incorrectCandidates": 30,
+      "correctAccept": 755,
+      "correctReject": 78,
+      "incorrectAccept": 20,
+      "incorrectReject": 10,
+      "unavailable": 0,
+      "correctCandidateAcceptanceRate": 0.9063625450180072,
+      "incorrectCandidateAcceptanceRate": 0.6666666666666666,
+      "precision": 0.9741935483870968
+    },
+    "removedByCurrentSafety": 73
+  },
+  "recipe190Transport": {
+    "independentRequests": 4,
+    "successfulStructuredOutputs": 4,
+    "parseOrSchemaFailures": 0
+  },
+  "aiUsage": {
+    "requests": 122,
+    "successfulRequests": 111,
+    "inputTokens": 337275,
+    "outputTokens": 91326,
+    "totalTokens": 428601
+  },
+  "arbiterNecessityDecision": "MORE ARBITER WORK REQUIRED",
+  "bestStrategy": {
+    "name": "disagreementOnly",
+    "metrics": {
+      "truePositives": 831,
+      "falsePositives": 20,
+      "falseNegatives": 2,
+      "precision": 0.9764982373678026,
+      "recall": 0.9975990396158463,
+      "f1": 0.9869358669833729,
+      "accepted": 851,
+      "aiCandidateCount": 91
+    }
+  },
+  "nextSubsystem": "Continue isolated arbiter work; do not build V10 production architecture.",
+  "artifacts": {
+    "frozenPath": "docs/audits/cooking-mode-arbiter-v10a-frozen-candidates-2026-08-28.json",
+    "matrixPath": "docs/audits/cooking-mode-arbiter-v10a-error-matrix-2026-08-28.md",
+    "analysisPath": "docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.json",
+    "reportPath": "docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.md"
+  },
+  "verification": {
+    "diagnosticTests": {
+      "new": 8,
+      "passed": 8
+    },
+    "repositoryTests": {
+      "filesPassed": 65,
+      "filesSkipped": 1,
+      "testsPassed": 862,
+      "testsSkipped": 1,
+      "totalTests": 863
+    },
+    "lint": {
+      "status": "PASSED",
+      "warnings": 6,
+      "errors": 0
+    },
+    "typecheck": {
+      "status": "PASSED",
+      "note": "Initial run found duplicate generated .next/types files; passed after moving the generated cache aside and rebuilding."
+    },
+    "build": {
+      "status": "PASSED"
+    },
+    "diffCheck": {
+      "status": "PASSED"
+    }
+  },
+  "filesModifiedByV10A": [
+    "PRD.md"
+  ],
+  "filesCreatedByV10A": [
+    "scripts/analyze-cooking-step-arbiter-v10a-core.mjs",
+    "scripts/analyze-cooking-step-arbiter-v10a.mjs",
+    "scripts/run-cooking-step-arbiter-v10a.mjs",
+    "tests/cookingStepArbiterV10A.test.js",
+    "docs/audits/cooking-mode-arbiter-v10a-frozen-candidates-2026-08-28.json",
+    "docs/audits/cooking-mode-arbiter-v10a-error-matrix-2026-08-28.md",
+    "docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.json",
+    "docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.md"
+  ],
+  "commitPushStatus": {
+    "committed": false,
+    "pushed": false
+  },
+  "prdUpdate": {
+    "updated": true,
+    "sections": [
+      "Cooking Mode mapping history",
+      "Known Sharp Edges",
+      "Cooking Mode recall-remediation backlog"
+    ]
+  },
+  "unverifiableItems": [
+    "Prepared-component truth is evaluated against the audit's exact normalized canonical labels; semantically equivalent unadjudicated label variants cannot be promoted without new manual adjudication.",
+    "The provider supplied token usage but no authoritative dollar cost or model-revision identifier."
+  ]
+}

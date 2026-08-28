@@ -1,0 +1,996 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T12:50:19.666Z",
+  "ingredientFalsePositives": [
+    {
+      "recipeId": "157",
+      "instructionIndex": 4,
+      "ingredientIndex": 0,
+      "origins": [
+        "V6_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "176",
+      "instructionIndex": 6,
+      "ingredientIndex": 12,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "176",
+      "instructionIndex": 6,
+      "ingredientIndex": 17,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "192",
+      "instructionIndex": 1,
+      "ingredientIndex": 20,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "blue-corn-green-chili-chicken-enchiladas",
+      "instructionIndex": 5,
+      "ingredientIndex": 0,
+      "origins": [
+        "V6_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-meatballs-with-peppers-and-orzo",
+      "instructionIndex": 3,
+      "ingredientIndex": 3,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-paprikash",
+      "instructionIndex": 3,
+      "ingredientIndex": 1,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 5,
+      "ingredientIndex": 13,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 5,
+      "ingredientIndex": 14,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 5,
+      "ingredientIndex": 15,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 6,
+      "ingredientIndex": 13,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 6,
+      "ingredientIndex": 14,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 8,
+      "ingredientIndex": 13,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 8,
+      "ingredientIndex": 14,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 9,
+      "ingredientIndex": 0,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 9,
+      "ingredientIndex": 13,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chicken-tikka",
+      "instructionIndex": 9,
+      "ingredientIndex": 14,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 7,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 8,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 9,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 0,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 1,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 2,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 3,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 4,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 5,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 6,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 7,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 8,
+      "origins": [
+        "V7_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 2,
+      "ingredientIndex": 9,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 2,
+      "ingredientIndex": 11,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 4,
+      "ingredientIndex": 13,
+      "origins": [
+        "V6_FALSE_POSITIVE",
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 5,
+      "ingredientIndex": 13,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "dads-chili",
+      "instructionIndex": 0,
+      "ingredientIndex": 29,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "dads-chili",
+      "instructionIndex": 6,
+      "ingredientIndex": 29,
+      "origins": [
+        "V6_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "instructionIndex": 2,
+      "ingredientIndex": 2,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "instructionIndex": 2,
+      "ingredientIndex": 3,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "instructionIndex": 2,
+      "ingredientIndex": 4,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "instructionIndex": 2,
+      "ingredientIndex": 5,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "instructionIndex": 2,
+      "ingredientIndex": 6,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "indian-spiced-roasted-vegetables",
+      "instructionIndex": 6,
+      "ingredientIndex": 0,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "indian-spiced-roasted-vegetables",
+      "instructionIndex": 6,
+      "ingredientIndex": 1,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "indian-spiced-roasted-vegetables",
+      "instructionIndex": 6,
+      "ingredientIndex": 2,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "indian-spiced-roasted-vegetables",
+      "instructionIndex": 6,
+      "ingredientIndex": 3,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "kimchi-ramen",
+      "instructionIndex": 1,
+      "ingredientIndex": 16,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mexican-oaxacan-bowl",
+      "instructionIndex": 1,
+      "ingredientIndex": 0,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mexican-oaxacan-bowl",
+      "instructionIndex": 2,
+      "ingredientIndex": 0,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mexican-oaxacan-bowl",
+      "instructionIndex": 4,
+      "ingredientIndex": 0,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mexican-oaxacan-bowl",
+      "instructionIndex": 5,
+      "ingredientIndex": 12,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 3,
+      "ingredientIndex": 2,
+      "origins": [
+        "V7_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 6,
+      "ingredientIndex": 7,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 6,
+      "ingredientIndex": 8,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 6,
+      "ingredientIndex": 9,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 9,
+      "ingredientIndex": 28,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 13,
+      "ingredientIndex": 19,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "moqueca-brazilian-fish-stew",
+      "instructionIndex": 0,
+      "ingredientIndex": 6,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "pad-thai",
+      "instructionIndex": 8,
+      "ingredientIndex": 12,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta",
+      "instructionIndex": 0,
+      "ingredientIndex": 13,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta",
+      "instructionIndex": 4,
+      "ingredientIndex": 12,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "sesame-apricot-tofu",
+      "instructionIndex": 2,
+      "ingredientIndex": 6,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 1,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 2,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 3,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 4,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 5,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 6,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 7,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 8,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 9,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 10,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 11,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 12,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 0,
+      "ingredientIndex": 13,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 2,
+      "ingredientIndex": 0,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 4,
+      "ingredientIndex": 0,
+      "origins": [
+        "V7_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 11,
+      "ingredientIndex": 22,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 12,
+      "ingredientIndex": 23,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 12,
+      "ingredientIndex": 24,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 12,
+      "ingredientIndex": 25,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 12,
+      "ingredientIndex": 27,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "tacos-al-pastor",
+      "instructionIndex": 12,
+      "ingredientIndex": 28,
+      "origins": [
+        "V8_RAW_FALSE_POSITIVE"
+      ]
+    },
+    {
+      "recipeId": "turkish-red-lentil-soup",
+      "instructionIndex": 0,
+      "ingredientIndex": 15,
+      "origins": [
+        "EXISTING_PRODUCTION_FALSE_POSITIVE"
+      ]
+    }
+  ],
+  "componentFalsePositives": [
+    {
+      "recipeId": "roasted-white-bean-and-tomato-pasta",
+      "instructionIndex": 1,
+      "label": "the dressing",
+      "origins": [
+        "V8_ACCEPTED_COMPONENT_FALSE_POSITIVE"
+      ]
+    }
+  ],
+  "positiveValidatorRegressions": [
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 2,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 3,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 4,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 5,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 6,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 7,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 8,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 0,
+      "ingredientIndex": 9,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 10,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 11,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 12,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 13,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 14,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 15,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 16,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 17,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 1,
+      "ingredientIndex": 18,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 2,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 3,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 5,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 5,
+      "ingredientIndex": 1,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 6,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 7,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "171",
+      "instructionIndex": 8,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "176",
+      "instructionIndex": 8,
+      "ingredientIndex": 14,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "189",
+      "instructionIndex": 3,
+      "ingredientIndex": 1,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 0,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 1,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 3,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 4,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 5,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "instructionIndex": 1,
+      "ingredientIndex": 6,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "instructionIndex": 0,
+      "ingredientIndex": 5,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 4,
+      "ingredientIndex": 18,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "crunchy-queso-wrap",
+      "instructionIndex": 5,
+      "ingredientIndex": 18,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "dads-chili",
+      "instructionIndex": 6,
+      "ingredientIndex": 19,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "fried-chicken-sandwich",
+      "instructionIndex": 2,
+      "ingredientIndex": 18,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "grilled-fish-tacos",
+      "instructionIndex": 1,
+      "ingredientIndex": 2,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "grilled-fish-tacos",
+      "instructionIndex": 5,
+      "ingredientIndex": 8,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "grilled-fish-tacos",
+      "instructionIndex": 5,
+      "ingredientIndex": 10,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "grilled-fish-tacos",
+      "instructionIndex": 6,
+      "ingredientIndex": 8,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 5,
+      "ingredientIndex": 13,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 5,
+      "ingredientIndex": 14,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 6,
+      "ingredientIndex": 10,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 6,
+      "ingredientIndex": 13,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 6,
+      "ingredientIndex": 14,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 13,
+      "ingredientIndex": 25,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "mole-poblano",
+      "instructionIndex": 13,
+      "ingredientIndex": 28,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "pearl-couscous-with-creamy-feta-and-chickpeas-meh",
+      "instructionIndex": 1,
+      "ingredientIndex": 8,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    },
+    {
+      "recipeId": "sheet-pan-bibimbap",
+      "instructionIndex": 3,
+      "ingredientIndex": 8,
+      "origin": "V7_CORRECT_USE_REJECTED_BY_VALIDATOR"
+    }
+  ]
+}

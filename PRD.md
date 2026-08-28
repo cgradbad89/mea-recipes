@@ -782,6 +782,135 @@ retained as historical data and are not modified or deleted by this app.
     response, or source-hash mismatch falls back to the local deterministic map, so recipe publishing
     proceeds. Prompt 2 changes new-recipe persistence only: it does not backfill existing recipes.
 
+    **Local whole-recipe completeness v6 candidate (2026-08-27; not release-authorized):** A dedicated
+    server-only completeness layer and independently versioned prompt `v1` were implemented in the
+    working tree as deterministic-v5 → targeted AI v2 when eligible → blind whole-recipe completeness
+    AI on every valid map creation → additive deterministic safety validation → `hybrid-v6`. The blind
+    request contains only numbered ingredients, group/header metadata, and numbered instructions; it
+    never receives candidate or persisted mappings. Existing candidate associations are not removed.
+    Normal requests make at most two model calls. A complete successful review stamps `hybrid-v6` even
+    when it adds nothing; completeness failure retains the pre-review `deterministic-v5`/`hybrid-v5`
+    candidate and never falsely stamps v6. The shared publish helper always calls the route, while
+    runtime remains AI-free and v4/v5 compatible. This code must not be released or pushed until the
+    focused precision and CRITICAL-recall gates pass; the 2026-08-27 focused validation below failed.
+
+    **Local source-grounded semantic-map v7 candidate (2026-08-27; failed and not release-authorized):**
+    The failed v6 list contract was replaced locally with one blind whole-recipe structured call that
+    receives only title, numbered ingredients/group headers, and numbered instructions. Prompt
+    `cookingStepSemanticMapPromptVersion = v1` returns typed ingredient actions with exact source
+    evidence plus a first-class prepared-component graph (unique IDs, establishment step, constituent
+    indexes, evidence, and later component uses). Deterministic-v5 remains the immutable additive
+    baseline and safety layer; accepted plans stamp `hybrid-v7`, while provider, transport, coverage,
+    or structure failure returns deterministic-v5. The normal candidate pipeline makes exactly one
+    model call and never invokes targeted mapping AI. Runtime remains AI-free and locally recognizes
+    v4, v5, and v7; the never-persisted hybrid-v6 engine remains unsupported. The shared publish helper
+    requests semantic review for every valid recipe, including deterministic-looking recipes. This
+    implementation fixed all six named omissions but failed every focused release gate and therefore
+    must remain uncommitted/unpushed and cannot replace production behavior. See the focused evidence
+    described in §6.
+
+    **Local exhaustive ingredient×step matrix v8 candidate (2026-08-27; failed and not
+    release-authorized):** A dedicated server-only prompt `cookingStepUsageMatrixPromptVersion = v1`
+    forces exactly one `USE_NOW` / `NOT_THIS_STEP` / `UNCERTAIN` decision for every non-header
+    ingredient row in every instruction. A structural gate rejects the whole response for any missing,
+    duplicate, header, invalid, or ungrounded-use cell before a separate semantic gate validates only
+    `USE_NOW`, usage metadata, component establishment, and component use. Components require an exact
+    source header/instruction label and expose a generic tail alias only when unique. The candidate path
+    is deterministic-v5 → one blind matrix call → additive validated merge → `hybrid-v8`; failure keeps
+    deterministic-v5. It does not invoke targeted-v2, completeness-v6, or semantic-v7 generation, and
+    the publish helper still requests review for every valid recipe. Runtime remains AI-free and the
+    local v8 validator accepts persisted v4/v5/v8 while never-persisted v6/v7 fail closed. The exact
+    394-row v8 design input preserves all v7 169 raw misses, 52 correct validator rejections, nine
+    accepted ingredient false positives, 148 component failures, and all 16 v6 false positives. The
+    focused run failed, so this architecture remains local/uncommitted and production stays on v4/v5.
+
+    **Local dual-blind consensus v9 candidate (2026-08-28; failed and not release-authorized):** V9
+    reproduced the successful audit's two identical candidate-blind whole-recipe reviews, unioned both
+    complete expected maps with deterministic-v5, and sent every candidate relationship to one
+    source-grounded binary arbiter before a narrow hard-safety pass. A complete success requires exactly
+    three ingestion calls (Reviewer A, Reviewer B, Arbiter), stamps `hybrid-v9`, and falls back as a whole
+    to `deterministic-v5` on any review/arbitration failure; Cooking Mode runtime remains AI-free. The same
+    36-recipe focused benchmark completed with matching source hashes, but failed. Reviewer union found
+    833/868 expected relationships (95.97%; 35 missed by both), below the required 99.5%. One recipe's
+    arbiter repeatedly failed structured output and correctly fell back to deterministic-v5. Across the
+    candidate pool, the arbiter accepted 721/833 correct candidates (86.55%), rejected 108 correct
+    candidates, left four unavailable with the failed response, and accepted nine incorrect candidates.
+    The hard-safety layer then retained 656 correct accepts, rejected 65 correct accepts (9.02%), and
+    blocked none of the nine incorrect accepts. Final output was TP 657 / FP 9 / FN 211, 98.65% precision,
+    75.69% recall, 85.80% explicit-active-use recall, 83.69% CRITICAL recall, 68.55% HIGH recall, 74.55%
+    seasoning/herb recall, and 31.52% prepared-component recall with 16
+    component false positives. All six named UI omissions passed, but only 66/72 unique historical
+    ingredient false-positive cases were rejected and only 44/52 formerly over-rejected correct V7
+    relationships were both arbiter-accepted and safety-retained. Per the hard gate, stability/full 228,
+    migration manifest/SHA/prompt, activation, commit, and push were not run. Production remains on the
+    committed v4/v5 architecture.
+
+    **Frozen-candidate arbiter V10A experiment (2026-08-28; failed and audit-only):** V10A reconstructed
+    the exact V9 arbiter population without new reviewer calls: 863 ingredient relationships (833
+    adjudicated correct, 30 incorrect), including two deterministic-only false candidates and four
+    correct recipe-190 candidates whose V9 decisions were unavailable. This resolves the historical
+    shorthand discrepancy: 833/28 described reviewer union, not the deterministic-augmented arbiter
+    pool. A flat candidate-centric binary arbiter used maximum-15 micro-batches, exact candidate-ID
+    coverage, one bounded retry, provenance as context, and no hard-safety layer in its primary metric.
+    All 107 logical ingredient/component batches succeeded with zero parse/schema failures; recipe 190
+    independently succeeded 4/4. The ingredient arbiter recovered 107/108 prior correct rejections and
+    accepted 828/833 correct candidates (99.40%), but also accepted 20/30 incorrect candidates (66.67%)
+    and rejected 0/9 prior V9 false accepts. Disagreement-only arbitration was the best measured F1/call
+    tradeoff (831 TP / 20 FP / 2 candidate FN; 91 candidates arbitrated), but it did not meet zero false
+    acceptance. Exact current-hard-safety execution reduced the result to 755 correct accepts while
+    retaining all 20 incorrect accepts. Exact-canonical component arbitration remained a separate failure
+    (66/75 correct accepted, 97/121 incorrect accepted; 40.49% precision). Verdict: **MORE ARBITER WORK
+    REQUIRED**. No V10 production architecture, reviewer rerun, full-228 run, migration, production write,
+    commit, or push was performed. See `docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.md`.
+
+    **Frozen-candidate ingredient precision V10B experiment (2026-08-28; failed and audit-only):**
+    V10B preserved the same 863 ingredient candidates and reproduced the 831 TP / 20 FP / 2 FN V10A
+    disagreement-only result. The remaining 20 false accepts comprise nine 2/2 reviewer votes, ten 1/2
+    votes, and one deterministic-only candidate, so automatic 2/2 acceptance cannot reach zero FP. A
+    truth-blind source-risk extractor routed all 30 incorrect candidates plus 447/833 correct candidates;
+    deterministic process-material rejection alone measured 829 TP / 19 FP / 4 FN. The bounded
+    state-aware arbiter then measured 748 TP / 9 FP / 85 FN, rejected only 13/20 target false accepts,
+    and rejected 47/82 locked historical adversarial cases. Transport was reliable: 68 primary+historical
+    logical batches and four recipe-190 controls produced 72/72 successful Gateway calls with zero
+    retries, parse/schema failures, or local rejections. The unresolved semantic boundary is passive
+    carried-forward constituents versus rows actively targeted by continuing cooking/manipulation; the
+    prompt used `VALID_CONTINUING_USE` on both sides of that boundary. The experiment also exposed a
+    source-fact defect: decimal/fraction punctuation loss and unscoped instruction quantities generated
+    nine invalid `QUANTITY_CONFLICT` false rejections. Verdict: **MORE INGREDIENT PRECISION WORK
+    REQUIRED**. Repair row-scoped quantity extraction and define active-target/component-membership state
+    before another arbiter experiment. Do not rerun reviewers, run the full corpus, activate production
+    behavior, or begin prepared-component output modeling yet. See
+    `docs/audits/cooking-mode-v10b-ingredient-precision-analysis-2026-08-28.md`.
+
+    **Frozen-candidate active-target V10C experiment (2026-08-28; failed and audit-only):** V10C first
+    reproduced the exact V10B 748 TP / 9 FP / 85 FN baseline, then repaired the audit-only quantity
+    extractor at row scope. Raw decimal, ASCII fraction, Unicode fraction, adjacent Unicode mixed-number,
+    mixed-number, and range syntax is preserved; current quantities bind only inside the candidate row's
+    local mention clause. All nine V10B quantity-conflict false rejections became positive regressions
+    (9/9 repaired, zero independent semantic rejections). Truth-blind state then distinguished
+    `DIRECT_INGREDIENT`, `COMPONENT`, `BOTH`, `NEITHER`, and `AMBIGUOUS` targets; conservative audit-only
+    component membership; and continuing manipulation, divided/reserved use, passive carry, possible
+    consumption, and unknown lifecycle. The corrected bounded run used 392 frozen risk candidates plus
+    all 82 historical cases. Its 67 logical batches and four recipe-190 controls completed as 71/71
+    successful Gateway calls with zero retries, parse/schema failures, local rejections, or unrecovered
+    transport failures. V10C rejected 18/20 V10A target false accepts and 5/7 false accepts that survived
+    V10B, but finished at 669 TP / 2 FP / 164 FN, 99.70% precision, and 80.31% candidate recall; only 9/12
+    historical `LOCKED_TRUTH` cases were rejected. The two remaining false accepts are the ratatouille salt
+    and pepper rows under generic “taste and adjust seasoning.” Conversely, the arbiter rejected 116 valid
+    candidates as passive constituents, showing that unnamed principal/category continuations remain
+    under-specified. Verdict: **MORE INGREDIENT PRECISION WORK REQUIRED**. No production map, recipe,
+    Firestore, route, reviewer, or full-corpus mutation occurred. See
+    `docs/audits/cooking-mode-v10c-active-target-analysis-2026-08-28.md`.
+
+    **V6–V10 repository checkpoint (2026-08-28; evidence only):** Durable audit evidence, frozen
+    benchmarks, diagnostic runners, pure evaluation helpers, and regression tests are preserved in the
+    repository. Failed hybrid-v9 activation was removed from the route, Queue/Discover callers,
+    `lib/recipes.ts`, engine validation, and active production tests. Those production-path files match the
+    approved committed state: deterministic-v5/hybrid-v5 creates new maps, persisted v4 remains compatible,
+    and hybrid-v6 through hybrid-v10 fail closed as unsupported. V9/V10 helper modules retained for audit
+    reproduction have no production route/runtime import. This checkpoint does not mutate or repair any
+    persisted Cooking Mode map.
+
     **Prompt 3 Cooking Mode consumption:** runtime precedence is the effective recipe content
     (`meta.overrides.content || recipe.content`) → parse the exact displayed ingredients and
     instructions → synchronously build the conservative deterministic mapping → compute the
@@ -1310,6 +1439,121 @@ retained as historical data and are not modified or deleted by this app.
   validation; regeneration/manual cleanup alone is insufficient. Firestore, recipe, map, parser, and UI
   mutations were zero. See `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`, the per-recipe
   JSON evidence, and the review-only remediation candidates.
+- **The 2026-08-27 whole-recipe completeness v6 focused validation failed the release gate.** The live
+  read-only corpus had advanced to 237 shared / 229 mapped / eight unmapped recipes (187 v4 plus 42 v5);
+  the post-audit `5-ingredient-hot-honey-chicken` map was excluded from the 228-recipe adjudicated
+  benchmark rather than assigned invented truth. A source-hash-matching 36-recipe sample exercised four
+  bounded one-call completeness prompt/validator variants. The final candidate measured TP 729 / FP 16 /
+  FN 139, 97.85% precision, 83.99% recall, 94.60% explicit-active-use recall, 89.36% CRITICAL recall,
+  77.42% HIGH recall, 82.18% seasoning/herb recall, and 1.82% prepared-component recall. All six named
+  regression associations were present, but every release gate failed; 116 remaining omissions were AI
+  misses and 23 were correct proposals rejected by validation. Across all bounded iterations, 246 model
+  calls used 556,278 tokens. Therefore the full 228-recipe run, immutable manifest, migration prompt,
+  production activation, commit, and push were not authorized. Production mutations were zero. See
+  `docs/audits/cooking-mode-completeness-v6-focused-validation-2026-08-27.md`.
+- **The 2026-08-27 source-grounded semantic-map v7 focused validation also failed the release gate.**
+  The exact same 36-recipe, source-hash-matching focus population was reconstructed from the
+  authoritative adjudicated benchmark, and every v6 FP/FN/validator rejection/component miss was
+  preserved in `docs/audits/cooking-mode-v7-focused-failure-matrix-2026-08-27.md`. Two bounded fresh
+  one-call prompt passes were run read-only. The final pass measured TP 649 / FP 10 / FN 219, 98.48%
+  precision, 74.77% recall, 85.00% F1, 87.35% explicit-active-use recall, 80.14% CRITICAL recall,
+  69.76% HIGH recall, 72.00% seasoning/herb recall, and 38.18% prepared-component recall with 46
+  incorrect component labels. The raw semantic plan found 699/868 expected ingredient relationships,
+  missed 169, had 647 correct proposals accepted and 52 correct proposals rejected, and still had nine
+  incorrect proposals accepted. All six reported omissions were fixed. One plan failed full-step
+  coverage and correctly used deterministic-v5 fallback. Across the two complete passes, 72 successful
+  model calls consumed 112,492 input and 240,217 output tokens (352,709 total); one additional request
+  failed at strict structured-schema transport before generation. Firestore recipe/map writes were zero.
+  Per the hard gate, stability, the full 228 run, post-audit recipe adjudication, manifest/SHA, migration
+  prompt, production activation, commit, and push were not authorized. See
+  `docs/audits/cooking-mode-semantic-v7-focused-validation-2026-08-27.md`.
+- **The 2026-08-27 exhaustive ingredient×step matrix v8 focused validation failed the release gate.**
+  Exact V6/V7 failures were reconstructed into the machine-readable
+  `docs/audits/cooking-mode-usage-matrix-v8-design-input-2026-08-27.json` before implementation. One
+  fresh blind matrix call ran for each of the same 36 source-hash-matching recipes; all 36 calls
+  completed and used 55,814 input / 145,659 output / 201,473 total tokens. Raw matrices classified
+  758/868 expected ingredient relationships `USE_NOW`, incorrectly classified 110 expected uses as
+  `NOT_THIS_STEP`, proposed 55 incorrect uses, and abstained on zero. The validator accepted 380/758
+  correct uses, rejected 378/758 correct uses, rejected all 55 incorrect uses, and preserved all 25 v6/v7
+  ingredient false-positive regressions. Five whole matrices correctly failed structural validation.
+  The additive candidate measured TP 383 / FP 1 / FN 485, 99.74% precision, 44.12% recall, 61.18% F1,
+  58.64% explicit-active-use recall, 42.55% CRITICAL recall, 42.34% HIGH recall, 44.00%
+  seasoning/herb recall, and 2.42% prepared-component recall with one component false positive. All six
+  named regressions passed, but every release-quality metric failed. The primary blocker is AI
+  classification recall: even perfect validation of the raw decisions could reach only 87.33% overall
+  ingredient recall; component modeling and validator overrejection are additional blockers. Firestore
+  recipe/map writes were zero. Per the hard gate, stability, the full 228 run, manifest/SHA, migration
+  prompt, production activation, commit, and push were not authorized. See
+  `docs/audits/cooking-mode-usage-matrix-v8-focused-validation-2026-08-27.md`.
+- **The 2026-08-28 dual-blind consensus v9 focused validation failed the release gate.** The exact audit
+  reviewer architecture did not reproduce at the required focused level: reviewer union recall was
+  833/868 (95.97%) versus the 99.5% gate, with 35 relationships missed by both. One four-relation recipe
+  repeatedly failed arbiter structured output and fell back safely. The larger blocker was downstream
+  adjudication: 108 correct candidates were rejected, four were unavailable, and nine incorrect candidates
+  were accepted. The narrow hard-safety implementation was also still overbroad, rejecting 65 correct
+  arbiter accepts (32 negative/deferred-evidence, 13 quantity, six consumed-row, six component-leakage,
+  four fresh-process, and four compound-name classifications) while blocking zero incorrect accepts.
+  Final metrics were TP 657 / FP 9 / FN 211, 98.65% precision, 75.69% recall, 85.80%
+  explicit-active-use recall, 83.69% CRITICAL recall, 68.55% HIGH recall, 74.55% seasoning/herb recall,
+  and 31.52% prepared-component recall with 16 component false positives. All six
+  named UI omissions passed; historical ingredient false-positive coverage was 66/72 unique cases and
+  the 52 positive validator regressions passed only 44/52. Focused validation used 113 successful model
+  requests and 459,934 tokens including structured-output retries; normal production code remains capped
+  at exactly three calls and was not committed. Do not iterate another architecture until reviewer misses,
+  arbiter false decisions, and each overbroad safety family are analyzed independently. See
+  `docs/audits/cooking-mode-consensus-v9-focused-validation-2026-08-28.md` and
+  `docs/audits/cooking-mode-consensus-v9-regression-input-2026-08-28.json`.
+- **The 2026-08-28 V9 recall root-cause investigation isolated multiple independent bottlenecks.** All
+  35 fresh reviewer-union misses were found by at least one stored original audit reviewer (32 by both),
+  even though the reviewer system and user prompts are byte-identical and the ingredient schema/model/
+  temperature/timeout are unchanged. In a bounded exact-contract repeat over ten recipes, 30/35 target
+  relationships returned 4/4, one returned 1/4, and four returned 0/4, proving both temperature-zero
+  nondeterminism and a smaller stable interpretation tail. Review voting alone measured A 780 TP / 20 FP,
+  B 816/17, intersection 763/9, and union 833/28. The arbiter independently reduced the executable
+  candidate result to 722 TP / 9 FP (including recipe 190 deterministic fallback), while current hard
+  safety alone reduced the complete deterministic+reviewer pool to 714 TP / 28 FP; the full stack remained
+  657/9. The arbiter false-rejected 64/763 correct 2/2 relationships and 44/70 correct single-reviewer
+  relationships. Every one of its nine false accepts passed all hard-safety checks; all were relationships
+  deterministic-v5 had conservatively avoided. The 65 safety false rejections came from lexical rules that
+  lack grammatical-scope, quantity-allocation, lifecycle, and component-establishment state. Prepared
+  components independently finished at 52/165 recall with 16 false positives. Recipe 190 is not a size
+  limit: its 2,143-byte/four-decision arbiter request succeeded once and failed structured parsing three
+  times in four bounded repeats after the original two failures. No model revision metadata or raw failed
+  response is exposed, so no provider model change is provable. Redesign the arbiter subsystem next, define
+  lifecycle/component state before rewriting hard safety, and harden structured transport independently;
+  this diagnosis does not authorize V10 or production behavior changes. Firestore/map/recipe writes were
+  zero. See `docs/audits/cooking-mode-recall-root-cause-analysis-2026-08-28.md` and its JSON evidence.
+- **The 2026-08-28 V10A frozen-candidate arbiter improved recall but did not protect precision.** The exact
+  deterministic-augmented V9 pool is 863 ingredient candidates, not the 861-member reviewer union:
+  833 correct and 30 incorrect. Candidate-centric micro-batching eliminated observed structured-output
+  failures across 107 logical batches and recipe 190 succeeded 4/4, but the minimal arbiter accepted
+  828/833 correct and 20/30 incorrect candidates. It recovered 107/108 prior false rejections while
+  rejecting none of the nine prior false accepts. Disagreement-only arbitration reached 831 TP / 20 FP /
+  2 candidate FN and used 91 AI decisions; it is not dominated by the no-AI vote strategies, but it fails
+  the zero-FP requirement. Current hard safety then removes 73 correct arbiter accepts and none of the 20
+  false accepts. Prepared-component identity remains separate and poor. Continue isolated arbiter error
+  analysis; do not activate V10 or carry current safety forward. See
+  `docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.md`.
+- **The 2026-08-28 V10B risk facts still cannot separate passive constituents from active continuing
+  use.** Risk routing covered all 30 frozen incorrect candidates, but the state-aware arbiter accepted
+  passive salt/oil/seasoning constituents during later roast/simmer/serve operations for the same reason
+  it correctly accepted principal ingredients during continuing cooking. It rejected 13/20 target false
+  accepts but also rejected 85 correct candidates. Before another prompt experiment, represent the
+  instruction's active target and conservative component membership at ingredient-row granularity. Also
+  keep quantity facts row-scoped: punctuation-stripping turned `1.5`, `3/4`, and Unicode fractions into
+  false quantities, while a generic current-instruction quantity could attach to the wrong row. See
+  `docs/audits/cooking-mode-v10b-ingredient-precision-analysis-2026-08-28.md`.
+- **The 2026-08-28 V10C active-target state repaired quantity facts but still failed the ingredient
+  gate.** All nine known quantity regressions passed, including raw decimal/fraction and row-local
+  instruction-quantity scope. V10C rejected 18/20 target false positives, but its final 669 TP / 2 FP /
+  164 FN result missed both zero-FP and 99.5%-recall requirements. Generic “taste and adjust seasoning”
+  still falsely activates the already-listed salt/pepper rows, while valid unnamed continuation is
+  over-classified as passive carry (116 correct rejections used `PASSIVE_COMPONENT_CONSTITUENT`). Before
+  further architecture work, source state must resolve generic seasoning language and identify the
+  principal/category target of unnamed continuation without reactivating every contained row. Prepared-
+  component establishment/reuse, final production architecture, and persisted-map migration remain
+  pending and separate. Production stays on v4/v5; V6–V10 are nonproduction. See
+  `docs/audits/cooking-mode-v10c-active-target-analysis-2026-08-28.md`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -1401,7 +1645,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Cooking-step ingredient mapping | High | Partial (228/236 shared recipes mapped; Wave 4/5 and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping audit — Failed / historical**: seven deterministic false positives and repeated incorrect AI salt acceptance; its immutable manifest is never reusable. **Mapping v5 remediation — Done / PASS**: 41/41 recipes, 295 references, 111 omissions, 0 false positives; bounded AI 25/25 correct with 0 unsafe stability differences; all 187 persisted v4 maps remain runtime accepted. **Recovered 41-recipe v5 map audit — Done**: 41/41 READY, 295 deterministic references and 111 omissions safe, 25/25 accepted AI relationships correct, zero unsafe stability differences, immutable manifest SHA `5d4ddaa10c788f9192ae74a5887859bc2847496706461b655752d86e62741170`. **Recovered 41-recipe v5 map apply — Done**: 41 exact field-only writes, 41/41 exact readback/hash/validation matches, zero non-map changes, zero AI/recomputation, 0/187 original maps changed, 0/8 unresolved recipes changed, and post-apply READY_TO_WRITE 0. Production has 228 mapped and eight unmapped recipes. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`, and the preserved v1-v5 audit evidence. |
 | Cooking Mode completeness audit | High | Done | Full 228-recipe actual-runtime precision + recall audit: two blind reviews per recipe, every discrepancy adjudicated, mandatory UI regressions reproduced, TP 1,375 / FP 12 / FN 2,677, precision 99.13%, recall 33.93%, production mutations 0. See §6 and `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`. |
-| Cooking Mode recall remediation | High | Pending | Do not patch individual recipes first. Create the next architecture prompt from the measured false-negative taxonomy; evaluate a whole-recipe AI completeness pass after deterministic/hybrid generation, retain deterministic validation, and enforce 100% CRITICAL plus >=98% explicit-active-use recall gates. No remediation or map apply is authorized by the audit. |
+| Cooking Mode recall remediation | High | V10C ingredient precision gate failed; remaining active-use/passive-carry boundary required | V9 failed at four independent layers. V10A froze 863 ingredient candidates (833 correct/30 incorrect); disagreement-only reached 831 TP / 20 FP / 2 FN with 91 AI decisions. V10B measured 748 TP / 9 FP / 85 FN and exposed nine invalid quantity rejections. V10C repaired all 9/9 quantity regressions and rejected 18/20 target FP with clean 71/71 transport, but over-rejected correct candidates: 669 TP / 2 FP / 164 FN, 99.70% precision, 80.31% recall; historical locked protection was 9/12. Generic “taste and adjust seasoning” still creates two salt/pepper false accepts, while unnamed principal/category continuations create 116 passive-component false rejections. Production remains approved v4/v5; V6–V10 are audit-only/nonproduction. Prepared-component semantics, final architecture, and persisted-map migration remain pending. See §5.25, §6 and `docs/audits/cooking-mode-v10c-active-target-analysis-2026-08-28.md`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
