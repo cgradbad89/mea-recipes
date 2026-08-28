@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-08-28",
+  "workType": "DISCOVERY_CONTRACT_DESIGN",
+  "verdict": "REVIEW-ROUTING CONTRACT DEFINED",
+  "selectedPolicy": "REVIEWER_AGREEMENT_AND_NO_V10B_RISK_V1",
+  "routingContractVersion": "cooking-review-routing-v1",
+  "evidenceContractVersion": "cooking-routing-evidence-v1",
+  "sourceCheckpoint": {
+    "branch": "main",
+    "head": "a2b23f487de96a8fcc5e5c76392580cb51115145",
+    "originMain": "a2b23f487de96a8fcc5e5c76392580cb51115145"
+  },
+  "inputEvidence": [
+    {
+      "path": "docs/audits/cooking-mode-arbiter-v10a-frozen-candidates-2026-08-28.json",
+      "sha256": "96dfbfbe5065aaf93afff2384448122ee09bdfb7f159004fc5100813516ece1c"
+    },
+    {
+      "path": "docs/audits/cooking-mode-completeness-audit-2026-08-26.json",
+      "sha256": "d4c0b7417d848282d831decb7551834d57dc08651c93b4ef590ceba7beafcdf2"
+    },
+    {
+      "path": "scripts/analyze-cooking-mode-v10b-ingredient-precision-core.mjs",
+      "sha256": "423b0934c1e7f2f6ba3a224b43e0c9343ce58508d50ee549c97861f40abeacad"
+    },
+    {
+      "path": "scripts/analyze-cooking-mode-v10f-lite-active-object-core.mjs",
+      "sha256": "f9fa2e1926adfa27e2e391565038c050ec58ae8e4ed1a91da129d19dee0d6420"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10d-principal-target-analysis-2026-08-28.json"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10g-active-object-full-frozen-validation-2026-08-28.json"
+    }
+  ],
+  "benchmark": {
+    "recipes": 36,
+    "deterministicAugmentedCandidates": 863,
+    "deterministicOnlyCandidates": 2,
+    "reviewerUnionCandidates": 861,
+    "correctCandidates": 833,
+    "incorrectCandidates": 28,
+    "possibleIngredientStepCells": 3802,
+    "truthRelationships": 868,
+    "structurallyInvalidCandidates": 0
+  },
+  "reviewerAgreement": {
+    "bothAccept": {
+      "correct": 763,
+      "incorrect": 9,
+      "total": 772,
+      "precision": 0.9883419689119171,
+      "shareOfReviewerUnionCandidates": 0.8966318234610917,
+      "recallContribution": 0.8790322580645161
+    },
+    "aOnlyAccepts": {
+      "correct": 17,
+      "incorrect": 11,
+      "total": 28,
+      "precision": 0.6071428571428571,
+      "shareOfReviewerUnionCandidates": 0.032520325203252036,
+      "recallContribution": 0.0195852534562212
+    },
+    "bOnlyAccepts": {
+      "correct": 53,
+      "incorrect": 8,
+      "total": 61,
+      "precision": 0.8688524590163934,
+      "shareOfReviewerUnionCandidates": 0.07084785133565621,
+      "recallContribution": 0.06105990783410138
+    },
+    "bothReject": {
+      "correctRelationshipsMissed": 35,
+      "incorrectRelationshipsCorrectlyOmitted": 2906,
+      "totalPossibleCellsInBucket": 2941,
+      "correctRejectionRate": 0.9880992859571575,
+      "shareOfPossibleCells": 0.7735402419779064,
+      "missedTruthShare": 0.04032258064516129,
+      "shareOfReviewerUnionCandidates": null,
+      "note": "Both-reject relationships are not reviewer-union candidates; their share is defined against all 3,802 possible non-header ingredient-step cells."
+    }
+  },
+  "v10bRiskRouting": {
+    "reviewRequiredByAnyRisk": 475,
+    "correctCandidatesRouted": 447,
+    "incorrectCandidatesRouted": 28,
+    "incorrectCandidateCoverage": 1,
+    "riskEnums": [
+      "COMPONENT_CONTAINMENT_RISK",
+      "LIFECYCLE_RISK",
+      "CONTEXT_ONLY_RISK",
+      "PROCESS_MATERIAL_RISK",
+      "DUPLICATE_ROW_RISK",
+      "GROUP_CONFLICT_RISK",
+      "QUANTITY_CONFLICT_RISK",
+      "COLLECTIVE_REFERENCE_RISK",
+      "PARTIAL_IDENTITY_MATCH_RISK"
+    ]
+  },
+  "policies": {
+    "reviewerAgreementOnly": {
+      "deployable": false,
+      "autoAccept": { "count": 772, "tp": 763, "fp": 9, "precision": 0.9883419689119171 },
+      "reviewRequired": { "count": 89, "correct": 70, "incorrect": 19 },
+      "autoReject": { "count": 0, "correctIncorrectlyRejected": 0, "incorrectCorrectlyRejected": 0 },
+      "automaticallyResolvedShare": 0.8966318234610917,
+      "reviewRequiredShare": 0.10336817653890824,
+      "recipesRequiringReview": 18,
+      "averageReviewItemsPerAffectedRecipe": 4.944444444444445,
+      "decision": "REJECT_KNOWN_FALSE_POSITIVES"
+    },
+    "reviewerAgreementAndNoV10bRisk": {
+      "deployableAfterReleaseGates": true,
+      "autoAccept": { "count": 382, "tp": 382, "fp": 0, "precision": 1 },
+      "reviewRequired": { "count": 479, "correct": 451, "incorrect": 28 },
+      "autoReject": { "count": 0, "correctIncorrectlyRejected": 0, "incorrectCorrectlyRejected": 0 },
+      "automaticallyResolvedShare": 0.4436701509872242,
+      "reviewRequiredShare": 0.5563298490127758,
+      "recipesRequiringReview": 34,
+      "averageReviewItemsPerAffectedRecipe": 14.088235294117647,
+      "decision": "SELECT"
+    },
+    "maximumSafeNoV10bRisk": {
+      "deployable": false,
+      "autoAccept": { "count": 386, "tp": 386, "fp": 0, "precision": 1 },
+      "reviewRequired": { "count": 475, "correct": 447, "incorrect": 28 },
+      "autoReject": { "count": 0, "correctIncorrectlyRejected": 0, "incorrectCorrectlyRejected": 0 },
+      "automaticallyResolvedShare": 0.44831591173054586,
+      "reviewRequiredShare": 0.5516840882694541,
+      "recipesRequiringReview": 34,
+      "averageReviewItemsPerAffectedRecipe": 13.970588235294118,
+      "decision": "REJECT_ONLY_FOUR_MORE_AUTOMATIONS_REQUIRE_SINGLE_REVIEWER_AUTHORITY"
+    },
+    "v10gCombinedExperimentalFrontier": {
+      "deployable": false,
+      "autoAccept": { "count": 773, "tp": 773, "fp": 0, "precision": 1 },
+      "reviewRequired": { "count": 88, "correct": 60, "incorrect": 28 },
+      "autoReject": { "count": 0, "correctIncorrectlyRejected": 0, "incorrectCorrectlyRejected": 0 },
+      "automaticallyResolvedShare": 0.8977932636469221,
+      "reviewRequiredShare": 0.10220673635307782,
+      "recipesRequiringReview": 21,
+      "averageReviewItemsPerAffectedRecipe": 4.190476190476191,
+      "decision": "DIAGNOSTIC_ONLY_V10D_BASELINE_CONTAINS_AI_ARBITER_DECISIONS"
+    }
+  },
+  "v10gCombinations": {
+    "reviewerUnionCandidateAndV10gAccept": { "count": 773, "correct": 773, "incorrect": 0, "precision": 1 },
+    "reviewerDisagreementAndV10gAccept": { "count": 62, "correct": 62, "incorrect": 0, "precision": 1 },
+    "bothReviewersAcceptAndV10gAccept": { "count": 711, "correct": 711, "incorrect": 0, "precision": 1 },
+    "bothReviewersAcceptAndV10gReject": { "count": 61, "correct": 52, "incorrect": 9, "positiveShare": 0.8524590163934426 },
+    "reviewerDisagreementAndV10gReject": { "count": 27, "correct": 8, "incorrect": 19, "positiveShare": 0.2962962962962963 },
+    "standaloneDeterministicRescueSignal": { "count": 131, "correct": 131, "incorrect": 0, "precision": 1 },
+    "v1Role": ["REVIEW_PRIORITY_SIGNAL", "DIAGNOSTIC_TAG"],
+    "notAuthorized": ["SAFE_ACCEPT_SIGNAL", "AUTO_REJECT_SIGNAL"],
+    "reason": "The combined 773 frontier includes the V10D AI-arbiter baseline. The 131-row deterministic rescue subset is promising but failed its class gate and is not allowed to override V1 risks."
+  },
+  "routing": {
+    "autoAccept": "Valid ingredient-step candidate; both complete reviewers ACCEPT; deterministic evidence COMPLETE under exact V1 fingerprint; zero V1 risk flags.",
+    "reviewRequired": "Any reviewer disagreement, V1 risk, unsupported class, incomplete reviewer, unavailable evidence, or both-reject/positive-evidence conflict.",
+    "autoReject": "Verified structural invalidity only; never semantic uncertainty.",
+    "precedence": ["AUTO_REJECT_STRUCTURAL", "REVIEW_BLOCKING_FAILURE", "REVIEW_ANY_RISK", "AUTO_ACCEPT_SAFE_CLASS", "REVIEW_DEFAULT"]
+  },
+  "selectedReviewBurden": {
+    "autoAcceptRelationships": 382,
+    "autoAcceptShare": 0.4436701509872242,
+    "reviewRelationships": 479,
+    "reviewShare": 0.5563298490127758,
+    "recipesWithAnyReview": 34,
+    "recipeReviewShare": 0.9444444444444444,
+    "averageReviewItemsPerAffectedRecipe": 14.088235294117647,
+    "averageReviewItemsPerAllFrozenRecipes": 13.305555555555555
+  },
+  "preparedComponents": {
+    "status": "DEFERRED_SEPARATE_CONTRACT",
+    "v10aCorrectAccepted": 66,
+    "v10aIncorrectAccepted": 97,
+    "observedPrecision": 0.4049
+  },
+  "qualityCaveat": {
+    "frozenReviewerUnionRecall": 0.9597,
+    "frozenReviewerUnionMissedTruthRelationships": 35,
+    "conclusion": "The routing contract protects auto-accept precision but does not itself repair reviewer-union discovery misses. Production activation remains blocked pending complete end-to-end recall/severity gates and map-level completeness semantics."
+  },
+  "productionMutations": {
+    "aiCalls": 0,
+    "firestoreWrites": 0,
+    "recipeWrites": 0,
+    "mapWrites": 0,
+    "runtimeChanges": 0,
+    "uiChanges": 0,
+    "fullCorpusRerun": false
+  },
+  "designGate": "no UI impact",
+  "nextImplementationPrompt": "Add contract types, candidate/revision ID helpers, the frozen V1 evidence adapter, a pure routing table, and focused serialization/policy tests. Do not add Firestore, AI, UI, runtime integration, or production activation."
+}
