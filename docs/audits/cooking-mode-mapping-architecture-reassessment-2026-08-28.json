@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-08-28",
+  "workType": "DISCOVERY_ARCHITECTURE_DECISION",
+  "verdict": "ARCHITECTURE DECISION — AI-AT-INGESTION WITH REVIEW",
+  "deterministicWorkDecision": "ONE NARROW DETERMINISTIC SUPPORT LAYER REMAINS JUSTIFIED",
+  "recommendedNextTask": "DESIGN REVIEW-ROUTING CONTRACT",
+  "sourceCheckpoints": {
+    "branch": "main",
+    "headAtStart": "added1d0a35dbf16ed8c6779af0aa1b2bf482d92",
+    "originMainAtStart": "added1d0a35dbf16ed8c6779af0aa1b2bf482d92",
+    "productionRuntimeChanged": false,
+    "firestoreMutations": 0,
+    "aiCalls": 0,
+    "fullCorpusRerun": false
+  },
+  "inputAuditArtifacts": [
+    {
+      "path": "docs/audits/cooking-mode-completeness-audit-2026-08-26.md",
+      "sha256": "8b33982000f43896f31c934ef6d57261e31a65b05ed5bcb930efb4cf3cb74a2c"
+    },
+    {
+      "path": "docs/audits/cooking-mode-recall-root-cause-analysis-2026-08-28.md",
+      "sha256": "f49cae836863d0ba0e3e638d7871b1d3721a295a7bed28145e31c775b76f614e"
+    },
+    {
+      "path": "docs/audits/cooking-mode-arbiter-v10a-analysis-2026-08-28.md",
+      "sha256": "26174961a9804d1780db9542c01b75438d12b1a10a5331f1bde799af37ca3d65"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10b-ingredient-precision-analysis-2026-08-28.md",
+      "sha256": "abf1d5d73fa103c8b63ddbe2eb1da47ece45908675ed5970aae09d0a4b1fd3e2"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10c-active-target-analysis-2026-08-28.md",
+      "sha256": "87a30f4f097539bacb2dd634f064f3e3b5d036b0f8ac4656d795a70f1a8ec976"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10d-principal-target-analysis-2026-08-28.md",
+      "sha256": "81e8021fd58167f7941b9fc43724c34b5bf5dfc5531814037bdd57a1b0a3b1db"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10e-remaining-fn-taxonomy-2026-08-28.md",
+      "sha256": "2a28148a673eef458b1aa6daefe5d21965a6a48358462bf55a5ed69524504b19"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10f-lite-active-object-go-no-go-2026-08-28.md",
+      "sha256": "89c31350998dd5b8d080813167d557247bbbd752467859c1f578fb570bcb8290"
+    },
+    {
+      "path": "docs/audits/cooking-mode-v10g-active-object-full-frozen-validation-2026-08-28.md",
+      "sha256": "0f403d1337cc5832bbf428f55fad25a9ca75ae1c0549ce05cb42aa85239423d5"
+    }
+  ],
+  "historicalMetricSummary": {
+    "productionCompleteness": {
+      "recipes": 228,
+      "truePositives": 1375,
+      "falsePositives": 12,
+      "falseNegatives": 2677,
+      "precision": 0.9913,
+      "recall": 0.3393,
+      "f1": 0.5056,
+      "explicitActiveUseRecall": 0.3841,
+      "criticalRecall": 0.249,
+      "seasoningHerbRecall": 0.3661,
+      "preparedComponentRecall": 0.0407
+    },
+    "originalFullCorpusReviewerDiscovery": {
+      "confirmedOmissions": 2677,
+      "reviewerAFound": 2620,
+      "reviewerBFound": 2630,
+      "unionFound": 2675,
+      "intersectionFound": 2575,
+      "unionRecallOfConfirmedOmissions": 0.9993
+    },
+    "frozenReviewerBenchmark": {
+      "truthRelationships": 868,
+      "reviewerA": { "tp": 780, "fp": 20, "fn": 88, "precision": 0.975, "recall": 0.8986 },
+      "reviewerB": { "tp": 816, "fp": 17, "fn": 52, "precision": 0.9796, "recall": 0.9401 },
+      "intersection": { "tp": 763, "fp": 9, "fn": 105, "precision": 0.9883, "recall": 0.879 },
+      "union": { "tp": 833, "fp": 28, "fn": 35, "precision": 0.9675, "recall": 0.9597 },
+      "disagreement": { "tp": 70, "fp": 19, "candidateCount": 89, "precision": 0.7865, "recallContribution": 0.0806 },
+      "neitherAccepts": { "trueRelationships": 35 }
+    },
+    "v9": { "tp": 657, "fp": 9, "fn": 211 },
+    "v10a": { "correctAccepts": 828, "correctRejects": 5, "incorrectAccepts": 20, "incorrectRejects": 10 },
+    "v10b": { "tp": 748, "fp": 9, "fn": 85 },
+    "v10c": { "tp": 669, "fp": 2, "fn": 164, "precision": 0.997, "recall": 0.8031 },
+    "v10d": { "tp": 642, "fp": 0, "fn": 191, "precision": 1, "recall": 0.7707 },
+    "v10g": { "tp": 773, "fp": 0, "fn": 60, "precision": 1, "recall": 0.928 }
+  },
+  "reviewerPrecisionRecallAnalysis": {
+    "fullCorpusRecomputedFromExistingAudit": {
+      "recipes": 228,
+      "possibleIngredientStepCells": 17608,
+      "truthRelationships": 4052,
+      "reviewerA": { "tp": 3990, "fp": 125, "fn": 62, "precision": 0.9696233293, "recall": 0.9846989141 },
+      "reviewerB": { "tp": 4004, "fp": 122, "fn": 48, "precision": 0.9704314106, "recall": 0.988153998 },
+      "union": { "tp": 4050, "fp": 228, "fn": 2, "precision": 0.9467040673, "recall": 0.9995064166 },
+      "intersection": { "tp": 3944, "fp": 19, "fn": 108, "precision": 0.9952056523, "recall": 0.9733464956 },
+      "disagreement": { "tp": 106, "fp": 209, "candidateCount": 315, "precision": 0.3365079365, "recallContribution": 0.026159921 },
+      "neitherAccepts": { "trueRelationships": 2, "falseCells": 13328 },
+      "derivation": "Recomputed read-only from each step's reviewerAExpectedIndexes, reviewerBExpectedIndexes, adjudicatedExpectedIndexes, and ingredient-row count in the existing completeness audit JSON."
+    },
+    "conclusion": "Agreement is useful for routing, not truth. It raises frozen precision from 96.75% union to 98.83% intersection and full-corpus precision from 94.67% to 99.52%, but still leaves 9 frozen and 19 full-corpus agreed false positives. Disagreement is enriched for errors but contains correct relationships, so it must be reviewed rather than rejected."
+  },
+  "reviewerAgreementDisagreementAnalysis": {
+    "frozen": {
+      "bothAccept": { "tp": 763, "fp": 9, "total": 772 },
+      "onlyOneAccepts": { "tp": 70, "fp": 19, "total": 89 },
+      "neitherAcceptsAmongTruth": 35
+    },
+    "fullCorpus": {
+      "bothAccept": { "tp": 3944, "fp": 19, "total": 3963 },
+      "onlyOneAccepts": { "tp": 106, "fp": 209, "total": 315 },
+      "neitherAcceptsAmongTruth": 2,
+      "recipesWithAnyDisagreement": 82
+    },
+    "routingConclusion": "Both-agree plus no risk flag is a candidate auto-accept shape, but agreement alone cannot auto-accept. Any disagreement must route to review."
+  },
+  "reviewerFalsePositiveTaxonomy": {
+    "population": "The 28 INCORRECT reviewer-union relationships in the frozen 36-recipe benchmark; the two deterministic-only incorrect candidates in the 863-candidate V10A pool are excluded.",
+    "mutuallyExclusiveCategories": [
+      {
+        "category": "OBVIOUS_LEXICAL_OR_LIFECYCLE_ERROR",
+        "count": 5,
+        "candidateIds": [
+          "ingredient::157::5::0",
+          "ingredient::chicken-tikka::5::15",
+          "ingredient::dads-chili::0::15",
+          "ingredient::dads-chili::6::15",
+          "ingredient::tacos-al-pastor::1::0"
+        ],
+        "basis": "Serving-only continuation, process material, wrong lexical alias/not-established row, or a blending instruction whose source group excludes the candidate target."
+      },
+      {
+        "category": "PASSIVE_COMPONENT_LEAKAGE",
+        "count": 7,
+        "candidateIds": [
+          "ingredient::chickpea-and-fennel-ratatouille::1::7",
+          "ingredient::chickpea-and-fennel-ratatouille::1::8",
+          "ingredient::chickpea-and-fennel-ratatouille::1::9",
+          "ingredient::crunchy-queso-wrap::4::13",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::0",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::1",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::2"
+        ],
+        "basis": "A raw row was carried into a later operation on an assembled dish/mixture although the benchmark does not treat that row as independently active."
+      },
+      {
+        "category": "GENERIC_SEASONING",
+        "count": 2,
+        "candidateIds": [
+          "ingredient::chickpea-and-fennel-ratatouille::2::7",
+          "ingredient::chickpea-and-fennel-ratatouille::2::8"
+        ],
+        "basis": "Bare generic 'taste and adjust seasoning' was expanded to listed salt and pepper despite no row-specific target."
+      },
+      {
+        "category": "COMPONENT_BOUNDARY",
+        "count": 11,
+        "candidateIds": [
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::3",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::4",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::5",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::6",
+          "ingredient::cucumber-tomato-salad-with-red-wine-vinaigrette::2::7",
+          "ingredient::jocn-chicken-and-tomatillo-stew::4::2",
+          "ingredient::jocn-chicken-and-tomatillo-stew::4::3",
+          "ingredient::jocn-chicken-and-tomatillo-stew::4::4",
+          "ingredient::jocn-chicken-and-tomatillo-stew::4::5",
+          "ingredient::mole-poblano::13::19",
+          "ingredient::sheetpan-gochujang-chicken-and-roasted-vegetables::3::9"
+        ],
+        "basis": "The instruction targets a named prepared component, broth, dressing, spice/fried mixture, or pickle mix; a constituent row crosses that boundary."
+      },
+      {
+        "category": "GENUINELY_SEMANTICALLY_AMBIGUOUS",
+        "count": 3,
+        "candidateIds": [
+          "ingredient::157::4::0",
+          "ingredient::chicken-tikka::9::0",
+          "ingredient::tacos-al-pastor::4::0"
+        ],
+        "basis": "Continuing cook, serving, or refrigerating language plausibly supports either active-use policy; existing adjudicated truth remains authoritative."
+      }
+    ],
+    "reconciliation": { "classified": 28, "expected": 28, "unclassified": 0 },
+    "conclusion": "Twenty-five of 28 false positives fall into four repeated, source-observable risk families; three require semantic policy judgment. The concentration supports a routing classifier, but not an automatic rejection layer."
+  },
+  "architectureAlternatives": [
+    {
+      "id": "A",
+      "name": "Continue deterministic refinement",
+      "aiCallsPerRecipe": 0,
+      "humanReview": "none by design",
+      "qualityAssessment": "V10G reached 92.80% recall and 100% precision on the frozen candidate benchmark but failed its precommitted pronoun-class gate and left 60/833 correct candidates unresolved. The remaining errors span transfer, collective alias, serving/garnish, multi-component, and discourse semantics.",
+      "complexity": "very high and increasing",
+      "maintenance": "high; multiple interacting lifecycle and language subsystems",
+      "generalizationRisk": "high; V10F-Lite's 10-case pronoun success fell to 83.64% on the full class",
+      "decision": "REJECT"
+    },
+    {
+      "id": "B",
+      "name": "Reviewer union directly persists maps",
+      "aiCallsPerRecipe": 2,
+      "humanReview": "0 if automatic; complete review would collapse this into Alternative D",
+      "qualityAssessment": "Highest observed discovery recall, but 28 frozen and 228 full-corpus union false positives make direct canonical persistence unsafe. Temperature-zero output is not reproducible truth.",
+      "complexity": "low",
+      "maintenance": "low",
+      "decision": "REJECT unless every map receives human review, in which case it is Alternative D"
+    },
+    {
+      "id": "C",
+      "name": "Reviewer union plus deterministic evidence/risk routing plus human review of uncertainty",
+      "aiCallsPerRecipe": 2,
+      "humanReview": "Only REVIEW_REQUIRED relationships; exact burden depends on a not-yet-designed versioned routing contract",
+      "qualityAssessment": "Preserves reviewer-union discovery while preventing deterministic logic from globally vetoing correct relationships. V10G's zero-FP frontier is useful as safe-accept evidence; disagreement and risk flags become review metadata.",
+      "complexity": "moderate",
+      "maintenance": "moderate and bounded by a versioned routing contract",
+      "decision": "RECOMMEND"
+    },
+    {
+      "id": "D",
+      "name": "Reviewer union plus full human review",
+      "aiCallsPerRecipe": 2,
+      "humanReview": "All proposed relationships and completeness against source",
+      "qualityAssessment": "Highest control and suitable for one-time corpus remediation, but steady-state review burden is 4,278 existing relationships (18.76 per recipe) before prepared-component review.",
+      "complexity": "low code complexity, high operational burden",
+      "maintenance": "ongoing manual review for every recipe",
+      "decision": "USE AS CONSERVATIVE CORPUS-REMEDIATION POLICY, NOT STEADY-STATE INGESTION ARCHITECTURE"
+    }
+  ],
+  "v10gRoleAnalysis": {
+    "option1AutomaticSafeAcceptEvidence": "RETAIN, conditionally. Zero false accepts across all 30 frozen incorrect candidates makes the frontier promising for reducing review, but the exact acceptance contract must be extracted and revalidated before production use.",
+    "option2RiskSuppressionEvidence": "DO NOT USE AS A GLOBAL VETO. V9/V10 safety and arbiter layers repeatedly removed many correct relationships.",
+    "option3ReviewPrioritizationMetadata": "RETAIN. V10G/V10D basis, semantic class, reviewer votes, component membership, lifecycle, and quantity facts are useful reviewer context.",
+    "option4Discard": "REJECTED; the zero-FP evidence is valuable even though the mapper program stopped.",
+    "importantCaveat": "The measured 773-accept frontier is a frozen combined V10D-plus-rescue result. The V10G rescue rule itself is deterministic, while the V10D experiment included 392 bounded arbiter decisions. It must not be represented as an already-proven standalone deterministic router."
+  },
+  "estimatedReviewBurden": {
+    "fullCorpusObserved": {
+      "recipes": 228,
+      "reviewerUnionCandidates": 4278,
+      "averageUnionCandidatesPerRecipe": 18.7632,
+      "medianUnionCandidatesPerRecipe": 18,
+      "reviewerDisagreements": 315,
+      "averageDisagreementsPerRecipe": 1.3816,
+      "medianDisagreementsPerRecipe": 0,
+      "recipesWithAnyDisagreement": 82
+    },
+    "alternativeB": {
+      "automaticDirectPersistence": { "reviewRelationships": 0, "averagePerRecipe": 0, "acceptable": false },
+      "reason": "Zero review leaves 228 observed full-corpus false positives in the union. Adding complete review becomes Alternative D."
+    },
+    "alternativeC": {
+      "unsafeDisagreementOnlyFloor": { "reviewRelationships": 315, "averagePerRecipe": 1.3816, "recipesWithAnyReview": 82, "acceptable": false, "reason": "Leaves 19 agreed full-corpus false positives." },
+      "frozenV10gFrontierObserved": { "recipes": 36, "unionCandidates": 861, "autoAcceptCandidates": 773, "reviewRelationships": 88, "reviewCorrect": 60, "reviewIncorrect": 28, "averageReviewPerRecipe": 2.4444, "recipesWithAnyReview": 21, "autoResolvedShare": 0.8978 },
+      "fullCorpusProjectionIfFrozenV10gRateGeneralizes": { "reviewRelationshipsApproximately": 437, "averagePerRecipeApproximately": 1.9177, "recipesWithAnyReviewApproximately": 133, "assumption": "Applies the frozen 10.2207% review rate and 58.33% recipe-review incidence to the existing full-corpus candidate count. This is a planning estimate, not a measured full-corpus result." },
+      "broadRiskRouterUpperPlanningCase": { "frozenRoutedCandidates": 477, "frozenCandidates": 863, "projectedFullCorpusReviewRelationshipsApproximately": 2365, "averagePerRecipeApproximately": 10.3708, "assumption": "Applies the V10B 55.2723% broad-risk routing rate to 4,278 full-corpus union candidates; it demonstrates the cost of carrying the broad router forward mechanically." },
+      "conclusion": "A narrow reviewed-routing contract plausibly reduces steady-state review to roughly two relationships per recipe, but the exact full-corpus burden is unproven and must be measured before activation."
+    },
+    "alternativeD": {
+      "reviewRelationships": 4278,
+      "averagePerRecipe": 18.7632,
+      "medianPerRecipe": 18,
+      "recipesWithAnyReview": 228
+    },
+    "futureIngestion": {
+      "typicalCandidateRelationshipsPerRecipe": 18,
+      "alternativeB": "0 review relationships, unsafe",
+      "alternativeC": "Planning estimate about 2 review relationships per recipe if the frozen V10G frontier generalizes; exact value must be measured",
+      "alternativeD": "About 18 review relationships per recipe, based on the existing-corpus median"
+    },
+    "timeEstimates": "Not estimated; the repository contains no authoritative per-relationship review-time evidence."
+  },
+  "futureIngestionArchitecture": {
+    "name": "AI reviewer union with versioned evidence/risk routing and human approval of uncertainty",
+    "flow": [
+      "Finalize exact recipe content",
+      "Parse canonical ordered ingredient and instruction arrays",
+      "Compute sourceHash",
+      "Run blind reviewer A and blind reviewer B independently",
+      "Normalize and union candidate relationships without treating either output as truth",
+      "Attach deterministic source, lifecycle, component-boundary, quantity, vote, and V10G-support evidence",
+      "Route each candidate to AUTO_ACCEPT_HIGH_CONFIDENCE, REVIEW_REQUIRED, or AUTO_REJECT_CLEAR_ERROR",
+      "Human approves or rejects every REVIEW_REQUIRED relationship and checks completeness prompts",
+      "Materialize one immutable approved map",
+      "Persist approved map plus version and provenance",
+      "Cooking Mode performs a source-hash/version read and makes zero AI calls"
+    ],
+    "aiCallsPerNewRecipe": 2,
+    "candidateGeneration": "Two blind whole-recipe reviewers receive the same exact source independently. Union maximizes discovery; normalized candidate IDs make retries and comparison deterministic.",
+    "nondeterminismHandling": "Store each normalized reviewer output and candidate-set hash as proposal evidence. A repeated run creates a new attempt; it never silently overwrites an approved map or becomes truth by majority alone.",
+    "routingStates": {
+      "AUTO_ACCEPT_HIGH_CONFIDENCE": "Allowed only by a versioned contract with frozen zero-FP evidence, reviewer support, exact source grounding, and no risk flag. Reviewer agreement alone is insufficient. Initially this state should remain disabled for any relation class not explicitly proven by the routing contract.",
+      "REVIEW_REQUIRED": "Any reviewer disagreement, deterministic risk flag, component/prepared-component relation, ambiguous lifecycle/reference, unsupported class, or incompleteness concern.",
+      "AUTO_REJECT_CLEAR_ERROR": "Structural impossibility only: out-of-range/header index, duplicate candidate, source-hash mismatch, malformed evidence, or relationship unsupported by the exact parsed source. Semantic risk is routed to review rather than auto-rejected."
+    },
+    "provenanceStored": [
+      "schemaVersion",
+      "parserVersion",
+      "mappingContractVersion",
+      "sourceHash",
+      "reviewerPromptVersion",
+      "reviewerModelIdentifier",
+      "reviewAttemptIds and normalized-output hashes",
+      "per-candidate reviewer votes",
+      "per-candidate deterministic evidence/risk flags",
+      "per-candidate routing decision",
+      "human decision and reviewer identity where applicable",
+      "approvedMapHash",
+      "approvedAt"
+    ],
+    "mapVersioning": "Approved maps are immutable and source-bound. A new sourceHash or mapping-contract version creates a new proposal/version; previous approved versions remain audit evidence and are never mutated in place.",
+    "retryBehavior": "Bounded retry only for transport/schema failure using an idempotency key. A successful but different semantic output is stored as a separate attempt and routed normally; retries do not cherry-pick a preferred map.",
+    "failureBehavior": "Fail closed: no proposal becomes approved. Keep the last approved map only when its sourceHash still matches; otherwise Cooking Mode receives no unapproved mapping. Recipe save/publish policy may surface a pending-review state, but no provisional AI result drives runtime.",
+    "recipeEditInvalidation": "Only edits that change canonical parsed ingredients, instructions, or ordering change sourceHash. Such edits mark the prior map stale and trigger two fresh reviewer calls plus routing/review. Metadata-only edits do not recompute the map.",
+    "runtime": "Validate schema, supported version, approved status, sourceHash, and structure; then read the persisted approved map. Runtime makes zero AI calls and performs no mapping write."
+  },
+  "existingCorpusRemediationArchitecture": {
+    "policy": "Use a stricter, one-time full-review policy than future ingestion because 228 recipes can be remediated offline once and the quality target includes 100% precision.",
+    "flow": [
+      "Lock exact source recipes and source hashes",
+      "Generate high-recall proposals offline with two blind reviewers",
+      "Human-review complete proposed maps and source completeness, including prepared components under a separate gate",
+      "Materialize immutable approved mapping values",
+      "Create sorted migration manifest with per-row sourceHash, approvedMapHash, provenance, and preconditions",
+      "Lock manifest and approval evidence by SHA-256",
+      "Run read-only dry-run against live documents",
+      "Require a separate explicit production-apply prompt",
+      "Apply only exact approved mapping values with update-time preconditions; no AI and no recomputation",
+      "Read back exact maps, source hashes, validator results, and non-map-field hashes",
+      "Run a post-apply zero-write dry-run",
+      "Retain before-map hashes/values and an exact reverse manifest for rollback evidence"
+    ],
+    "applyInvariants": {
+      "aiCalls": 0,
+      "mappingRecomputation": 0,
+      "candidateSubstitution": 0,
+      "writeFields": ["cookingStepIngredientMap", "approved mapping metadata only if included in the reviewed manifest"],
+      "sourceHashRequired": true,
+      "updateTimePreconditionRequired": true,
+      "postApplyVerificationRequired": true,
+      "rollbackEvidenceRequired": true
+    }
+  },
+  "operationalComparison": [
+    { "alternative": "A", "aiCallsPerRecipe": 0, "humanReview": "0", "codeComplexity": "very high", "maintenance": "very high", "nondeterminism": "none", "precision": "can protect precision", "recall": "92.80% frozen ceiling observed after V10G; below target", "runtimeCost": "read-only/local", "migrationComplexity": "medium", "debuggability": "declining as semantic subsystems interact" },
+    { "alternative": "B", "aiCallsPerRecipe": 2, "humanReview": "0", "codeComplexity": "low", "maintenance": "low", "nondeterminism": "proposal output varies", "precision": "unsafe: 28 frozen and 228 full-corpus FP", "recall": "highest observed discovery", "runtimeCost": "read-only persisted map", "migrationComplexity": "low", "debuggability": "good provenance, unsafe decision boundary" },
+    { "alternative": "C", "aiCallsPerRecipe": 2, "humanReview": "uncertain cases only", "codeComplexity": "moderate", "maintenance": "moderate", "nondeterminism": "contained in versioned proposals", "precision": "human-controlled with narrow proven auto-accept", "recall": "preserves reviewer union plus completeness review", "runtimeCost": "read-only approved map", "migrationComplexity": "medium", "debuggability": "high through per-candidate evidence and decisions" },
+    { "alternative": "D", "aiCallsPerRecipe": 2, "humanReview": "all relationships", "codeComplexity": "low to moderate", "maintenance": "high operations", "nondeterminism": "contained by human approval", "precision": "highest control", "recall": "high if reviewer checks source completeness", "runtimeCost": "read-only approved map", "migrationComplexity": "medium", "debuggability": "high" }
+  ],
+  "finalArchitectureDecision": {
+    "decision": "ARCHITECTURE DECISION — AI-AT-INGESTION WITH REVIEW",
+    "selectedAlternative": "C",
+    "rationale": "It is the only option that preserves the strongest observed discovery recall without entrusting nondeterministic AI or recall-destroying deterministic vetoes with canonical truth. Human review owns uncertainty; persisted approved maps preserve deterministic, zero-AI runtime reads.",
+    "qualityTargets": { "precision": 1, "explicitActiveUseRecallMinimum": 0.99, "criticalRecall": 1, "highRecallMinimum": 0.99, "seasoningHerbRecallMinimum": 0.98, "preparedComponents": "separate future gate" }
+  },
+  "recommendedNextTaskDetail": {
+    "name": "DESIGN REVIEW-ROUTING CONTRACT",
+    "scope": "Specify candidate IDs, evidence fields, exact state transitions, conservative initial auto-accept rules, review manifest shape, idempotency/retry semantics, and benchmark arithmetic. Recompute no production maps and make no AI calls.",
+    "whyNext": "The architecture decision is clear, but the exact C review burden and safe auto-accept boundary are not. This is the smallest task that can turn V10G's zero-FP evidence into a testable contract without restarting deterministic mapper research."
+  },
+  "unverifiableItems": [
+    "The exact full-228 review burden for Alternative C cannot be measured until a concrete routing contract exists.",
+    "The frozen V10G frontier cannot yet be claimed as a standalone deterministic router because its V10D baseline included bounded arbiter decisions.",
+    "Prepared-component review burden is separate; existing exact-label arbitration evidence is too weak to combine with ingredient burden.",
+    "Provider pricing and model revision metadata are unavailable; cost is reported as relative call counts only."
+  ]
+}
