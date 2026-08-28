@@ -1,0 +1,2270 @@
+{
+  "schemaVersion": 1,
+  "kind": "cooking-mode-live-reviewer-validation",
+  "auditDate": "2026-08-28",
+  "workType": "VALIDATION",
+  "task": "MEA Recipes \u2014 Cooking Mode Implementation 2A: Live Blind-Reviewer Transport and Schema Validation",
+  "startingState": {
+    "branch": "main",
+    "headBeforeSession": "7763ca5304c6e7e22866b3a43cf64954634e1c5d",
+    "originMainBeforeSession": "7763ca5304c6e7e22866b3a43cf64954634e1c5d",
+    "expectedCheckpointMatched": true,
+    "dirtyWorktreeAtStart": {
+      "modifiedTrackedFile": "docs/audits/cooking-mode-v10f-lite-active-object-go-no-go-2026-08-28.json (unrelated, left untouched by this session)",
+      "untrackedFiles": [
+        ".eslintrc.json (unrelated, left untouched)",
+        "app/error 2.tsx, app/global-error 2.tsx, app/loading 2.tsx (byte-identical duplicate junk of tracked files)",
+        "lib/admin 2.ts, lib/chunkItems 2.ts, lib/firestoreBatch 2.ts, lib/safeFetch 2.ts (byte-identical duplicate junk)",
+        "tests/admin.test 2.ts, tests/firestoreBatch.test 2.ts, tests/safeFetch.test 2.ts (byte-identical duplicate junk)",
+        "tests/ingredientParser.test 2.ts (stale/superseded subset of the current tests/ingredientParser.test.ts)",
+        "firebase-debug 2.log, firebase-debug 3.log, firebase-debug 4.log, firestore-debug.log (debug logs)"
+      ],
+      "resolution": "User explicitly approved deleting the ' 2'-suffixed duplicate junk files and debug logs after they were found to be blocking npm run typecheck/build (Next's route-type generator was emitting duplicate global identifiers because app/error 2.tsx etc. exist alongside app/error.tsx etc.). Verified byte-identical (or a strict content subset, for the one test file that differed) before deleting. This cleanup is unrelated to the Cooking Mode work and is called out separately here rather than folded into the feature diff."
+    }
+  },
+  "validationSet": [
+    {
+      "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+      "title": "GARLIC BUTTER HERB STEAK BITES WITH POTATOES",
+      "selectionReason": "straightforward direct ingredient use (named example)",
+      "ingredientRows": 9,
+      "steps": 3
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "title": "Grilled Zucchini and Summer Squash",
+      "selectionReason": "whole-dish / continuation semantics -- marinade + grilling (named example)",
+      "ingredientRows": 8,
+      "steps": 4
+    },
+    {
+      "recipeId": "caprese-salad",
+      "title": "Caprese Salad",
+      "selectionReason": "pronoun / collective reference -- simple assembly + final whole-dish seasoning step (named example)",
+      "ingredientRows": 7,
+      "steps": 4
+    },
+    {
+      "recipeId": "sheet-pan-bibimbap",
+      "title": "Sheet-Pan Bibimbap",
+      "selectionReason": "component-boundary / leakage risk -- sauce+bowl assembly, sourced from the frozen v10e remaining-FN taxonomy (PRONOUN_OR_DEICTIC_REFERENCE / MULTI_COMPONENT_ASSEMBLY classes)",
+      "ingredientRows": 11,
+      "steps": 4
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "title": "Chickpea and Fennel Ratatouille",
+      "selectionReason": "seasoning historically-difficult case -- sourced from the frozen v10b ingredient-precision analysis's 20-false-positive set (salt/pepper/oil 'to taste' generic-seasoning re-triggers)",
+      "ingredientRows": 12,
+      "steps": 3
+    }
+  ],
+  "sourceDataProvenance": {
+    "method": "Exact ingredient/instruction arrays and recipeIds read verbatim from existing repository audit evidence (docs/audits/cooking-mode-completeness-audit-2026-08-26.json), which itself was produced by running the real production parser (parseRecipeContent) against the live recipes at audit time. No Firestore reads were performed for this validation; recipes were not mutated or rewritten.",
+    "auditSourceFile": "docs/audits/cooking-mode-completeness-audit-2026-08-26.json",
+    "parserVersionUsed": "recipe-content-v1"
+  },
+  "lockedImplementation": {
+    "filesHashed": [
+      "lib/cookingModeMappingReviewer.ts",
+      "lib/cookingModeMappingOrchestrator.ts",
+      "lib/cookingModeMappingProposal.ts",
+      "lib/cookingModeMappingRouter.ts",
+      "lib/cookingModeMappingEvidence.ts",
+      "lib/cookingModeMappingRiskFacts.ts",
+      "lib/ai.ts",
+      "lib/aiConfig.ts"
+    ],
+    "preRunSha256": {
+      "lib/cookingModeMappingReviewer.ts": "55782c87d893e4d0432d06547e62e87d0c98d32f04c32071ff1a5d9b148daf24",
+      "lib/cookingModeMappingOrchestrator.ts": "5bd532a156a9a1180a10504019a316439841936abbc1d854b2c9c33289445526",
+      "lib/cookingModeMappingProposal.ts": "65c9362fac35f37e4dce12dace730440ca19cd52af881298dc4791000317c032",
+      "lib/cookingModeMappingRouter.ts": "542a055a1313f7a3e5478b048dabb0c5eca0dc61719d061e86e9db0a6e848d49",
+      "lib/cookingModeMappingEvidence.ts": "5f5abd205e1ea53b4d1e197f4e15e720132c4ed1887c93c18f7c20440b122abc",
+      "lib/cookingModeMappingRiskFacts.ts": "047ed65007bd0fcf0f00faf143f05f9e827c3f34fd008e1b4a30023836c45957",
+      "lib/ai.ts": "468185b2d9cf1c66b4c211347b6da73c6f7daecb9b1b8de8960868dd1fcb1958",
+      "lib/aiConfig.ts": "b482196a3daa3139f9c7cb899c8f6722d23a1d6ba2947898d2d3008b61fa674b"
+    },
+    "postRunSha256": {
+      "lib/cookingModeMappingReviewer.ts": "55782c87d893e4d0432d06547e62e87d0c98d32f04c32071ff1a5d9b148daf24",
+      "lib/cookingModeMappingOrchestrator.ts": "5bd532a156a9a1180a10504019a316439841936abbc1d854b2c9c33289445526",
+      "lib/cookingModeMappingProposal.ts": "65c9362fac35f37e4dce12dace730440ca19cd52af881298dc4791000317c032",
+      "lib/cookingModeMappingRouter.ts": "542a055a1313f7a3e5478b048dabb0c5eca0dc61719d061e86e9db0a6e848d49",
+      "lib/cookingModeMappingEvidence.ts": "5f5abd205e1ea53b4d1e197f4e15e720132c4ed1887c93c18f7c20440b122abc",
+      "lib/cookingModeMappingRiskFacts.ts": "047ed65007bd0fcf0f00faf143f05f9e827c3f34fd008e1b4a30023836c45957",
+      "lib/ai.ts": "468185b2d9cf1c66b4c211347b6da73c6f7daecb9b1b8de8960868dd1fcb1958",
+      "lib/aiConfig.ts": "b482196a3daa3139f9c7cb899c8f6722d23a1d6ba2947898d2d3008b61fa674b"
+    },
+    "hashesIdenticalPreAndPost": true,
+    "implementationChangesDuringLiveExecution": "none -- first-attempt live execution succeeded on every reviewer slot for every recipe, so no transport/schema defect was discovered and no fix was required or made"
+  },
+  "liveAiExecution": {
+    "totalLiveAiCalls": 12,
+    "modelsUsed": [
+      "openai/gpt-5.6-luna"
+    ],
+    "totalInputTokens": 9406,
+    "totalOutputTokens": 7567,
+    "totalTokens": 16973,
+    "reviewerStartedEvents": 12,
+    "reviewerCompletedEvents": 12,
+    "reviewerFailedRetryEvents": 0,
+    "note": "Dollar cost not fabricated; not tracked by existing AI helper metadata.",
+    "provider": "vercel-ai-gateway",
+    "modelConfiguredInAiConfigTs": "openai/gpt-5.6-luna",
+    "hardCapRespected": "5 recipes x 2 reviewers (10 calls) + 1 repeated recipe x 2 reviewers (2 calls) = 12 calls; 12 calls observed; 0 retries used; sample was not expanded after seeing results"
+  },
+  "schemaCoverageValidation": {
+    "allTwelveReviewerExecutionsParseStatus": "VALID",
+    "allTwelveReviewerExecutionsAttemptCount": 1,
+    "retriesObserved": 0,
+    "coverageFormulaVerifiedForEveryExecution": "reviewedCellCount == nonHeaderIngredientRowCount * stepCount, confirmed for all 6 proposals (12 reviewer executions)",
+    "outOfRangeIndexRejection": "Not exercised live (no provider response contained an out-of-range index in this run); enforced by parseMappingReviewerOutput's structural-index check (lib/cookingModeMappingReviewer.ts) and covered by tests/cookingModeMappingOrchestration.test.ts / tests/cookingModeMappingCore.test.ts, both re-run and passing.",
+    "emptyExhaustiveOutputLegality": "Not exercised live (no recipe produced a fully-empty accepted-relationships array); the schema imposes no minimum length and buildMappingProposal/routeMappingCandidate have no special-case for an empty union, confirmed by code inspection and by the existing mocked-empty-output unit tests, re-run and passing.",
+    "noMissingCoverageSilentlyBecameReject": true,
+    "outputHashesCorrect": "Verified: two reviewer executions across different recipes/runs that produced byte-identical normalized relationship sets produced byte-identical normalizedOutputHash values (run2 reviewer B on caprese-salad matched run1/run2 reviewer A exactly), and every execution with a different accepted set produced a different hash."
+  },
+  "blindness": {
+    "verdict": "PASS",
+    "evidence": [
+      "executeBlindMappingReviewers (lib/cookingModeMappingReviewer.ts) takes one immutable source snapshot and starts reviewer A and reviewer B concurrently from that same snapshot via Promise.all; neither branch reads the other's result.",
+      "buildMappingReviewerPrompt(source, recipeRevision) is a pure function of the source snapshot and recipeRevision only -- it takes no reviewerSlot parameter and cannot reference the other reviewer's identity or output, so A and B are provably given byte-identical prompt content by construction.",
+      "Both reviewer executions on every recipe recorded identical reviewerContractVersion ('cooking-mapping-reviewer-v1') and promptVersion ('cooking-mapping-reviewer-prompt-v1').",
+      "Both reviewer executions on every recipe recorded the same modelId ('openai/gpt-5.6-luna').",
+      "Run/attempt provenance differed by slot and by run as designed, e.g. caprese-salad run 1: run-a-1-fb57eb07... vs run-b-1-ebc137b6...; all 12 live executions had distinct runId/attemptId values.",
+      "Reviewer A and reviewer B produced genuinely different accepted-relationship sets on 3 of 5 recipes (grilled-zucchini-and-summer-squash, caprese-salad) and the repeat run, which is only possible if each reviewer executed independently rather than one copying the other."
+    ]
+  },
+  "perRecipeResults": [
+    {
+      "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+      "title": "GARLIC BUTTER HERB STEAK BITES WITH POTATOES",
+      "selectionReason": "straightforward direct ingredient use",
+      "sourceEvidenceHash_fromAudit": "12d66c715191dea38fb8cd26c21100b252ca1466b0ccfc9a580d380e607de31c",
+      "recipeRevision": "recipe-content-v1:sha256:12d66c715191dea38fb8cd26c21100b252ca1466b0ccfc9a580d380e607de31c",
+      "mappingSourceHash": "12d66c715191dea38fb8cd26c21100b252ca1466b0ccfc9a580d380e607de31c",
+      "parserVersion": "recipe-content-v1",
+      "proposalId": "mp1:3ff875d20516ba345307ec497186937faebcb2878439891f9cf2c87c50af542c",
+      "startedAt": "2026-08-28T22:59:01.132Z",
+      "completedAt": "2026-08-28T22:59:06.387Z",
+      "error": null,
+      "reviewerA": {
+        "reviewerSlot": "A",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-a-1-e623a548-0635-4361-8fc6-22a77e40cecb",
+        "attemptId": "attempt-a-1-4f7597fe-e345-4bdb-aafb-037c60e7ad21",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-a-1-e623a548-0635-4361-8fc6-22a77e40cecb",
+            "attemptId": "attempt-a-1-4f7597fe-e345-4bdb-aafb-037c60e7ad21",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "46287e2c46fde680079962faa84331e5e450c74b63c3714f1fbb361e36ab924b"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 9,
+          "nonHeaderIngredientRowCount": 9,
+          "stepCount": 3,
+          "reviewedCellCount": 27
+        },
+        "acceptedRelationshipCount": 13,
+        "normalizedOutputHash": "46287e2c46fde680079962faa84331e5e450c74b63c3714f1fbb361e36ab924b"
+      },
+      "reviewerB": {
+        "reviewerSlot": "B",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-b-1-3052fe85-698a-4376-8889-816ae2fdc5d4",
+        "attemptId": "attempt-b-1-e84cf1c7-bcc6-45ff-83a2-faf71d83db31",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-b-1-3052fe85-698a-4376-8889-816ae2fdc5d4",
+            "attemptId": "attempt-b-1-e84cf1c7-bcc6-45ff-83a2-faf71d83db31",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "46287e2c46fde680079962faa84331e5e450c74b63c3714f1fbb361e36ab924b"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 9,
+          "nonHeaderIngredientRowCount": 9,
+          "stepCount": 3,
+          "reviewedCellCount": 27
+        },
+        "acceptedRelationshipCount": 13,
+        "normalizedOutputHash": "46287e2c46fde680079962faa84331e5e450c74b63c3714f1fbb361e36ab924b"
+      },
+      "unionMath": {
+        "reviewerAAcceptedCount": 13,
+        "reviewerBAcceptedCount": 13,
+        "intersectionCount": 13,
+        "unionCount": 13,
+        "candidateCount": 13
+      },
+      "routingSummary": {
+        "candidateCount": 13,
+        "autoAcceptCount": 8,
+        "reviewRequiredCount": 5,
+        "autoRejectCount": 0
+      },
+      "approvalBlocked": true,
+      "blockingReasons": [
+        "CANDIDATE_REVIEW_REQUIRED"
+      ],
+      "reviewCompleteWithoutHuman": false,
+      "candidates": [
+        {
+          "candidateId": "mc1:7c904b2e321dfae3717cb1db60419c2117141572f1d335e57549bf9cb89279ca",
+          "ingredientRowIndex": 0,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:08053453729f39b1fd8e4d9c0e989c3b86fe9b4c191ad13bd621193f12273277",
+          "ingredientRowIndex": 1,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:28af6fee2833ecf89697733817542ae090c7b96153bd5d9099ec725f5421a4bc",
+          "ingredientRowIndex": 1,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:6e4d47eaaf65f3f4d60c746202c46fd84cd7fd37cd590e7d5da5e26ecfe64298",
+          "ingredientRowIndex": 2,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:b8a2a87e2001f9945c50594c9e1489494703babc83ce4a18516ec0b94e3467ab",
+          "ingredientRowIndex": 3,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:3fd6f639c437588d42062efe6f6f10204aa2259544645455257243ad55c38d22",
+          "ingredientRowIndex": 4,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:54c261e39a08f1b41f4d5c573cd80877363ba963448171448265013badfd67c9",
+          "ingredientRowIndex": 4,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:4c55904a7d82185355a6db5768f8393cb855969841527cce414968c93125ca35",
+          "ingredientRowIndex": 5,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:5dce98cca2a027597f7447e800e1f6faac5a7fa70aeeb63a76993729e123e51f",
+          "ingredientRowIndex": 5,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:2c7a08ffb3c3eac292cb1215c5f3aa1d577bac520786104d4f14695928f60855",
+          "ingredientRowIndex": 6,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:12279dee7de508d71fce6d6764f9b4c91799206cbe12a30111a1f51e1b8f2f75",
+          "ingredientRowIndex": 6,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:8fdd5216c3165cdb33f7fbdd6d255baf1385bae999925957b73159fe08db6381",
+          "ingredientRowIndex": 7,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:9579d88f54c85d49a06f3a212e027e38a54385e87f5517b19fc992dba7b64682",
+          "ingredientRowIndex": 7,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        }
+      ]
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "title": "Grilled Zucchini and Summer Squash",
+      "selectionReason": "whole-dish / continuation semantics (marinade + grilling)",
+      "sourceEvidenceHash_fromAudit": "7ed87f545dc6bfb7edae65d1616add9b31c003d2567270db45012ddb57ba011e",
+      "recipeRevision": "recipe-content-v1:sha256:7ed87f545dc6bfb7edae65d1616add9b31c003d2567270db45012ddb57ba011e",
+      "mappingSourceHash": "7ed87f545dc6bfb7edae65d1616add9b31c003d2567270db45012ddb57ba011e",
+      "parserVersion": "recipe-content-v1",
+      "proposalId": "mp1:bb9d6d2790a7252f5722eaa813bc5162bc13eb8b6a9f1df24683590a7738a1b4",
+      "startedAt": "2026-08-28T22:59:06.387Z",
+      "completedAt": "2026-08-28T22:59:12.095Z",
+      "error": null,
+      "reviewerA": {
+        "reviewerSlot": "A",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-a-1-fd25823f-dbc2-49d8-92b6-d58bad13d3d5",
+        "attemptId": "attempt-a-1-bd85f3ce-d4b3-4326-95d5-3dd25d1f93ce",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-a-1-fd25823f-dbc2-49d8-92b6-d58bad13d3d5",
+            "attemptId": "attempt-a-1-bd85f3ce-d4b3-4326-95d5-3dd25d1f93ce",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "5a97e535e544459f5c18d6d635069172ee1e94d97272e8b99ece95a671f2c2fc"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 8,
+          "nonHeaderIngredientRowCount": 8,
+          "stepCount": 4,
+          "reviewedCellCount": 32
+        },
+        "acceptedRelationshipCount": 12,
+        "normalizedOutputHash": "5a97e535e544459f5c18d6d635069172ee1e94d97272e8b99ece95a671f2c2fc"
+      },
+      "reviewerB": {
+        "reviewerSlot": "B",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-b-1-77b624ae-0b1f-4f7a-97d2-a9058a76b2cc",
+        "attemptId": "attempt-b-1-636084aa-116c-421b-bd45-c2e65840c6af",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-b-1-77b624ae-0b1f-4f7a-97d2-a9058a76b2cc",
+            "attemptId": "attempt-b-1-636084aa-116c-421b-bd45-c2e65840c6af",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "b3a4bca375d54fcc7810fe97fb2c9a95b9fb806f24452516a7e81c3993170759"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 8,
+          "nonHeaderIngredientRowCount": 8,
+          "stepCount": 4,
+          "reviewedCellCount": 32
+        },
+        "acceptedRelationshipCount": 22,
+        "normalizedOutputHash": "b3a4bca375d54fcc7810fe97fb2c9a95b9fb806f24452516a7e81c3993170759"
+      },
+      "unionMath": {
+        "reviewerAAcceptedCount": 12,
+        "reviewerBAcceptedCount": 22,
+        "intersectionCount": 12,
+        "unionCount": 22,
+        "candidateCount": 22
+      },
+      "routingSummary": {
+        "candidateCount": 22,
+        "autoAcceptCount": 8,
+        "reviewRequiredCount": 14,
+        "autoRejectCount": 0
+      },
+      "approvalBlocked": true,
+      "blockingReasons": [
+        "CANDIDATE_REVIEW_REQUIRED"
+      ],
+      "reviewCompleteWithoutHuman": false,
+      "candidates": [
+        {
+          "candidateId": "mc1:ecb0403876eff9e3405ab76ebfc70ecc0df76feaaa7197217545b9498ca4d438",
+          "ingredientRowIndex": 0,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:3fb567ccfcf61fe49f5e8b0d52015ead8ee8045e151654d2556cc638146ab1af",
+          "ingredientRowIndex": 0,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:57f28fcecfb457cbd449bcd4f2a09ad864ebb098858406f6125c18cb4852b765",
+          "ingredientRowIndex": 0,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d2348c151e247d079e7f51efe876a8e9e5d10c14f31af943309e636115455359",
+          "ingredientRowIndex": 1,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:7c3d23acf884f4cf428d825f929a621d2b28864fd71589df489a7297ab60ed26",
+          "ingredientRowIndex": 1,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:ba34ff86019035dd2d5bf8c3bf4096ff7fe86ca44ff63e491f63407eaec044a8",
+          "ingredientRowIndex": 1,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:ee12f56203059bb2b1889beb0c24cf4db73150088aabd9c7c0a314ce2d7da563",
+          "ingredientRowIndex": 2,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:38c4c375758e49ee8c1db1c3f5707ccd16414c7bac7268eaa4268a8c2b8321f7",
+          "ingredientRowIndex": 2,
+          "stepIndex": 2,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:3111f5ccd74054c35a9e6dd154e58e338653a1c5f389855d2424687990608cb2",
+          "ingredientRowIndex": 2,
+          "stepIndex": 3,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d15f040eb67b74a9469211d01b2c05b99e62d5e281c799fc2a5ae50454de1019",
+          "ingredientRowIndex": 3,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:825e146be4a687b98712def43e6638ff588f83ee98aab3fea7786dfc4cfad406",
+          "ingredientRowIndex": 3,
+          "stepIndex": 2,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:10d9ba78dba4c71d3041e0f01314617b25876f80e908ed7406ead0ba07dd7806",
+          "ingredientRowIndex": 3,
+          "stepIndex": 3,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d7e723c60e110872a6d06d309786e237fabf82aad627feb73c2a4bc24e213652",
+          "ingredientRowIndex": 4,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:969a359157016a7f40ff520dec89608e2f2ee6dbc4b66992df1480fbe11c7b1c",
+          "ingredientRowIndex": 4,
+          "stepIndex": 2,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:7f375ee58dc7ce61b05c434baccb4d3b75c3586f6729d7dd5b6e834b0546bc21",
+          "ingredientRowIndex": 4,
+          "stepIndex": 3,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:b169015f22d028384ed8cd05aa913abc1935664f7a7bcb05a1db2d4996b4856e",
+          "ingredientRowIndex": 5,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:b5a9d9408ad706b242e293fc9dacd9cd04a6ec685efa3a5a72d844c06bf45121",
+          "ingredientRowIndex": 5,
+          "stepIndex": 2,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:bd908ac1d314a2c038ef9536bd2b64ce72ea281898addd76144e0f9dd1e68866",
+          "ingredientRowIndex": 5,
+          "stepIndex": 3,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:7320e0e36c4f781ea2365ddd9757b1cf994ea9db210737fd47e315e80866edf4",
+          "ingredientRowIndex": 6,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:26d7ce06ce9ce42e40fec474ac454b0a6ebab9fa3827bbd7f9d79240186cf3d2",
+          "ingredientRowIndex": 6,
+          "stepIndex": 2,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:145d49539519215a3be05f8b1d3f201e93bc9e5ce70645388151810c0daa993f",
+          "ingredientRowIndex": 6,
+          "stepIndex": 3,
+          "reviewerAVote": "REJECT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:b740f9f39e01f6f11712abb5c5dc7cfba52f9effb9e6fcb891fb8073aed5f67f",
+          "ingredientRowIndex": 7,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        }
+      ]
+    },
+    {
+      "recipeId": "caprese-salad",
+      "title": "Caprese Salad",
+      "selectionReason": "pronoun / collective reference (simple assembly)",
+      "sourceEvidenceHash_fromAudit": "18a822baf7f445bf2e21608bf808aac3d06d1568aab70f9c9eaa3ae72615c2fe",
+      "recipeRevision": "recipe-content-v1:sha256:18a822baf7f445bf2e21608bf808aac3d06d1568aab70f9c9eaa3ae72615c2fe",
+      "mappingSourceHash": "18a822baf7f445bf2e21608bf808aac3d06d1568aab70f9c9eaa3ae72615c2fe",
+      "parserVersion": "recipe-content-v1",
+      "proposalId": "mp1:5704eb103bca47150b5b250b3210c94159a857cd186e0b6915d6156d4e7d7de2",
+      "startedAt": "2026-08-28T22:59:12.095Z",
+      "completedAt": "2026-08-28T22:59:21.379Z",
+      "error": null,
+      "reviewerA": {
+        "reviewerSlot": "A",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-a-1-fb57eb07-4345-4d11-8d17-e8e5c0a42988",
+        "attemptId": "attempt-a-1-18d01c20-44db-40e8-830a-c7cfa7127850",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-a-1-fb57eb07-4345-4d11-8d17-e8e5c0a42988",
+            "attemptId": "attempt-a-1-18d01c20-44db-40e8-830a-c7cfa7127850",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "1d0ce17ed4f1b52f0a633722ace386a8a482b0c121a5e687058ed3d8c7776769"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 7,
+          "nonHeaderIngredientRowCount": 7,
+          "stepCount": 4,
+          "reviewedCellCount": 28
+        },
+        "acceptedRelationshipCount": 12,
+        "normalizedOutputHash": "1d0ce17ed4f1b52f0a633722ace386a8a482b0c121a5e687058ed3d8c7776769"
+      },
+      "reviewerB": {
+        "reviewerSlot": "B",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-b-1-ebc137b6-f2f3-4538-b124-629896665720",
+        "attemptId": "attempt-b-1-0cc75c49-e3e1-48e4-a446-929938f578bc",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-b-1-ebc137b6-f2f3-4538-b124-629896665720",
+            "attemptId": "attempt-b-1-0cc75c49-e3e1-48e4-a446-929938f578bc",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "d3f7a43fed36d181575dcdb2cfb3d4dd39bd15287f40c2a9ff1527d70ad5756a"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 7,
+          "nonHeaderIngredientRowCount": 7,
+          "stepCount": 4,
+          "reviewedCellCount": 28
+        },
+        "acceptedRelationshipCount": 7,
+        "normalizedOutputHash": "d3f7a43fed36d181575dcdb2cfb3d4dd39bd15287f40c2a9ff1527d70ad5756a"
+      },
+      "unionMath": {
+        "reviewerAAcceptedCount": 12,
+        "reviewerBAcceptedCount": 7,
+        "intersectionCount": 7,
+        "unionCount": 12,
+        "candidateCount": 12
+      },
+      "routingSummary": {
+        "candidateCount": 12,
+        "autoAcceptCount": 7,
+        "reviewRequiredCount": 5,
+        "autoRejectCount": 0
+      },
+      "approvalBlocked": true,
+      "blockingReasons": [
+        "CANDIDATE_REVIEW_REQUIRED"
+      ],
+      "reviewCompleteWithoutHuman": false,
+      "candidates": [
+        {
+          "candidateId": "mc1:ccc3568540dd08e1ae81659e62819c79c89c57304ae02b3b4ed56ff7cbac5af9",
+          "ingredientRowIndex": 0,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:1e15b5c4191bfef617d37e2c99a86f34189ca17d1f45ea7dda6324d31113fa2d",
+          "ingredientRowIndex": 0,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "REJECT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:2be8dcbc1b00ea222f75256edf115b8f94548d5c41ede29c10d1f0cb0bde56c0",
+          "ingredientRowIndex": 1,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:af797a6182dd6e46b6f8f010dfca0a32574b38fe9e6472b6c86757439613e09c",
+          "ingredientRowIndex": 1,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "REJECT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:eac725db21c8a4ddd68d2292496985861d75b282e0c45429d39ed29e457a75b1",
+          "ingredientRowIndex": 2,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:29e62580ad7fcbcd1491e290433cc9d39e525ced314d16d9f82d47be790b22ac",
+          "ingredientRowIndex": 2,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "REJECT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:0b28ebbcb500b9e23fb8169b5d214f35d56ffc2f1042abac19524fe3695f8eed",
+          "ingredientRowIndex": 3,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:641dfeb04fda84a7df49b7d76a23b8c467ec12640538ad48c28b905d603ad064",
+          "ingredientRowIndex": 3,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "REJECT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:317224410b0c39ccc33d254b6d68c0948909a01268cabe196302bc64f7881368",
+          "ingredientRowIndex": 4,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:2d3dec47e2b9d56cc076f753e73dce107b1857bf8051313ebd3583568a7573b4",
+          "ingredientRowIndex": 4,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "REJECT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:8958ba64bb150890c5ecf6c67239ce639f86d79e6699f19d823c2c3bd12211ce",
+          "ingredientRowIndex": 5,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:a15d1b6e5c9f99f9aa83d0af62371f2763a999fcbb508fba86eba6a346286437",
+          "ingredientRowIndex": 6,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        }
+      ]
+    },
+    {
+      "recipeId": "sheet-pan-bibimbap",
+      "title": "Sheet-Pan Bibimbap",
+      "selectionReason": "component-boundary / leakage risk (sauce + bowl assembly)",
+      "sourceEvidenceHash_fromAudit": "e5364a6f85ce5576a104d39611f0a2f726b29f85d06d84e931acf1dbee6689b9",
+      "recipeRevision": "recipe-content-v1:sha256:e5364a6f85ce5576a104d39611f0a2f726b29f85d06d84e931acf1dbee6689b9",
+      "mappingSourceHash": "e5364a6f85ce5576a104d39611f0a2f726b29f85d06d84e931acf1dbee6689b9",
+      "parserVersion": "recipe-content-v1",
+      "proposalId": "mp1:e60bc88c0785125df1fd7dc09e13b54553dd0fec7a8c1929f3e312116926433e",
+      "startedAt": "2026-08-28T22:59:21.379Z",
+      "completedAt": "2026-08-28T22:59:39.751Z",
+      "error": null,
+      "reviewerA": {
+        "reviewerSlot": "A",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-a-1-13cef7d7-99c5-4243-a6e3-59ef7b9350e0",
+        "attemptId": "attempt-a-1-7cded6e7-d081-4a10-9a81-18cbc7455de3",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-a-1-13cef7d7-99c5-4243-a6e3-59ef7b9350e0",
+            "attemptId": "attempt-a-1-7cded6e7-d081-4a10-9a81-18cbc7455de3",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "fdeed8dabfd9c2b5a54b5ca63548a5f4e3d905e2cfe8338462debb2589ec03e2"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 11,
+          "nonHeaderIngredientRowCount": 11,
+          "stepCount": 4,
+          "reviewedCellCount": 44
+        },
+        "acceptedRelationshipCount": 18,
+        "normalizedOutputHash": "fdeed8dabfd9c2b5a54b5ca63548a5f4e3d905e2cfe8338462debb2589ec03e2"
+      },
+      "reviewerB": {
+        "reviewerSlot": "B",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-b-1-ee674d03-01d2-4ce7-bb3b-9c38e6c0496b",
+        "attemptId": "attempt-b-1-a730245f-5f21-4c30-aea6-edbb6b50fad1",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-b-1-ee674d03-01d2-4ce7-bb3b-9c38e6c0496b",
+            "attemptId": "attempt-b-1-a730245f-5f21-4c30-aea6-edbb6b50fad1",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "fdeed8dabfd9c2b5a54b5ca63548a5f4e3d905e2cfe8338462debb2589ec03e2"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 11,
+          "nonHeaderIngredientRowCount": 11,
+          "stepCount": 4,
+          "reviewedCellCount": 44
+        },
+        "acceptedRelationshipCount": 18,
+        "normalizedOutputHash": "fdeed8dabfd9c2b5a54b5ca63548a5f4e3d905e2cfe8338462debb2589ec03e2"
+      },
+      "unionMath": {
+        "reviewerAAcceptedCount": 18,
+        "reviewerBAcceptedCount": 18,
+        "intersectionCount": 18,
+        "unionCount": 18,
+        "candidateCount": 18
+      },
+      "routingSummary": {
+        "candidateCount": 18,
+        "autoAcceptCount": 4,
+        "reviewRequiredCount": 14,
+        "autoRejectCount": 0
+      },
+      "approvalBlocked": true,
+      "blockingReasons": [
+        "CANDIDATE_REVIEW_REQUIRED"
+      ],
+      "reviewCompleteWithoutHuman": false,
+      "candidates": [
+        {
+          "candidateId": "mc1:00818d4ef549378b0dd5c9adf530e0a5c77ba176f73fb5a04205554fcd6d2f75",
+          "ingredientRowIndex": 0,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:cf6586b43076e1eb2b172836492ba07ef0db96a5a78fa0040851ca0f309e7d61",
+          "ingredientRowIndex": 0,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK",
+            "COLLECTIVE_REFERENCE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d6a5bd44b6e6abbd8bcd2c1673dad2889040321f756ea32758215d44a27efc3f",
+          "ingredientRowIndex": 1,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:da5f0865a719fd354b7bcbba37dbc3ab413f903eaba6c9cb263a8b7e7c611785",
+          "ingredientRowIndex": 1,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK",
+            "COLLECTIVE_REFERENCE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:3e08388228221333a18ab3789839032c09c92bb0352935800d81a757bbc98787",
+          "ingredientRowIndex": 2,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:16bf431d5bc1dada4207c276f2be3f873564dd6e18b61e151c2fdfe9b68af5b5",
+          "ingredientRowIndex": 2,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK",
+            "COLLECTIVE_REFERENCE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:4e87fa440056a4623c74c588d2cf568e8f15ba676c3f4cf80ecf66a2d4d1002e",
+          "ingredientRowIndex": 3,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:01aaa141ceda27030a0a8e81f9d5f1c2fe5ff100cd9cd99847eb9ff5a2cc0b3b",
+          "ingredientRowIndex": 3,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK",
+            "COLLECTIVE_REFERENCE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:a0ee5b9df8ce663da62e6508617eba337e0dad6bf906aafb7e27fa7c42a141ea",
+          "ingredientRowIndex": 4,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d5e620a7526d90f00faf7e49dcf55717d66ac70c87b30ed602ccccee16f37736",
+          "ingredientRowIndex": 4,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:1a8eb8b279fa1e0e48817bb8ba4686e0fdd6d4b7732879c1e8698396d34892c0",
+          "ingredientRowIndex": 5,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:dd824533c3eaafb4e4c6ef45d321b1fb146ceea89339150ccf20f23488637c17",
+          "ingredientRowIndex": 6,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d35e7c49f469c84eb1e8aca7d1f83fc2562acd6d647d57aa8e17a05978f00cc3",
+          "ingredientRowIndex": 6,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:3226a8e0f4723a279442e4f094142e3f32dba39011a897c74ae98c7b8a067228",
+          "ingredientRowIndex": 7,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:6009d2189f98151402255f9a82a08d7afe7994a4d042404fa1eeaa1b7176d7a2",
+          "ingredientRowIndex": 7,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:98b3ef2a3c42aff446d6cadb56fc2cd1f171e40b7f5510a5c3bc8dd439a906d9",
+          "ingredientRowIndex": 8,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:e55efd5c7aaeaf4cf1a1d4bf5bac66caf7b0d4d388604758d7c02f7f4fd98fd2",
+          "ingredientRowIndex": 9,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "QUANTITY_CONFLICT_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:b328d4c685d03116f30383c416b249c2fd0a212f13af113b87c543449ef4ba06",
+          "ingredientRowIndex": 10,
+          "stepIndex": 3,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        }
+      ]
+    },
+    {
+      "recipeId": "chickpea-and-fennel-ratatouille",
+      "title": "Chickpea and Fennel Ratatouille",
+      "selectionReason": "seasoning historically-difficult case (salt/pepper \"to taste\" false positives in prior audits)",
+      "sourceEvidenceHash_fromAudit": "d677727b101ec0308e906080dd7f6811b0dea5335ea9be845fb2b1fbf3a83f35",
+      "recipeRevision": "recipe-content-v1:sha256:d677727b101ec0308e906080dd7f6811b0dea5335ea9be845fb2b1fbf3a83f35",
+      "mappingSourceHash": "d677727b101ec0308e906080dd7f6811b0dea5335ea9be845fb2b1fbf3a83f35",
+      "parserVersion": "recipe-content-v1",
+      "proposalId": "mp1:d009dec9da652d0ef1d19d189a7814b009b609b3c3df50ea89b5305203e1cb87",
+      "startedAt": "2026-08-28T22:59:39.751Z",
+      "completedAt": "2026-08-28T22:59:48.028Z",
+      "error": null,
+      "reviewerA": {
+        "reviewerSlot": "A",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-a-1-b0a1bea2-be4c-418c-aeec-1e23b48d0a82",
+        "attemptId": "attempt-a-1-56f6c85d-6bcf-4e7a-8f04-055f7cdb1a3a",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-a-1-b0a1bea2-be4c-418c-aeec-1e23b48d0a82",
+            "attemptId": "attempt-a-1-56f6c85d-6bcf-4e7a-8f04-055f7cdb1a3a",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "4f0422809448a663a5f8b7b8d1c752ed43ce06d024af139fb55470362918a779"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 12,
+          "nonHeaderIngredientRowCount": 12,
+          "stepCount": 3,
+          "reviewedCellCount": 36
+        },
+        "acceptedRelationshipCount": 32,
+        "normalizedOutputHash": "4f0422809448a663a5f8b7b8d1c752ed43ce06d024af139fb55470362918a779"
+      },
+      "reviewerB": {
+        "reviewerSlot": "B",
+        "modelId": "openai/gpt-5.6-luna",
+        "reviewerContractVersion": "cooking-mapping-reviewer-v1",
+        "promptVersion": "cooking-mapping-reviewer-prompt-v1",
+        "parseStatus": "VALID",
+        "runId": "run-b-1-963c7e7c-630c-497c-9362-9c91cb1503e4",
+        "attemptId": "attempt-b-1-0e2a9e7a-55b2-485e-8e30-b3c728e55799",
+        "attempt": 1,
+        "attemptCount": 1,
+        "attempts": [
+          {
+            "attempt": 1,
+            "runId": "run-b-1-963c7e7c-630c-497c-9362-9c91cb1503e4",
+            "attemptId": "attempt-b-1-0e2a9e7a-55b2-485e-8e30-b3c728e55799",
+            "parseStatus": "VALID",
+            "failure": null,
+            "diagnosticCode": null,
+            "outputHash": "4f0422809448a663a5f8b7b8d1c752ed43ce06d024af139fb55470362918a779"
+          }
+        ],
+        "coverage": {
+          "ingredientRowCount": 12,
+          "nonHeaderIngredientRowCount": 12,
+          "stepCount": 3,
+          "reviewedCellCount": 36
+        },
+        "acceptedRelationshipCount": 32,
+        "normalizedOutputHash": "4f0422809448a663a5f8b7b8d1c752ed43ce06d024af139fb55470362918a779"
+      },
+      "unionMath": {
+        "reviewerAAcceptedCount": 32,
+        "reviewerBAcceptedCount": 32,
+        "intersectionCount": 32,
+        "unionCount": 32,
+        "candidateCount": 32
+      },
+      "routingSummary": {
+        "candidateCount": 32,
+        "autoAcceptCount": 9,
+        "reviewRequiredCount": 23,
+        "autoRejectCount": 0
+      },
+      "approvalBlocked": true,
+      "blockingReasons": [
+        "CANDIDATE_REVIEW_REQUIRED"
+      ],
+      "reviewCompleteWithoutHuman": false,
+      "candidates": [
+        {
+          "candidateId": "mc1:8bec9abe4f1f24d27bcc8252cdf8bf9ebcabb26fc3b89b6bfc9f5ee09c783cac",
+          "ingredientRowIndex": 0,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:823995d8a2bb1479fc130d6988fc8a9ea15cb74dc9eabb3eb76c1ad6c11e19dc",
+          "ingredientRowIndex": 0,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:2619f6d2aba7f4e4d22473fe627dc6259a723fab9ea0448b560f93cf9e08f1b9",
+          "ingredientRowIndex": 0,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:0e9555cf872cc6968b3e1c36691cb53acb187e78df6f833f0114672ccd20d602",
+          "ingredientRowIndex": 1,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:b6e474bcdf21a72abe1c77717fdff1a01422a4f57164124e1143b11055fd4b3b",
+          "ingredientRowIndex": 1,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:a41b5ea68a155372468c0df9e717a4e4f62d557c9e403ec44cd7be0e2ecf6076",
+          "ingredientRowIndex": 1,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:432aa34984786f3b6effa58d59dc6c9e4e28ce344c49a896ef9d364b7bca19b9",
+          "ingredientRowIndex": 2,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:c8a173ef23a107328328644516579fcadb12ef2efcb252fbc710edb25a934aaa",
+          "ingredientRowIndex": 2,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:54f063f2e86da28f57b77921eae3c3750101a78b647031f06c452a5211d5d482",
+          "ingredientRowIndex": 2,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:4e4f2160073eaf8ed48a0e1098e9f8f33b0fd7b17c4da3636c1c7de398f6b72a",
+          "ingredientRowIndex": 3,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:b6d243957d55b7c75cd63ac9c738568a0cf1a1ac322486f8d05f51d44df99609",
+          "ingredientRowIndex": 3,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:fb8106b7e84d42b3baab043a58a27f85314960604be0d1633027a2ca658a8377",
+          "ingredientRowIndex": 3,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:f63c5490ddeae2d7593a3d15fd6bbfe3a637268aaab5aab14165f755e992c0e3",
+          "ingredientRowIndex": 4,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:e84630edfad007ba3b14031c844887175f5a1eca65a4c118b717e924e0ef3b2f",
+          "ingredientRowIndex": 4,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:64ca89056689af008b7a0ea3415774ce41b1c07a62ff923196f43e5a57302bd0",
+          "ingredientRowIndex": 4,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:abdd1959bceb6c8bbf89064391da8677ca69252bca717791dc4346ddbfc0ae92",
+          "ingredientRowIndex": 5,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:71106def8440611dd2064cab0a443908bdf3cf1ead15f42c65732584f48d87b5",
+          "ingredientRowIndex": 5,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:7b1ebd7180a129bd0baff639c8ac4440958a35680ffe33d4f49092dd6f292ff4",
+          "ingredientRowIndex": 5,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:b7e0ad4c3d9c8cf00e28629af3b7ccccfa69c989f9e07aa2b3ff54133e55f297",
+          "ingredientRowIndex": 6,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:6fd00654416e5697cb2a0873e1467b47fc66a93e3d04a5c36c774aa93cdcc088",
+          "ingredientRowIndex": 6,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:73860b2bd9c3004b29436c870efbdca2f9601f313fff139779972d3e947bcc6f",
+          "ingredientRowIndex": 6,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:c55a9696043c473e758537890c2ceafd55ab0c43acf9acbb551e7a52777a5a9c",
+          "ingredientRowIndex": 7,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:095b7140f6bd17aca740ee6ee5090ac2c43999403d3ea92363635924a2a48600",
+          "ingredientRowIndex": 7,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:4c6e0f786e50aa826e1d6d1ae42743194ef0ace560ce6d84a53d2bb5d8c1b08f",
+          "ingredientRowIndex": 7,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:01c0482f9a67b56e69bc8c2402d2b2e9961b9833fbeb8af58ffcba7800c5db7f",
+          "ingredientRowIndex": 8,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [],
+          "routingDecision": "AUTO_ACCEPT",
+          "routingReasons": [
+            "AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK"
+          ],
+          "reviewStatus": "NOT_REQUIRED",
+          "finalDecision": "ACCEPT"
+        },
+        {
+          "candidateId": "mc1:b96a753abcd32c3caf208c572837de57bd7c682b4f56f3f7e877a588d5277ddf",
+          "ingredientRowIndex": 8,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:128d07d7a184be51df5cc3ea4279e27e2a6b94caa4f51e68f81eabb004e8f01b",
+          "ingredientRowIndex": 8,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:f3682336d281a6fd3f8ae66dc89e0aa6d2161b1312ccf611b6b60e986414de75",
+          "ingredientRowIndex": 9,
+          "stepIndex": 0,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "PARTIAL_IDENTITY_MATCH_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:6a5ed258f7ea3a7d096eba2cada0085c977ded3bbfe5f5124713b79b0ac0affa",
+          "ingredientRowIndex": 9,
+          "stepIndex": 1,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "COMPONENT_CONTAINMENT_RISK",
+            "LIFECYCLE_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:d29b9bee7f66fde08b7e4588bfabcb5c171434c64f9cbee5d21d29eab4d70320",
+          "ingredientRowIndex": 9,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "LIFECYCLE_RISK",
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:217b3bb94073a931811c48992f7478da4d938b87032b7119a0bd1355ca578802",
+          "ingredientRowIndex": 10,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        },
+        {
+          "candidateId": "mc1:e55edfcb53012d8b0d8656a9a1f00c3b93f1e29e031195dbe0fd90ba91acc659",
+          "ingredientRowIndex": 11,
+          "stepIndex": 2,
+          "reviewerAVote": "ACCEPT",
+          "reviewerBVote": "ACCEPT",
+          "risks": [
+            "CONTEXT_ONLY_RISK"
+          ],
+          "routingDecision": "REVIEW_REQUIRED",
+          "routingReasons": [
+            "DETERMINISTIC_RISK_PRESENT"
+          ],
+          "reviewStatus": "PENDING",
+          "finalDecision": null
+        }
+      ]
+    }
+  ],
+  "repeatRunResult": {
+    "recipeId": "caprese-salad",
+    "run1ProposalId": "mp1:5704eb103bca47150b5b250b3210c94159a857cd186e0b6915d6156d4e7d7de2",
+    "run2ProposalId": "mp1:5704eb103bca47150b5b250b3210c94159a857cd186e0b6915d6156d4e7d7de2",
+    "proposalIdIdentical": true,
+    "recipeRevisionIdentical": true,
+    "candidateIdSetIdentical": true,
+    "candidateCount": 12,
+    "run1ReviewerRunIds": [
+      "run-a-1-fb57eb07-4345-4d11-8d17-e8e5c0a42988",
+      "run-b-1-ebc137b6-f2f3-4538-b124-629896665720"
+    ],
+    "run2ReviewerRunIds": [
+      "run-a-1-d1763a7e-7aa2-40f6-90f3-cdcd9324284c",
+      "run-b-1-6c63bb0d-0d8b-4bdb-9cca-8ff99bc84343"
+    ],
+    "reviewerRunIdsDistinctAcrossRuns": true,
+    "run1ReviewerAOutputHash": "1d0ce17ed4f1b52f0a633722ace386a8a482b0c121a5e687058ed3d8c7776769",
+    "run2ReviewerAOutputHash": "1d0ce17ed4f1b52f0a633722ace386a8a482b0c121a5e687058ed3d8c7776769",
+    "reviewerAOutputIdenticalAcrossRuns": true,
+    "run1ReviewerBOutputHash": "d3f7a43fed36d181575dcdb2cfb3d4dd39bd15287f40c2a9ff1527d70ad5756a",
+    "run2ReviewerBOutputHash": "1d0ce17ed4f1b52f0a633722ace386a8a482b0c121a5e687058ed3d8c7776769",
+    "reviewerBOutputIdenticalAcrossRuns": false,
+    "candidatesWithDifferingVotesOrDecisionAcrossRuns": [
+      {
+        "candidateId": "mc1:1e15b5c4191bfef617d37e2c99a86f34189ca17d1f45ea7dda6324d31113fa2d",
+        "run1": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "REJECT",
+          "routingDecision": "REVIEW_REQUIRED"
+        },
+        "run2": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "ACCEPT",
+          "routingDecision": "REVIEW_REQUIRED"
+        }
+      },
+      {
+        "candidateId": "mc1:af797a6182dd6e46b6f8f010dfca0a32574b38fe9e6472b6c86757439613e09c",
+        "run1": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "REJECT",
+          "routingDecision": "REVIEW_REQUIRED"
+        },
+        "run2": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "ACCEPT",
+          "routingDecision": "REVIEW_REQUIRED"
+        }
+      },
+      {
+        "candidateId": "mc1:641dfeb04fda84a7df49b7d76a23b8c467ec12640538ad48c28b905d603ad064",
+        "run1": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "REJECT",
+          "routingDecision": "REVIEW_REQUIRED"
+        },
+        "run2": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "ACCEPT",
+          "routingDecision": "REVIEW_REQUIRED"
+        }
+      },
+      {
+        "candidateId": "mc1:2d3dec47e2b9d56cc076f753e73dce107b1857bf8051313ebd3583568a7573b4",
+        "run1": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "REJECT",
+          "routingDecision": "REVIEW_REQUIRED"
+        },
+        "run2": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "ACCEPT",
+          "routingDecision": "REVIEW_REQUIRED"
+        }
+      },
+      {
+        "candidateId": "mc1:29e62580ad7fcbcd1491e290433cc9d39e525ced314d16d9f82d47be790b22ac",
+        "run1": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "REJECT",
+          "routingDecision": "REVIEW_REQUIRED"
+        },
+        "run2": {
+          "reviewerA": "ACCEPT",
+          "reviewerB": "ACCEPT",
+          "routingDecision": "REVIEW_REQUIRED"
+        }
+      }
+    ],
+    "operationalConclusion": "proposalId, recipeRevision, and the full candidateId set were identical across both runs (logical identity is stable/idempotent as designed). Reviewer A returned byte-identical accepted relationships and output hash in both runs; reviewer B non-deterministically accepted 5 additional relationships in run 2 that it had rejected in run 1. In all 5 cases the routingDecision stayed REVIEW_REQUIRED in both runs (unchanged) because deterministic V1 risk evidence (LIFECYCLE_RISK) was present regardless of reviewer agreement, i.e. the risk-gate correctly prevented the reviewer-agreement flip from silently becoming AUTO_ACCEPT. This is expected, architecturally-accepted reviewer nondeterminism per contract \u00a79/\u00a716, not a defect."
+  },
+  "semanticSpotCheck": {
+    "findings": [
+      {
+        "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+        "finding": "AUTO_ACCEPT correctly captured the sear step (oil/potatoes/garlic/herbs) and the butter+steak step. REVIEW_REQUIRED correctly flagged the divided-butter row (QUANTITY_CONFLICT_RISK, since butter is used twice) and the herb-garnish step (LIFECYCLE_RISK, herbs already used once). No nonsensical relationships observed."
+      },
+      {
+        "recipeId": "grilled-zucchini-and-summer-squash",
+        "finding": "AUTO_ACCEPT correctly captured the full toss step (all 6 non-basil ingredients) and the basil-garnish step. REVIEW_REQUIRED correctly flagged the grill/transfer steps referring back to zucchini/squash rows as LIFECYCLE_RISK (continuation of an already-used row) rather than silently auto-accepting reviewer agreement on a continuation. This matches the recipe's selection rationale (whole-dish continuation)."
+      },
+      {
+        "recipeId": "caprese-salad",
+        "finding": "AUTO_ACCEPT correctly captured the plating, basil-tuck, oil/balsamic-drizzle, and salt/pepper-season steps against the exact rows they name. REVIEW_REQUIRED correctly flagged the final 'season with salt and pepper, and serve immediately' step re-firing against tomato/mozzarella/basil/oil as LIFECYCLE_RISK -- a textbook collective/whole-dish reference the router declines to auto-accept even though both reviewers agreed. Matches the recipe's selection rationale (pronoun/collective reference)."
+      },
+      {
+        "recipeId": "sheet-pan-bibimbap",
+        "finding": "AUTO_ACCEPT correctly captured direct sheet-pan additions (kale, salt/pepper), the egg-crack step, and the kimchi-serving step. REVIEW_REQUIRED correctly flagged the final 'divide the rice... divide the vegetables' assembly step against the individual vegetable rows with COMPONENT_CONTAINMENT_RISK + LIFECYCLE_RISK + COLLECTIVE_REFERENCE_RISK stacked together -- exactly the component-boundary/leakage risk class this recipe was selected to exercise, and the router held it to review despite reviewer agreement."
+      },
+      {
+        "recipeId": "chickpea-and-fennel-ratatouille",
+        "finding": "AUTO_ACCEPT correctly captured the single combine-everything step against all 9 listed rows including salt/pepper/oil. Both live reviewers ACCEPTed re-firing salt, pepper, and olive oil against the second (roasting) step -- the exact CONSUMED_ROW-style generic-seasoning false-positive class flagged in the prior offline v10b audit -- but the router correctly downgraded all three to REVIEW_REQUIRED on COMPONENT_CONTAINMENT_RISK + LIFECYCLE_RISK. This is direct live evidence that the V1 risk gate prevents this historically-difficult class from silently auto-accepting even when both live reviewers agree."
+      }
+    ],
+    "systemicConcern": false,
+    "conclusion": "No obviously nonsensical relationships were observed in any AUTO_ACCEPT set across the 5 recipes. The single most notable finding is the chickpea-and-fennel-ratatouille case: both live reviewers agreed to accept a generic-seasoning re-trigger (salt/pepper/oil re-fired against a later roasting step) that a prior offline audit had flagged as a false-positive class, and the deterministic V1 risk gate correctly forced that agreement to REVIEW_REQUIRED instead of AUTO_ACCEPT. This is exactly the failure-closed behavior the routing contract is designed to produce and is a positive result, not a concern."
+  },
+  "failureClosedBehaviorObserved": {
+    "structuralInvalidityAutoReject": "Not exercised live (0 AUTO_REJECT candidates across all 6 proposals; the real parsed recipe data used contained no structurally invalid index). Covered by existing router unit tests (tests/cookingModeMappingCore.test.ts), re-run and passing.",
+    "riskAlwaysWinsOverAgreement": "Observed live and directly verified by code cross-check: every candidate where both reviewers ACCEPT but deterministicEvidence.risks is non-empty routed to REVIEW_REQUIRED, never AUTO_ACCEPT, across all 97 unique candidates generated.",
+    "disagreementAlwaysGoesToReview": "Observed live and verified: every candidate where reviewerA.vote != reviewerB.vote routed to REVIEW_REQUIRED.",
+    "noPartialApproval": "All 6 proposals correctly reported approvalBlocked: true with blockingReasons containing CANDIDATE_REVIEW_REQUIRED whenever any REVIEW_REQUIRED candidate existed; none proceeded to an implicit approved state."
+  },
+  "architectureSafety": {
+    "firestoreReadsForNewMappingPipeline": 0,
+    "firestoreWrites": 0,
+    "recipeWrites": 0,
+    "mapWrites": 0,
+    "reviewRecordWrites": 0,
+    "deployments": 0,
+    "note": "Recipe source data was read from an existing local audit JSON file already committed to the repo, not from Firestore."
+  },
+  "testsAndVerification": {
+    "focusedMappingTestsRunBeforeAndAfter": [
+      "tests/cookingModeMappingOrchestration.test.ts",
+      "tests/cookingModeMappingCore.test.ts",
+      "tests/cookingStepBlindReviewerAi.test.ts",
+      "tests/cookingModeReviewRoutingContract.test.js"
+    ],
+    "focusedMappingTestsResult": "129 passed / 129",
+    "newTestsAdded": 0,
+    "newTestsReason": "No implementation defect was found; the live pipeline executed correctly on the first attempt for all 12 reviewer calls, so Phase 15's 'no code change required -> no new tests required' rule applies.",
+    "fullSuiteResult": "1087 passed, 1 skipped / 1088 total (pre-existing skip, unrelated to this session)",
+    "lint": "0 errors, 6 pre-existing warnings unrelated to this session (next/image usage + one stale eslint-disable in scripts/reaudit-canonical.js)",
+    "typecheck": "PASSED (after removing the pre-existing stray duplicate files noted above, which had corrupted Next's generated route types)",
+    "build": "PASSED (next build, Turbopack, 27 routes)"
+  },
+  "finalGate": "PASS \u2014 LIVE REVIEWER PIPELINE VALIDATED",
+  "nextTask": "DESIGN AND IMPLEMENT MAPPING PROPOSAL / REVIEW / APPROVED-MAP PERSISTENCE",
+  "outOfScopeConfirmed": {
+    "corpusExpansion": "not performed -- exactly 5 recipes + 1 repeated pair",
+    "promptTuning": "not performed -- reviewer system prompt (MAPPING_REVIEWER_SYSTEM_PROMPT) untouched",
+    "routingPolicyChange": "not performed -- lib/cookingModeMappingRouter.ts untouched (hash identical pre/post)",
+    "newRisksOrHeuristics": "not performed",
+    "persistence": "not performed -- zero Firestore reads/writes"
+  }
+}
