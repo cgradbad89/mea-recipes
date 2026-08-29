@@ -178,12 +178,12 @@ No additive corpus rollout is authorized. The remaining product decision is whet
 ## 20. Files modified
 
 - `PRD.md` — records the accepted 90%/80% practical standard and failed additive validation.
-- `tests/cookingModeAdditivePracticalQuality.test.ts` — deterministic replay of the frozen reviewers through the production proposal builder and audit-metric assertions.
 
 ## 21. Files created
 
 - `docs/audits/cooking-mode-additive-practical-quality-validation-2026-08-29.json`
 - `docs/audits/cooking-mode-additive-practical-quality-validation-2026-08-29.md`
+- `tests/cookingModeAdditivePracticalQuality.test.ts` — deterministic replay of the frozen reviewers through the production proposal builder and audit-metric assertions.
 
 ## 22. Design gate
 
