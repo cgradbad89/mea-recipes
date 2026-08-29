@@ -175,6 +175,16 @@ describe('Cooking Mode mapping cutover', () => {
     expect(within(allIngredientsModal()).queryByText('Prepared: Green sauce')).toBeNull()
   })
 
+  it('renders the effective Green Chile Sauce override as a non-checkable heading', () => {
+    renderMode(['Green Chile Sauce!', '2 tbsp olive oil'], ['Heat the olive oil.'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'All Ingredients' }))
+    const modal = allIngredientsModal()
+    expect(within(modal).getByRole('heading', { name: 'Green Chile Sauce!' })).not.toBeNull()
+    expect(within(modal).queryByRole('button', { name: 'Green Chile Sauce!' })).toBeNull()
+    expect(within(modal).getByRole('button', { name: '2 tbsp olive oil' })).not.toBeNull()
+  })
+
   it('renders a remaining usage qualifier without changing raw ingredient text', () => {
     renderMode(['4 tbsp olive oil'], ['Add the remaining olive oil.'])
     fireEvent.click(screen.getByRole('button', { name: /1 Ingredient/ }))
