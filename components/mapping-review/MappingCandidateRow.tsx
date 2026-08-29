@@ -128,7 +128,7 @@ export default function MappingCandidateRow({ candidate, busy, error, onDecide, 
             {historyLoading && <p className="text-faint text-xs font-body">Loading…</p>}
             {historyError && <p role="alert" className="text-red-400 text-xs font-body">{historyError}</p>}
             {history && history.length === 0 && <p className="text-faint text-xs font-body">No decisions recorded yet.</p>}
-            {history?.map(event => (
+            {history?.slice().reverse().map(event => (
               <p key={event.decisionId} className="text-faint text-xs font-body">
                 {event.decision === 'ACCEPT' ? 'Included' : 'Excluded'} — {MAPPING_HUMAN_REVIEW_REASON_LABELS[event.reasonCode]}
                 {event.note ? ` — “${event.note}”` : ''}

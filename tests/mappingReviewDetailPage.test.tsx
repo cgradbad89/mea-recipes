@@ -255,4 +255,32 @@ describe('MappingReviewRecipePage — non-happy-path states', () => {
     // Not auto-approved — still gated behind the explicit attestation checkbox.
     expect(screen.queryByRole('button', { name: /Approve Cooking Mode map$/ })).toBeNull()
   })
+
+  // Regression (E2E workflow validation, 2026-08-29): getMappingReviewHistory's persisted
+  // contract returns a candidate's decision chain oldest-first (lib/cookingModeMappingReviewPersistence.ts).
+  // Design §9 requires the on-demand History disclosure to read newest-first; the UI must
+  // reverse the fetched chain rather than render the persistence order directly.
+  it('shows candidate decision history newest-first, not the persisted oldest-first order', async () => {
+    const state = freshState()
+    mocks.useParams.mockReturnValue({ recipeId: 'recipe-1' })
+    mocks.useAuth.mockReturnValue({ user: adminUser, loading: false })
+    mocks.useAdminAccess.mockReturnValue({ isAdmin: true, checked: true })
+    mocks.fetchMappingReviewRecipe.mockReset().mockResolvedValue(state)
+    mocks.fetchMappingCandidateHistory.mockReset().mockResolvedValue([
+      { decisionId: 'mr1:old', candidateId: 'mc1:flour', proposalId: 'mp1:a', recipeRevision: 'rev-1', decision: 'REJECT', reasonCode: 'SOURCE_NO_ACTIVE_USE', note: null, decidedAt: '2026-08-29T00:00:00.000Z', decidedBy: 'admin-uid', supersedesDecisionId: null },
+      { decisionId: 'mr1:new', candidateId: 'mc1:flour', proposalId: 'mp1:a', recipeRevision: 'rev-1', decision: 'ACCEPT', reasonCode: 'SOURCE_EXPLICIT_USE', note: null, decidedAt: '2026-08-29T00:05:00.000Z', decidedBy: 'admin-uid', supersedesDecisionId: 'mr1:old' },
+    ])
+
+    render(<MappingReviewRecipePage />)
+    await waitFor(() => expect(screen.getByText('1 cup flour')).toBeTruthy())
+
+    fireEvent.click(screen.getByRole('button', { name: /History/ }))
+    await waitFor(() => expect(screen.getByText(/Explicitly used on this step/)).toBeTruthy())
+    expect(screen.getByText(/Not actually used on this step/)).toBeTruthy()
+
+    const historyText = screen.getByText(/Explicitly used on this step/).parentElement!.parentElement!.textContent!
+    // The latest decision (Included — Explicitly used) must render before the
+    // superseded one (Excluded — Not actually used), matching design §9's "newest first".
+    expect(historyText.indexOf('Explicitly used')).toBeLessThan(historyText.indexOf('Not actually used'))
+  })
 })

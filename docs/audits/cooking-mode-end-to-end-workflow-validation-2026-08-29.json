@@ -1,0 +1,285 @@
+{
+  "type": "VALIDATION",
+  "date": "2026-08-29",
+  "title": "Cooking Mode Implementation 7: End-to-End Mapping Workflow Validation",
+  "gate": "PASS — END-TO-END MAPPING WORKFLOW VALIDATED",
+  "startingState": {
+    "branch": "main",
+    "head": "b78e683bc455bc806962272c1c06e5a8d8ab68d9",
+    "originMain": "b78e683bc455bc806962272c1c06e5a8d8ab68d9",
+    "matchedExpectedCheckpoint": true,
+    "preExistingDirtyState": {
+      "modified": ["docs/audits/cooking-mode-v10f-lite-active-object-go-no-go-2026-08-28.json"],
+      "untracked": [".claude/launch.json", ".eslintrc.json", "firebase-debug 2.log", "firestore-debug.log"],
+      "preserved": true
+    }
+  },
+  "baselineVerification": {
+    "lint": { "errors": 0, "warnings": 6, "note": "identical pre-existing warnings" },
+    "typecheck": "PASSED",
+    "build": { "result": "PASSED", "routes": 34 },
+    "test": {
+      "totalFiles": 97,
+      "failedFiles": 1,
+      "totalTests": 1288,
+      "failed": 1,
+      "passed": 1286,
+      "skipped": 1,
+      "knownFailure": {
+        "file": "tests/cookingModeV10DPrincipalTarget.test.js",
+        "error": "ENOENT /tmp/cooking-step-arbiter-v10a-2026-08-28-state.json",
+        "reconfirmed": true,
+        "relatedToThisWork": false,
+        "repaired": false
+      }
+    },
+    "gitDiffCheck": "clean"
+  },
+  "environmentPrerequisites": {
+    "firebaseAdminConfig": "present (.env.local, .env — FIREBASE_PROJECT_ID/FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY)",
+    "aiGatewayAuth": "present (VERCEL_OIDC_TOKEN) — confirmed live-functional by 6 successful reviewer calls",
+    "firebaseAuthAdminIdentityPath": "confirmed via custom-token mint + Identity Toolkit exchange (scripts/_lib.js pattern), admin:true custom claim honored by hasAdminAccessClaims",
+    "mappingReviewServerRoutesInitialize": true,
+    "manualFirestoreConsoleRuleChangeNeeded": false,
+    "manualFirestoreConsoleRuleChangeReason": "All mapping persistence and review-UI writes go through Admin-SDK server routes (verifyAdminToken-gated), which bypass Firestore security rules entirely; the review UI never talks to Firestore directly. No new browser-side Firestore access path was introduced or exercised."
+  },
+  "validationSet": [
+    {
+      "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+      "title": "GARLIC BUTTER HERB STEAK BITES WITH POTATOES",
+      "reason": "Recipe A — straightforward: expected mix of AUTO_ACCEPT and REVIEW_REQUIRED (9 rows / 3 steps), matches prior live-reviewer-validation baseline exactly",
+      "recipeRevision": "recipe-content-v1:sha256:12d66c715191dea38fb8cd26c21100b252ca1466b0ccfc9a580d380e607de31c",
+      "preExistingMappingData": "none (0 proposals, 0 approved maps, no pointer)"
+    },
+    {
+      "recipeId": "caprese-salad",
+      "title": "Caprese Salad",
+      "reason": "Recipe B — selected for semantic ambiguity (reviewer disagreement in prior offline validation); this live run instead produced full reviewer agreement with 0 REVIEW_REQUIRED candidates, so it was repurposed to validate the distinct zero-review-required/auto-only completeness-attestation code path (design §13)",
+      "recipeRevision": "recipe-content-v1:sha256:18a822baf7f445bf2e21608bf808aac3d06d1568aab70f9c9eaa3ae72615c2fe",
+      "preExistingMappingData": "none"
+    },
+    {
+      "recipeId": "grilled-zucchini-and-summer-squash",
+      "title": "Grilled Zucchini and Summer Squash",
+      "reason": "Recipe C — completeness correction; this live run produced genuine reviewer disagreement (Reviewer A Exclude / Reviewer B Include on multiple candidates), so it served as the semantic-ambiguity/reviewer-disagreement exercise in place of Caprese Salad, and was left intentionally unapproved (In progress) to validate that state and correct non-auto-approval",
+      "recipeRevision": "recipe-content-v1:sha256:7ed87f545dc6bfb7edae65d1616add9b31c003d2567270db45012ddb57ba011e",
+      "preExistingMappingData": "none"
+    }
+  ],
+  "ingestionTrigger": {
+    "endpoint": "POST /api/mapping/generate",
+    "authTest": {
+      "unauthenticated": "HTTP 401 {\"error\":\"Unauthorized\"}",
+      "authenticatedNonAdmin": "HTTP 401 {\"error\":\"Unauthorized\"}"
+    },
+    "results": [
+      { "recipeId": "garlic-butter-herb-steak-bites-with-potatoes", "outcome": "GENERATED", "proposalId": "mp1:3ff875d20516ba345307ec497186937faebcb2878439891f9cf2c87c50af542c", "candidateCount": 13, "autoAcceptCount": 8, "reviewRequiredCount": 5, "approvalBlocked": true },
+      { "recipeId": "caprese-salad", "outcome": "GENERATED", "proposalId": "mp1:5704eb103bca47150b5b250b3210c94159a857cd186e0b6915d6156d4e7d7de2", "candidateCount": 7, "autoAcceptCount": 7, "reviewRequiredCount": 0, "approvalBlocked": false },
+      { "recipeId": "grilled-zucchini-and-summer-squash", "outcome": "GENERATED", "proposalId": "mp1:bb9d6d2790a7252f5722eaa813bc5162bc13eb8b6a9f1df24683590a7738a1b4", "candidateCount": 22, "autoAcceptCount": 8, "reviewRequiredCount": 14, "approvalBlocked": true }
+    ],
+    "liveAiCalls": 6,
+    "aiCallCap": 6,
+    "retries": 0
+  },
+  "idempotency": {
+    "recipe": "garlic-butter-herb-steak-bites-with-potatoes",
+    "replayOutcome": "REUSED_EXISTING",
+    "sameProposalId": true,
+    "sameRecipeRevision": true,
+    "sameCandidateCounts": true,
+    "additionalAiCallsObserved": 0,
+    "evidence": "dev-server [ai-usage] log contained exactly 6 entries (3 recipes x 2 reviewers) both before and after the replay call; replay wall time 0.498s vs 6.544s for the original generation",
+    "result": "PASS"
+  },
+  "reviewQueue": {
+    "route": "/mapping-review",
+    "initialStates": {
+      "caprese-salad": "Ready for final approval",
+      "garlic-butter-herb-steak-bites-with-potatoes": "Needs review, 8 of 13 reviewed",
+      "grilled-zucchini-and-summer-squash": "Needs review, 8 of 22 reviewed"
+    },
+    "finalStates": {
+      "caprese-salad": "Approved, 7 relationships",
+      "garlic-butter-herb-steak-bites-with-potatoes": "Approved, 14 relationships",
+      "grilled-zucchini-and-summer-squash": "In progress, 10 of 22 reviewed"
+    }
+  },
+  "authenticationMethod": {
+    "note": "No interactive Google OAuth session was available in the isolated validation browser. An admin-equivalent session was established by minting a Firebase custom token with an admin:true custom claim (server-side, via scripts/_lib.js's existing Admin-SDK pattern), exchanging it for an ID token via Identity Toolkit, and writing the resulting user record into the browser's IndexedDB firebaseLocalStorageDb store (the exact persistence shape the Firebase JS SDK's indexedDBLocalPersistence reads on load). This is a standard, non-destructive test-authentication technique; no real user credentials were used or exposed, and hasAdminAccessClaims() in lib/admin.ts grants admin access identically via admin:true claim or verified ADMIN_EMAIL — both paths are exercised by production code."
+  },
+  "visualVerification": [
+    { "screen": "Queue — desktop", "fidelity": "PASS" },
+    { "screen": "Queue — mobile", "fidelity": "PASS" },
+    { "screen": "Step review — desktop (agreement + risk chip + Include)", "fidelity": "PASS" },
+    { "screen": "Step review — desktop (multi-candidate step, correction, history disclosure)", "fidelity": "MINOR DEVIATION — see defects" },
+    { "screen": "Step review — mobile (reviewer disagreement example)", "fidelity": "PASS" },
+    { "screen": "Review-complete milestone card", "fidelity": "PASS" },
+    { "screen": "Completeness review (step-by-step, origin dots, add/remove control)", "fidelity": "PASS" },
+    { "screen": "Zero-review-required milestone card", "fidelity": "PASS" },
+    { "screen": "Approval panel (attested vs not-yet-attested states)", "fidelity": "PASS" },
+    { "screen": "Approved state (human-assisted copy vs fully-automatic copy)", "fidelity": "PASS" },
+    { "screen": "Blocked/stale state", "fidelity": "NOT LIVE-EXERCISED — relies on existing passing unit/component tests; live reproduction would have required an unsafe edit to a real recipe or an artificial evidence failure, both out of scope per task instructions" }
+  ],
+  "candidateReview": {
+    "include": "garlic-butter-herb-steak-bites-with-potatoes: '2 tablespoons butter, divided' (step 2) — Included",
+    "exclude": "garlic-butter-herb-steak-bites-with-potatoes: '1 teaspoon oregano, chopped' (step 3) — Excluded",
+    "correction": "same oregano candidate corrected Exclude -> Include via Change",
+    "history": "History disclosure showed both events (append-only chain of 2), confirmed via UI and via readback (reviewEvents subcollection)",
+    "additionalDisagreementExamples": "grilled-zucchini-and-summer-squash exhibited genuine Reviewer A Exclude / Reviewer B Include splits on 5 of 7 candidates in one step; 2 were resolved live (1 Include, 1 Exclude)"
+  },
+  "humanAddedRelationship": {
+    "recipe": "garlic-butter-herb-steak-bites-with-potatoes",
+    "added": { "ingredientRowIndex": 8, "ingredientText": "salt and pepper", "stepIndex": 2, "stepText": "Top the steak with fresh chopped herbs." },
+    "outcome": "CREATED, origin HUMAN_ADDED, finalDecision ACCEPT immediately",
+    "removed": true,
+    "reAdded": true,
+    "historyAppendOnly": true,
+    "duplicateProtection": {
+      "attempted": "row 6 (oregano) / step 2 — already an AI-discovered REVIEWER_UNION candidate",
+      "outcome": "ALREADY_AI_DISCOVERED",
+      "result": "no duplicate created; existing candidate returned untouched"
+    }
+  },
+  "completenessReview": {
+    "autoAcceptVisible": true,
+    "humanReviewedAcceptsVisible": true,
+    "humanAddedAcceptsVisible": true,
+    "originMarkers": "filled dot = AUTO, outlined = HUMAN — confirmed in completeness grid"
+  },
+  "attestation": {
+    "recipe": "garlic-butter-herb-steak-bites-with-potatoes",
+    "initialAttestationRecorded": true,
+    "approveButtonAbsentBeforeAttestation": true,
+    "invalidatedByRemovingHumanAddedRelationship": true,
+    "approveButtonAbsentAfterInvalidation": true,
+    "reAttestation": "re-adding the identical relationship restored the exact prior reviewStateHash, so the original attestation record (deterministic over proposalId+reviewStateHash) became valid again automatically without a second attest click — confirmed this is the designed pure read-time recomputation behavior (architecture-contract, not a defect), and confirmed via readback that exactly 1 completenessAttestations document exists",
+    "result": "PASS"
+  },
+  "approval": [
+    {
+      "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+      "mapId": "am1:6a144c3da698c3f77906638b194f6960d7f532b5377bd37343398922b43da386",
+      "mapHash": "6a144c3da698c3f77906638b194f6960d7f532b5377bd37343398922b43da386",
+      "proposalId": "mp1:3ff875d20516ba345307ec497186937faebcb2878439891f9cf2c87c50af542c",
+      "recipeRevision": "recipe-content-v1:sha256:12d66c715191dea38fb8cd26c21100b252ca1466b0ccfc9a580d380e607de31c",
+      "relationshipCount": 14,
+      "approvalMode": "HUMAN_ASSISTED",
+      "provenanceDistribution": { "AUTO_ACCEPT": 8, "HUMAN_REVIEW_ACCEPT": 5, "HUMAN_ADDED": 1 }
+    },
+    {
+      "recipeId": "caprese-salad",
+      "mapId": "am1:ecf8ef1f73f5bc5e5d890872a210def2c4bc7723f018b44c6fff558023f1bc59",
+      "mapHash": "ecf8ef1f73f5bc5e5d890872a210def2c4bc7723f018b44c6fff558023f1bc59",
+      "proposalId": "mp1:5704eb103bca47150b5b250b3210c94159a857cd186e0b6915d6156d4e7d7de2",
+      "recipeRevision": "recipe-content-v1:sha256:18a822baf7f445bf2e21608bf808aac3d06d1568aab70f9c9eaa3ae72615c2fe",
+      "relationshipCount": 7,
+      "approvalMode": "AUTO",
+      "provenanceDistribution": { "AUTO_ACCEPT": 7 }
+    }
+  ],
+  "immutabilityReplay": {
+    "recipe": "garlic-butter-herb-steak-bites-with-potatoes",
+    "replayedEndpoint": "POST /api/mapping-review/[recipeId]/approve",
+    "result": "identical mapId/relationshipCount/approvalMode returned; readback confirmed exactly 1 approvedMappings document (no duplicate)"
+  },
+  "currentPointer": [
+    { "recipeId": "garlic-butter-herb-steak-bites-with-potatoes", "status": "CURRENT", "recipeRevision": "recipe-content-v1:sha256:12d66c71...", "mapId": "am1:6a144c3d...", "mapHash": "6a144c3d..." },
+    { "recipeId": "caprese-salad", "status": "CURRENT", "recipeRevision": "recipe-content-v1:sha256:18a822ba...", "mapId": "am1:ecf8ef1f...", "mapHash": "ecf8ef1f..." },
+    { "recipeId": "grilled-zucchini-and-summer-squash", "status": "not created (no approved map for this recipe by design)" }
+  ],
+  "staleValidation": {
+    "liveExercised": false,
+    "reason": "Exercising staleness would require editing mapping-relevant content on a real production recipe, which the task explicitly forbids (\"Do not modify an important existing recipe merely to test stale handling\"). No isolated fixture/test-only recipe exists in this app's data model.",
+    "fallback": "getCurrentApprovedMappingPointer's CURRENT/STALE/NOT_FOUND classification is covered by 18 passing unit tests in tests/cookingModeMappingApprovedPersistence.test.ts (re-run clean in this session's full suite: 1287/1289 passed, only the known unrelated failure)."
+  },
+  "runtimeIsolation": {
+    "checked": ["components/CookingMode.tsx", "app/recipes/[id]/page.tsx"],
+    "referencesToNewPointerOrApprovedMappings": 0,
+    "recipeDocModifiedField": "unchanged (Mon Jan 30 2023) — confirms only subcollections were written, not the recipe document itself",
+    "cookingStepIngredientMapField": "present and unchanged (deterministic-v4 engine)",
+    "result": "PASS — no unauthorized runtime cutover"
+  },
+  "semanticSpotCheck": {
+    "recipe": "garlic-butter-herb-steak-bites-with-potatoes",
+    "notes": "Sirloin steaks correctly mapped to both step 2 ('Add the... steak bites') and step 3 ('Top the steak with fresh chopped herbs' — direct object reference), consistent with the LIFECYCLE_RISK flag rather than an error. Human-added 'salt and pepper' -> step 3 is a defensible finishing-seasoning inference, not present in the recipe's literal step text; recorded honestly as HUMAN_ADDED provenance rather than fabricated reviewer support.",
+    "result": "no obvious semantic corruption observed"
+  },
+  "provenance": {
+    "verifiedClasses": ["AUTO_ACCEPT", "HUMAN_REVIEW_ACCEPT", "HUMAN_ADDED"],
+    "tracedWithoutAiRerun": true
+  },
+  "authorizationSecurity": {
+    "endpointsTested": [
+      "/api/mapping/generate",
+      "/api/mapping-review/queue",
+      "/api/mapping-review/[recipeId]",
+      "/api/mapping-review/[recipeId]/decisions",
+      "/api/mapping-review/[recipeId]/attestation",
+      "/api/mapping-review/[recipeId]/relationships",
+      "/api/mapping-review/[recipeId]/approve",
+      "/api/mapping-review/[recipeId]/candidates/[candidateId]/history"
+    ],
+    "unauthenticated": "401 on every endpoint",
+    "authenticatedNonAdmin": "401 on every endpoint (custom-token-minted uid with no admin claim)",
+    "adminAccepted": true,
+    "errorBodySanitization": "malformed admin request returned {\"error\":\"Invalid request.\"} — no stack trace, no Firestore/provider internals",
+    "result": "PASS"
+  },
+  "dataReadback": {
+    "garlic-butter-herb-steak-bites-with-potatoes": { "mappingProposals": 1, "candidates": 14, "reviewEvents": 9, "completenessAttestations": 1, "approvedMappings": 1 },
+    "caprese-salad": { "mappingProposals": 1, "candidates": 7, "reviewEvents": 0, "completenessAttestations": 1, "approvedMappings": 1 },
+    "grilled-zucchini-and-summer-squash": { "mappingProposals": 1, "candidates": 22, "reviewEvents": 2, "completenessAttestations": 0, "approvedMappings": 0 }
+  },
+  "dataMutationInventory": {
+    "writesPerformed": [
+      "mappingProposals (3 headers + candidate populations, via generation)",
+      "reviewEvents (11 total across the 3 recipes, via decisions/relationships endpoints)",
+      "completenessAttestations (2 total)",
+      "approvedMappings (2 total)",
+      "cookingModeMappingPointer/current (2 total)"
+    ],
+    "unrelatedFieldsChanged": 0,
+    "recipeContentRewritten": false,
+    "v4v5MapsRewritten": false,
+    "groceryNutritionMealPlanChanged": false,
+    "otherRecipesTouched": false
+  },
+  "cleanupPreservationDecision": {
+    "decision": "PRESERVE",
+    "reason": "The architecture treats proposals, candidates, review events, completeness attestations, and approved maps as intentionally immutable/append-only audit records with no supported deletion mechanism (no delete API route exists in this codebase). Deleting them would require raw out-of-band Firestore mutation outside any contract-supported path, which the task instructions treat as worse than leaving clearly-documented validation records in place. All 3 validation recipes and their subcollection paths are recorded above and in the markdown companion for future identification/cleanup if ever needed."
+  },
+  "defectsFound": [
+    {
+      "id": "history-order",
+      "summary": "Candidate decision History disclosure rendered events in the persistence layer's oldest-first order instead of the design's required newest-first order",
+      "layer": "review UI (components/mapping-review/MappingCandidateRow.tsx)",
+      "reproduction": "Correct a decision (e.g. Exclude then Change to Include), open History — the older event rendered above the newer one",
+      "rootCause": "getMappingReviewHistory (lib/cookingModeMappingReviewPersistence.ts) is documented and correctly implemented to return oldest-first (its consumers need the full chain in chronological order); the UI mapped that array directly instead of reversing it for display",
+      "fix": "MappingCandidateRow.tsx now renders history?.slice().reverse().map(...); the persistence service's oldest-first contract is unchanged (it is relied on elsewhere and is correctly documented)",
+      "regressionTest": "tests/mappingReviewDetailPage.test.tsx — 'shows candidate decision history newest-first, not the persisted oldest-first order' (confirmed to fail without the fix, pass with it)",
+      "outcome": "fixed",
+      "severity": "minor design-fidelity deviation, not a correctness/data-integrity defect"
+    }
+  ],
+  "filesModified": [
+    { "file": "components/mapping-review/MappingCandidateRow.tsx", "reason": "fix candidate decision History to render newest-first per design §9" },
+    { "file": "tests/mappingReviewDetailPage.test.tsx", "reason": "add regression test for history ordering" }
+  ],
+  "filesCreated": [
+    { "file": "docs/audits/cooking-mode-end-to-end-workflow-validation-2026-08-29.json", "reason": "this audit" },
+    { "file": "docs/audits/cooking-mode-end-to-end-workflow-validation-2026-08-29.md", "reason": "human-readable companion report" }
+  ],
+  "tests": { "newCount": 1, "totalPassed": 1287, "totalSkipped": 1, "totalFailed": 1, "failureIsPreExistingUnrelated": true },
+  "lint": { "errors": 0, "warnings": 6 },
+  "typecheck": "PASSED",
+  "build": "PASSED",
+  "gitDiffCheck": "clean",
+  "deployment": { "firebaseDeployRun": false, "firestoreRulesOrIndexesTouched": false },
+  "prdUpdates": "pending — see companion markdown for the exact backlog/sharp-edge text to add",
+  "unverifiableItems": [
+    "Exact dollar cost of the 6 live AI Gateway calls (the shared AI helper does not track cost, consistent with the prior live-reviewer-validation audit)",
+    "Blocked/stale visual states were not live-reproduced (see staleValidation and visualVerification notes)"
+  ],
+  "deferred": ["full 228-recipe corpus remediation", "v4/v5 map migration", "Cooking Mode runtime cutover", "prepared-component routing"],
+  "nextTask": "PLAN EXISTING-CORPUS MAPPING REMEDIATION"
+}
