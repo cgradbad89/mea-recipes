@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UtensilsCrossed, Calendar, ShoppingCart, Heart, Plus, Clock, BarChart2, Inbox, Sparkles, Apple, MoreHorizontal, X } from 'lucide-react'
+import { UtensilsCrossed, Calendar, ShoppingCart, Heart, Plus, Clock, BarChart2, Inbox, Sparkles, Apple, MoreHorizontal, X, ClipboardCheck } from 'lucide-react'
 import { useState } from 'react'
 import AddRecipeModal from './AddRecipeModal'
 import AuthButton from './AuthButton'
+import { useAuth } from '@/lib/AuthContext'
+import { ADMIN_EMAIL } from '@/lib/admin'
 
 const NAV_ITEMS = [
   { href: '/recipes', label: 'Recipes', icon: UtensilsCrossed },
@@ -19,15 +21,25 @@ const NAV_ITEMS = [
   { href: '/discover', label: 'Discover', icon: Sparkles },
 ]
 
+// Admin-only workflow (mapping-integrity review, not ordinary recipe intake).
+// Filtered into the "More" sheet/sidebar only for the recipe-admin identity —
+// see docs/design/cooking-mode-mapping-review-experience-2026-08-28.md §4.
+const ADMIN_NAV_ITEM = { href: '/mapping-review', label: 'Mapping Review', icon: ClipboardCheck }
+
 // Mobile bottom bar shows the first four as primary tabs; the rest live behind
 // the "More" slide-up sheet. The desktop sidebar still renders all of NAV_ITEMS.
 const PRIMARY_ITEMS = NAV_ITEMS.slice(0, 4)   // Recipes, Plan, Grocery, Nutrition
-const MORE_ITEMS = NAV_ITEMS.slice(4)         // Favorites, History, Insights, Queue, Discover
+const BASE_MORE_ITEMS = NAV_ITEMS.slice(4)    // Favorites, History, Insights, Queue, Discover
 
 export default function Navigation() {
   const pathname = usePathname()
+  const { user } = useAuth()
   const [showAdd, setShowAdd] = useState(false)
   const [showMore, setShowMore] = useState(false)
+
+  const isAdmin = user?.email === ADMIN_EMAIL
+  const desktopNavItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS
+  const MORE_ITEMS = isAdmin ? [...BASE_MORE_ITEMS, ADMIN_NAV_ITEM] : BASE_MORE_ITEMS
 
   // When the active route lives inside the More sheet, light up the More cell so
   // the user still has an indication of where they are.
@@ -45,7 +57,7 @@ export default function Navigation() {
 
         {/* Nav links */}
         <div className="flex flex-col gap-1 flex-1">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {desktopNavItems.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href)
             return (
               <Link
