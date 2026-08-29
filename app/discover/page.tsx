@@ -10,6 +10,7 @@ import {
   getTotalTime,
   computeAndStoreNutrition,
   prepareCookingStepIngredientMap,
+  triggerCookingModeMappingGeneration,
 } from '@/lib/recipes'
 import { addToQueue, buildRecipeContent } from '@/lib/queue'
 import { getWeekPlan, weekIDFromDate, addRecipeToWeekPlan, resolveRecipeRole, plannedRecipeIDList } from '@/lib/userdata'
@@ -354,13 +355,14 @@ export default function DiscoverPage() {
       }, user.uid)
       await refetchRecipes()
       invalidateRecipeCache()
-      // Auto-nutrition — timeout-guarded; never blocks the save.
+      // Auto-nutrition + Cooking Mode mapping generation — both timeout-guarded,
+      // never-throwing, and run concurrently so neither blocks the save nor
+      // waits on the other (Implementation 6, Phase 6/7).
       setPlanNutritionFor(suggestion.title)
-      try {
-        await computeAndStoreNutrition(recipeId, token)
-      } catch (e) {
-        console.error('Nutrition step error (recipe saved anyway):', e)
-      }
+      await Promise.allSettled([
+        computeAndStoreNutrition(recipeId, token),
+        triggerCookingModeMappingGeneration(recipeId, token),
+      ])
       setPlanSavedFor(prev => new Set(prev).add(suggestion.title))
     } catch (e) {
       console.error('Save failed:', e)
@@ -606,12 +608,15 @@ export default function DiscoverPage() {
       }, user.uid)
       await refetchRecipes()
       invalidateRecipeCache()
-      // Auto-nutrition — timeout-guarded; never blocks the save.
+      // Auto-nutrition + Cooking Mode mapping generation — both timeout-guarded,
+      // never-throwing, and run concurrently so neither blocks the save nor
+      // waits on the other (Implementation 6, Phase 6/7).
       setGenNutritionPhase(true)
       try {
-        await computeAndStoreNutrition(recipeId, token)
-      } catch (e) {
-        console.error('Nutrition step error (recipe saved anyway):', e)
+        await Promise.allSettled([
+          computeAndStoreNutrition(recipeId, token),
+          triggerCookingModeMappingGeneration(recipeId, token),
+        ])
       } finally {
         setGenNutritionPhase(false)
       }

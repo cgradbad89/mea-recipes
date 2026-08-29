@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, addToQueue, QueuedRecipe } from '@/lib/queue'
-import { saveRecipe, computeAndStoreNutrition, prepareCookingStepIngredientMap } from '@/lib/recipes'
+import { saveRecipe, computeAndStoreNutrition, prepareCookingStepIngredientMap, triggerCookingModeMappingGeneration } from '@/lib/recipes'
 import { slugify } from '@/lib/utils'
 import {
   Loader2, Trash2, Check, ChefHat, ExternalLink,
@@ -94,15 +94,17 @@ export function QueueCard({
         modified: new Date().toString(),
         cookingStepIngredientMap,
       }, uid)
-      // Auto-nutrition: compute synchronously so the recipe lands populated, but
-      // NEVER block publishing on it — computeAndStoreNutrition is timeout-guarded
-      // and flags the recipe for manual calc on failure instead of throwing.
+      // Auto-nutrition + Cooking Mode mapping generation: both run concurrently
+      // as independent, timeout-guarded, never-throwing post-save enrichments —
+      // neither blocks publishing, and neither's failure affects the other
+      // (Implementation 6, Phase 6/7). computeAndStoreNutrition and
+      // triggerCookingModeMappingGeneration each flag/log their own failure
+      // instead of throwing, so this Promise.allSettled never rejects.
       setPublishStage('nutrition')
-      try {
-        await computeAndStoreNutrition(recipeId, token)
-      } catch (e) {
-        console.error('Nutrition step error (publishing anyway):', e)
-      }
+      await Promise.allSettled([
+        computeAndStoreNutrition(recipeId, token),
+        triggerCookingModeMappingGeneration(recipeId, token),
+      ])
       await deleteFromQueue(uid, item.id!)
       onPublish(item.id!)
     } catch (err) {

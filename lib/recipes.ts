@@ -260,6 +260,69 @@ export async function computeAndStoreNutrition(
   }
 }
 
+// ─── Cooking Mode mapping generation on publish (Implementation 6) ──────────
+// Mirrors the auto-nutrition pattern directly above: fired after a recipe is
+// already saved, via the trusted `/api/mapping/generate` route (never
+// touches Firestore directly from the client — mapping generation performs
+// paid AI calls and writes shared catalog workflow state, so it stays behind
+// the same admin-verified server boundary as the rest of the Cooking Mode
+// mapping workflow). NEVER THROWS: any failure returns null and is logged,
+// exactly like `computeAndStoreNutrition`, so a caller can run both
+// alongside each other (e.g. via `Promise.allSettled`) without either one's
+// failure affecting the other or the recipe's own already-completed save.
+//
+// Independent, shorter timeout than the route's own `maxDuration` (280s):
+// this call runs inside the user-visible publish flow, so it gives up
+// waiting well before the platform would — but the server-side generation
+// keeps running to completion and persists the proposal regardless (Vercel
+// serverless functions are not killed by a client disconnect), so a
+// subsequent `/mapping-review` visit can still discover a proposal that
+// finished after the client stopped waiting for it.
+const MAPPING_GENERATION_TIMEOUT_MS = 90000
+
+export interface MappingGenerationTriggerResult {
+  outcome: 'GENERATED' | 'REUSED_EXISTING' | 'BLOCKED' | 'FAILED'
+  recipeId: string
+  recipeRevision: string | null
+  proposalId: string | null
+  candidateCount: number | null
+  autoAcceptCount: number | null
+  reviewRequiredCount: number | null
+  approvalBlocked: boolean | null
+  blockingReasons: string[]
+}
+
+/**
+ * Trigger Cooking Mode mapping proposal generation for a just-published (or
+ * mapping-relevantly edited) recipe. Best-effort and bounded: on any
+ * network/timeout/server error this resolves to `null` rather than
+ * throwing, so it never blocks or fails the caller's publish flow. Returns
+ * the route's reported outcome on success (which itself may be `'FAILED'`
+ * or `'BLOCKED'` — those are still successful HTTP responses; see
+ * `app/api/mapping/generate/route.ts`).
+ */
+export async function triggerCookingModeMappingGeneration(
+  recipeId: string,
+  token: string,
+  timeoutMs: number = MAPPING_GENERATION_TIMEOUT_MS,
+): Promise<MappingGenerationTriggerResult | null> {
+  try {
+    const res = await fetch('/api/mapping/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ recipeId }),
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    if (!res.ok) throw new Error(`mapping-generate ${res.status}`)
+    const data = await res.json()
+    if (!data || typeof data.outcome !== 'string') throw new Error('no outcome in response')
+    return data as MappingGenerationTriggerResult
+  } catch (err) {
+    console.error('Cooking Mode mapping generation failed (recipe saved anyway):', err)
+    return null
+  }
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()

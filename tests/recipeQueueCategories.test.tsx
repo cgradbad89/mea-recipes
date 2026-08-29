@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   saveRecipe: vi.fn(),
   prepareCookingStepIngredientMap: vi.fn(),
   computeAndStoreNutrition: vi.fn(),
+  triggerCookingModeMappingGeneration: vi.fn(),
   getIdToken: vi.fn(),
 }))
 
@@ -27,6 +28,7 @@ vi.mock('@/lib/recipes', () => ({
   saveRecipe: mocks.saveRecipe,
   prepareCookingStepIngredientMap: mocks.prepareCookingStepIngredientMap,
   computeAndStoreNutrition: mocks.computeAndStoreNutrition,
+  triggerCookingModeMappingGeneration: mocks.triggerCookingModeMappingGeneration,
 }))
 vi.mock('@/lib/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'user-1', getIdToken: mocks.getIdToken } }),
@@ -77,6 +79,7 @@ beforeEach(() => {
     steps: [],
   })
   mocks.computeAndStoreNutrition.mockReset().mockResolvedValue(null)
+  mocks.triggerCookingModeMappingGeneration.mockReset().mockResolvedValue(null)
   mocks.getIdToken.mockReset().mockResolvedValue('token')
 })
 
@@ -123,5 +126,55 @@ describe('queue category review boundary', () => {
       cookingStepIngredientMap: expect.objectContaining({ sourceHash: 'a'.repeat(64) }),
     })
     await waitFor(() => expect(onPublish).toHaveBeenCalledWith('queue-1'))
+  })
+})
+
+describe('nutrition / Cooking Mode mapping independence on publish (Implementation 6, Phase 27)', () => {
+  it.each([
+    ['nutrition succeeds + mapping succeeds', null, { outcome: 'GENERATED' }],
+    ['nutrition fails + mapping succeeds', null, { outcome: 'GENERATED' }],
+    ['nutrition succeeds + mapping fails', null, null],
+    ['nutrition fails + mapping fails', null, null],
+  ] as const)('%s: the recipe publish still completes', async (_label, nutritionResolution, mappingResolution) => {
+    // computeAndStoreNutrition/triggerCookingModeMappingGeneration both never
+    // throw in production (they flag/log failure internally) — mirror that
+    // never-throws contract here rather than rejecting the mock, so this
+    // test exercises the same call shape the real publish handler sees.
+    mocks.computeAndStoreNutrition.mockResolvedValue(nutritionResolution)
+    mocks.triggerCookingModeMappingGeneration.mockResolvedValue(mappingResolution)
+
+    const onPublish = renderCard('Snacks')
+    fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
+
+    await waitFor(() => expect(onPublish).toHaveBeenCalledWith('queue-1'))
+    expect(mocks.saveRecipe).toHaveBeenCalledTimes(1)
+    expect(mocks.computeAndStoreNutrition).toHaveBeenCalledTimes(1)
+    expect(mocks.triggerCookingModeMappingGeneration).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteFromQueue).toHaveBeenCalledWith('user-1', 'queue-1')
+  })
+
+  it('runs nutrition and mapping generation concurrently, not sequentially', async () => {
+    const order: string[] = []
+    mocks.computeAndStoreNutrition.mockImplementation(async () => {
+      order.push('nutrition-start')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      order.push('nutrition-end')
+      return null
+    })
+    mocks.triggerCookingModeMappingGeneration.mockImplementation(async () => {
+      order.push('mapping-start')
+      await new Promise(resolve => setTimeout(resolve, 10))
+      order.push('mapping-end')
+      return null
+    })
+
+    const onPublish = renderCard('Snacks')
+    fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
+    await waitFor(() => expect(onPublish).toHaveBeenCalledWith('queue-1'))
+
+    // Both started before either finished — proves they ran concurrently
+    // rather than one awaiting the other's completion first.
+    expect(order.indexOf('mapping-start')).toBeLessThan(order.indexOf('nutrition-end'))
+    expect(order.indexOf('nutrition-start')).toBeLessThan(order.indexOf('mapping-end'))
   })
 })

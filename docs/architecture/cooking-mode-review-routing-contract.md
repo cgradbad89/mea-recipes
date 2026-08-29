@@ -972,3 +972,83 @@ result through; these services never inspect a request themselves.
 Not deployed (unchanged constraint). The new `completenessAttestations` subcollection needs the same
 manual Console addition as the other Implementation 3 paths — see the updated PRD.md "Firestore rules"
 section.
+
+## 27. Ingestion trigger (Implementation 6, 2026-08-29)
+
+Resolves §22 step "wire the ingestion proposal coordinator" for new-recipe finalization and
+mapping-relevant recipe edits. Changes no reviewer semantics, no routing precedence, no candidate/
+identity contract, and no Cooking Mode runtime behavior — it only connects an already-finalized
+recipe source to the unchanged pipeline in §16.
+
+### 27.1 One orchestration boundary, revision-keyed rather than create/edit-branched
+
+`generateAndPersistCookingModeMappingProposal` (`lib/cookingModeMappingIngestion.ts`) is the single
+production caller of `generateMappingProposal` (§16's coordinator) plus `saveMappingProposal`
+(§25.3). It takes a `recipeId` (and optionally a pre-loaded recipe), derives the live
+`MappingRevisionSource`/`recipeRevision` from the recipe's current `content`, and:
+
+1. computes the deterministic `proposalId` for that exact revision (§16);
+2. reads any existing header at that identity — a `READY` header is durably reused with **zero**
+   AI calls (`outcome: 'REUSED_EXISTING'`); a `WRITING`/`FAILED` header is not trusted and falls
+   through to step 3 (§16's retry rules — a genuinely interrupted or failed prior attempt does not
+   silently degrade a fresh call, and `saveMappingProposal`'s own conflict detection still protects
+   against two attempts disagreeing on immutable generation content);
+3. otherwise executes §16's coordinator fresh and persists the result.
+
+There is deliberately no "is this a create or an edit" conditional anywhere in this module. §3's
+revision identity already makes that distinction structurally: a metadata-only edit (or any
+resubmission of byte-identical parsed arrays under the same parser version) reproduces the exact
+same `recipeRevision`/`proposalId` and is handled by step 2 above; a mapping-relevant edit
+(ingredient/instruction text, order, header structure, or parser version — §3) produces a different
+`recipeRevision`/`proposalId` and is always handled by step 3, generating fresh. The prior
+revision's proposal, candidates, and any approved map for it are never read, written, or deleted by
+this module at all — §15's immutability and §17's "prior approved map remains immutable historical
+evidence and becomes stale by comparison" hold by construction, not by an explicit check.
+
+This module never writes `cookingModeMappingPointer/current` (§25.6). Pointer movement remains
+exclusively the map-approval route's responsibility (§15's `ApprovedCookingStepMapV1` lifecycle,
+implemented in `app/api/mapping-review/[recipeId]/approve/route.ts`) — an edit can therefore never
+silently repoint an already-approved recipe to an unreviewed proposal; the existing pointer simply
+continues to read `STALE` once its `recipeRevision` no longer matches the recipe's live revision,
+exactly as §25.6 already specifies.
+
+### 27.2 Outcome classification is not the same as `approvalBlocked`
+
+`MappingProposalV1.approvalBlocked` (§16, `buildMappingProposal`) is true whenever *any* blocking
+reason is present, including the entirely routine `CANDIDATE_REVIEW_REQUIRED` — a proposal with
+only that reason generated completely successfully and simply has candidates awaiting the ordinary
+human-review flow (§14). Conflating that with a *generation* failure would misreport the common
+case. The ingestion module's `outcome` therefore filters `CANDIDATE_REVIEW_REQUIRED` out before
+deciding `'GENERATED'` vs `'BLOCKED'` — the identical filter `lib/cookingModeMappingReviewQueue.ts`
+and the new `lib/cookingModeMappingStatus.ts` already apply when computing `NEEDS_REVIEW` vs
+`BLOCKED` for display, so all three call sites agree on the same distinction:
+
+- `GENERATED` — a fresh proposal was produced and persisted (candidates may still need ordinary
+  human review — that is success, not blockage);
+- `REUSED_EXISTING` — an identical `READY` proposal already existed; no AI calls made;
+- `BLOCKED` — generation completed but has a *non-review* blocking reason (a reviewer slot
+  incomplete, deterministic evidence unavailable, structural/source-identity invalidity — §18's
+  failure-closed table); the recipe itself remains valid and saved;
+- `FAILED` — generation could not complete at all (recipe not found, an unreconciled persistence
+  readback per §25.3, an unexpected exception). Never thrown — always returned.
+
+### 27.3 Trusted boundary and API shape
+
+`POST /api/mapping/generate` (`{ recipeId, expectedRecipeRevision? }`) is the one canonical trigger
+route, admin-gated via `verifyAdminToken` — the same boundary every other mapping-writing route in
+§25.7 already uses, since this route performs paid AI calls and writes shared catalog workflow
+state. The server derives the recipe, source, revision, and proposal identity itself; the client
+never supplies reviewer votes, candidate lists, routing state, or any proposal/map identity (§20 of
+this document's original design notes). `expectedRecipeRevision` is accepted only as an optional
+optimistic-concurrency guard (409 on mismatch) — never trusted as the actual revision to generate
+against.
+
+### 27.4 Post-save sequencing
+
+Called from every `saveRecipe()` site (three total: Queue publish, Discover generate-and-save,
+Discover plan-suggestion save) via a client helper mirroring the existing auto-nutrition pattern —
+timeout-guarded, never-throwing — run concurrently with nutrition computation via
+`Promise.allSettled` rather than sequentially, so neither delays the other or the recipe's own
+already-completed save. This repo has no background job system; the trigger remains a single
+bounded request inside the existing publish request/response cycle, per this document's §16 "no
+background job system" framing for the ingestion flow, not a queued/deferred operation.
