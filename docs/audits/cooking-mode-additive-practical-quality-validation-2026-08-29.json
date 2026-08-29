@@ -1,0 +1,331 @@
+{
+  "schemaVersion": "1.0.0",
+  "auditDate": "2026-08-29",
+  "auditType": "COOKING_MODE_ADDITIVE_PRACTICAL_QUALITY_VALIDATION",
+  "status": "COMPLETE",
+  "executiveResult": "FAIL — ADDITIVE HIGH-CONFIDENCE MAPPING DOES NOT REACH PRACTICAL FLOOR",
+  "repositoryCheckpoint": {
+    "branch": "main",
+    "head": "9590090f2129d3ec9bed90355badeb94fa5571c1",
+    "originMain": "9590090f2129d3ec9bed90355badeb94fa5571c1",
+    "expectedStartingCheckpoint": "9590090f2129d3ec9bed90355badeb94fa5571c1",
+    "matched": true,
+    "preExistingUnrelatedChangesPreserved": true
+  },
+  "practicalQualityStandard": {
+    "precisionMinimum": 0.9,
+    "recallMinimum": 0.8,
+    "conditionalRecallMinimum": 0.7,
+    "precisionIsStricter": true,
+    "isolatedErrorsAcceptable": true,
+    "systemicNonsenseAcceptable": false,
+    "thresholdsFrozenBeforeScoring": true
+  },
+  "method": {
+    "sampleSource": "docs/audits/cooking-mode-pragmatic-automatic-quality-validation-2026-08-29.json",
+    "truthAndOldMapSource": "docs/audits/cooking-mode-completeness-audit-2026-08-26.json",
+    "routerImplementation": "lib/cookingModeMappingProposal.ts -> existing V1 evidence adapter -> lib/cookingModeMappingRouter.ts",
+    "reviewerOutputsReused": true,
+    "newAiCalls": 0,
+    "relationshipIdFormat": "ingredientRowIndex:zeroBasedStepIndex",
+    "aggregateMethod": "micro aggregate over all 10 recipes; no per-recipe percentage averaging"
+  },
+  "heldOutSample": {
+    "recipeCount": 10,
+    "truthRelationships": 294,
+    "sameFrozenSample": true,
+    "replacements": 0,
+    "allCurrentRecipeRevisionsMatchedAuthoritativeAuditSource": true,
+    "allOldMapsSourceCurrent": true,
+    "sourceOrMapVersionMismatches": [],
+    "recipes": [
+      {
+        "recipeId": "pozole-verde-wowza",
+        "title": "Pozole Verde - WOWZA",
+        "recipeRevision": "recipe-content-v1:sha256:b88b2d29b27b3ece5f4111f9c59d0b487b4568a4791d6b1b7b1a1284832cbdf8",
+        "oldMapEngine": "deterministic-v5",
+        "truthCount": 39,
+        "truth": ["1:1", "2:2", "3:2", "4:2", "5:2", "6:2", "7:2", "1:3", "2:3", "3:3", "4:3", "5:3", "6:3", "7:3", "8:3", "9:3", "2:4", "3:4", "8:4", "9:4", "10:4", "11:4", "12:4", "5:5", "7:6", "9:8", "13:8", "14:8", "5:9", "9:9", "1:10", "7:10", "16:10", "17:10", "18:10", "19:10", "20:10", "21:10", "22:10"],
+        "oldMap": ["8:3", "9:3", "3:4", "10:4", "5:5", "1:10", "7:10", "17:10", "19:10", "22:10"],
+        "autoAccept": ["1:1", "1:6", "1:10", "2:2", "2:4", "2:6", "3:2", "3:4", "3:6", "4:6", "5:5", "7:2", "7:6", "7:10", "8:3", "13:8", "16:10", "17:10", "19:10", "20:10", "22:10"],
+        "additiveMap": ["8:3", "9:3", "3:4", "10:4", "5:5", "1:10", "7:10", "17:10", "19:10", "22:10", "1:1", "1:6", "2:2", "2:4", "2:6", "3:2", "3:6", "4:6", "7:2", "7:6", "13:8", "16:10", "20:10"],
+        "oldMetrics": {"tp": 10, "fp": 0, "fn": 29},
+        "additiveMetrics": {"tp": 19, "fp": 4, "fn": 20, "precision": 0.8260869565217391, "recall": 0.48717948717948717, "f1": 0.6129032258064516},
+        "relationshipsAdded": 13,
+        "trueRelationshipsRecovered": 9,
+        "falseRelationshipsIntroduced": 4
+      },
+      {
+        "recipeId": "159",
+        "title": "Easy Slow Cooker Turkey Chili",
+        "recipeRevision": "recipe-content-v1:sha256:29ad92e5fd5b17185cfa371c554172502a9b8f97f77f1b9f6d4330c147e3fcbe",
+        "oldMapEngine": "deterministic-v4",
+        "truthCount": 36,
+        "truth": ["0:0", "1:0", "2:0", "3:0", "4:0", "5:0", "6:0", "7:0", "8:0", "9:0", "10:0", "11:0", "12:0", "13:0", "14:0", "15:0", "15:1", "4:2", "8:2", "9:2", "0:3", "1:3", "2:3", "3:3", "4:3", "5:3", "6:3", "7:3", "8:3", "9:3", "10:3", "11:3", "12:3", "13:3", "14:3", "15:3"],
+        "oldMap": ["15:1", "9:2"],
+        "autoAccept": ["15:1"],
+        "additiveMap": ["15:1", "9:2"],
+        "oldMetrics": {"tp": 2, "fp": 0, "fn": 34},
+        "additiveMetrics": {"tp": 2, "fp": 0, "fn": 34, "precision": 1, "recall": 0.05555555555555555, "f1": 0.10526315789473684},
+        "relationshipsAdded": 0,
+        "trueRelationshipsRecovered": 0,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "creamy-chickpea-spinach-masala-with-tadka",
+        "title": "Creamy Chickpea Spinach Masala With Tadka",
+        "recipeRevision": "recipe-content-v1:sha256:b68365d35704397023ddaa039935d8fef250e6966449ccb2937b0e4f3b2ecb42",
+        "oldMapEngine": "hybrid-v4",
+        "truthCount": 34,
+        "truth": ["0:0", "1:0", "2:0", "0:1", "1:1", "2:1", "3:1", "4:1", "5:2", "6:2", "7:2", "8:2", "9:2", "10:2", "11:2", "6:3", "12:3", "13:3", "14:3", "15:3", "16:3", "4:4", "6:4", "17:4", "18:4", "19:4", "20:4", "21:4", "22:5", "23:5", "24:5", "25:5", "26:5", "27:5"],
+        "oldMap": ["4:1", "7:2", "10:2", "11:2", "13:3", "15:3", "18:4", "26:5", "27:5"],
+        "autoAccept": ["0:0", "0:3", "2:0", "2:3", "4:1", "4:3", "4:4", "5:2", "5:3", "6:2", "6:3", "6:4", "7:2", "7:3", "8:2", "8:3", "9:2", "9:3", "10:2", "10:3", "11:2", "11:3", "17:4", "18:4", "18:6", "19:4", "20:4", "21:4", "23:5", "25:5", "26:5", "27:5"],
+        "additiveMap": ["4:1", "7:2", "10:2", "11:2", "13:3", "15:3", "18:4", "26:5", "27:5", "0:0", "0:3", "2:0", "2:3", "4:3", "4:4", "5:2", "5:3", "6:2", "6:3", "6:4", "7:3", "8:2", "8:3", "9:2", "9:3", "10:3", "11:3", "17:4", "18:6", "19:4", "20:4", "21:4", "23:5", "25:5"],
+        "oldMetrics": {"tp": 9, "fp": 0, "fn": 25},
+        "additiveMetrics": {"tp": 24, "fp": 10, "fn": 10, "precision": 0.7058823529411765, "recall": 0.7058823529411765, "f1": 0.7058823529411765},
+        "relationshipsAdded": 25,
+        "trueRelationshipsRecovered": 15,
+        "falseRelationshipsIntroduced": 10
+      },
+      {
+        "recipeId": "chicken-gyro-chopped-salad",
+        "title": "Chicken Gyro Chopped Salad",
+        "recipeRevision": "recipe-content-v1:sha256:c3954c9903c1e97811c9efd7e8e24cbab936c2f4b40154456aa629110c43fb89",
+        "oldMapEngine": "hybrid-v4",
+        "truthCount": 28,
+        "truth": ["0:0", "1:0", "2:0", "3:0", "4:0", "5:0", "6:0", "7:0", "8:0", "9:0", "10:0", "11:0", "6:1", "7:1", "8:1", "9:1", "10:1", "12:1", "13:1", "9:2", "11:2", "11:3", "14:3", "15:3", "16:3", "17:3", "18:3", "19:3"],
+        "oldMap": ["1:0", "2:0", "5:0", "6:0", "8:0", "9:0", "10:0", "7:1", "13:1", "19:3"],
+        "autoAccept": ["0:0", "7:0", "7:1"],
+        "additiveMap": ["1:0", "2:0", "5:0", "6:0", "8:0", "9:0", "10:0", "7:1", "13:1", "19:3", "0:0", "7:0"],
+        "oldMetrics": {"tp": 10, "fp": 0, "fn": 18},
+        "additiveMetrics": {"tp": 12, "fp": 0, "fn": 16, "precision": 1, "recall": 0.42857142857142855, "f1": 0.6},
+        "relationshipsAdded": 2,
+        "trueRelationshipsRecovered": 2,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "peruvian-roasted-chicken-with-spicy-cilantro-sauce",
+        "title": "Peruvian Roasted Chicken With Spicy Cilantro Sauce",
+        "recipeRevision": "recipe-content-v1:sha256:4ed35d91d3e6d936f8c56375a381c0c444ecbfd10a3c5c6024d3fa3c20b06608",
+        "oldMapEngine": "hybrid-v5",
+        "truthCount": 28,
+        "truth": ["1:0", "2:0", "3:0", "4:0", "5:0", "6:0", "7:0", "8:0", "9:0", "10:1", "10:2", "11:2", "10:3", "13:4", "14:4", "15:4", "16:4", "17:4", "18:4", "19:4", "20:4", "21:4", "22:4", "23:4", "24:4", "10:5", "25:5", "10:6"],
+        "oldMap": ["10:1", "14:4", "16:4", "17:4", "18:4", "19:4", "20:4", "21:4", "22:4", "23:4", "24:4", "25:5", "10:6"],
+        "autoAccept": ["10:1", "10:3", "10:6", "25:5"],
+        "additiveMap": ["10:1", "14:4", "16:4", "17:4", "18:4", "19:4", "20:4", "21:4", "22:4", "23:4", "24:4", "25:5", "10:6", "10:3"],
+        "oldMetrics": {"tp": 13, "fp": 0, "fn": 15},
+        "additiveMetrics": {"tp": 14, "fp": 0, "fn": 14, "precision": 1, "recall": 0.5, "f1": 0.6666666666666666},
+        "relationshipsAdded": 1,
+        "trueRelationshipsRecovered": 1,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "best-black-bean-soup",
+        "title": "Best Black Bean Soup",
+        "recipeRevision": "recipe-content-v1:sha256:e5b594f78c81f9edbc1c05aeb3df8a1f7ed1047281d9f843c534eddd76cb8baa",
+        "oldMapEngine": "hybrid-v4",
+        "truthCount": 27,
+        "truth": ["0:0", "1:1", "2:1", "3:1", "4:1", "0:2", "5:2", "6:2", "7:3", "8:3", "9:3", "10:3", "11:3", "12:3", "14:4", "15:4", "16:4", "7:5", "0:6", "11:6", "12:6", "13:6", "14:7", "17:7", "18:7", "19:7", "20:7"],
+        "oldMap": ["1:1", "2:1", "3:1", "4:1", "7:3", "8:3", "10:3", "13:6", "17:7", "20:7"],
+        "autoAccept": ["1:1", "2:1", "3:1", "4:1", "6:2", "7:3", "9:3", "10:3", "12:3", "14:4", "15:4", "17:7", "18:7", "20:7"],
+        "additiveMap": ["1:1", "2:1", "3:1", "4:1", "7:3", "8:3", "10:3", "13:6", "17:7", "20:7", "6:2", "9:3", "12:3", "14:4", "15:4", "18:7"],
+        "oldMetrics": {"tp": 10, "fp": 0, "fn": 17},
+        "additiveMetrics": {"tp": 16, "fp": 0, "fn": 11, "precision": 1, "recall": 0.5925925925925926, "f1": 0.7441860465116279},
+        "relationshipsAdded": 6,
+        "trueRelationshipsRecovered": 6,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "korean-bulgogi-beef-bowls",
+        "title": "Korean Bulgogi Beef Bowls",
+        "recipeRevision": "recipe-content-v1:sha256:003e0957209cece572da9e225c5f70dd1b3778446e905d31e0eed0d0551a4788",
+        "oldMapEngine": "hybrid-v4",
+        "truthCount": 27,
+        "truth": ["1:0", "2:0", "3:0", "4:0", "5:0", "6:0", "7:0", "8:0", "9:0", "10:0", "0:1", "0:2", "16:2", "15:3", "16:3", "14:4", "17:5", "0:6", "11:6", "12:6", "13:6", "14:6", "15:6", "9:7", "17:7", "19:7", "18:8"],
+        "oldMap": ["1:0", "2:0", "3:0", "4:0", "5:0", "8:0", "9:0", "10:0", "0:1", "16:2", "17:5", "12:6", "13:6", "14:6"],
+        "autoAccept": ["0:1", "0:6", "1:0", "2:0", "3:0", "4:0", "5:0", "6:0", "7:0", "8:0", "9:0", "9:7", "10:0", "11:6", "12:6", "13:6", "14:4", "14:6", "15:3", "15:6", "17:5", "18:8", "19:7"],
+        "additiveMap": ["1:0", "2:0", "3:0", "4:0", "5:0", "8:0", "9:0", "10:0", "0:1", "16:2", "17:5", "12:6", "13:6", "14:6", "0:6", "6:0", "7:0", "9:7", "11:6", "14:4", "15:3", "15:6", "18:8", "19:7"],
+        "oldMetrics": {"tp": 14, "fp": 0, "fn": 13},
+        "additiveMetrics": {"tp": 24, "fp": 0, "fn": 3, "precision": 1, "recall": 0.8888888888888888, "f1": 0.9411764705882353},
+        "relationshipsAdded": 10,
+        "trueRelationshipsRecovered": 10,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "doro-wat-ethiopianstyle-spicy-chicken",
+        "title": "Doro Wat (Ethiopian-Style Spicy Chicken)",
+        "recipeRevision": "recipe-content-v1:sha256:7436b45057c668fcc85778e9965c9e1f05bc666cd2d0f9c413a81882c908f8ae",
+        "oldMapEngine": "deterministic-v4",
+        "truthCount": 26,
+        "truth": ["0:0", "1:0", "2:0", "0:1", "3:2", "4:2", "5:2", "3:3", "4:3", "5:3", "6:3", "7:3", "8:3", "9:3", "10:3", "11:3", "12:3", "13:3", "14:3", "15:3", "0:4", "7:4", "14:4", "15:4", "16:5", "17:5"],
+        "oldMap": ["8:3", "9:3", "10:3", "11:3", "13:3", "14:3", "7:4", "16:5"],
+        "autoAccept": ["0:0", "0:1", "1:0", "2:0", "3:2", "4:2", "5:2", "8:3", "15:3", "16:5", "17:5"],
+        "additiveMap": ["8:3", "9:3", "10:3", "11:3", "13:3", "14:3", "7:4", "16:5", "0:0", "0:1", "1:0", "2:0", "3:2", "4:2", "5:2", "15:3", "17:5"],
+        "oldMetrics": {"tp": 8, "fp": 0, "fn": 18},
+        "additiveMetrics": {"tp": 17, "fp": 0, "fn": 9, "precision": 1, "recall": 0.6538461538461539, "f1": 0.7906976744186047},
+        "relationshipsAdded": 9,
+        "trueRelationshipsRecovered": 9,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "easy-chicken-ramen",
+        "title": "Easy Chicken Ramen",
+        "recipeRevision": "recipe-content-v1:sha256:39766fc66075ea093fb56dd5c05d8fc9f82dddef3a9769794a13e4acc9b5e310",
+        "oldMapEngine": "deterministic-v5",
+        "truthCount": 25,
+        "truth": ["17:0", "18:0", "19:0", "16:2", "0:3", "14:3", "1:5", "2:5", "3:5", "4:5", "5:5", "6:5", "7:5", "8:5", "9:5", "12:5", "13:5", "11:6", "10:7", "11:7", "14:8", "16:8", "21:8", "22:8", "24:8"],
+        "oldMap": ["17:0", "18:0", "19:0", "16:2", "3:5", "4:5", "5:5", "6:5", "8:5", "13:5", "11:6"],
+        "autoAccept": ["0:3", "1:5", "3:5", "11:6", "14:3", "16:2"],
+        "additiveMap": ["17:0", "18:0", "19:0", "16:2", "3:5", "4:5", "5:5", "6:5", "8:5", "13:5", "11:6", "0:3", "1:5", "14:3"],
+        "oldMetrics": {"tp": 11, "fp": 0, "fn": 14},
+        "additiveMetrics": {"tp": 14, "fp": 0, "fn": 11, "precision": 1, "recall": 0.56, "f1": 0.717948717948718},
+        "relationshipsAdded": 3,
+        "trueRelationshipsRecovered": 3,
+        "falseRelationshipsIntroduced": 0
+      },
+      {
+        "recipeId": "singapore-mei-fun",
+        "title": "Singapore Mei Fun",
+        "recipeRevision": "recipe-content-v1:sha256:fcbf9882882ed21e83758a1a884879a2d7296b33b28755aa58a4b9246a4cde35",
+        "oldMapEngine": "hybrid-v4",
+        "truthCount": 24,
+        "truth": ["1:1", "1:2", "3:4", "4:4", "5:4", "6:4", "7:4", "8:4", "9:4", "10:4", "12:6", "14:6", "15:7", "12:9", "18:9", "19:9", "1:10", "16:11", "21:11", "22:11", "23:11", "14:12", "15:12", "24:12"],
+        "oldMap": ["3:4", "4:4", "5:4", "7:4", "8:4", "9:4", "10:4", "12:6", "14:6", "15:7", "12:9", "18:9", "21:11", "22:11", "23:11", "24:12"],
+        "autoAccept": ["1:1", "1:10", "3:4", "4:4", "5:4", "7:4", "8:4", "9:4", "10:4", "14:6", "15:7", "18:9", "19:9", "19:10", "21:11", "22:11", "23:11", "24:12"],
+        "additiveMap": ["3:4", "4:4", "5:4", "7:4", "8:4", "9:4", "10:4", "12:6", "14:6", "15:7", "12:9", "18:9", "21:11", "22:11", "23:11", "24:12", "1:1", "1:10", "19:9", "19:10"],
+        "oldMetrics": {"tp": 16, "fp": 0, "fn": 8},
+        "additiveMetrics": {"tp": 19, "fp": 1, "fn": 5, "precision": 0.95, "recall": 0.7916666666666666, "f1": 0.8636363636363635},
+        "relationshipsAdded": 4,
+        "trueRelationshipsRecovered": 3,
+        "falseRelationshipsIntroduced": 1
+      }
+    ]
+  },
+  "strategyMetrics": {
+    "existingV4V5": {"tp": 103, "fp": 0, "fn": 191, "precision": 1, "recall": 0.35034013605442177, "f1": 0.5188916876574307},
+    "autoAcceptOnly": {"tp": 118, "fp": 15, "fn": 176, "precision": 0.8872180451127819, "recall": 0.4013605442176871, "f1": 0.5526932084309133},
+    "additiveV4V5PlusAutoAccept": {"tp": 161, "fp": 15, "fn": 133, "precision": 0.9147727272727273, "recall": 0.5476190476190477, "f1": 0.6851063829787234}
+  },
+  "incrementalAutoAcceptQuality": {
+    "relationshipsAdded": 73,
+    "truePositives": 58,
+    "falsePositives": 15,
+    "incrementalPrecision": 0.7945205479452054,
+    "newTrueRelationshipsRecovered": 58,
+    "falsePositiveTaxonomy": [
+      {"class": "COLLECTIVE_REFERENCE", "count": 13, "recipesAffected": ["pozole-verde-wowza", "creamy-chickpea-spinach-masala-with-tadka"]},
+      {"class": "COMPONENT_LEAKAGE", "count": 1, "recipesAffected": ["creamy-chickpea-spinach-masala-with-tadka"]},
+      {"class": "LIFECYCLE", "count": 1, "recipesAffected": ["singapore-mei-fun"]}
+    ],
+    "falsePositiveRelationshipIds": {
+      "pozole-verde-wowza": ["1:6", "2:6", "3:6", "4:6"],
+      "creamy-chickpea-spinach-masala-with-tadka": ["0:3", "2:3", "4:3", "5:3", "7:3", "8:3", "9:3", "10:3", "11:3", "18:6"],
+      "singapore-mei-fun": ["19:10"]
+    },
+    "systemic": true,
+    "systemicReason": "Thirteen collective-reference false positives repeat across two recipes; AUTO_ACCEPT also retains component-leakage and lifecycle errors."
+  },
+  "recallImprovement": {
+    "oldRecall": 0.35034013605442177,
+    "additiveRecall": 0.5476190476190477,
+    "absoluteRecallGain": 0.19727891156462588,
+    "oldFalseNegatives": 191,
+    "remainingFalseNegatives": 133,
+    "trueRelationshipsRecovered": 58,
+    "relativeFalseNegativeReduction": 0.3036649214659686
+  },
+  "severityDiagnostics": {
+    "existingV4V5": {
+      "critical": {"found": 7, "total": 40, "recall": 0.175},
+      "high": {"found": 35, "total": 92, "recall": 0.3804347826086957},
+      "seasoningHerb": {"found": 48, "total": 127, "recall": 0.3779527559055118}
+    },
+    "additive": {
+      "critical": {"found": 19, "total": 40, "recall": 0.475},
+      "high": {"found": 43, "total": 92, "recall": 0.4673913043478261},
+      "seasoningHerb": {"found": 75, "total": 127, "recall": 0.5905511811023622}
+    },
+    "anyMetricWorse": false
+  },
+  "originalVisibleDefects": [
+    {"recipeId": "garlic-butter-herb-steak-bites-with-potatoes", "label": "Step 1 → potatoes", "relationshipId": "2:0", "oldMap": "missing", "autoAccept": "yes", "additiveMap": "fixed"},
+    {"recipeId": "garlic-butter-herb-steak-bites-with-potatoes", "label": "Step 2 → steak", "relationshipId": "7:1", "oldMap": "missing", "autoAccept": "yes", "additiveMap": "fixed"},
+    {"recipeId": "caprese-salad", "label": "Step 1 → mozzarella", "relationshipId": "1:0", "oldMap": "missing", "autoAccept": "yes", "additiveMap": "fixed"},
+    {"recipeId": "grilled-zucchini-and-summer-squash", "label": "Step 2 → Italian herbs", "relationshipId": "4:1", "oldMap": "missing", "autoAccept": "yes", "additiveMap": "fixed"},
+    {"recipeId": "grilled-zucchini-and-summer-squash", "label": "Step 2 → pepper", "relationshipId": "6:1", "oldMap": "missing", "autoAccept": "yes", "additiveMap": "fixed"},
+    {"recipeId": "grilled-zucchini-and-summer-squash", "label": "Step 2 → yellow summer squash", "relationshipId": "1:1", "oldMap": "missing", "autoAccept": "yes", "additiveMap": "fixed"}
+  ],
+  "operationalWorkloadExtrapolation": {
+    "label": "EXTRAPOLATION_NOT_MEASUREMENT",
+    "recipesNeedingAiGeneration": 226,
+    "nominalAiCalls": 452,
+    "boundedMaximumAiAttempts": 904,
+    "humanCandidateReviewDecisionsRequired": 0,
+    "autoAcceptRelationshipsLikelyAddedDirectHeldOutScaling": 1650,
+    "directScalingFormula": "226 * (73 incremental additions / 10 held-out recipes)",
+    "normalizedCrossCheckLikelyAdded": 1032,
+    "normalizedCrossCheckFormula": "4240 projected union candidates * 44.37% frozen-benchmark AUTO_ACCEPT rate * 54.89% held-out new-beyond-old share",
+    "manualWorkRemaining": ["small spot-check", "known-problem verification"],
+    "caveat": "The held-out sample is intentionally difficult and neither estimate is a full-corpus measurement."
+  },
+  "operationalComplexityComparison": {
+    "perfectionOrientedPath": {
+      "freshProposals": 226,
+      "projectedCandidateReviewDecisions": 2359,
+      "nearUniversalRecipeReview": true,
+      "completenessAttestation": true,
+      "approval": true
+    },
+    "additivePracticalPath": {
+      "generateProposals": true,
+      "takeOnlyAutoAccept": true,
+      "mergeWithOldMaps": true,
+      "spotCheck": true,
+      "immutableManifestAndDeterministicApply": true,
+      "candidateReviewDecisions": 0
+    },
+    "relativeReduction": "Eliminates 100% of the projected 2,359 candidate-review decisions plus near-universal completeness attestation and approval; AI generation, deterministic merge, spot-check, and migration-manifest work remain.",
+    "humanHourEstimate": null
+  },
+  "practicalGate": {
+    "precision": {"value": 0.9147727272727273, "threshold": 0.9, "pass": true},
+    "recall": {"value": 0.5476190476190477, "threshold": 0.8, "conditionalMinimum": 0.7, "pass": false, "conditionalPass": false},
+    "noSystemicNewFalsePositivePattern": {"pass": false},
+    "decision": "FAIL — ADDITIVE HIGH-CONFIDENCE MAPPING DOES NOT REACH PRACTICAL FLOOR"
+  },
+  "productDecision": "Do not roll out additive automatic augmentation to the existing corpus. Keep the current v4/v5 maps as production truth. Retain the new mapping workflow for future recipes, manual corrections, and targeted spot checks; do not resume mapper research unless the product owner explicitly chooses further investment.",
+  "recommendedProductionPath": [
+    "keep existing v4/v5 maps",
+    "keep /mapping-review available",
+    "use the new workflow only for future recipes and manual corrections",
+    "do not migrate or cut over Cooking Mode from this validation"
+  ],
+  "estimatedRemainingWork": "No additive corpus rollout is authorized. Product decision work remains: decide whether to stop current-corpus mapping remediation while retaining the workflow for future/manual use.",
+  "designGate": "no UI impact",
+  "aiCalls": 0,
+  "productionMutations": {
+    "firestoreWrites": 0,
+    "reviewEvents": 0,
+    "mapApprovals": 0,
+    "pointerUpdates": 0,
+    "oldMapWrites": 0
+  },
+  "verification": {
+    "focusedReplayTest": "PASSED",
+    "tests": {
+      "status": "FAILED_KNOWN_HISTORICAL_FIXTURE_ONLY",
+      "passed": 1288,
+      "failed": 1,
+      "skipped": 1,
+      "total": 1290,
+      "failure": "ENOENT /tmp/cooking-step-arbiter-v10a-2026-08-28-state.json in tests/cookingModeV10DPrincipalTarget.test.js"
+    },
+    "lint": {"status": "PASSED", "errors": 0, "warnings": 6, "note": "All warnings pre-existed and are unrelated."},
+    "typecheck": {"status": "PASSED_AFTER_BUILD_REGENERATED_NEXT_TYPES", "note": "The initial run also caught and prompted repair of new-test typing; the build regenerated pre-existing duplicate .next type artifacts and the final run passed."},
+    "build": {"status": "PASSED", "framework": "Next.js 16.3.1"},
+    "gitDiffCheck": "PASSED"
+  },
+  "unverifiableItems": [],
+  "deferred": ["production rollout", "migration", "runtime cutover", "new semantic rules", "new AI calls", "production data mutation"],
+  "nextTask": "DECIDE WHETHER TO STOP COOKING MODE MAPPING REMEDIATION"
+}

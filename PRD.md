@@ -1096,14 +1096,17 @@ retained as historical data and are not modified or deleted by this app.
 
     **2026-08-29 pragmatic product-quality standard (current product decision):** Near-perfect
     mapping is no longer the required product gate. The practical automatic-mapping target is
-    **precision ≥95% and recall ≥85%**, with precision weighted somewhat more heavily because a
+    **precision ≥90% and recall ≥80%**, with precision weighted somewhat more heavily because a
     wrong ingredient displayed on a step is generally more confusing than an occasional omission.
     Isolated mapping errors are acceptable. Exhaustive candidate-level human review should not be
     required if a held-out automatic-union validation passes those thresholds with no systemic
     semantic failure. The earlier 100% precision / 99%+ recall / severity-specific targets remain
-    aspirational diagnostics only and must not be reapplied as the shipping gate. The first held-out
-    validation against this relaxed standard failed (see §6), so this policy change does not authorize
-    runtime migration or automatic corpus rollout.
+    aspirational diagnostics only and must not be reapplied as the shipping gate. Precision ≥90%
+    with recall ≥70% but <80% can support only a **conditional** product-owner acceptance when the
+    original visible defects improve and no systemic false-positive pattern appears; it is never an
+    automatic approval. Both the first raw-union validation and the subsequent additive validation
+    failed (see §6), so this policy change does not authorize runtime migration or automatic corpus
+    rollout.
 
     **2026-08-28 mapping architecture reassessment (decision; no implementation):** The selected
     future architecture is **AI-at-ingestion with review**: two independent blind whole-recipe
@@ -2024,6 +2027,22 @@ retained as historical data and are not modified or deleted by this app.
   **REASSESS PRACTICAL MAPPING QUALITY FLOOR**—decide whether materially lower precision is acceptable
   or the feature should remain on old mappings. See
   `docs/audits/cooking-mode-pragmatic-automatic-quality-validation-2026-08-29.{md,json}`.
+- **Additive v4/v5 + V1 `AUTO_ACCEPT` also fails the practical floor (2026-08-29).** The exact same
+  frozen 10-recipe reviewer outputs were replayed through the already-implemented V1 evidence adapter
+  and router, then unioned by canonical ingredient-step identity with the exact source-current old
+  v4/v5 maps. Existing maps scored **103 TP / 0 FP / 191 FN** (100.00% precision, 35.03% recall);
+  `AUTO_ACCEPT` alone scored **118 / 15 / 176** (88.72%, 40.14%); the additive candidate scored
+  **161 / 15 / 133** (**91.48% precision, 54.76% recall, 68.51% F1**). Although aggregate precision
+  clears the 90% floor and all six original visible defects become fixed, recall is below both the
+  80% pass floor and 70% conditional floor. More importantly, the 73-relationship augmentation was
+  only **79.45% precise** (58 TP / 15 FP): 13 collective-reference errors repeated across Pozole and
+  Masala, plus one component-leakage and one lifecycle error, so the no-systemic-error gate also
+  fails. CRITICAL/HIGH/seasoning recall all improved additively but remained incomplete. No AI or
+  production mutation occurred. Do not roll this strategy across the existing corpus; keep v4/v5 as
+  production truth and retain the new workflow only for future recipes, manual corrections, and spot
+  checks unless the product owner explicitly chooses more mapping investment. Next product decision:
+  **DECIDE WHETHER TO STOP COOKING MODE MAPPING REMEDIATION**. See
+  `docs/audits/cooking-mode-additive-practical-quality-validation-2026-08-29.{md,json}`.
 - **USDA search API rejects parenthesized dataType values.** Sending
   `dataType=Survey (FNDDS)` in the querystring intermittently returns nginx HTTP 400
   (~60% observed, load-balancer dependent). `lib/nutritionEngine.ts` therefore never sends a
@@ -2115,7 +2134,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Cooking-step ingredient mapping | High | Partial (228/236 shared recipes mapped; Wave 4/5 and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping audit — Failed / historical**: seven deterministic false positives and repeated incorrect AI salt acceptance; its immutable manifest is never reusable. **Mapping v5 remediation — Done / PASS**: 41/41 recipes, 295 references, 111 omissions, 0 false positives; bounded AI 25/25 correct with 0 unsafe stability differences; all 187 persisted v4 maps remain runtime accepted. **Recovered 41-recipe v5 map audit — Done**: 41/41 READY, 295 deterministic references and 111 omissions safe, 25/25 accepted AI relationships correct, zero unsafe stability differences, immutable manifest SHA `5d4ddaa10c788f9192ae74a5887859bc2847496706461b655752d86e62741170`. **Recovered 41-recipe v5 map apply — Done**: 41 exact field-only writes, 41/41 exact readback/hash/validation matches, zero non-map changes, zero AI/recomputation, 0/187 original maps changed, 0/8 unresolved recipes changed, and post-apply READY_TO_WRITE 0. Production has 228 mapped and eight unmapped recipes. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`, and the preserved v1-v5 audit evidence. |
 | Cooking Mode completeness audit | High | Done | Full 228-recipe actual-runtime precision + recall audit: two blind reviews per recipe, every discrepancy adjudicated, mandatory UI regressions reproduced, TP 1,375 / FP 12 / FN 2,677, precision 99.13%, recall 33.93%, production mutations 0. See §6 and `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`. |
-| Cooking Mode recall remediation | High | Pragmatic automatic-union validation failed; runtime cutover, existing-corpus remediation, and activation remain pending | The accepted product gate is now practical rather than near-perfect: precision ≥95%, recall ≥85%, isolated errors acceptable, no systemic nonsense. The 2026-08-29 held-out validation of the raw two-reviewer union failed decisively at 294 TP / 342 FP / 0 FN (46.23% precision, 100% recall, 63.23% F1), with systemic component-leakage/lifecycle/collective overmapping across all 10 recipes. Direct-union rollout and runtime migration are not authorized. Existing review-routing/persistence/UI work remains available but does not need expansion in this task. Next: **REASSESS PRACTICAL MAPPING QUALITY FLOOR**; do not automatically restart deterministic semantic research. See §5.25, §6, and `docs/audits/cooking-mode-pragmatic-automatic-quality-validation-2026-08-29.{md,json}`. |
+| Cooking Mode recall remediation | High | Raw-union and additive validations failed; runtime cutover, existing-corpus remediation, and activation remain pending | The accepted product gate is precision ≥90%, recall ≥80%, isolated errors acceptable, no systemic nonsense; precision ≥90% with recall 70–<80% requires explicit product-owner acceptance and no systemic FP pattern. Raw reviewer union failed at 294 TP / 342 FP / 0 FN. The final fixed-strategy comparison also rejected v4/v5 + V1 `AUTO_ACCEPT`: 161 TP / 15 FP / 133 FN (91.48% precision, 54.76% recall), with only 79.45% incremental precision and repeated collective-reference FPs. Keep v4/v5 as production truth; retain the new workflow for future/manual corrections. Next: **DECIDE WHETHER TO STOP COOKING MODE MAPPING REMEDIATION**; do not resume mapper research unless the product owner explicitly chooses more investment. See §5.25, §6, and `docs/audits/cooking-mode-additive-practical-quality-validation-2026-08-29.{md,json}`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
