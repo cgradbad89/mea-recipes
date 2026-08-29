@@ -52,6 +52,8 @@ beforeEach(() => {
 describe('addRecipeIngredientsToGrocery final boundary', () => {
   it.each([
     ['recognized subheader', 'For the Chicken'],
+    ['audited component subheader', 'Green Chile Sauce'],
+    ['audited effective-override component subheader', 'Green Chile Sauce!'],
     ['explicit URL', 'https://example.com/recipe'],
     ['empty parsed name', 'EMPTY_PARSED_NAME'],
   ])('does not write a %s', async (_case, line) => {
@@ -90,6 +92,16 @@ describe('addRecipeIngredientsToGrocery final boundary', () => {
     expect(firestore.batch.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'rice', quantity: '2', unit: 'cups' }),
+    )
+    expect(firestore.batch.commit).toHaveBeenCalledOnce()
+  })
+
+  it('keeps a quantified green chile sauce as a grocery candidate', async () => {
+    await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['1 cup green chile sauce'])
+
+    expect(firestore.batch.set).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ name: 'green chile sauce', quantity: '1', unit: 'cup' }),
     )
     expect(firestore.batch.commit).toHaveBeenCalledOnce()
   })

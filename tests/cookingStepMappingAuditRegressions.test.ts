@@ -130,6 +130,13 @@ describe('2026-08-25 deterministic audit regressions', () => {
     expect(indexes(['Green Chile Sauce', '1 cup green chile'], 'Green Chile Sauce')).toEqual([])
   })
 
+  it('excludes the effective Green Chile Sauce override label from mapping sources', () => {
+    expect(indexes(
+      ['Green Chile Sauce!', '2 tbsp olive oil', 'Enchiladas', '12 blue corn tortillas'],
+      'Heat the olive oil, then fill the tortillas.',
+    )).toEqual([1])
+  })
+
   it('does not remap raw green chile from an established sauce reference', () => {
     expect(step(
       ['Green Chile Sauce', '1 cup green chile', '12 tortillas'],

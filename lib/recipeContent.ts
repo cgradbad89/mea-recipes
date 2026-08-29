@@ -14,13 +14,13 @@ const INGREDIENT_HEADER_KEYWORDS = new Set([
   'crust', 'assembly', 'main', 'main dish', 'dish',
 ])
 
-// Exact normalized labels for the 31 audited subheader occurrences that the
-// former presentation-only predicate missed. There are 27 unique labels. Keep
-// this evidence-bound: generic short/title-case/no-quantity rules would also
-// consume legitimate ingredients.
+// Exact normalized labels for audited subheader occurrences that the former
+// presentation-only predicate missed. Keep this evidence-bound: generic
+// short/title-case/no-quantity rules would also consume legitimate ingredients.
 const AUDITED_INGREDIENT_SUBHEADER_LABELS = new Set([
   'additional toppings (optional)',
   'aromatics',
+  'couscous sweet potato black bean salad',
   'enchiladas',
   'extras',
   'for the chicken',
@@ -40,10 +40,18 @@ const AUDITED_INGREDIENT_SUBHEADER_LABELS = new Set([
   'for the stir fry',
   'for the stir-fry',
   'for the tacos',
+  'green chile sauce',
+  'green chile sauce!',
+  'green tahini',
+  'lime basil vinaigrette',
   'noodles',
+  'pineapple salsa',
   'proteins',
+  'quick cabbage slaw',
+  'rosemary lemon garlic oil ( for drizzling)',
   'seasonings',
   'sheet pan ingredients',
+  'spice rub',
   'the extras',
   'vegetables',
 ])

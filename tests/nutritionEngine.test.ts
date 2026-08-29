@@ -98,6 +98,18 @@ describe('nutrition migration behavior', () => {
     expect(result.parsed[0]).toEqual(expect.objectContaining({ name: 'olive oil' }))
   })
 
+  it('skips audited component labels while retaining quantified nearby ingredients', () => {
+    const result = parseIngredientList([
+      'Green Chile Sauce',
+      'Green Chile Sauce!',
+      '2 tablespoons olive oil',
+      '1 cup green chile, chopped',
+    ])
+
+    expect(result.flagged).toEqual([])
+    expect(result.parsed.map(ingredient => ingredient.name)).toEqual(['olive oil', 'green chile'])
+  })
+
   it('normalizes nested parentheticals without leaking an orphan delimiter', () => {
     const parsed = parseIngredientLine('1 serrano (optional (or jalapeño))')
     expect(parsed?.name).toBe('serrano')

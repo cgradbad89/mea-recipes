@@ -48,6 +48,24 @@ describe('shared ingredient-subheader identity', () => {
     }
   })
 
+  it('recognizes the audited component labels and the Blue Corn override variant', () => {
+    const auditedLabels = [
+      'Green Chile Sauce',
+      'Green Chile Sauce!',
+      'Pineapple Salsa',
+      'Couscous Sweet Potato Black Bean Salad',
+      'Lime Basil Vinaigrette',
+      'Spice Rub',
+      'Quick Cabbage Slaw',
+      'Green Tahini',
+      'Rosemary Lemon Garlic Oil ( for drizzling)',
+    ]
+
+    for (const line of auditedLabels) {
+      expect(isIngredientSubheader(line), line).toBe(true)
+    }
+  })
+
   it('does not classify audited composite ingredients as subheaders', () => {
     const legitimate = [
       'chicken or vegetable broth',
@@ -56,6 +74,17 @@ describe('shared ingredient-subheader identity', () => {
       'Fresh cilantro, for garnish (optional)',
       'Garnish: Avocado, cilantro, scallions, Cabbage Slaw, Mexican Secret Sauce or Vegan Avocado Sauce',
       'Toppings (optional): toasted nuts or seeds, fresh herbs, grated or crumbled cheese, soft-boiled egg, avocado, hot sauce or other sauces and so on',
+      '1 cup green chile sauce',
+      'green chile sauce for serving',
+      'For the sauce.',
+      '• For the sauce',
+      'For frying',
+      'Canola or vegetable oil, for frying',
+      '4–5 cups peanut oil for frying',
+      '1 cup pineapple salsa',
+      '2 tbsp spice rub',
+      '2 tbsp green tahini',
+      'Oil',
     ]
 
     for (const line of legitimate) {
@@ -243,6 +272,30 @@ describe('conservative recipe-content contamination controls', () => {
       'For the Salad',
       '2 cups arugula or rocket',
     ])
+  })
+
+  it('preserves the Blue Corn effective override header structurally', () => {
+    const parsed = parseRecipeContent([
+      'INGREDIENTS',
+      'Green Chile Sauce!',
+      '2 tbsp olive oil',
+      '1/2 onion',
+      '1 cup green chile peeled, seeded, and chopped',
+      '3 cloves garlic',
+      '2 tbsp flour',
+      '1.5 cups chicken broth',
+      'salt and pepper to taste',
+      'Enchiladas',
+      '3-4 chicken breasts skinned and boneless',
+      '12 blue corn tortillas',
+      '1.5 cups shredded cheese',
+      'INSTRUCTIONS',
+      'Heat the sauce ingredients, fill the tortillas, and bake until browned.',
+    ].join('\n'))
+
+    expect(parsed.ingredients).toContain('Green Chile Sauce!')
+    expect(isIngredientSubheader('Green Chile Sauce!')).toBe(true)
+    expect(isIngredientSubheader('Enchiladas')).toBe(true)
   })
 
   it('preserves legitimate no-quantity ingredient lines', () => {

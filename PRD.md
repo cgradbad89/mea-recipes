@@ -469,12 +469,13 @@ retained as historical data and are not modified or deleted by this app.
    single-recipe content model; arbitrary prose containing heading words is not accepted.
 7. **Ingredient sub-header detection** — `isIngredientSubheader(line): boolean` in the pure,
    Firebase-free `lib/recipeContent.ts` module is authoritative for ingredient-group identity. It
-   preserves colon-ending, markdown-bold, and known group-keyword semantics and adds only the 27
-   exact audited labels covering the 31 formerly missed occurrences. `detectIngredientHeader`
+   preserves colon-ending, markdown-bold, and known group-keyword semantics and adds only the 36
+   exact audited labels, including the evidence-backed `Green Chile Sauce!` effective-override
+   variant, covering the 39 formerly missed corpus occurrences. `detectIngredientHeader`
    remains a compatibility wrapper for recipe detail/Cooking Mode presentation; subheaders remain
    in the presentation-oriented ingredient array so grouping is preserved. Grocery addition and
-   nutrition parsing use the same predicate and skip recognized subheaders, so all 84 audited true
-   subheaders are structural labels rather than purchase or nutrition inputs. Broad short-line,
+   nutrition parsing use the same predicate and skip recognized subheaders, so all 94 audited true
+   corpus subheaders are structural labels rather than purchase or nutrition inputs. Broad short-line,
    capitalization, missing-quantity, and generic `for` heuristics are intentionally excluded.
 8. **Cook/prep time normalization** — `parseTimeToMinutes` parses ISO-8601 (`PT30M`), `1 hr 15 min`,
    `1h30m`, and bare numbers into minutes; `formatMinutes` renders back; `getTotalTime` sums
