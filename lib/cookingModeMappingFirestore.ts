@@ -72,13 +72,13 @@ export interface MappingFirestoreCollectionRef {
 }
 
 export interface MappingFirestoreBatch {
-  set(ref: MappingFirestoreDocRef, data: Record<string, unknown>): void
+  set(ref: MappingFirestoreDocRef, data: Record<string, unknown>, options?: { merge?: boolean }): void
   commit(): Promise<unknown>
 }
 
 export interface MappingFirestoreTransaction {
   get(ref: MappingFirestoreDocRef): Promise<MappingFirestoreDocSnapshot>
-  set(ref: MappingFirestoreDocRef, data: Record<string, unknown>): void
+  set(ref: MappingFirestoreDocRef, data: Record<string, unknown>, options?: { merge?: boolean }): void
 }
 
 export interface MappingFirestoreLike {

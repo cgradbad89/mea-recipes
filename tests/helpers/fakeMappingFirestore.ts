@@ -46,9 +46,9 @@ export function createFakeMappingFirestore(options: FakeMappingFirestoreOptions 
           data: () => clone(data),
         }
       },
-      async set(data: Record<string, unknown>) {
+      async set(data: Record<string, unknown>, setOptions?: { merge?: boolean }) {
         if (poisonedDocIds.has(id)) return undefined
-        store.set(path, clone(data))
+        store.set(path, setOptions?.merge ? { ...clone(store.get(path) ?? {}), ...clone(data) } : clone(data))
         return undefined
       },
       collection(sub: string): MappingFirestoreCollectionRef {
@@ -95,8 +95,11 @@ export function createFakeMappingFirestore(options: FakeMappingFirestoreOptions 
     async runTransaction<T>(fn: (transaction: MappingFirestoreTransaction) => Promise<T>): Promise<T> {
       const transaction: MappingFirestoreTransaction = {
         get: ref => ref.get(),
-        set: (ref, data) => {
-          void ref.set(data)
+        set: (ref, data, setOptions) => {
+          const writable = ref as MappingFirestoreDocRef & {
+            set(data: Record<string, unknown>, options?: { merge?: boolean }): Promise<unknown>
+          }
+          void writable.set(data, setOptions)
         },
       }
       return fn(transaction)
