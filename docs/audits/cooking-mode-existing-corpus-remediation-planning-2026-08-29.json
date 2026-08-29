@@ -1,0 +1,398 @@
+{
+  "task": "Plan Cooking Mode existing-corpus mapping remediation",
+  "type": "PLANNING_ONLY",
+  "date": "2026-08-29",
+  "startingCheckpoint": {
+    "expected": "c3a1e8a58469b304a291d1f78e3f7d3b8dc68516",
+    "actualHead": "c3a1e8a58469b304a291d1f78e3f7d3b8dc68516",
+    "actualOriginMain": "c3a1e8a58469b304a291d1f78e3f7d3b8dc68516",
+    "branch": "main",
+    "matched": true,
+    "preExistingDirtyStatePreserved": [
+      "docs/audits/cooking-mode-v10f-lite-active-object-go-no-go-2026-08-28.json (modified)",
+      ".claude/launch.json (untracked)",
+      ".eslintrc.json (untracked)",
+      "firebase-debug 2.log (untracked)",
+      "firestore-debug.log (untracked)"
+    ]
+  },
+  "productionMutation": {
+    "aiCorpusCalls": 0,
+    "mappingProposalGenerationCalls": 0,
+    "candidateWrites": 0,
+    "reviewWrites": 0,
+    "mapApprovals": 0,
+    "runtimeMapWrites": 0,
+    "pointerUpdates": 0,
+    "migrationWrites": 0,
+    "readOnlyInventoryQueries": "recipes collection (237 docs) + per-recipe mappingProposals/approvedMappings/cookingModeMappingPointer subcollection reads, all get()/limit(1) — no composite index required, matching the existing architecture's stated bounded-read pattern"
+  },
+  "currentCorpus": {
+    "measuredAt": "2026-08-29T13:15:37.464Z",
+    "totalSharedRecipeDocs": 237,
+    "malformedNonRecipeDocs": 1,
+    "malformedIds": ["maple-roasted-candied-pecans"],
+    "malformedEvidence": "content field is the literal 4-character string \"Source:\" — no ingredients, no instructions; a known incomplete document already noted in PRD.md's recipe-time-audit history",
+    "usableRecipes": 236,
+    "recipesWithCurrentV4V5PersistedMap": 229,
+    "v4v5EngineBreakdown": {
+      "deterministic-v4": 148,
+      "hybrid-v4": 39,
+      "deterministic-v5": 33,
+      "hybrid-v5": 9
+    },
+    "recipesWithoutPersistedMap": 7,
+    "unmappedIds": [
+      "chipotle-tahini-bowls",
+      "mexican-street-corn",
+      "rising-sun-mazcal",
+      "smoothies",
+      "spaghetti-carbonara",
+      "speget-with-fake-meat-meatballs",
+      "zesty-quinoa-salad"
+    ],
+    "recipesWithNewSystemProposal": 3,
+    "proposalRecipeIds": [
+      "caprese-salad",
+      "garlic-butter-herb-steak-bites-with-potatoes",
+      "grilled-zucchini-and-summer-squash"
+    ],
+    "recipesWithNewSystemApprovedMap": 2,
+    "approvedMapRecipeIds": [
+      "caprese-salad",
+      "garlic-butter-herb-steak-bites-with-potatoes"
+    ],
+    "recipesWithCurrentApprovedPointer": 2,
+    "pointerRecipeIds": [
+      "caprese-salad",
+      "garlic-butter-herb-steak-bites-with-potatoes"
+    ],
+    "reconciliation": "229 mapped + 7 unmapped-unresolved + 1 malformed = 237 total. This corrects the historical checkpoint's undifferentiated \"8 unresolved\" into 7 genuinely unresolved source recipes + 1 malformed/placeholder document.",
+    "driftFromLastAuditCheckpoint": "2026-08-26 completeness audit measured 236 shared / 228 mapped / 8 unresolved; a later checkpoint measured 237/229/8. Current readback (237 total, 229 mapped) matches the later checkpoint exactly — the corpus has been stable since, net of the +1 malformed/unresolved split correction above."
+  },
+  "remediationScope": {
+    "groupA_existingMappedUsable": {
+      "count": 229,
+      "rule": "INCLUDE as primary remediation population",
+      "reason": "Has an old v4/v5 persisted map; is the population the whole remediation effort exists to replace with a reviewed immutable new-system map.",
+      "subsetRequiringFreshGeneration": 226,
+      "subsetRequiringResumeReviewOnly": 1,
+      "subsetAlreadyComplete_seeGroupB": 2
+    },
+    "groupB_newSystemApproved": {
+      "count": 2,
+      "recipeIds": ["caprese-salad", "garlic-butter-herb-steak-bites-with-potatoes"],
+      "rule": "EXCLUDE from regeneration; recommend counting as already remediated",
+      "reason": "Both produced through the exact real production pipeline (live AI Gateway reviewer calls, admin-verified API routes, real Firestore writes) during 2026-08-29 end-to-end validation; current-approved pointer exists and resolves against a recorded recipeRevision matching that session's source. Recommend a zero-cost live-revision recompute check immediately before pilot kickoff to reconfirm CURRENT (not STALE) before formally skipping them — no AI call required for that check."
+    },
+    "groupC_unresolvedSourceTruthProblem": {
+      "count": 7,
+      "recipeIds": [
+        "chipotle-tahini-bowls",
+        "mexican-street-corn",
+        "rising-sun-mazcal",
+        "smoothies",
+        "spaghetti-carbonara",
+        "speget-with-fake-meat-meatballs",
+        "zesty-quinoa-salad"
+      ],
+      "rule": "EXCLUDE from automatic remediation unless source problem is separately fixed",
+      "reason": "No persisted v4/v5 map; historically unresolved. chipotle-tahini-bowls has a documented KNOWN_SOURCE_DEFECT (unquantified bowl suggestions mixed with note-only prep content) in scripts/audit-cooking-step-mappings-core.mjs. The others were never diagnosed with a specific defect in this session's reading — read-only content presence alone does not establish they are safely mappable; a source-quality pass is a prerequisite, not this task."
+    },
+    "groupD_malformedNonRecipe": {
+      "count": 1,
+      "recipeIds": ["maple-roasted-candied-pecans"],
+      "rule": "EXCLUDE",
+      "reason": "content field is only the placeholder string \"Source:\" — not a parseable recipe; no ingredients or instructions exist to map."
+    },
+    "groupE_newlyAddedWithoutOldMapping": {
+      "count": 0,
+      "rule": "N/A currently; forward-looking policy defined",
+      "reason": "lib/recipes.ts still unconditionally computes a deterministic v4/v5-style map at save time, and as of Implementation 6 (2026-08-29) every saveRecipe() site also triggers POST /api/mapping/generate automatically. A truly new recipe therefore already enters the new-system ingestion pipeline at creation and should be reviewed via ordinary /mapping-review, never batch-remediated — batch remediation exists only for the pre-Implementation-6 backlog (Group A)."
+    }
+  },
+  "alreadyRemediatedRecipes": {
+    "recipes": [
+      {
+        "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+        "mapId": "am1:6a144c3da698c3f77906638b194f6960d7f532b5377bd37343398922b43da386",
+        "mode": "HUMAN_ASSISTED",
+        "relationshipCount": 14,
+        "provenanceBreakdown": { "AUTO_ACCEPT": 8, "HUMAN_REVIEW_ACCEPT": 5, "HUMAN_ADDED": 1 },
+        "pointerRecipeRevision": "recipe-content-v1:sha256:12d66c715191dea38fb8cd26c21100b252ca1466b0ccfc9a580d380e607de31c",
+        "recommendation": "COUNT_AS_REMEDIATED"
+      },
+      {
+        "recipeId": "caprese-salad",
+        "mapId": "am1:ecf8ef1f73f5bc5e5d890872a210def2c4bc7723f018b44c6fff558023f1bc59",
+        "mode": "AUTO",
+        "relationshipCount": 7,
+        "provenanceBreakdown": { "AUTO_ACCEPT": 7, "HUMAN_REVIEW_ACCEPT": 0, "HUMAN_ADDED": 0 },
+        "pointerRecipeRevision": "recipe-content-v1:sha256:18a822baf7f445bf2e21608bf808aac3d06d1568aab70f9c9eaa3ae72615c2fe",
+        "recommendation": "COUNT_AS_REMEDIATED"
+      },
+      {
+        "recipeId": "grilled-zucchini-and-summer-squash",
+        "proposalId": "mp1:bb9d6d2790a7252f5722eaa813bc5162bc13eb8b6a9f1df24683590a7738a1b4",
+        "persistenceStatus": "READY",
+        "approvalBlocked": true,
+        "pointer": "NONE",
+        "recommendation": "RESUME_REVIEW_IN_PILOT — do not regenerate; complete existing review, completeness attestation, and approval"
+      }
+    ],
+    "rationale": "All three used the real reviewer contract, real admin-verified persistence, and a real admin decision-maker; the end-to-end validation audit records no fabricated votes or invented provenance. Their production-quality standing does not depend on the task framing (\"validation\" vs. \"remediation\") that produced them."
+  },
+  "estimatedWorkload": {
+    "measuredFrozenBenchmarkEvidence": {
+      "source": "docs/audits/cooking-mode-review-routing-contract-analysis-2026-08-28.md (36-recipe frozen reviewer-union benchmark)",
+      "autoAcceptShare": 0.4437,
+      "reviewRequiredShare": 0.5563,
+      "recipesWithAnyReview": "34/36",
+      "avgReviewItemsPerAffectedRecipe": 14.09,
+      "avgUnionCandidatesPerRecipe_fullCorpus": 18.76,
+      "medianUnionCandidatesPerRecipe_fullCorpus": 18
+    },
+    "projectedFullRemediationWorkload_LABELED_ESTIMATE_NOT_MEASURED": {
+      "recipesRequiringFreshGeneration": 226,
+      "projectedUnionCandidates": 4240,
+      "projectedUnionCandidatesFormula": "226 recipes * 18.76 avg union candidates/recipe (measured full-228-corpus average)",
+      "projectedReviewRequiredRelationships": 2359,
+      "projectedReviewRequiredFormula": "4240 * 55.63% (measured 36-recipe frozen benchmark rate)",
+      "projectedRecipesNeedingCandidateReview": 213,
+      "projectedRecipesNeedingCandidateReviewFormula": "226 * (34/36 measured ratio)",
+      "projectedRecipesNeedingOnlyFinalCompletenessReview": 13,
+      "projectedRecipesNeedingOnlyFinalCompletenessReviewFormula": "226 - 213",
+      "caveat": "These are projections extrapolated from a 36-recipe frozen benchmark and a full-228-corpus reviewer-union average, not a measurement of the current 226-recipe population. No human review time-per-item estimate is provided — the repository contains no authoritative seconds/minutes-per-relationship data."
+    }
+  },
+  "batching": {
+    "batchSizeOptionsConsidered": [
+      { "size": 5, "note": "Smallest failure-isolation blast radius; too many batches (46) for 226 recipes, high per-batch operational overhead." },
+      { "size": 10, "note": "Selected default — see rationale." },
+      { "size": 20, "note": "Fewer batches (12) but a single batch could carry ~280 projected review items at the measured rate, a large single review session with more to lose per failed batch." }
+    ],
+    "selectedDefaultBatchSize": 10,
+    "rationale": "10 recipes/batch caps nominal AI calls at 20/batch (bounded max 40 with full retry), keeps projected review burden per batch to roughly 100 relationships (~10 recipes * 14.09/affected-recipe * ~94% affected), matches the pilot-size guidance (5-10) so the pilot itself can double as a template batch, and gives 23 batches for the 226 fresh-generation recipes after the pilot consumes 5 of them — small enough per batch to stop cleanly on a systemic problem without losing much sunk work.",
+    "maxConcurrentRecipeGenerations": {
+      "pilot": 1,
+      "postPilotBatches": 3,
+      "rationale": "No existing batch-orchestration harness runs multiple /api/mapping/generate calls concurrently in this repo; sequential-by-recipe during the pilot maximizes auditability and failure attribution. Once the pilot validates the mechanism, bounded concurrency of up to 3 recipe generations in flight keeps total in-flight reviewer calls to at most 6 (2 reviewer slots x 3 recipes) — well below any provider concern raised in prior sessions, without assuming unlimited concurrency."
+    },
+    "maxReviewerAIConcurrencyPerRecipe": 2,
+    "reviewerConcurrencyNote": "Unchanged from the existing implemented coordinator: each recipe's own 2 reviewer slots (A and B) already execute independently per the review-routing contract Sec 6; this plan does not alter that.",
+    "generationVsReviewSequencing": "SEQUENTIAL_PER_BATCH — generate every recipe in a batch first (bounded concurrency), then perform human review for the whole batch, then completeness review/attest/approve for the whole batch, before starting the next batch's generation. Recommended for the pilot and initial batches to favor operational simplicity and clean stop points; pipelining batch N+1 generation during batch N's review may be revisited once the pilot proves the workflow, but is not adopted now."
+  },
+  "batchOrdering": {
+    "method": "Descending known-severity first: rank Group A's 226 fresh-generation-eligible recipes by the 2026-08-26 completeness audit's per-recipe false-negative (FN) count (highest first), assign consecutively to batches of 10 in that order. The exact 226-row ranked list is not hand-enumerated in this plan (the audit JSON is 5.3MB); Prompt C should derive it programmatically from docs/audits/cooking-mode-completeness-audit-2026-08-26.json's per-recipe FN counts at execution time, filtered to Group A's fresh-generation set.",
+    "rejectedAlternative": "Round-robin distribution of severity ranks across batches (to smooth review burden per batch) was considered and rejected in favor of the simpler descending-severity ordering, which front-loads risk reduction and early validation value as instructed; revisit only if a specific batch's review burden proves unmanageable in practice.",
+    "illustrativeTop12FromCompletenessAudit": [
+      "mole-poblano (FN 91, MATERIAL_OMISSIONS, KNOWN_SOURCE_DEFECT)",
+      "dads-chili (FN 49, AMBIGUOUS_SOURCE)",
+      "173-slow-cooker-chicken-ropa-vieja (FN 37, MATERIAL_OMISSIONS)",
+      "159-easy-slow-cooker-turkey-chili (FN 34, MATERIAL_OMISSIONS)",
+      "fried-chicken-sandwich (FN 30, AMBIGUOUS_SOURCE)",
+      "pozole-verde-wowza (FN 29, MATERIAL_OMISSIONS)",
+      "164-slow-cooker-chicken-taco-soup (FN 27, MATERIAL_OMISSIONS)",
+      "171-slow-cooker-beef-brisket-with-bbq-sauce (FN 26, MATERIAL_OMISSIONS)",
+      "152-crockpot-chicken-wild-rice-soup (FN 25, MATERIAL_OMISSIONS)",
+      "creamy-chickpea-spinach-masala-with-tadka (FN 25, MATERIAL_OMISSIONS)",
+      "mediterranean-quinoa-bowl (FN 24, MATERIAL_OMISSIONS)",
+      "tacos-al-pastor (FN 24, MATERIAL_OMISSIONS)"
+    ]
+  },
+  "pilotBatch": {
+    "size": 8,
+    "recipes": [
+      {
+        "recipeId": "garlic-butter-herb-steak-bites-with-potatoes",
+        "action": "REUSE_VALIDATE",
+        "reason": "One of the three original user-reported problem recipes; already approved via the 2026-08-29 end-to-end validation. No fresh AI calls."
+      },
+      {
+        "recipeId": "caprese-salad",
+        "action": "REUSE_VALIDATE",
+        "reason": "One of the three original user-reported problem recipes; already approved (AUTO mode, 0 human review needed). No fresh AI calls."
+      },
+      {
+        "recipeId": "grilled-zucchini-and-summer-squash",
+        "action": "RESUME_REVIEW_ONLY",
+        "reason": "One of the three original user-reported problem recipes; has a READY proposal with genuine live reviewer disagreement already partially reviewed, deliberately left unapproved. No fresh AI calls — resume and complete review/attestation/approval."
+      },
+      {
+        "recipeId": "mole-poblano",
+        "action": "FRESH_GENERATION",
+        "reason": "Largest known historical omission (FN 91) and a documented KNOWN_SOURCE_DEFECT (storage/tip prose parsed as cooking instructions) — exercises the per-item SOURCE_REMEDIATION_REQUIRED failure path deliberately."
+      },
+      {
+        "recipeId": "dads-chili",
+        "action": "FRESH_GENERATION",
+        "reason": "Second-largest known historical omission (FN 49), AMBIGUOUS_SOURCE grade — semantic-difficulty case."
+      },
+      {
+        "recipeId": "chicken-stew",
+        "action": "FRESH_GENERATION",
+        "reason": "FN 20, MATERIAL_OMISSIONS — moderate component/lifecycle complexity (stew simmering/seasoning references)."
+      },
+      {
+        "recipeId": "mediterranean-quinoa-bowl",
+        "action": "FRESH_GENERATION",
+        "reason": "3 steps, 0 currently-mapped ingredient references despite being short — seasoning/collective-reference case where the old deterministic mapper found essentially nothing."
+      },
+      {
+        "recipeId": "peanut-butter-oat-protein-shake",
+        "action": "FRESH_GENERATION",
+        "reason": "1 step, 0 currently-mapped ingredient references — simple-recipe case, likely to exercise the zero-or-near-zero-review-required / auto-heavy path."
+      }
+    ],
+    "freshGenerationCount": 5,
+    "reuseOrResumeCount": 3
+  },
+  "pilotGate": {
+    "objectiveCriteria": [
+      "All 5 fresh-generation pilot recipes produce valid READY proposals",
+      "No proposal-generation transport/schema failure survives the existing bounded per-slot retry (2 attempts/slot)",
+      "All required candidate-level reviews for all 8 pilot recipes can be completed through the existing /mapping-review UI",
+      "All 8 pilot maps receive a valid completeness attestation matching the live reviewStateHash",
+      "All 8 approved maps pass a source-semantic spot check against the completeness audit's adjudicated expected values where available (the 3 original problem recipes have documented expected values in cooking-mode-completeness-audit-2026-08-26.md)",
+      "No duplicate proposal/candidate/map identity issues (CANDIDATE_ID_COLLISION or persistence conflict errors)",
+      "No unexpected Firestore query/index requirement surfaces",
+      "Zero writes to any recipe's old cookingStepIngredientMap (v4/v5) field or to Cooking Mode runtime code during the pilot"
+    ],
+    "qualityGate": {
+      "knownFalsePositivesInApprovedMap": 0,
+      "knownCriticalFalseNegatives": 0,
+      "regressionOnOriginalKnownVisibleOmissions": "none permitted (the 3 known-problem recipes' documented missing ingredients from cooking-mode-completeness-audit-2026-08-26.md must all be present in their final approved/resumed maps)"
+    },
+    "expandCorpusOnlyIf": "every objective criterion and the quality gate pass; do not expand if the pilot exposes a systemic issue (see Stop Conditions)."
+  },
+  "aiCallBudget": {
+    "perRecipeNominal": 2,
+    "perRecipeBoundedMax": 4,
+    "perRecipeBoundedMaxBasis": "2 reviewer slots x at most 2 attempts/slot (architecture contract Sec 16 / Sec 25.3's in-memory execution helper: 'at most two attempts per slot')",
+    "pilot": {
+      "freshGenerationRecipes": 5,
+      "nominalCalls": 10,
+      "boundedMaxCalls": 20
+    },
+    "postPilotFullGroupA": {
+      "freshGenerationRecipesRemaining": 221,
+      "nominalCalls": 442,
+      "boundedMaxCalls": 884,
+      "note": "221 = 226 total fresh-generation-eligible minus the 5 consumed by the pilot"
+    },
+    "note": "No dollar cost is estimated; the repository has no authoritative current provider pricing metadata for this task to cite."
+  },
+  "proposalReuseRules": [
+    "Before generating: compute the recipe's current recipeRevision from its live parsed content.",
+    "If a current-approved pointer resolves CURRENT for that exact revision -> skip remediation entirely (Group B pattern).",
+    "Else if a READY proposal exists at that exact revision -> reuse it; resume/continue human review from its existing state (grilled-zucchini-and-summer-squash pattern).",
+    "Else if a WRITING or FAILED proposal header exists at that identity -> do not trust it; fall through and generate fresh (per architecture contract Sec 27.1 step 2 - this is already the implemented behavior of generateAndPersistCookingModeMappingProposal, not new logic this plan invents).",
+    "Else -> generate fresh (standard Group A case, 226 recipes)."
+  ],
+  "batchStatusLifecycle": [
+    "PLANNED", "GENERATING", "READY_FOR_REVIEW", "REVIEWING", "READY_FOR_APPROVAL", "APPROVED", "VALIDATED", "FAILED"
+  ],
+  "batchStatusLifecycleNote": "Planning-level/audit-ledger states only, tracked in external remediation-run ledger artifacts (one JSON per batch run). Not a new persisted production lifecycle field — the actual per-recipe/per-proposal state remains exactly the existing MappingProposalStatus/queue-derived states the persistence layer and /mapping-review UI already compute.",
+  "revisionFreeze": "Before generating a batch recipe, record its recipeRevision. At review/attestation/approval time, the existing contract already re-verifies recipeRevision server-side (addHumanMappingRelationship, recordMappingCompletenessAttestation, and the approve route all re-derive/compare live revision - Sec 26.4, 26.6, 27.3). If a source change is detected, the old proposal becomes stale by the existing STALE pointer classification (Sec 25.6); the recipe leaves the current batch and re-enters a later remediation cycle as a fresh-generation case.",
+  "v4v5Preservation": "No code path in this plan writes recipe.cookingStepIngredientMap or any other v4/v5 runtime field. All remediation writes are confined to recipes/{id}/mappingProposals/**, approvedMappings/**, and cookingModeMappingPointer/current - the same subcollections the 2026-08-29 end-to-end validation confirmed are fully isolated from Cooking Mode runtime reads (components/CookingMode.tsx and app/recipes/[id]/page.tsx have zero references to the new paths).",
+  "fullCorpusQualityGates": {
+    "precision": "100%",
+    "explicitActiveUseRecall": ">=99%",
+    "criticalRecall": "100%",
+    "highRecall": ">=99%",
+    "seasoningHerbRecall": ">=98%",
+    "source": "docs/architecture/cooking-mode-review-routing-contract.md Sec 23 (Activation gates) and docs/audits/cooking-mode-mapping-architecture-reassessment-2026-08-28.md - unchanged, not lowered by this planning task.",
+    "preparedComponentGate": "Separate, not defined by this task (Sec 21 of the contract defers prepared components entirely; V10A arbiter precision was ~40.49%)."
+  },
+  "migrationManifestContract": {
+    "requiredFields": [
+      "manifestVersion", "generatedAt", "sourceRepositoryCommit", "recipeId", "recipeRevision",
+      "approvedMapId", "approvedMapHash", "oldRuntimeMapEngineVersionAndSourceHashIfAvailable",
+      "newApprovedRelationships", "expectedWriteTarget", "preconditions"
+    ],
+    "immutabilityRequirement": "Manifest is immutable once approved - no edit-in-place; a correction requires a new manifest version.",
+    "shaLock": {
+      "method": "canonical fixed-key-order JSON serialization of the full manifest, then SHA-256",
+      "requirement": "Production apply must require the exact expected manifest hash as a precondition; apply performs zero AI calls, zero mapping recomputation, zero candidate rerouting, and zero review decisions - a purely deterministic manifestation of already-approved truth, following the same pattern the existing v4/v5 apply scripts (scripts/apply-cooking-step-mapping-v4-core.mjs, scripts/apply-recovered-recipe-mapping-v5-core.mjs) already demonstrate in this repository."
+    }
+  },
+  "cutoverOptions": {
+    "optionA_pointerDirect": {
+      "description": "Cooking Mode reads cookingModeMappingPointer/current -> approvedMappings/{mapId} directly at request time.",
+      "tradeoffs": {
+        "runtimeSimplicity": "Lower - adds a new read path alongside the existing recipe fetch/cache; components/CookingMode.tsx and app/recipes/[id]/page.tsx need new code.",
+        "readCount": "At least 2 additional reads per recipe view (pointer + approved map) unless denormalized/cached.",
+        "offlineBehavior": "Unclear without denormalization into the already-cached recipe document; needs verification against the existing recipe cache/offline behavior.",
+        "migrationRisk": "Lower - no shared-document field mutation; the recipe document itself is never touched.",
+        "rollbackBehavior": "Simplest possible - stop reading the pointer path; old v4/v5 field was never touched, so no data rollback is needed.",
+        "iosSharedBackendCompatibility": "Not a constraint per PRD.md Sec 1/Known Sharp Edges - 'the deprecated iOS client is not a compatibility constraint.'",
+        "existingCodeChurn": "Higher - new runtime read path in Cooking Mode's hot path."
+      }
+    },
+    "optionB_materialize": {
+      "description": "Production apply writes the approved relationships back onto the existing recipe.cookingStepIngredientMap field (a new engineVersion/schema variant), reusing the exact field Cooking Mode already validates and safely falls back from.",
+      "tradeoffs": {
+        "runtimeSimplicity": "Higher - zero Cooking Mode/runtime code changes; the exact same validated-field-with-safe-fallback path already in production today.",
+        "readCount": "Unchanged - one recipe document read, as today.",
+        "offlineBehavior": "Unchanged - identical to today's behavior.",
+        "migrationRisk": "Higher - this is a real mutation to the shared recipe document, which is exactly what the SHA-locked manifest/apply architecture (Sec 20-21 of this plan) exists to make safe.",
+        "rollbackBehavior": "Requires restoring the prior field value/hash captured pre-cutover in the manifest's oldRuntimeMap* fields - a real data rollback, but one the manifest is explicitly designed to carry.",
+        "iosSharedBackendCompatibility": "Not a constraint (see above).",
+        "existingCodeChurn": "Lower - reuses the proven field-only-write-with-SHA-lock-and-precondition pattern this repo's existing v4/v5 apply tooling already implements."
+      }
+    },
+    "recommendedApproach": "Option B (materialize onto the existing cookingStepIngredientMap field) - tentative preference, not a final decision. Reuses an already-implemented, already-audited operational pattern (SHA-locked field-only apply) in this exact repository, requires zero Cooking Mode runtime code changes, and keeps read/offline/cache behavior completely unchanged. Option A remains architecturally cleaner (never mutates the shared recipe document) and should be reconsidered if a future requirement needs multiple concurrently-valid maps per recipe or a non-recipe-document read path.",
+    "unresolvedImplications": "iOS/shared-backend compatibility is NOT an open question - PRD.md is explicit that the deprecated iOS client is not a compatibility constraint. The remaining open question for the cutover task is purely about Cooking Mode web runtime code shape (Option A vs B) and should be explicitly reconfirmed, not silently inherited from this tentative recommendation, before implementation begins."
+  },
+  "rollbackPlan": {
+    "requirements": [
+      "Old v4/v5 map value and its own sourceHash/engineVersion must be captured verbatim in the manifest's oldRuntimeMap* fields before any apply, even if that value is 'field absent' for the 7 unresolved/1 malformed exclusions.",
+      "Pre-cutover value/hash must be captured for every recipe in the applied batch.",
+      "New approved map remains immutable regardless of rollback (the approvedMappings collection is never deleted or edited).",
+      "Manifest records both old and new state so a reverse-manifest can be constructed without re-deriving anything."
+    ],
+    "rollbackMeaning": "Depends on the eventual cutover option: under Option B, rollback means restoring the old materialized cookingStepIngredientMap field value from the manifest's captured pre-cutover snapshot (a real, field-only, SHA-locked reverse write). Under Option A, rollback means simply repointing/disabling the new runtime read path back to the old field, since the old field was never mutated.",
+    "aiInvolvement": "Zero - rollback never calls AI, recomputes nothing, and only replays already-captured values."
+  },
+  "remediationUX": {
+    "existingUiSufficient": true,
+    "blockers": [],
+    "operationalNotes": [
+      "The /mapping-review queue is a flat unfiltered list (loadMappingReviewQueue - a bounded unfiltered collection-group scan, no composite index) - adequate for the pilot (8 recipes) and default batch size (10 recipes) but has no batch-grouping, sort-by-severity, or progress-across-batches view.",
+      "No blocker is raised because remediation batches are small (<=10 recipes) and short-lived - an admin can track batch membership externally via the remediation ledger (Sec 14) rather than needing new product UI.",
+      "If batch size or corpus cadence later increases substantially (e.g. running many batches per day, or wanting an in-app 'batch N of M' view), revisit this as a possible small UX enhancement then - not now, to avoid feature creep."
+    ]
+  },
+  "executionPromptSequence": [
+    { "id": "A", "name": "Pilot corpus remediation", "scope": "Generate proposals for the 5 fresh-generation pilot recipes; resume review for grilled-zucchini-and-summer-squash; reconfirm garlic-butter-herb-steak-bites-with-potatoes and caprese-salad pointers CURRENT. Review/attest/approve all 8. No migration. Produce a remediation ledger for this pilot run." },
+    { "id": "B", "name": "Pilot validation", "scope": "Measure the pilot's actual review burden, quality (spot-check against completeness-audit adjudicated values), and operational results against the Pilot Gate criteria in this plan. Decide GO/NO-GO for remaining corpus." },
+    { "id": "C", "name": "Remaining corpus generation/review", "scope": "Execute the remaining ~23 bounded batches of <=10 recipes each (221 recipes) in descending-severity order, using the batch statuses in this plan. Potentially repeated across multiple sessions." },
+    { "id": "D", "name": "Full approved-corpus quality validation", "scope": "Measure precision/recall/severity-class recall of the complete approved-map population against the full-corpus quality gates (Sec 19 of the architecture plan). No runtime cutover." },
+    { "id": "E", "name": "Build immutable migration manifest", "scope": "Construct and SHA-lock the migration manifest per the contract in this plan, for the in-scope approved population only." },
+    { "id": "F", "name": "Production apply/cutover", "scope": "Execute the deterministic, zero-AI, zero-recomputation manifest apply. Requires the cutover-option architecture decision (Sec 22/this plan) to be explicitly confirmed first." },
+    { "id": "G", "name": "Post-cutover production verification", "scope": "Confirm Cooking Mode runtime reads the new source of truth correctly, with rollback evidence in hand." }
+  ],
+  "stopConditions": [
+    "Reviewer transport/schema failure rate rises above what the existing bounded per-slot retry (2 attempts/slot) absorbs cleanly across a batch",
+    "A systematic false-positive pattern appears in more than one pilot/batch recipe's approved map",
+    "A systematic critical-omission pattern (a whole class of ingredient use consistently missed) appears across recipes",
+    "Review burden per recipe is substantially worse than the 14.09-items/affected-recipe modeled estimate across a full batch",
+    "The /mapping-review UI becomes operationally unusable at the batch scale actually observed (contradicting the Sec 25/this-plan sufficiency assessment)",
+    "Source/parser corruption is discovered beyond the already-known cases (chipotle-tahini-bowls, mole-poblano)",
+    "A CANDIDATE_ID_COLLISION or persistence identity conflict occurs",
+    "An unexpected Firestore scaling/composite-index requirement surfaces"
+  ],
+  "preparedComponentBoundary": "Explicitly out of scope for this plan and for the entire ingredient-mapping remediation effort. Ingredient-mapping remediation must not wait for prepared-component quality to improve (current V10A arbiter precision ~40.49%, per docs/audits/cooking-mode-mapping-architecture-reassessment-2026-08-28.md) unless a specific recipe's Cooking Mode correctness is found to actually require a prepared-component relationship - no such requirement has been identified in this planning task.",
+  "recommendation": "READY FOR PILOT CORPUS REMEDIATION",
+  "recommendedPilotRecipeSet": [
+    "garlic-butter-herb-steak-bites-with-potatoes",
+    "caprese-salad",
+    "grilled-zucchini-and-summer-squash",
+    "mole-poblano",
+    "dads-chili",
+    "chicken-stew",
+    "mediterranean-quinoa-bowl",
+    "peanut-butter-oat-protein-shake"
+  ],
+  "recommendedBatchSize": 10
+}
