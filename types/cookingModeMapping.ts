@@ -15,7 +15,18 @@ export type MappingReviewerVoteValue = (typeof MAPPING_REVIEWER_VOTE_VALUES)[num
 export const MAPPING_REVIEWER_PARSE_STATUSES = ['VALID', 'INVALID', 'NO_RESULT'] as const
 export type MappingReviewerParseStatus = (typeof MAPPING_REVIEWER_PARSE_STATUSES)[number]
 
-export type MappingRoutingDecision = 'AUTO_ACCEPT' | 'REVIEW_REQUIRED' | 'AUTO_REJECT'
+/**
+ * `HUMAN_ADDED` is not a routing-table outcome (Implementation 4B) — it is
+ * never produced by `routeMappingCandidate`/the reviewer-agreement precedence
+ * table in the architecture contract §9-10. It marks a candidate that was
+ * created directly by a human during completeness review, for a relationship
+ * neither blind reviewer proposed, and therefore never travels through the
+ * two-reviewer routing table at all. Keeping it a distinct fourth value
+ * (rather than reusing `AUTO_ACCEPT`) means no code path can honestly claim
+ * this candidate satisfies the frozen `AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK`
+ * class it did not go through.
+ */
+export type MappingRoutingDecision = 'AUTO_ACCEPT' | 'REVIEW_REQUIRED' | 'AUTO_REJECT' | 'HUMAN_ADDED'
 export type MappingFinalDecision = 'ACCEPT' | 'REJECT'
 export type MappingReviewStatus = 'NOT_REQUIRED' | 'PENDING' | 'DECIDED' | 'BLOCKED'
 export type MappingDecisionSource = 'AUTO' | 'HUMAN' | null
@@ -113,6 +124,7 @@ export const MAPPING_ROUTING_REASON_ORDER = [
   'SOURCE_SNAPSHOT_MISMATCH',
   'DUPLICATE_CANDIDATE_IDENTITY',
   'CANDIDATE_ID_COLLISION',
+  'HUMAN_ADDED_RELATIONSHIP',
 ] as const
 
 export type MappingRoutingReason = (typeof MAPPING_ROUTING_REASON_ORDER)[number]
@@ -129,11 +141,24 @@ export const MAPPING_STRUCTURAL_REASON_ORDER = [
 
 export type MappingStructuralReason = (typeof MAPPING_STRUCTURAL_REASON_ORDER)[number]
 
+/**
+ * Distinguishes a candidate discovered by the AI blind-reviewer union from
+ * one created directly by a human during completeness review (Implementation
+ * 4B — see docs/architecture/cooking-mode-review-routing-contract.md §26).
+ * Candidate *identity* (`mc1:` — recipeId/recipeRevision/ingredientRowIndex/
+ * stepIndex) never depends on origin: exactly one canonical candidate exists
+ * per relationship regardless of who/what discovered it. `candidateOrigin` is
+ * provenance, not identity.
+ */
+export const MAPPING_CANDIDATE_ORIGIN_VALUES = ['REVIEWER_UNION', 'HUMAN_ADDED'] as const
+export type MappingCandidateOrigin = (typeof MAPPING_CANDIDATE_ORIGIN_VALUES)[number]
+
 export interface MappingCandidateProvenanceV1 {
   routingContractVersion: typeof MAPPING_ROUTING_CONTRACT_VERSION
   evidenceContractVersion: typeof MAPPING_EVIDENCE_CONTRACT_VERSION
   reviewerContractVersion: string
-  candidateOrigin: 'REVIEWER_UNION'
+  candidateOrigin: MappingCandidateOrigin
+  /** Always `[]` for a `HUMAN_ADDED` candidate — no reviewer proposed it. */
   acceptedByReviewerSlots: Array<'A' | 'B'>
 }
 
@@ -151,8 +176,17 @@ export interface MappingCandidateV1 {
   ingredientGroup: string | null
   stepIndex: number
   stepText: string
-  reviewerA: MappingReviewerVoteV1
-  reviewerB: MappingReviewerVoteV1
+  /**
+   * `null` for a `HUMAN_ADDED` candidate (`provenance.candidateOrigin`) —
+   * neither reviewer ever evaluated this exact relationship as its own
+   * union candidate, so no vote is recorded for it. This is deliberate:
+   * fabricating an `ACCEPT`/`REJECT`/`MISSING` vote (with invented
+   * run/attempt/model metadata) to satisfy a non-null field would
+   * misrepresent that a reviewer executed. Always non-null for a
+   * `REVIEWER_UNION` candidate.
+   */
+  reviewerA: MappingReviewerVoteV1 | null
+  reviewerB: MappingReviewerVoteV1 | null
   deterministicEvidence: MappingDeterministicEvidenceV1
   routingDecision: MappingRoutingDecision
   routingReasons: MappingRoutingReason[]

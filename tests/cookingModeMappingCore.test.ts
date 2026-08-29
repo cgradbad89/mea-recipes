@@ -479,7 +479,7 @@ describe('candidate serialization and architecture boundaries', () => {
   it('does not depend on incidental nested object property order', async () => {
     const first = await candidate()
     const second = await candidate()
-    second.reviewerA = Object.fromEntries(Object.entries(second.reviewerA).reverse()) as unknown as MappingReviewerVoteV1
+    second.reviewerA = Object.fromEntries(Object.entries(second.reviewerA!).reverse()) as unknown as MappingReviewerVoteV1
     second.deterministicEvidence.observations = Object.fromEntries(
       Object.entries(second.deterministicEvidence.observations).reverse(),
     ) as unknown as MappingCandidateV1['deterministicEvidence']['observations']

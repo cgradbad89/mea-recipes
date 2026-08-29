@@ -163,27 +163,51 @@ see **Firestore rules** below.
   with an incomplete candidate population; see `saveMappingProposal`
   (`lib/cookingModeMappingProposalPersistence.ts`).
 - `recipes/{recipeId}/mappingProposals/{proposalId}/candidates/{candidateId}` — one document per
-  reviewer-union candidate (`PersistedMappingCandidateV1`), `candidateId` = the existing frozen
-  `mc1:` identity. Full reviewer votes, deterministic evidence, routing decision/reasons, and
-  provenance are stored so a later review UI can render/decide without re-running AI. The
+  candidate (`PersistedMappingCandidateV1`), `candidateId` = the existing frozen `mc1:` identity
+  (`recipeId`/`recipeRevision`/`ingredientRowIndex`/`stepIndex` — identity is origin-independent).
+  `provenance.candidateOrigin` (`'REVIEWER_UNION' | 'HUMAN_ADDED'`, Implementation 4B, 2026-08-29)
+  distinguishes an AI-discovered candidate (full reviewer votes, deterministic evidence, routing
+  decision/reasons — stored so a later review UI can render/decide without re-running AI) from one a
+  human created directly during completeness review for a relationship neither blind reviewer
+  proposed (`reviewerA`/`reviewerB: null` — never a fabricated vote; `routingDecision: 'HUMAN_ADDED'`,
+  a fourth value alongside the three routing-table outcomes, never produced by the router). The
   materialized `finalDecision`/`decisionSource`/`reviewStatus`/`effectiveReviewEventId` reflect the
-  latest effective decision (AUTO at generation time, or the current human decision); the
-  append-only event log below remains the authoritative history.
+  latest effective decision (AUTO at generation time, or the current human decision — including a
+  `HUMAN_ADDED` candidate's own initial ACCEPT); the append-only event log below remains the
+  authoritative history. See `addHumanMappingRelationship`/`removeHumanMappingRelationship`/
+  `listHumanAddedMappingRelationships` (`lib/cookingModeMappingHumanRelationship.ts`).
 - `recipes/{recipeId}/mappingProposals/{proposalId}/reviewEvents/{decisionId}` — append-only human
   review decisions (`PersistedMappingReviewDecisionV1`, reusing the architecture contract's §14
   `MappingReviewDecisionV1` field names exactly). `decisionId` is the new deterministic `mr1:`
   identity (proposal + candidate + decision + reason + note + actor + supersession target), so an
   exact-replay submission is idempotent and a correction always appends a new event referencing
   `supersedesDecisionId` rather than editing history. See `appendMappingReviewDecision`
-  (`lib/cookingModeMappingReviewPersistence.ts`).
+  (`lib/cookingModeMappingReviewPersistence.ts`) — this exact mechanism also records a `HUMAN_ADDED`
+  candidate's creation (a first ACCEPT decision on a freshly created candidate) and its
+  correction/removal (a superseding REJECT) or restore (a further superseding ACCEPT); Implementation
+  4B introduces no second, parallel event-type system.
+- `recipes/{recipeId}/mappingProposals/{proposalId}/completenessAttestations/{attestationId}`
+  (Implementation 4B) — immutable map-level completeness attestations
+  (`PersistedMappingCompletenessAttestationV1`), new `ma1:` identity prefix, deterministic over
+  `(proposalId, reviewStateHash)`. `reviewStateHash` is a hash of every candidate's
+  `(candidateId, finalDecision, decisionSource, candidateOrigin)`, so any later candidate addition or
+  decision change makes a previously-recorded attestation stop matching the live state — invalidation
+  is a pure read-time recomputation, not a tracked event. Required (non-null and current) before
+  `buildApprovedMapping` will build a map, for every proposal, unconditionally — resolving the final
+  candidate decision never implicitly attests completeness. See
+  `recordMappingCompletenessAttestation`/`getMappingCompletenessAttestationStatus`
+  (`lib/cookingModeMappingCompletenessAttestation.ts`).
 - `recipes/{recipeId}/approvedMappings/{mapId}` — immutable approved maps
   (`PersistedApprovedCookingStepMapV1`, reusing architecture contract §15 `ApprovedCookingStepMapV1`
   exactly, plus a diagnostic-only `provenance` field). `mapId` is the new `am1:` prefix over a
   canonical content hash (`mapHash`) that covers recipe/proposal/contract identity and the sorted,
   deduplicated accepted-relationship set — explicitly excluding server timestamps and `provenance`,
-  so exact-replay writes and reruns of the same accepted set always hash identically. Never mutated
-  in place; a correction is a new proposal and a new approved map. See `buildApprovedMapping`
-  (pure) and `persistApprovedMapping` (`lib/cookingModeMappingApprovedPersistence.ts`).
+  so exact-replay writes and reruns of the same accepted set always hash identically. Each accepted
+  relationship carries `provenanceClass: 'AUTO_ACCEPT' | 'HUMAN_REVIEW_ACCEPT' | 'HUMAN_ADDED'`
+  (Implementation 4B, included in `mapHash`), answering "why is this ingredient on this step?" without
+  rerunning AI. Never mutated in place; a correction is a new proposal and a new approved map. See
+  `buildApprovedMapping` (pure) and `persistApprovedMapping`
+  (`lib/cookingModeMappingApprovedPersistence.ts`).
 - `recipes/{recipeId}/cookingModeMappingPointer/current` — the single small current-approved
   pointer (`CurrentApprovedMappingPointerV1`: `recipeId`, `recipeRevision`, `mapId`, `mapHash`).
   Only ever written after the referenced approved map is persisted and its hash re-verified on
@@ -1942,7 +1966,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
 | Cooking-step ingredient mapping | High | Partial (228/236 shared recipes mapped; Wave 4/5 and personal overrides pending) | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes, and eight excluded recipes remain. **Recovered 41-recipe v4 mapping audit — Failed / historical**: seven deterministic false positives and repeated incorrect AI salt acceptance; its immutable manifest is never reusable. **Mapping v5 remediation — Done / PASS**: 41/41 recipes, 295 references, 111 omissions, 0 false positives; bounded AI 25/25 correct with 0 unsafe stability differences; all 187 persisted v4 maps remain runtime accepted. **Recovered 41-recipe v5 map audit — Done**: 41/41 READY, 295 deterministic references and 111 omissions safe, 25/25 accepted AI relationships correct, zero unsafe stability differences, immutable manifest SHA `5d4ddaa10c788f9192ae74a5887859bc2847496706461b655752d86e62741170`. **Recovered 41-recipe v5 map apply — Done**: 41 exact field-only writes, 41/41 exact readback/hash/validation matches, zero non-map changes, zero AI/recomputation, 0/187 original maps changed, 0/8 unresolved recipes changed, and post-apply READY_TO_WRITE 0. Production has 228 mapped and eight unmapped recipes. **Wave 4 source recovery/re-import — Pending** (five reimports plus Maple Pecans). **Wave 5 product decisions — Pending** (two recipes). Broad NOTES/Tip/first-person termination remains prohibited. Personal override-specific mappings — **Pending**. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`, and the preserved v1-v5 audit evidence. |
 | Cooking Mode completeness audit | High | Done | Full 228-recipe actual-runtime precision + recall audit: two blind reviews per recipe, every discrepancy adjudicated, mandatory UI regressions reproduced, TP 1,375 / FP 12 / FN 2,677, precision 99.13%, recall 33.93%, production mutations 0. See §6 and `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`. |
-| Cooking Mode recall remediation | High | Review-routing core, live reviewer pipeline, and mapping persistence implemented; review UI, runtime cutover, existing-corpus remediation, and activation pending | The selected architecture remains **AI-at-ingestion with review**. Normative V1 routing is exact and implemented as pure production domain code in `types/cookingModeMapping.ts` and `lib/cookingModeMapping{Identity,Evidence,Router}.ts`: both complete blind reviewers accept + complete exact-version V1 evidence + zero finite V10B risks → `AUTO_ACCEPT`; disagreement/risk/failure/unsupported class → `REVIEW_REQUIRED`; verified structural invalidity only → `AUTO_REJECT`. Live-reviewer pipeline validated 2026-08-28 against the real Vercel AI Gateway model (12/12 valid calls, 0 retries, 0 routing mismatches). **Durable persistence — Done, dormant (2026-08-28, Implementation 3)**: `recipes/{recipeId}/mappingProposals/{proposalId}` (+`candidates`/`reviewEvents` subcollections) and `recipes/{recipeId}/approvedMappings/{mapId}` plus a small `cookingModeMappingPointer/current` pointer; see §3. Proposal/candidate writes are atomic-enough via a `WRITING → READY` header status and readback count reconciliation, idempotent on exact replay, and fail closed on any identity conflict (`lib/cookingModeMappingProposalPersistence.ts`). Human review decisions are append-only and supersession-chained (`lib/cookingModeMappingReviewPersistence.ts`). Approved maps are immutable, content-hash-identified (`am1:` prefix), and never mutated in place (`lib/cookingModeMappingApprovedPersistence.ts`); the current-approved pointer only moves after an approved map is persisted and hash-reverified on readback, and is classified `CURRENT`/`STALE`/`NOT_FOUND` against the live recipe revision. All writes route through the Admin SDK (admin-only trust boundary); **no Firestore rules were deployed** (manual Console addition still required — see **Firestore rules**); **Cooking Mode runtime and existing v4/v5 behavior are completely unchanged** — the new paths are inactive until a separately gated cutover task. 62 new focused tests via an in-memory Firestore test double (zero AI calls, zero production writes). Candidate review remains append-only and candidate-level, approval/completeness remains map-level, retries remain idempotent, and all failures close as not approved. Activation remains blocked by end-to-end recall/severity gates because the frozen reviewer union missed 35/868 truth relationships. Existing-corpus remediation still requires complete human review before immutable-manifest/SHA-locked zero-AI apply. See §5.25, §6, `docs/architecture/cooking-mode-review-routing-contract.md`, `docs/audits/cooking-mode-review-routing-contract-analysis-2026-08-28.md`, `docs/audits/cooking-mode-live-reviewer-validation-2026-08-28.md`, and `docs/audits/cooking-mode-mapping-persistence-2026-08-28.md`. |
+| Cooking Mode recall remediation | High | Review-routing core, live reviewer pipeline, mapping persistence, human-added-relationship contract, and completeness attestation implemented; review UI, runtime cutover, existing-corpus remediation, and activation pending | The selected architecture remains **AI-at-ingestion with review**. Normative V1 routing is exact and implemented as pure production domain code in `types/cookingModeMapping.ts` and `lib/cookingModeMapping{Identity,Evidence,Router}.ts`: both complete blind reviewers accept + complete exact-version V1 evidence + zero finite V10B risks → `AUTO_ACCEPT`; disagreement/risk/failure/unsupported class → `REVIEW_REQUIRED`; verified structural invalidity only → `AUTO_REJECT`. Live-reviewer pipeline validated 2026-08-28 against the real Vercel AI Gateway model (12/12 valid calls, 0 retries, 0 routing mismatches). **Durable persistence — Done, dormant (2026-08-28, Implementation 3)**: `recipes/{recipeId}/mappingProposals/{proposalId}` (+`candidates`/`reviewEvents` subcollections) and `recipes/{recipeId}/approvedMappings/{mapId}` plus a small `cookingModeMappingPointer/current` pointer; see §3. Proposal/candidate writes are atomic-enough via a `WRITING → READY` header status and readback count reconciliation, idempotent on exact replay, and fail closed on any identity conflict (`lib/cookingModeMappingProposalPersistence.ts`). Human review decisions are append-only and supersession-chained (`lib/cookingModeMappingReviewPersistence.ts`). Approved maps are immutable, content-hash-identified (`am1:` prefix), and never mutated in place (`lib/cookingModeMappingApprovedPersistence.ts`); the current-approved pointer only moves after an approved map is persisted and hash-reverified on readback, and is classified `CURRENT`/`STALE`/`NOT_FOUND` against the live recipe revision. **Human mapping-review design approved — 2026-08-28**: hybrid step-centric primary review at a new `/mapping-review` route (not yet implemented — see the design doc), `AUTO_ACCEPT` hidden from routine review but visible in a distinct completeness stage, decision history hidden by default, and a mandatory map-level completeness attestation. **Human-added missing relationship — Done, dormant (2026-08-29, Implementation 4B)**: candidate `provenance.candidateOrigin` (`'REVIEWER_UNION' | 'HUMAN_ADDED'`) distinguishes AI-discovered from human-added relationships sharing one canonical `mc1:` identity (never a duplicate at an occupied identity); `addHumanMappingRelationship`/`removeHumanMappingRelationship`/`listHumanAddedMappingRelationships` (`lib/cookingModeMappingHumanRelationship.ts`) reuse the exact append-only `appendMappingReviewDecision` mechanism rather than a second event-type system. Map-level completeness attestation (`recipes/{recipeId}/mappingProposals/{proposalId}/completenessAttestations/{attestationId}`, `ma1:` prefix) is required — unconditionally, for every proposal — before `buildApprovedMapping` will build a map; a deterministic review-state hash makes invalidation (a relationship added/changed, a new revision) a pure recomputation rather than a tracked event (`lib/cookingModeMappingCompletenessAttestation.ts`). Approved relationships now carry `provenanceClass: 'AUTO_ACCEPT' | 'HUMAN_REVIEW_ACCEPT' | 'HUMAN_ADDED'`, included in `mapHash`. See architecture-contract §26. All writes route through the Admin SDK (admin-only trust boundary); **no Firestore rules were deployed** (manual Console addition still required — see **Firestore rules**); **Cooking Mode runtime and existing v4/v5 behavior are completely unchanged** — the new paths are inactive until a separately gated cutover task. 100 focused tests via an in-memory Firestore test double (zero AI calls, zero production writes; 62 from Implementation 3 + 38 from Implementation 4B). Candidate review remains append-only and candidate-level, approval/completeness remains map-level, retries remain idempotent, and all failures close as not approved. Activation remains blocked by end-to-end recall/severity gates because the frozen reviewer union missed 35/868 truth relationships. Existing-corpus remediation still requires complete human review before immutable-manifest/SHA-locked zero-AI apply. See §5.25, §6, `docs/architecture/cooking-mode-review-routing-contract.md`, `docs/design/cooking-mode-mapping-review-experience-2026-08-28.md`, `docs/audits/cooking-mode-review-routing-contract-analysis-2026-08-28.md`, `docs/audits/cooking-mode-live-reviewer-validation-2026-08-28.md`, and `docs/audits/cooking-mode-mapping-persistence-2026-08-28.md`. |
 | Shared `prepareGroceryItem` pipeline | Medium | Done | Behavior-preserving consolidation shipped 2026-08-23; see §5.16 and `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md` (0 corpus differences across 3,071 occurrences). |
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
@@ -2034,10 +2058,11 @@ match /recipes/{recipeId} {
 }
 ```
 
-Required Cooking Mode mapping-persistence rules (added 2026-08-28, Implementation 3 — **not yet
-deployed to the console**; paste manually after reviewing sibling-app impact). These paths are
-internal review-workflow/audit artifacts with no runtime or UI reader yet, so read is scoped to
-the same admin identity as write rather than left public:
+Required Cooking Mode mapping-persistence rules (added 2026-08-28, Implementation 3, extended
+2026-08-29 Implementation 4B with `completenessAttestations` — **not yet deployed to the console**;
+paste manually after reviewing sibling-app impact). These paths are internal review-workflow/audit
+artifacts with no runtime or UI reader yet, so read is scoped to the same admin identity as write
+rather than left public:
 
 ```firestore
 match /recipes/{recipeId}/mappingProposals/{proposalId} {
@@ -2047,6 +2072,9 @@ match /recipes/{recipeId}/mappingProposals/{proposalId} {
     allow read, write: if isRecipeAdmin();
   }
   match /reviewEvents/{decisionId} {
+    allow read, write: if isRecipeAdmin();
+  }
+  match /completenessAttestations/{attestationId} {
     allow read, write: if isRecipeAdmin();
   }
 }

@@ -30,6 +30,14 @@ export const MAPPING_REVIEW_EVENTS_SUBCOLLECTION = 'reviewEvents'
 export const APPROVED_MAPPINGS_SUBCOLLECTION = 'approvedMappings'
 export const MAPPING_POINTER_SUBCOLLECTION = 'cookingModeMappingPointer'
 export const MAPPING_POINTER_DOC_ID = 'current'
+/**
+ * Implementation 4B: map-level completeness attestations, one immutable
+ * record per distinct attested review state (deterministic `ma1:` id — see
+ * `computeMappingCompletenessAttestationId`). Scoped under the proposal, not
+ * the recipe, because an attestation is only ever meaningful relative to one
+ * proposal's exact candidate population.
+ */
+export const MAPPING_COMPLETENESS_ATTESTATIONS_SUBCOLLECTION = 'completenessAttestations'
 
 // ── Minimal Firestore-shaped interface (dependency-injection seam) ─────────
 //
@@ -162,4 +170,21 @@ export function approvedMappingDocRef(
 
 export function mappingPointerDocRef(db: MappingFirestoreLike, recipeId: string): MappingFirestoreDocRef {
   return recipeDocRef(db, recipeId).collection(MAPPING_POINTER_SUBCOLLECTION).doc(MAPPING_POINTER_DOC_ID)
+}
+
+export function mappingCompletenessAttestationsCollection(
+  db: MappingFirestoreLike,
+  recipeId: string,
+  proposalId: string,
+): MappingFirestoreCollectionRef {
+  return mappingProposalDocRef(db, recipeId, proposalId).collection(MAPPING_COMPLETENESS_ATTESTATIONS_SUBCOLLECTION)
+}
+
+export function mappingCompletenessAttestationDocRef(
+  db: MappingFirestoreLike,
+  recipeId: string,
+  proposalId: string,
+  attestationId: string,
+): MappingFirestoreDocRef {
+  return mappingCompletenessAttestationsCollection(db, recipeId, proposalId).doc(attestationId)
 }

@@ -6,6 +6,7 @@ import { computeMappingRecipeRevision } from '@/lib/cookingModeMappingIdentity'
 import { saveMappingProposal } from '@/lib/cookingModeMappingProposalPersistence'
 import { appendMappingReviewDecision } from '@/lib/cookingModeMappingReviewPersistence'
 import { listMappingCandidates, listReviewRequiredCandidates } from '@/lib/cookingModeMappingProposalPersistence'
+import { recordMappingCompletenessAttestation } from '@/lib/cookingModeMappingCompletenessAttestation'
 import {
   buildApprovedMapping,
   getApprovedMapping,
@@ -14,7 +15,11 @@ import {
   persistApprovedMapping,
   updateCurrentApprovedMappingPointer,
 } from '@/lib/cookingModeMappingApprovedPersistence'
-import type { ApprovedMapProvenanceV1, BuildApprovedMappingInput } from '@/types/cookingModeMappingPersistence'
+import type {
+  ApprovedMapProvenanceV1,
+  BuildApprovedMappingInput,
+  PersistedMappingCompletenessAttestationV1,
+} from '@/types/cookingModeMappingPersistence'
 import { approvedMappingDocRef } from '@/lib/cookingModeMappingFirestore'
 import { createFakeMappingFirestore } from './helpers/fakeMappingFirestore'
 import { buildFixtureProposal, FIXTURE_RECIPE_ID, FIXTURE_SOURCE } from './helpers/mappingPersistenceFixtures'
@@ -37,7 +42,7 @@ function baseBuildInput(overrides: Partial<BuildApprovedMappingInput> & Pick<Bui
     evidenceContractVersion: 'cooking-routing-evidence-v1',
     routingContractVersion: 'cooking-review-routing-v1',
     approvedBy: 'admin-uid',
-    completenessAttestedAt: '2026-08-28T00:00:00.000Z',
+    completenessAttestation: null,
     provenance: PROVENANCE,
     ...overrides,
   }
@@ -59,6 +64,19 @@ async function resolveAllReviewRequired(db: ReturnType<typeof createFakeMappingF
       decision: 'ACCEPT', reasonCode: 'SOURCE_EXPLICIT_USE', decidedBy: 'admin-uid',
     }, { db })
   }
+}
+
+/** Records the completeness attestation the given (already-fully-resolved) proposal's live candidate population requires before `buildApprovedMapping` will succeed. */
+async function attestFixture(
+  db: ReturnType<typeof createFakeMappingFirestore>,
+  recipeId: string,
+  proposalId: string,
+  recipeRevision: string,
+): Promise<PersistedMappingCompletenessAttestationV1> {
+  return recordMappingCompletenessAttestation(
+    { recipeId, proposalId, recipeRevision, attestedBy: 'admin-uid' },
+    { db, now: () => '2026-08-28T00:00:00.000Z' },
+  )
 }
 
 describe('buildApprovedMapping', () => {
@@ -99,8 +117,10 @@ describe('buildApprovedMapping', () => {
     const { db, revision, proposal } = await setUpResolvableProposal()
     await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const attestation = await attestFixture(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const outcome = await buildApprovedMapping(baseBuildInput({
       proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: attestation,
     }))
     expect(outcome.ok).toBe(true)
     if (!outcome.ok) return
@@ -123,8 +143,10 @@ describe('buildApprovedMapping', () => {
       }, { db })
     }
     const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const attestation = await attestFixture(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const outcome = await buildApprovedMapping(baseBuildInput({
       proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: attestation,
     }))
     expect(outcome.ok).toBe(true)
     if (!outcome.ok) return
@@ -135,11 +157,48 @@ describe('buildApprovedMapping', () => {
     const { db, revision, proposal } = await setUpResolvableProposal()
     await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
-    const input = baseBuildInput({ proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [] })
+    const attestation = await attestFixture(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
+    const input = baseBuildInput({
+      proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: attestation,
+    })
     const first = await buildApprovedMapping(input)
     const second = await buildApprovedMapping(input)
     expect(first.ok && second.ok).toBe(true)
     if (first.ok && second.ok) expect(first.map.mapHash).toBe(second.map.mapHash)
+  })
+
+  it('rejects when no completeness attestation has been recorded (last candidate decision does not implicitly attest)', async () => {
+    const { db, revision, proposal } = await setUpResolvableProposal()
+    await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
+    const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const outcome = await buildApprovedMapping(baseBuildInput({
+      proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: null,
+    }))
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.reason).toBe('MISSING_OR_STALE_COMPLETENESS_ATTESTATION')
+  })
+
+  it('rejects a stale attestation whose review state no longer matches (a decision changed after attesting)', async () => {
+    const { db, revision, proposal } = await setUpResolvableProposal()
+    await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
+    const attestation = await attestFixture(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
+    // Correct a decision after attesting — the attestation no longer covers the live state.
+    const candidatesBeforeChange = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const humanDecided = candidatesBeforeChange.find(c => c.decisionSource === 'HUMAN')!
+    await appendMappingReviewDecision({
+      recipeId: FIXTURE_RECIPE_ID, proposalId: proposal.proposalId, candidateId: humanDecided.candidateId, recipeRevision: revision,
+      decision: 'REJECT', reasonCode: 'LIFECYCLE_OR_REUSE', decidedBy: 'admin-uid',
+      supersedesDecisionId: humanDecided.effectiveReviewEventId ?? undefined,
+    }, { db })
+    const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const outcome = await buildApprovedMapping(baseBuildInput({
+      proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: attestation,
+    }))
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.reason).toBe('MISSING_OR_STALE_COMPLETENESS_ATTESTATION')
   })
 })
 
@@ -150,8 +209,10 @@ describe('persistApprovedMapping', () => {
     await saveMappingProposal(proposal, { db })
     await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const attestation = await attestFixture(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const outcome = await buildApprovedMapping(baseBuildInput({
       proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: attestation,
     }))
     if (!outcome.ok) throw new Error('fixture setup expected a buildable map')
     return { revision, proposal, map: outcome.map }
@@ -217,8 +278,10 @@ describe('persistApprovedMapping', () => {
     await saveMappingProposal(proposalV2, { db })
     await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposalV2.proposalId, revisionV2)
     const candidatesV2 = await listMappingCandidates(FIXTURE_RECIPE_ID, proposalV2.proposalId, db)
+    const attestationV2 = await attestFixture(db, FIXTURE_RECIPE_ID, proposalV2.proposalId, revisionV2)
     const outcomeV2 = await buildApprovedMapping(baseBuildInput({
       proposalId: proposalV2.proposalId, recipeRevision: revisionV2, candidates: candidatesV2, proposalBlockingReasons: [],
+      completenessAttestation: attestationV2,
     }))
     expect(outcomeV2.ok).toBe(true)
     if (!outcomeV2.ok) return
@@ -237,8 +300,10 @@ describe('current-approved pointer', () => {
     await saveMappingProposal(proposal, { db })
     await resolveAllReviewRequired(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const candidates = await listMappingCandidates(FIXTURE_RECIPE_ID, proposal.proposalId, db)
+    const attestation = await attestFixture(db, FIXTURE_RECIPE_ID, proposal.proposalId, revision)
     const outcome = await buildApprovedMapping(baseBuildInput({
       proposalId: proposal.proposalId, recipeRevision: revision, candidates, proposalBlockingReasons: [],
+      completenessAttestation: attestation,
     }))
     if (!outcome.ok) throw new Error('fixture setup expected a buildable map')
     await persistApprovedMapping(outcome.map, { db })

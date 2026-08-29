@@ -25,6 +25,8 @@ import type {
   MappingCandidateV1,
   MappingProposalBlockingReason,
   MappingProposalSummaryV1,
+  MappingRevisionSource,
+  MappingStructuralReason,
 } from '@/types/cookingModeMapping'
 
 // ── Identity prefixes ────────────────────────────────────────────────────
@@ -34,6 +36,8 @@ import type {
 // New prefixes introduced by this file:
 export const MAPPING_APPROVED_MAP_ID_PREFIX = 'am1:' as const
 export const MAPPING_REVIEW_DECISION_ID_PREFIX = 'mr1:' as const
+/** Implementation 4B: map-level completeness attestation identity — see §26.4. */
+export const MAPPING_COMPLETENESS_ATTESTATION_ID_PREFIX = 'ma1:' as const
 
 // ── Proposal persistence ─────────────────────────────────────────────────
 
@@ -160,11 +164,156 @@ export interface ProposalCompletionResult {
   requiresCompletenessAttestation: boolean
 }
 
+// ── Human-added relationships (Implementation 4B) ─────────────────────────
+//
+// A human-discovered ingredient→step relationship that neither blind
+// reviewer proposed as a candidate. See
+// docs/architecture/cooking-mode-review-routing-contract.md §26 and
+// lib/cookingModeMappingHumanRelationship.ts.
+
+export interface AddHumanMappingRelationshipInput {
+  recipeId: string
+  proposalId: string
+  recipeRevision: string
+  /**
+   * The recipe's current parsed mapping source (exact ingredient/instruction
+   * arrays), needed to validate row/step existence and source-snapshot
+   * identity — the same role `source` plays in `buildMappingProposal`. Not
+   * authoritative on its own: `addHumanMappingRelationship` independently
+   * recomputes the revision from it and requires an exact match against both
+   * `recipeRevision` and the persisted proposal's own revision before
+   * accepting anything derived from it.
+   */
+  source: MappingRevisionSource
+  ingredientRowIndex: number
+  stepIndex: number
+  reasonCode?: MappingHumanReviewReason
+  note?: string | null
+  /** Verified server identity of the acting admin. Never a client-supplied field. */
+  addedBy: string
+}
+
+export type AddHumanMappingRelationshipOutcome =
+  /** No candidate existed at this identity; a new HUMAN_ADDED candidate was created and immediately ACCEPTed. */
+  | 'CREATED'
+  /** A HUMAN_ADDED candidate already exists at this identity and is already ACCEPTed — idempotent no-op. */
+  | 'ALREADY_HUMAN_ADDED'
+  /**
+   * A HUMAN_ADDED candidate already exists at this identity but its current
+   * decision is REJECT (previously removed) — this call appended a new
+   * ACCEPT decision superseding it, restoring the relationship without
+   * losing history.
+   */
+  | 'RESTORED'
+  /**
+   * A REVIEWER_UNION candidate already exists at this identity (AI-discovered).
+   * Per §26.2's "one canonical identity" invariant, no duplicate is ever
+   * created — the existing candidate is returned untouched. The caller
+   * should route the human to ordinary candidate review for it instead.
+   */
+  | 'ALREADY_AI_DISCOVERED'
+
+export interface AddHumanMappingRelationshipResult {
+  outcome: AddHumanMappingRelationshipOutcome
+  candidate: PersistedMappingCandidateV1
+}
+
+/**
+ * Proposal-level rejection reasons, plus every `MappingStructuralReason`
+ * (types/cookingModeMapping.ts) — `addHumanMappingRelationship` reuses the
+ * exact same `validateMappingCandidateStructure` structural checks an
+ * AI-discovered candidate goes through (row/step existence, non-header row,
+ * source-snapshot match, identity validity), so a human add fails closed for
+ * exactly the same structural reasons.
+ */
+export type AddHumanMappingRelationshipRejectionReason =
+  | 'PROPOSAL_NOT_FOUND'
+  | 'PROPOSAL_NOT_READY'
+  | 'REVISION_MISMATCH'
+  | MappingStructuralReason
+
+export type RemoveHumanMappingRelationshipRejectionReason =
+  | 'CANDIDATE_NOT_FOUND'
+  | 'NOT_HUMAN_ADDED'
+
+export interface RemoveHumanMappingRelationshipInput {
+  recipeId: string
+  proposalId: string
+  candidateId: string
+  recipeRevision: string
+  reasonCode: MappingHumanReviewReason
+  note?: string | null
+  /** Verified server identity of the acting admin. Never a client-supplied field. */
+  removedBy: string
+}
+
+// ── Map-level completeness attestation (Implementation 4B) ────────────────
+//
+// See docs/architecture/cooking-mode-review-routing-contract.md §26.5-26.6.
+// Persisted at
+// recipes/{recipeId}/mappingProposals/{proposalId}/completenessAttestations/{attestationId},
+// one immutable record per distinct attested review state. Validity is a
+// read-time classification (like the approved-map pointer's CURRENT/STALE):
+// an attestation is valid only while its `reviewStateHash` still matches the
+// live candidate population's recomputed hash.
+
+export interface PersistedMappingCompletenessAttestationV1 {
+  schemaVersion: 1
+  attestationId: string
+  proposalId: string
+  recipeId: string
+  recipeRevision: string
+  /**
+   * Deterministic hash of the exact review state (every candidate's id,
+   * finalDecision, decisionSource, and candidateOrigin) this attestation
+   * covers. Any subsequent candidate addition or decision change recomputes
+   * to a different hash, which is exactly how invalidation is detected —
+   * see `computeMappingReviewStateHash` and §26.6.
+   */
+  reviewStateHash: string
+  attestedBy: string
+  attestedAt: unknown
+}
+
+export interface RecordMappingCompletenessAttestationInput {
+  recipeId: string
+  proposalId: string
+  recipeRevision: string
+  /** Verified server identity of the acting admin. Never a client-supplied field. */
+  attestedBy: string
+}
+
+export type RecordMappingCompletenessAttestationRejectionReason =
+  | 'PROPOSAL_NOT_FOUND'
+  | 'PROPOSAL_NOT_READY'
+  | 'REVISION_MISMATCH'
+  | 'PROPOSAL_NOT_FULLY_RESOLVED'
+
+export interface MappingCompletenessAttestationStatus {
+  valid: boolean
+  attestation: PersistedMappingCompletenessAttestationV1 | null
+  liveReviewStateHash: string
+}
+
 // ── Approved map ──────────────────────────────────────────────────────────
 
 /**
+ * Distinguishes, for one approved relationship, exactly how it entered the
+ * map (Implementation 4B, §26.7 — "why is this ingredient on this step?"
+ * without rerunning AI):
+ *   - `AUTO_ACCEPT`: routed `AUTO_ACCEPT` by the deterministic router — both
+ *     reviewers agreed, no V1 risk.
+ *   - `HUMAN_REVIEW_ACCEPT`: an AI-discovered (`REVIEWER_UNION`) candidate
+ *     that required review and a human ACCEPTed it.
+ *   - `HUMAN_ADDED`: created directly by a human during completeness review;
+ *     neither reviewer ever proposed it.
+ * Derived, never client-supplied — see `classifyApprovedRelationshipProvenance`.
+ */
+export type ApprovedRelationshipProvenanceClass = 'AUTO_ACCEPT' | 'HUMAN_REVIEW_ACCEPT' | 'HUMAN_ADDED'
+
+/**
  * Reuses `ApprovedIngredientStepRelationshipV1` from architecture-contract
- * §15 verbatim.
+ * §15, extended with `provenanceClass` (Implementation 4B, §26.7).
  */
 export interface ApprovedIngredientStepRelationshipV1 {
   candidateId: string
@@ -172,6 +321,7 @@ export interface ApprovedIngredientStepRelationshipV1 {
   stepIndex: number
   decisionSource: 'AUTO' | 'HUMAN'
   decisionId: string | null
+  provenanceClass: ApprovedRelationshipProvenanceClass
 }
 
 /**
@@ -219,8 +369,16 @@ export interface PersistedApprovedCookingStepMapV1 {
   preparedComponents: never[]
 
   approvedBy: string
-  /** Non-null only for a HUMAN_ASSISTED map; null for an (as-yet unauthorized) AUTO map. */
-  completenessAttestedAt: string | null
+  /**
+   * The completeness-attestation `attestedAt` timestamp this map was built
+   * against, resolved (not fabricated) by `buildApprovedMapping` from a
+   * verified `PersistedMappingCompletenessAttestationV1` (Implementation
+   * 4B — see the Critical invariant in §26.6: map approval always requires a
+   * valid current attestation, so this is always non-null for any map that
+   * successfully built). Excluded from `mapHash` — see
+   * `lib/cookingModeMappingPersistenceIdentity.ts`'s doc comment.
+   */
+  completenessAttestedAt: unknown
 
   mapHash: string
   provenance: ApprovedMapProvenanceV1
@@ -242,8 +400,23 @@ export interface BuildApprovedMappingInput {
   /** Snapshot of the proposal's own blocking reasons at generation time (reviewer/evidence/source-identity failures only — candidate-level review completeness is re-derived live from `candidates`). */
   proposalBlockingReasons: readonly MappingProposalBlockingReason[]
   approvedBy: string
-  /** RFC 3339 UTC string. Required in V1 — see completenessAttestedAt doc above. */
-  completenessAttestedAt: string
+  /**
+   * The already-fetched, currently-effective completeness attestation for
+   * this proposal, or `null` if none exists (Implementation 4B). This is
+   * never trusted blindly: `buildApprovedMapping` independently recomputes
+   * the live review-state hash from `candidates`/`recipeId`/`recipeRevision`/
+   * `proposalId` and requires an exact match against
+   * `completenessAttestation.reviewStateHash` (plus matching `proposalId`/
+   * `recipeId`/`recipeRevision`) before ever treating the map as buildable —
+   * a caller cannot satisfy the Critical Invariant (§26.6) by passing an
+   * attestation for a different or stale review state, and resolving the
+   * final candidate decision alone can never substitute for this. Required
+   * (must be non-null and valid) for every proposal in V1, matching the
+   * approved product decision that attestation applies even to zero-review
+   * proposals (design doc §13) until the recall/severity release gates in
+   * architecture-contract §23 are met.
+   */
+  completenessAttestation: PersistedMappingCompletenessAttestationV1 | null
   provenance: ApprovedMapProvenanceV1
 }
 
@@ -252,6 +425,7 @@ export type BuildApprovedMappingFailureReason =
   | 'STRUCTURAL_BLOCKER'
   | 'PROPOSAL_BLOCKED'
   | 'REVISION_MISMATCH'
+  | 'MISSING_OR_STALE_COMPLETENESS_ATTESTATION'
 
 export type BuildApprovedMappingOutcome =
   | { ok: true; map: PersistedApprovedCookingStepMapV1 }

@@ -4,6 +4,7 @@ vi.mock('server-only', () => ({}))
 
 import {
   MAPPING_APPROVED_MAP_ID_PREFIX,
+  MAPPING_COMPLETENESS_ATTESTATION_ID_PREFIX,
   MAPPING_REVIEW_DECISION_ID_PREFIX,
 } from '@/types/cookingModeMappingPersistence'
 import type { ApprovedIngredientStepRelationshipV1 } from '@/types/cookingModeMappingPersistence'
@@ -12,9 +13,11 @@ import {
   computeApprovedMapHash,
   computeApprovedMapId,
   computeApprovedMapVersion,
+  computeMappingCompletenessAttestationId,
   computeMappingReviewDecisionId,
+  computeMappingReviewStateHash,
 } from '@/lib/cookingModeMappingPersistenceIdentity'
-import type { ApprovedMapHashInput } from '@/lib/cookingModeMappingPersistenceIdentity'
+import type { ApprovedMapHashInput, MappingReviewStateHashInput } from '@/lib/cookingModeMappingPersistenceIdentity'
 
 function relationship(overrides: Partial<ApprovedIngredientStepRelationshipV1> = {}): ApprovedIngredientStepRelationshipV1 {
   return {
@@ -23,6 +26,7 @@ function relationship(overrides: Partial<ApprovedIngredientStepRelationshipV1> =
     stepIndex: 0,
     decisionSource: 'AUTO',
     decisionId: null,
+    provenanceClass: 'AUTO_ACCEPT',
     ...overrides,
   }
 }
@@ -43,7 +47,19 @@ function hashInput(overrides: Partial<ApprovedMapHashInput> = {}): ApprovedMapHa
     relationships: [relationship()],
     preparedComponents: [],
     approvedBy: 'admin-uid',
-    completenessAttestedAt: '2026-08-28T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function reviewStateInput(overrides: Partial<MappingReviewStateHashInput> = {}): MappingReviewStateHashInput {
+  return {
+    proposalId: 'mp1:xyz',
+    recipeId: 'recipe-1',
+    recipeRevision: 'v1:sha256:abc',
+    candidates: [
+      { candidateId: 'mc1:aaa', finalDecision: 'ACCEPT', decisionSource: 'AUTO', candidateOrigin: 'REVIEWER_UNION' },
+      { candidateId: 'mc1:bbb', finalDecision: 'ACCEPT', decisionSource: 'HUMAN', candidateOrigin: 'HUMAN_ADDED' },
+    ],
     ...overrides,
   }
 }
@@ -183,5 +199,83 @@ describe('approved-map id and version', () => {
   it('mapVersion combines the routing contract version with the first 16 hash characters', async () => {
     const hash = await computeApprovedMapHash(hashInput())
     expect(computeApprovedMapVersion('cooking-review-routing-v1', hash)).toBe(`cooking-review-routing-v1:${hash.slice(0, 16)}`)
+  })
+})
+
+describe('approved-map hash includes provenanceClass', () => {
+  it('changes when a relationship\'s provenanceClass changes with everything else identical', async () => {
+    const humanReview = await computeApprovedMapHash(hashInput({ relationships: [relationship({ provenanceClass: 'HUMAN_REVIEW_ACCEPT' })] }))
+    const humanAdded = await computeApprovedMapHash(hashInput({ relationships: [relationship({ provenanceClass: 'HUMAN_ADDED' })] }))
+    const autoAccept = await computeApprovedMapHash(hashInput({ relationships: [relationship({ provenanceClass: 'AUTO_ACCEPT' })] }))
+    expect(new Set([humanReview, humanAdded, autoAccept]).size).toBe(3)
+  })
+})
+
+describe('mapping review-state hash', () => {
+  it('is deterministic for identical content', async () => {
+    const first = await computeMappingReviewStateHash(reviewStateInput())
+    const second = await computeMappingReviewStateHash(reviewStateInput())
+    expect(first).toBe(second)
+  })
+
+  it('is unaffected by candidate array order', async () => {
+    const input = reviewStateInput()
+    const reversed = { ...input, candidates: [...input.candidates].reverse() }
+    expect(await computeMappingReviewStateHash(input)).toBe(await computeMappingReviewStateHash(reversed))
+  })
+
+  it('changes when a candidate is added', async () => {
+    const original = await computeMappingReviewStateHash(reviewStateInput())
+    const withExtra = await computeMappingReviewStateHash(reviewStateInput({
+      candidates: [
+        ...reviewStateInput().candidates,
+        { candidateId: 'mc1:ccc', finalDecision: null, decisionSource: null, candidateOrigin: 'REVIEWER_UNION' },
+      ],
+    }))
+    expect(original).not.toBe(withExtra)
+  })
+
+  it('changes when a candidate\'s finalDecision changes', async () => {
+    const original = await computeMappingReviewStateHash(reviewStateInput())
+    const changed = await computeMappingReviewStateHash(reviewStateInput({
+      candidates: [
+        { candidateId: 'mc1:aaa', finalDecision: 'REJECT', decisionSource: 'AUTO', candidateOrigin: 'REVIEWER_UNION' },
+        { candidateId: 'mc1:bbb', finalDecision: 'ACCEPT', decisionSource: 'HUMAN', candidateOrigin: 'HUMAN_ADDED' },
+      ],
+    }))
+    expect(original).not.toBe(changed)
+  })
+
+  it('changes when the recipe revision changes', async () => {
+    const original = await computeMappingReviewStateHash(reviewStateInput())
+    const changed = await computeMappingReviewStateHash(reviewStateInput({ recipeRevision: 'v1:sha256:different' }))
+    expect(original).not.toBe(changed)
+  })
+
+  it('changes when the proposal changes', async () => {
+    const original = await computeMappingReviewStateHash(reviewStateInput())
+    const changed = await computeMappingReviewStateHash(reviewStateInput({ proposalId: 'mp1:different' }))
+    expect(original).not.toBe(changed)
+  })
+})
+
+describe('mapping completeness attestation identity', () => {
+  it('is deterministic for the exact same (proposalId, reviewStateHash)', async () => {
+    const first = await computeMappingCompletenessAttestationId({ proposalId: 'mp1:xyz', reviewStateHash: 'hash-1' })
+    const second = await computeMappingCompletenessAttestationId({ proposalId: 'mp1:xyz', reviewStateHash: 'hash-1' })
+    expect(first).toBe(second)
+    expect(first.startsWith(MAPPING_COMPLETENESS_ATTESTATION_ID_PREFIX)).toBe(true)
+  })
+
+  it('changes when the review-state hash changes', async () => {
+    const a = await computeMappingCompletenessAttestationId({ proposalId: 'mp1:xyz', reviewStateHash: 'hash-1' })
+    const b = await computeMappingCompletenessAttestationId({ proposalId: 'mp1:xyz', reviewStateHash: 'hash-2' })
+    expect(a).not.toBe(b)
+  })
+
+  it('changes when the proposal changes', async () => {
+    const a = await computeMappingCompletenessAttestationId({ proposalId: 'mp1:xyz', reviewStateHash: 'hash-1' })
+    const b = await computeMappingCompletenessAttestationId({ proposalId: 'mp1:different', reviewStateHash: 'hash-1' })
+    expect(a).not.toBe(b)
   })
 })

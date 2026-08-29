@@ -95,8 +95,15 @@ export async function appendMappingReviewDecision(
     if (candidate.recipeRevision !== input.recipeRevision) {
       throw new MappingReviewDecisionRejectedError('REVISION_MISMATCH', 'Candidate recipe revision no longer matches the caller-supplied revision')
     }
-    if (candidate.routingDecision !== 'REVIEW_REQUIRED') {
-      throw new MappingReviewDecisionRejectedError('CANDIDATE_NOT_REVIEW_REQUIRED', 'Only REVIEW_REQUIRED candidates accept a human decision')
+    // HUMAN_ADDED candidates (Implementation 4B) also accept a decision
+    // through this exact append-only mechanism: the candidate's initial
+    // ACCEPT is recorded this way immediately after creation, and a later
+    // correction/removal (REJECT) or restore (ACCEPT again) reuses it too —
+    // see lib/cookingModeMappingHumanRelationship.ts. AUTO_ACCEPT/AUTO_REJECT
+    // candidates never do; their finalDecision is already a pure function of
+    // routing and is not human-correctable through this call.
+    if (candidate.routingDecision !== 'REVIEW_REQUIRED' && candidate.routingDecision !== 'HUMAN_ADDED') {
+      throw new MappingReviewDecisionRejectedError('CANDIDATE_NOT_REVIEW_REQUIRED', 'Only REVIEW_REQUIRED or HUMAN_ADDED candidates accept a human decision')
     }
 
     const existingEventSnap = await transaction.get(eventRef)

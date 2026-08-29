@@ -5,6 +5,7 @@ import {
   computeApprovedMapHash,
   computeApprovedMapId,
   computeApprovedMapVersion,
+  computeMappingReviewStateHash,
   toApprovedMapHashInput,
 } from '@/lib/cookingModeMappingPersistenceIdentity'
 import {
@@ -17,11 +18,13 @@ import { computeProposalCompletion } from '@/lib/cookingModeMappingReviewPersist
 import { MappingPersistenceConflictError } from '@/lib/cookingModeMappingPersistenceErrors'
 import type {
   ApprovedIngredientStepRelationshipV1,
+  ApprovedRelationshipProvenanceClass,
   BuildApprovedMappingInput,
   BuildApprovedMappingOutcome,
   CurrentApprovedMappingPointerV1,
   PersistApprovedMappingResult,
   PersistedApprovedCookingStepMapV1,
+  PersistedMappingCandidateV1,
   ReadCurrentApprovedMappingPointerResult,
 } from '@/types/cookingModeMappingPersistence'
 
@@ -35,11 +38,24 @@ const BLOCKING_REASONS_INDEPENDENT_OF_LIVE_CANDIDATES = [
 ] as const
 
 /**
+ * For one accepted candidate, the provenance class recorded on its approved
+ * relationship (Implementation 4B, §26.7) — see
+ * `ApprovedRelationshipProvenanceClass`'s doc comment for the three values.
+ */
+function classifyApprovedRelationshipProvenance(candidate: PersistedMappingCandidateV1): ApprovedRelationshipProvenanceClass {
+  if (candidate.provenance.candidateOrigin === 'HUMAN_ADDED') return 'HUMAN_ADDED'
+  return candidate.decisionSource === 'HUMAN' ? 'HUMAN_REVIEW_ACCEPT' : 'AUTO_ACCEPT'
+}
+
+/**
  * Pure constructor for the immutable approved-map artifact
- * (Implementation 3, Phase 12). Makes no Firestore call. `input.candidates`
- * MUST be the full, live candidate population (e.g. `listMappingCandidates`)
- * so completeness is judged against reality, not a stale generation-time
- * snapshot.
+ * (Implementation 3, Phase 12; extended Implementation 4B, §26.6-26.8).
+ * Makes no Firestore call. `input.candidates` MUST be the full, live
+ * candidate population (e.g. `listMappingCandidates`) so completeness is
+ * judged against reality, not a stale generation-time snapshot — this
+ * includes any `HUMAN_ADDED` candidates, which live in the exact same
+ * `candidates` subcollection as AI-discovered ones (§26.3) and therefore
+ * require no separate union step here.
  */
 export async function buildApprovedMapping(input: BuildApprovedMappingInput): Promise<BuildApprovedMappingOutcome> {
   const revisionMismatch = input.candidates.some(candidate =>
@@ -70,6 +86,35 @@ export async function buildApprovedMapping(input: BuildApprovedMappingInput): Pr
     }
   }
 
+  // Critical invariant (Implementation 4B, §26.6): map approval always
+  // requires a valid *current* completeness attestation. Resolving the final
+  // candidate decision above can never substitute for it — this is an
+  // independent check against a separately, explicitly recorded attestation,
+  // not something inferred from `completion.complete`. The live review-state
+  // hash is recomputed from the exact same `input.candidates` population
+  // (never from a caller-asserted string), so an attestation for a different
+  // or now-stale review state is rejected exactly like a missing one.
+  const liveReviewStateHash = await computeMappingReviewStateHash({
+    proposalId: input.proposalId,
+    recipeId: input.recipeId,
+    recipeRevision: input.recipeRevision,
+    candidates: input.candidates.map(candidate => ({
+      candidateId: candidate.candidateId,
+      finalDecision: candidate.finalDecision,
+      decisionSource: candidate.decisionSource,
+      candidateOrigin: candidate.provenance.candidateOrigin,
+    })),
+  })
+  const attestation = input.completenessAttestation
+  const attestationValid = Boolean(attestation) &&
+    attestation!.proposalId === input.proposalId &&
+    attestation!.recipeId === input.recipeId &&
+    attestation!.recipeRevision === input.recipeRevision &&
+    attestation!.reviewStateHash === liveReviewStateHash
+  if (!attestationValid) {
+    return { ok: false, reason: 'MISSING_OR_STALE_COMPLETENESS_ATTESTATION', unresolvedCandidateIds: [] }
+  }
+
   const accepted = input.candidates.filter(candidate => candidate.finalDecision === 'ACCEPT')
   const relationships: ApprovedIngredientStepRelationshipV1[] = accepted.map(candidate => ({
     candidateId: candidate.candidateId,
@@ -77,6 +122,7 @@ export async function buildApprovedMapping(input: BuildApprovedMappingInput): Pr
     stepIndex: candidate.stepIndex,
     decisionSource: candidate.decisionSource === 'HUMAN' ? 'HUMAN' : 'AUTO',
     decisionId: candidate.decisionSource === 'HUMAN' ? candidate.effectiveReviewEventId : null,
+    provenanceClass: classifyApprovedRelationshipProvenance(candidate),
   }))
   const canonicalRelationships = canonicalizeApprovedMapRelationships(relationships)
   const approvalMode: 'AUTO' | 'HUMAN_ASSISTED' =
@@ -97,7 +143,6 @@ export async function buildApprovedMapping(input: BuildApprovedMappingInput): Pr
     relationships: canonicalRelationships,
     preparedComponents: [] as never[],
     approvedBy: input.approvedBy,
-    completenessAttestedAt: input.completenessAttestedAt,
   }
   const mapHash = await computeApprovedMapHash(hashInput)
   const mapId = computeApprovedMapId(mapHash)
@@ -108,6 +153,7 @@ export async function buildApprovedMapping(input: BuildApprovedMappingInput): Pr
     mapId,
     mapVersion,
     mapHash,
+    completenessAttestedAt: attestation!.attestedAt,
     provenance: input.provenance,
     createdAt: null,
     approvedAt: null,

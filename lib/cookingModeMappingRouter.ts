@@ -37,7 +37,8 @@ function reviewRequired(reasons: Iterable<MappingRoutingReason>, blocked = false
   }
 }
 
-function canonicalReviewerVote(vote: MappingReviewerVoteV1) {
+function canonicalReviewerVote(vote: MappingReviewerVoteV1 | null) {
+  if (!vote) return null
   return {
     reviewerSlot: vote.reviewerSlot,
     vote: vote.vote,

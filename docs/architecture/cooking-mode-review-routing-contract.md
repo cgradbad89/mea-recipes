@@ -789,3 +789,186 @@ PRD.md's Feature Backlog entry for current status.
 
 Not deployed. See PRD.md "Firestore rules" for the exact manual Console addition required (admin-only
 read+write on every new path, since no runtime/UI reader exists yet to justify a public read rule).
+
+## 26. Human-added missing relationship contract (Implementation 4B, 2026-08-28)
+
+The approved human-review design (`docs/design/cooking-mode-mapping-review-experience-2026-08-28.md`
+§8) identified a required backend gap: neither reviewer, nor the deterministic router, can discover a
+relationship a human notices only during completeness review — the frozen reviewer union misses
+35/868 (4.03%) of true relationships entirely (§12). This section resolves that gap at the contract
+level. It changes no reviewer prompt, no routing precedence for AI-discovered candidates, and no
+Cooking Mode runtime behavior — it only extends the candidate/completeness contract with a second,
+non-AI relationship-discovery path.
+
+### 26.1 Provenance, not a parallel candidate model
+
+Candidate *identity* is unchanged and origin-independent: the existing `mc1:` tuple
+(`recipeId`, `recipeRevision`, `ingredientRowIndex`, `stepIndex`) is still the sole canonical identity
+of an ingredient→step relationship, regardless of whether AI or a human discovered it. What changes is
+`MappingCandidateProvenanceV1.candidateOrigin`, widened from the literal `'REVIEWER_UNION'` to
+`MappingCandidateOrigin = 'REVIEWER_UNION' | 'HUMAN_ADDED'` (`types/cookingModeMapping.ts`). A
+`REVIEWER_UNION` candidate is unchanged in every respect. A `HUMAN_ADDED` candidate:
+
+- has `reviewerA`/`reviewerB` set to `null` (both fields widened to `MappingReviewerVoteV1 | null`) —
+  never a fabricated `ACCEPT`/`REJECT`/`MISSING` vote with invented run/attempt/model metadata, since
+  neither reviewer ever evaluated this exact relationship as a union candidate;
+- has `deterministicEvidence.status: 'UNAVAILABLE'` (via the existing `deriveMappingV1Evidence`
+  fallback shape, not a hand-built object) — an honest "not computed" state, not a fabricated risk or
+  positive finding;
+- has `routingDecision: 'HUMAN_ADDED'`, a fourth value added to `MappingRoutingDecision` alongside the
+  three routing-table outcomes. It is never produced by `routeMappingCandidate`/the §9-10 precedence
+  table — a `HUMAN_ADDED` candidate never travels through AI reviewer routing at all — and no code path
+  can therefore honestly claim it satisfies `AUTO_ACCEPT_BOTH_REVIEWERS_NO_V1_RISK`. Its sole routing
+  reason is the new `HUMAN_ADDED_RELATIONSHIP` value in `MappingRoutingReason`.
+
+### 26.2 Creation is an append-only decision event, not a second event-type system
+
+Per the task's "reuse the persistence architecture, do not introduce a second review system," the
+creation of a `HUMAN_ADDED` candidate is *not* a new `ADD_RELATIONSHIP` enum value on a parallel event
+type. Instead: `addHumanMappingRelationship` (`lib/cookingModeMappingHumanRelationship.ts`) writes a
+fresh candidate document with `finalDecision: null` (a momentary "shell"), then immediately calls the
+existing `appendMappingReviewDecision` with `decision: 'ACCEPT'` — the exact same append-only mechanism
+ordinary AI-candidate human review already uses. The guard in `appendMappingReviewDecision` that
+previously required `routingDecision === 'REVIEW_REQUIRED'` now also accepts `'HUMAN_ADDED'`
+(`lib/cookingModeMappingReviewPersistence.ts`); `AUTO_ACCEPT`/`AUTO_REJECT` candidates still never
+accept a decision through this call. A first `ACCEPT` decision on a freshly created `HUMAN_ADDED`
+candidate *is* the add event — this satisfies the "equivalent to `ADD_RELATIONSHIP`" requirement
+without a parallel action-type system.
+
+Correction/removal reuses the identical mechanism: `removeHumanMappingRelationship` submits a `REJECT`
+decision superseding the candidate's current effective decision; a later re-add supersedes that with a
+new `ACCEPT`. The original event is never edited or deleted — only the candidate's *materialized*
+current state moves. History is reconstructable exactly as it already is for ordinary review
+corrections (`getMappingReviewHistory`), because it is the same mechanism.
+
+### 26.3 Duplicate handling
+
+Because identity is origin-independent, a human attempting to add a relationship at a `(row, step)`
+pair an AI-discovered candidate already occupies computes the *same* `candidateId`.
+`addHumanMappingRelationship` reads the existing candidate first: if `provenance.candidateOrigin ===
+'REVIEWER_UNION'`, it returns that candidate untouched (`outcome: 'ALREADY_AI_DISCOVERED'`) and creates
+nothing — no duplicate candidate, and no decision is silently appended on the human's behalf onto an
+AI-discovered candidate's history. The caller is expected to route the human to ordinary candidate
+review for it instead.
+
+### 26.4 Validation (fail closed)
+
+`addHumanMappingRelationship` validates, in order: the proposal exists and has
+`persistenceStatus: 'READY'`; the caller-supplied `source` (current parsed ingredients/instructions)
+recomputes to exactly the caller-supplied `recipeRevision` *and* the persisted proposal's own
+`recipeRevision` (a changed recipe source fails closed rather than adding a relationship to a stale
+proposal); and full structural validity via the *existing* `validateMappingCandidateStructure` —
+reused unchanged, so a human add fails for the identical reasons (invalid/header ingredient row,
+invalid step index, source-snapshot mismatch, invalid identity) an AI-discovered candidate would.
+
+### 26.5 Input/authorization contract
+
+```ts
+async function addHumanMappingRelationship(
+  input: AddHumanMappingRelationshipInput,
+): Promise<AddHumanMappingRelationshipResult>
+```
+
+`AddHumanMappingRelationshipInput` (`types/cookingModeMappingPersistence.ts`) carries only
+`recipeId`, `proposalId`, `recipeRevision`, `source`, `ingredientRowIndex`, `stepIndex`, optional
+`reasonCode`/`note`, and `addedBy`. `source` is the recipe's live parsed mapping source, needed for
+structural validation (§26.4) — it plays the same role `source` plays in `buildMappingProposal`, and is
+independently re-verified rather than trusted. Reviewer votes, routing state, timestamps, and map hash
+are never caller-supplied — all server-derived exactly as the task requires. `addedBy` follows the
+existing `decidedBy`/`approvedBy` convention: a verified server-side admin identity the *caller* (a
+future admin-authenticated API route, via `verifyAdminToken`) is responsible for resolving before
+calling this trusted service — it is never accepted from an unverified client request directly, the
+same trust boundary as every other mapping-persistence write (§25.7).
+
+### 26.6 Map-level completeness attestation
+
+`PersistedMappingCompletenessAttestationV1` (persisted at
+`recipes/{recipeId}/mappingProposals/{proposalId}/completenessAttestations/{attestationId}`, new
+`ma1:` identity prefix) is a first-class, append-only-immutable record:
+
+```ts
+interface PersistedMappingCompletenessAttestationV1 {
+  schemaVersion: 1
+  attestationId: string
+  proposalId: string
+  recipeId: string
+  recipeRevision: string
+  reviewStateHash: string
+  attestedBy: string
+  attestedAt: unknown // Firestore server timestamp
+}
+```
+
+`reviewStateHash` (`computeMappingReviewStateHash`,
+`lib/cookingModeMappingPersistenceIdentity.ts`) is a deterministic hash over every candidate's
+`(candidateId, finalDecision, decisionSource, candidateOrigin)` for the proposal, plus
+`proposalId`/`recipeId`/`recipeRevision`. `attestationId` is deterministic over
+`(proposalId, reviewStateHash)` only (excluding `attestedBy` — this app has exactly one recipe-admin
+identity, PRD.md §1) — so re-attesting an unchanged review state is idempotent (returns the existing
+record, does not duplicate), matching the append-only idempotent-replay pattern used throughout this
+module.
+
+`recordMappingCompletenessAttestation` requires the proposal `READY`, the caller's `recipeRevision` to
+match the proposal's, and `computeProposalCompletion` on the *live* candidate population to report
+`complete: true` before it will record anything — attestation is always a distinct, explicit act,
+never inferred from "the last candidate got a decision."
+
+**Critical invariant:** `buildApprovedMapping` now requires a valid, matching completeness attestation
+for *every* proposal (`BuildApprovedMappingInput.completenessAttestation`), unconditionally — matching
+the approved product decision (design doc §13) that attestation applies even to zero-review proposals
+until the recall/severity release gates in §23 are met. It independently recomputes the live review-
+state hash from its own `input.candidates` and rejects (`MISSING_OR_STALE_COMPLETENESS_ATTESTATION`)
+unless the supplied attestation's `reviewStateHash`/`proposalId`/`recipeId`/`recipeRevision` all match
+exactly — a caller cannot satisfy this by passing a stale or mismatched attestation, and resolving the
+final candidate decision can never implicitly attest completeness.
+
+### 26.7 Invalidation
+
+Deliberately mechanism-free: because `reviewStateHash` is a pure function of the live candidate
+population and revision, *any* of the task's listed invalidators — a human relationship added, a
+relationship decision changed, a new proposal revision, a changed candidate population, a changed
+source revision — changes the recomputed hash, so the previously-recorded attestation simply no longer
+matches. `getMappingCompletenessAttestationStatus` recomputes the live hash, looks up the attestation
+at the deterministic id that hash implies (an O(1) get-by-known-id, no listing/index), and reports
+`valid: false` uniformly for "never attested" and "attested a since-superseded state" — both mean the
+human must review the current complete map again before approval.
+
+### 26.8 Approved-map integration and provenance
+
+`ApprovedIngredientStepRelationshipV1` gains `provenanceClass: 'AUTO_ACCEPT' | 'HUMAN_REVIEW_ACCEPT' |
+'HUMAN_ADDED'` (`ApprovedRelationshipProvenanceClass`), derived (never client-supplied) from
+`candidate.provenance.candidateOrigin` + `candidate.decisionSource`:
+`REVIEWER_UNION`+`AUTO` → `AUTO_ACCEPT`; `REVIEWER_UNION`+`HUMAN` → `HUMAN_REVIEW_ACCEPT`;
+`HUMAN_ADDED` (always `decisionSource: HUMAN` once resolved) → `HUMAN_ADDED`. This answers "why is
+this ingredient on this step?" without rerunning AI (§19), and is included in `mapHash` (a relationship
+accepted via ordinary human review is genuinely different content from one a human added directly, even
+when both land on the identical `(row, step)` — see the updated hash-shape doc comment in
+`lib/cookingModeMappingPersistenceIdentity.ts`).
+
+Because a `HUMAN_ADDED` candidate is persisted in the exact same `candidates` subcollection as
+`REVIEWER_UNION` candidates (§26.2), `buildApprovedMapping`'s existing
+`candidates.filter(c => c.finalDecision === 'ACCEPT')` union already includes both without any special
+per-origin union step — `listMappingCandidates` (or any full read of the subcollection) already
+returns the complete population. `computeProposalCompletion` likewise already treats an unresolved
+`HUMAN_ADDED` candidate exactly like an unresolved `REVIEW_REQUIRED` one (both have `finalDecision ===
+null` until resolved); by construction, `addHumanMappingRelationship` never returns with a candidate
+left unresolved, so this is correctness-by-construction rather than a new completeness rule.
+`completenessAttestedAt` on the persisted map moves from a caller-supplied RFC 3339 string to the
+verified attestation's own resolved `attestedAt` timestamp, and is excluded from `mapHash` for the same
+reason `createdAt`/`approvedAt` already are (a server timestamp must not make two exact-replay builds
+of the same semantic map hash differently).
+
+### 26.9 Read/service surface for the later UI
+
+`lib/cookingModeMappingHumanRelationship.ts`: `addHumanMappingRelationship`,
+`removeHumanMappingRelationship`, `listHumanAddedMappingRelationships`.
+`lib/cookingModeMappingCompletenessAttestation.ts`: `recordMappingCompletenessAttestation`,
+`getMappingCompletenessAttestationStatus`. No React components, no new `app/api/**/route.ts` — per the
+existing §25.7 pattern, an API route wrapping these must call `verifyAdminToken` first and pass its
+result through; these services never inspect a request themselves.
+
+### 26.10 Firestore rules
+
+Not deployed (unchanged constraint). The new `completenessAttestations` subcollection needs the same
+manual Console addition as the other Implementation 3 paths — see the updated PRD.md "Firestore rules"
+section.

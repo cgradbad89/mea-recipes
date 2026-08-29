@@ -251,7 +251,22 @@ human selects one, gives a reason (reusing the existing `MappingHumanReviewReaso
 the step's ingredient-chip list immediately, visually marked as human-added (not "Auto"), and rolls
 into the map's relationship count and hash exactly like every other approved relationship.
 
-**Required backend contract extension — flagged explicitly, not hidden:**
+**Status update (2026-08-29, Implementation 4B — backend only, no UI):** the backend contract
+extension flagged below is now implemented. `MappingCandidateProvenanceV1.candidateOrigin` is
+`'REVIEWER_UNION' | 'HUMAN_ADDED'`; a human-added candidate keeps the exact same `mc1:` identity
+tuple (no `mh1:` prefix was needed — see the resolution of open question #2 below), so no duplicate
+is ever created at an identity an AI-discovered candidate already occupies. `addHumanMappingRelationship`/
+`removeHumanMappingRelationship`/`listHumanAddedMappingRelationships`
+(`lib/cookingModeMappingHumanRelationship.ts`) and the map-level completeness attestation
+(`recordMappingCompletenessAttestation`/`getMappingCompletenessAttestationStatus`,
+`lib/cookingModeMappingCompletenessAttestation.ts`) give the eventual `MappingAddRelationshipPicker`
+and completeness-review screen a real service surface to wire against. See
+`docs/architecture/cooking-mode-review-routing-contract.md` §26 for the full resolution of the three
+numbered gaps below. This does not implement the picker, the completeness-preview screen, or any
+other UI named in this document — those remain exactly as described, not yet built.
+
+**Required backend contract extension — flagged explicitly, not hidden (resolved 2026-08-29, see the
+status update just above):**
 
 1. A new creation path (e.g. `appendHumanCreatedMappingCandidate`) that materializes a
    `MappingCandidateV1` with no reviewer votes to evaluate — routing must special-case this instead
@@ -459,9 +474,10 @@ can use it; none is built in this task.
    **recommended yes**, since completeness review's entire purpose is catching omissions and errors
    across the *whole* map, not just the human-reviewed slice; the origin dot (§7.3) distinguishes
    them without re-litigating already-auto-accepted decisions as editable. Not yet approved.
-6. **Human-added-relationship backend extension** (§8) — this is a **required scope addition**, not
-   optional polish; flagged as blocking full implementation of the completeness screen's "add
-   ingredient" control. Needs explicit backend/architecture sign-off before UI wiring.
+6. **Human-added-relationship backend extension** (§8) — **implemented 2026-08-29, Implementation
+   4B** (backend/contract only, no UI) — see the status note in §8 and architecture-contract §26. The
+   completeness screen's "add ingredient" control can now be wired to a real service once the API
+   route/UI work for this design begins.
 7. **Nav item admin-gating pattern** (§4) — `Navigation.tsx` currently has no per-item gate; adding
    one is a small, low-risk implementation detail but changes a shared component, so flagging for
    awareness rather than silently deciding it during a later implementation task.
@@ -481,8 +497,8 @@ can use it; none is built in this task.
   explicit user direction. See §22.
 - No React implementation, no API routes, no Firestore writes, no nav wiring — all explicitly out of
   scope for this design task.
-- Human-added-relationship backend contract extension (§8) — identified, not designed at the schema
-  level beyond the conceptual sketch given; needs its own architecture task.
+- ~~Human-added-relationship backend contract extension (§8)~~ — **resolved 2026-08-29,
+  Implementation 4B**; see §8's status note and architecture-contract §26.
 
 ## 20. PRD.md
 

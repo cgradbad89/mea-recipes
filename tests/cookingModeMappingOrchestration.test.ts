@@ -326,20 +326,20 @@ describe('candidate union, votes, routing, and proposal readiness', () => {
     ['B only', [], [relationship(1, 0)], 'REJECT', 'ACCEPT'],
   ])('normalizes votes for %s', async (_label, a, b, voteA, voteB) => {
     const candidate = (await build(execution('A', a), execution('B', b))).candidates[0]
-    expect([candidate.reviewerA.vote, candidate.reviewerB.vote]).toEqual([voteA, voteB])
+    expect([candidate.reviewerA!.vote, candidate.reviewerB!.vote]).toEqual([voteA, voteB])
   })
 
   it('never converts a failed reviewer omission into REJECT', async () => {
     const failed = execution('B', [], { parseStatus: 'NO_RESULT', completedAt: null, normalizedOutputHash: null })
     const candidate = (await build(execution('A', [relationship(1, 0)]), failed)).candidates[0]
-    expect(candidate.reviewerB.vote).toBe('MISSING')
+    expect(candidate.reviewerB!.vote).toBe('MISSING')
     expect(candidate.routingDecision).toBe('REVIEW_REQUIRED')
   })
 
   it('normalizes a schema-failed reviewer as UNPARSEABLE', async () => {
     const failed = execution('B', [], { parseStatus: 'INVALID' })
     const candidate = (await build(execution('A', [relationship(1, 0)]), failed)).candidates[0]
-    expect(candidate.reviewerB.vote).toBe('UNPARSEABLE')
+    expect(candidate.reviewerB!.vote).toBe('UNPARSEABLE')
   })
 
   it('auto-accepts both complete accepts with complete no-risk V1 evidence', async () => {
