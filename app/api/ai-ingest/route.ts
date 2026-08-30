@@ -6,6 +6,7 @@ import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/api
 import { safeFetchText } from '@/lib/safeFetch'
 import { z } from 'zod'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 const AI_INGEST_MAX_BODY_BYTES = 2_000_000
 const MAX_URL_LENGTH = 2_048
@@ -37,16 +38,16 @@ const REQUEST_SCHEMA: z.ZodType<AIIngestRequest> = z.object({
 })
 
 export const RECIPE_SCHEMA = z.object({
-  title: z.string(),
-  cuisine: z.string(),
+  title: z.string().max(300),
+  cuisine: z.string().max(100),
   category: z.enum(RECIPE_CATEGORIES),
-  ingredients: z.array(z.string()),
-  instructions: z.array(z.string()),
-  imageURL: z.string(),
-  description: z.string(),
-  servings: z.string(),
-  prepTime: z.string(),
-  cookTime: z.string(),
+  ingredients: z.array(z.string().max(2_000)).max(200),
+  instructions: z.array(z.string().max(4_000)).max(150),
+  imageURL: z.string().max(2_048),
+  description: z.string().max(4_000),
+  servings: z.string().max(100),
+  prepTime: z.string().max(100),
+  cookTime: z.string().max(100),
 })
 
 const CATEGORY_VOCABULARY = JSON.stringify(RECIPE_CATEGORIES)
@@ -135,6 +136,8 @@ export async function POST(req: NextRequest) {
         })
         return NextResponse.json({ ...genParsed, title: genParsed.title || generate, sourceURL: '' })
       } catch (err) {
+        const limited = aiAbuseControlResponse(err)
+        if (limited) return limited
         console.error('[ai-ingest] AI generation failed', {
           error: safeErrorLogDetails(err),
           ...requestMetadata,
@@ -203,6 +206,8 @@ export async function POST(req: NextRequest) {
         cookTime: providedCook || parsed.cookTime || '',
       })
     } catch (err) {
+      const limited = aiAbuseControlResponse(err)
+      if (limited) return limited
       console.error('[ai-ingest] AI parsing failed', {
         error: safeErrorLogDetails(err),
         ...requestMetadata,
@@ -211,6 +216,8 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

@@ -25,6 +25,7 @@ import { CANONICAL_STAPLES as FDC_STAPLES, type CanonicalStaple } from './canoni
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import type { BarcodeProduct } from '@/types/nutrition'
 import { generateAIObject } from './ai'
+import { isAIAbuseControlError, type AIUsageClass } from './aiAbuseControl'
 import { AI_CACHE_ID, AI_PROVENANCE } from './aiConfig'
 import { z } from 'zod'
 
@@ -807,35 +808,47 @@ function pickValidated(queryName: string, cls: FoodClass, foods: UsdaSearchFood[
 // ─── AI estimate fallback ────────────────────────────────────────────────────
 
 const NUTRITION_AI_SCHEMA = z.object({
-  calories: z.number(),
-  protein_g: z.number(),
-  carbs_g: z.number(),
-  fat_g: z.number(),
-  fiber_g: z.number(),
-  sugar_g: z.number(),
-  serving_grams: z.number().optional(),
+  calories: z.number().min(0).max(5_000),
+  protein_g: z.number().min(0).max(1_000),
+  carbs_g: z.number().min(0).max(1_000),
+  fat_g: z.number().min(0).max(1_000),
+  fiber_g: z.number().min(0).max(1_000),
+  sugar_g: z.number().min(0).max(1_000),
+  serving_grams: z.number().min(1).max(5_000).optional(),
 })
 
 async function aiNutritionJson(
   feature: 'nutrition-ingredient-estimate' | 'nutrition-food-estimate',
   prompt: string,
+  userId?: string,
+  usageClass?: AIUsageClass,
 ): Promise<z.infer<typeof NUTRITION_AI_SCHEMA> | null> {
   try {
     return await generateAIObject({
       feature,
+      userId,
+      usageClass,
       prompt,
       schema: NUTRITION_AI_SCHEMA,
     })
-  } catch {
+  } catch (error) {
+    if (isAIAbuseControlError(error)) throw error
     return null
   }
 }
 
-async function aiEstimateIngredient(name: string, grams: number): Promise<NutritionMacros | null> {
+async function aiEstimateIngredient(
+  name: string,
+  grams: number,
+  userId?: string,
+  usageClass?: AIUsageClass,
+): Promise<NutritionMacros | null> {
   const obj = await aiNutritionJson(
     'nutrition-ingredient-estimate',
     `Estimate the nutrition of ${Math.round(grams)} g of "${name}" (as used in home cooking). ` +
-    `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n}`
+    `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n}`,
+    userId,
+    usageClass,
   )
   if (!obj || typeof obj.calories !== 'number') return null
   return {
@@ -850,7 +863,10 @@ async function aiEstimateIngredient(name: string, grams: number): Promise<Nutrit
 // enhancement — this keeps repeat lookups within a server instance free.)
 const ingredientCache = new Map<string, ResolvedFood | null>()
 
-async function resolveIngredient(name: string, opts: { useCanonical?: boolean } = {}): Promise<ResolvedFood | null> {
+async function resolveIngredient(
+  name: string,
+  opts: { useCanonical?: boolean; userId?: string; aiUsageClass?: AIUsageClass } = {},
+): Promise<ResolvedFood | null> {
   const useCanonical = opts.useCanonical !== false   // default ON (production behavior)
   // Cache key is namespaced by the toggle so the dry-run's canonical-on and
   // canonical-off (baseline) passes never share a cached resolution.
@@ -900,7 +916,7 @@ async function resolveIngredient(name: string, opts: { useCanonical?: boolean } 
 
   if (!resolved) {
     // reject-and-fall-through: AI estimates per-100g via a 100 g ask
-    const ai = await aiEstimateIngredient(name, 100)
+    const ai = await aiEstimateIngredient(name, 100, opts.userId, opts.aiUsageClass)
     if (ai) resolved = { per100g: ai, matchedDescription: `AI estimate: ${name}`, resolvedBy: 'ai' }
   }
 
@@ -914,7 +930,7 @@ function round1(n: number): number { return Math.round(n * 10) / 10 }
 
 export async function computeRecipeNutrition(
   recipeId: string,
-  opts: { useCanonical?: boolean } = {},
+  opts: { useCanonical?: boolean; userId?: string; aiUsageClass?: AIUsageClass } = {},
 ): Promise<RecipeComputeResult> {
   // useCanonical defaults ON. The canonical dry-run tool calls this twice per
   // recipe — once canonical-on (proposed) and once canonical-off (baseline) — to
@@ -928,6 +944,7 @@ export async function computeRecipeNutrition(
 
   const { ingredients } = parseRecipeContent(String(data.content || ''))
   if (!ingredients.length) throw new Error('Recipe has no parseable ingredient list')
+  if (ingredients.length > 200) throw new Error('Recipe has too many ingredient lines')
 
   const { parsed, flagged } = parseIngredientList(ingredients)
   const unresolved: string[] = []
@@ -940,7 +957,11 @@ export async function computeRecipeNutrition(
   for (const ing of parsed) {
     if (ing.grams == null) { unresolved.push(ing.raw); continue }
     if (ing.grams === 0) continue   // negligible seasonings
-    const food = await resolveIngredient(ing.name, { useCanonical })
+    const food = await resolveIngredient(ing.name, {
+      useCanonical,
+      userId: opts.userId,
+      aiUsageClass: opts.aiUsageClass,
+    })
     if (!food) { unresolved.push(ing.raw); continue }
     if (food.resolvedBy === 'ai') usedAI = true
     if (food.resolvedBy === 'canonical') {
@@ -1056,7 +1077,10 @@ async function usdaServingGrams(food: UsdaSearchFood): Promise<number | null> {
   return null
 }
 
-export async function lookupFoodByName(rawName: string): Promise<FoodLookupResult | null> {
+export async function lookupFoodByName(
+  rawName: string,
+  userId?: string,
+): Promise<FoodLookupResult | null> {
   const name = rawName.trim()
   if (!name) return null
 
@@ -1111,7 +1135,8 @@ export async function lookupFoodByName(rawName: string): Promise<FoodLookupResul
   const obj = await aiNutritionJson(
     'nutrition-food-estimate',
     `Estimate the nutrition of ONE typical serving of "${name}". ` +
-    `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n, "serving_grams": n}`
+    `Respond with ONLY a JSON object, no prose: {"calories": n, "protein_g": n, "carbs_g": n, "fat_g": n, "fiber_g": n, "sugar_g": n, "serving_grams": n}`,
+    userId,
   )
   if (obj && typeof obj.calories === 'number') {
     return {

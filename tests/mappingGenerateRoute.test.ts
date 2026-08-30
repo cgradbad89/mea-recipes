@@ -15,6 +15,7 @@ vi.mock('@/lib/cookingModeMappingIngestion', () => ({
 }))
 
 import { POST } from '@/app/api/mapping/generate/route'
+import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 
 function request(body: unknown) {
   return new NextRequest('http://localhost/api/mapping/generate', {
@@ -133,5 +134,21 @@ describe('POST /api/mapping/generate', () => {
     expect(res.status).toBe(500)
     const body = await res.json()
     expect(JSON.stringify(body)).not.toMatch(/ECONNREFUSED|api-key|secret|provider-internal-host/i)
+  })
+
+  it('returns the stable 429 when nested mapping generation is denied', async () => {
+    mocks.verifyAdminToken.mockResolvedValueOnce('admin-uid')
+    mocks.generateAndPersistCookingModeMappingProposal.mockRejectedValueOnce(
+      new AIAbuseControlError('concurrency', 45),
+    )
+
+    const res = await POST(request({ recipeId: 'recipe-1' }))
+
+    expect(res.status).toBe(429)
+    expect(res.headers.get('Retry-After')).toBe('45')
+    await expect(res.json()).resolves.toEqual({
+      error: 'AI request limit reached. Try again later.',
+      code: 'ai-request-limited',
+    })
   })
 })

@@ -13,6 +13,7 @@ import {
   resolveCookingStepMappingsWithAi,
 } from '@/lib/cookingStepMappingAi'
 import type { CookingStepMapApiResponse } from '@/types/recipe'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 export const COOKING_STEP_MAP_MAX_BODY_BYTES = 128_000
 export const COOKING_STEP_MAP_MAX_CONTENT_LENGTH = 64_000
@@ -96,6 +97,8 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json(response)
     } catch (error) {
+      const limited = aiAbuseControlResponse(error)
+      if (limited) return limited
       console.error('[cooking-step-map] optional AI resolution failed', {
         error: safeErrorLogDetails(error),
         ...requestMetadata,
@@ -103,6 +106,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(deterministicResponse(deterministicMap, 'failed'))
     }
   } catch (error) {
+    const limited = aiAbuseControlResponse(error)
+    if (limited) return limited
     if (error instanceof ApiRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
     }

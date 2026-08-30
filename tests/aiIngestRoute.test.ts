@@ -16,6 +16,7 @@ vi.mock('@/lib/flavorPairings', () => ({
 vi.mock('@/lib/safeFetch', () => ({ safeFetchText: mocks.safeFetchText }))
 
 import { POST, RECIPE_SCHEMA, SYSTEM_PROMPT } from '@/app/api/ai-ingest/route'
+import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const parsedRecipe = {
@@ -61,6 +62,10 @@ describe('POST /api/ai-ingest', () => {
     expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Pasta, Noodles & Rice' }).success).toBe(true)
     expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Pasta Noodles & Rice' }).success).toBe(false)
     expect(RECIPE_SCHEMA.safeParse({ ...parsedRecipe, category: 'Breakfast, Snacks & Sides' }).success).toBe(false)
+    expect(RECIPE_SCHEMA.safeParse({
+      ...parsedRecipe,
+      ingredients: Array.from({ length: 201 }, () => 'ingredient'),
+    }).success).toBe(false)
   })
 
   it('preserves the auth guard', async () => {
@@ -225,6 +230,19 @@ describe('POST /api/ai-ingest', () => {
     expect(parsingResponse.status).toBe(500)
     expect(parsingData).toEqual({ error: 'AI parsing failed or could not parse response' })
     expect(JSON.stringify(parsingData)).not.toContain('secret-detail')
+  })
+
+  it('returns the stable sanitized limiter response', async () => {
+    mocks.generateAIObject.mockRejectedValueOnce(new AIAbuseControlError('daily', 3_600))
+
+    const response = await POST(jsonRequest({ generate: 'Cacio e Pepe' }))
+
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('3600')
+    await expect(response.json()).resolves.toEqual({
+      error: 'AI request limit reached. Try again later.',
+      code: 'ai-request-limited',
+    })
   })
 
   it('preserves the stable URL-fetch failure response without exposing internals', async () => {

@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { computeRecipeNutrition, lookupFoodByName } from '@/lib/nutritionEngine'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 import { z } from 'zod'
+
+export const maxDuration = 120
 
 const EXTERNAL_LOOKUP_MAX_BODY_BYTES = 32_000
 const REQUEST_SCHEMA = z.union([
@@ -17,7 +20,8 @@ const REQUEST_SCHEMA = z.union([
 
 export async function POST(req: NextRequest) {
   try {
-    if (!await verifyAuthToken(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const uid = await verifyAuthToken(req)
+    if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const requestResult = REQUEST_SCHEMA.safeParse(
       await readBoundedJson(req, EXTERNAL_LOOKUP_MAX_BODY_BYTES),
@@ -27,7 +31,9 @@ export async function POST(req: NextRequest) {
 
     if (body.type === 'recipe') {
       try {
-        const { nutrition, unresolved, flagged } = await computeRecipeNutrition(body.recipeId)
+        const { nutrition, unresolved, flagged } = await computeRecipeNutrition(body.recipeId, {
+          userId: uid,
+        })
         return NextResponse.json({
           nutrition,
           source: nutrition.source,
@@ -36,14 +42,16 @@ export async function POST(req: NextRequest) {
           flagged,
         })
       } catch (e) {
+        const limited = aiAbuseControlResponse(e)
+        if (limited) return limited
         const message = e instanceof Error ? e.message : ''
-        const status = /not found/i.test(message) ? 404 : /no parseable/i.test(message) ? 422 : 500
+        const status = /not found/i.test(message) ? 404 : /no parseable|too many ingredient/i.test(message) ? 422 : 500
         return NextResponse.json({ error: status === 500 ? 'Recipe lookup failed.' : 'Recipe could not be processed.' }, { status })
       }
     }
 
     // type === 'food'
-    const result = await lookupFoodByName(body.name)
+    const result = await lookupFoodByName(body.name, uid)
     if (!result) {
       return NextResponse.json(
         { error: 'Could not resolve food — try manual entry' },
@@ -59,6 +67,8 @@ export async function POST(req: NextRequest) {
       ...(result.aiProvenance ? { aiProvenance: result.aiProvenance } : {}),
     })
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

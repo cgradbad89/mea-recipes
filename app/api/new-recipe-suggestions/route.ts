@@ -4,6 +4,7 @@ import { generateAIArray } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 const AI_STANDARD_MAX_BODY_BYTES = 256_000
 const MAX_COLLECTION_SIZE = 500
@@ -23,11 +24,11 @@ const REQUEST_SCHEMA: z.ZodType<NewRecipeSuggestionsRequest> = z.object({
 })
 
 export const NEW_SUGGESTION_SCHEMA = z.object({
-  title: z.string(),
-  cuisine: z.string(),
+  title: z.string().max(300),
+  cuisine: z.string().max(100),
   category: z.enum(RECIPE_CATEGORIES),
-  description: z.string(),
-  searchQuery: z.string(),
+  description: z.string().max(1_000),
+  searchQuery: z.string().max(500),
 })
 
 export async function POST(req: NextRequest) {
@@ -88,8 +89,10 @@ Rules:
         prompt,
         element: NEW_SUGGESTION_SCHEMA,
       })
-      return NextResponse.json(parsed)
+      return NextResponse.json(parsed.slice(0, 6))
     } catch (err) {
+      const limited = aiAbuseControlResponse(err)
+      if (limited) return limited
       console.error('[new-recipe-suggestions] AI request failed', {
         error: safeErrorLogDetails(err),
         ...requestMetadata,
@@ -97,6 +100,8 @@ Rules:
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

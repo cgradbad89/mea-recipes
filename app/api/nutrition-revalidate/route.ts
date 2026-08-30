@@ -4,6 +4,9 @@ import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import { servingsAssumed } from '@/lib/nutrition'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
+import { aiAbuseControlResponse, isAIAbuseControlError } from '@/lib/aiAbuseControl'
+
+export const maxDuration = 280
 
 // ─── Re-validate low-confidence recipe nutrition (DRY-RUN BY DEFAULT) ─────────
 //
@@ -63,7 +66,8 @@ function matchedTier(source: string | undefined): string {
 export async function POST(req: NextRequest) {
   const params = req.nextUrl.searchParams
   const apply = params.get('apply') === 'true'
-  if (!(apply ? await verifyAdminToken(req) : await verifyAuthToken(req))) {
+  const uid = apply ? await verifyAdminToken(req) : await verifyAuthToken(req)
+  if (!uid) {
     return NextResponse.json(
       { error: apply ? 'Admin access required' : 'Unauthorized' },
       { status: apply ? 403 : 401 },
@@ -98,7 +102,10 @@ export async function POST(req: NextRequest) {
       const old = (data as any).nutrition as RecipeNutrition | undefined
       const title = (data as any).title || id
       try {
-        const { nutrition: proposed, unresolved, flagged } = await computeRecipeNutrition(id)
+        const { nutrition: proposed, unresolved, flagged } = await computeRecipeNutrition(id, {
+          userId: uid,
+          aiUsageClass: 'admin-batch',
+        })
         const improved = (proposed.confidence || '').toLowerCase() !== 'low'
         if (improved) wouldWriteCount++
         else stillLowCount++
@@ -141,6 +148,7 @@ export async function POST(req: NextRequest) {
           written,                     // true only when apply=true actually persisted
         })
       } catch (e: any) {
+        if (isAIAbuseControlError(e)) throw e
         errorCount++
         console.error('[nutrition-revalidate] recomputation failed', {
           recipeId: id,
@@ -174,6 +182,8 @@ export async function POST(req: NextRequest) {
     logSummary(result)
     return NextResponse.json(result)
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     console.error('[nutrition-revalidate] request failed', { error: safeErrorLogDetails(err) })
     return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }

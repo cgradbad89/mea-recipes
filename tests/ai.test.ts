@@ -6,6 +6,19 @@ const mocks = vi.hoisted(() => ({
   gateway: vi.fn((model: string) => ({ model })),
   object: vi.fn((value: unknown) => ({ kind: 'object', ...value as object })),
   array: vi.fn((value: unknown) => ({ kind: 'array', ...value as object })),
+  withAIAbuseControl: vi.fn((
+    _feature: string,
+    _uid: string | undefined,
+    operation: (profile: unknown) => Promise<unknown>,
+    _usageClass?: string,
+  ) => operation({
+    windowMs: 600_000,
+    windowLimit: 20,
+    dailyLimit: 60,
+    concurrencyLimit: 2,
+    deadlineMs: 45_000,
+    maxOutputTokens: 2_500,
+  })),
 }))
 
 vi.mock('server-only', () => ({}))
@@ -13,6 +26,9 @@ vi.mock('@ai-sdk/gateway', () => ({ gateway: mocks.gateway }))
 vi.mock('ai', () => ({
   generateText: mocks.generateText,
   Output: { object: mocks.object, array: mocks.array },
+}))
+vi.mock('@/lib/aiAbuseControl', () => ({
+  withAIAbuseControl: mocks.withAIAbuseControl,
 }))
 
 import { generateAIArray, generateAIObject, generateAIText } from '@/lib/ai'
@@ -38,6 +54,7 @@ describe('central AI helpers', () => {
     expect(request.providerOptions.gateway.user).toBe('user-123')
     expect(request.providerOptions.gateway).not.toHaveProperty('models')
     expect(request.providerOptions.gateway).not.toHaveProperty('order')
+    expect(request).toMatchObject({ timeout: 45_000, maxRetries: 1, maxOutputTokens: 2_500 })
   })
 
   it('uses schema-constrained object and array outputs', async () => {
@@ -61,5 +78,26 @@ describe('central AI helpers', () => {
 
     expect(mocks.object).toHaveBeenCalledWith({ schema })
     expect(mocks.array).toHaveBeenCalledWith({ element: schema })
+  })
+
+  it('clamps caller options and forwards an explicit usage class', async () => {
+    mocks.generateText.mockResolvedValueOnce({ text: 'done', usage })
+
+    await generateAIText({
+      feature: 'nutrition-test',
+      userId: 'user-123',
+      usageClass: 'admin-batch',
+      prompt: 'hello',
+      timeout: 999_999,
+      maxRetries: 99,
+      maxOutputTokens: 99_999,
+    })
+
+    expect(mocks.generateText.mock.calls.at(-1)?.[0]).toMatchObject({
+      timeout: 45_000,
+      maxRetries: 1,
+      maxOutputTokens: 2_500,
+    })
+    expect(mocks.withAIAbuseControl.mock.calls.at(-1)?.[3]).toBe('admin-batch')
   })
 })

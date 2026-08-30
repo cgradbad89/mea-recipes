@@ -7,6 +7,7 @@ import { parseRecipeContent } from '@/lib/recipeContent'
 import { COOKING_MAPPING_PARSER_VERSION } from '@/lib/cookingStepMapping'
 import { computeMappingRecipeRevision } from '@/lib/cookingModeMappingIdentity'
 import { generateAndPersistCookingModeMappingProposal } from '@/lib/cookingModeMappingIngestion'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 // Cooking Mode mapping — trusted ingestion trigger (Implementation 6, Phase
 // 19-20). One canonical route rather than a route-specific implementation
@@ -90,6 +91,8 @@ export async function POST(req: NextRequest) {
       ...(result.error ? { error: result.error } : {}),
     })
   } catch (error) {
+    const limited = aiAbuseControlResponse(error)
+    if (limited) return limited
     if (error instanceof ApiRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
     }

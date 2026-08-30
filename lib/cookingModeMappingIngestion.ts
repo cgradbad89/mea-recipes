@@ -39,6 +39,7 @@ import {
 } from '@/lib/cookingModeMappingProposalPersistence'
 import { MappingPersistenceFailureError } from '@/lib/cookingModeMappingPersistenceErrors'
 import { safeErrorLogDetails } from '@/lib/apiRequest'
+import { isAIAbuseControlError } from '@/lib/aiAbuseControl'
 import type { MappingFirestoreLike } from '@/lib/cookingModeMappingFirestore'
 import type { MappingProposalBlockingReason, MappingRevisionSource } from '@/types/cookingModeMapping'
 import type { Recipe } from '@/types/recipe'
@@ -111,12 +112,12 @@ function failed(
 
 /**
  * Generate (or reuse) a Cooking Mode mapping proposal for a recipe's exact
- * current persisted content, and durably persist it. Never throws — every
- * failure mode (recipe missing, reviewer execution failure, persistence
- * failure) is reported in the returned `outcome`/`error`, matching the
+ * current persisted content, and durably persist it. Ordinary generation and
+ * persistence failures are reported in the returned `outcome`/`error`, matching the
  * repo's existing `computeAndStoreNutrition` never-throws convention so a
  * caller can run this alongside other post-save enrichment without special
- * error handling.
+ * error handling. A centralized `AIAbuseControlError` is deliberately rethrown
+ * so an API route can preserve the stable 429 contract and stop retries.
  *
  * Fails closed with respect to *mapping approval* only: this function can
  * never move `cookingModeMappingPointer/current`, approve a map, or mutate
@@ -215,6 +216,7 @@ export async function generateAndPersistCookingModeMappingProposal(
       blockingReasons: proposal.blockingReasons,
     }
   } catch (error) {
+    if (isAIAbuseControlError(error)) throw error
     const sanitized = error instanceof MappingPersistenceFailureError
       ? 'Mapping proposal generation completed but could not be durably persisted.'
       : 'Mapping proposal generation failed.'

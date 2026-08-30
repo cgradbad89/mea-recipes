@@ -3,6 +3,7 @@ import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 const AI_STANDARD_MAX_BODY_BYTES = 256_000
 const MAX_COLLECTION_SIZE = 500
@@ -45,9 +46,9 @@ const REQUEST_SCHEMA: z.ZodType<RecommendationsRequest> = z.object({
 })
 
 const RECOMMENDATION_SCHEMA = z.object({
-  cookAgain: z.array(z.object({ title: z.string(), reason: z.string() })),
-  tryNew: z.array(z.object({ title: z.string(), reason: z.string() })),
-  longTime: z.array(z.object({ title: z.string(), reason: z.string() })),
+  cookAgain: z.array(z.object({ title: z.string().max(300), reason: z.string().max(1_000) })).max(4),
+  tryNew: z.array(z.object({ title: z.string().max(300), reason: z.string().max(1_000) })).max(4),
+  longTime: z.array(z.object({ title: z.string().max(300), reason: z.string().max(1_000) })).max(4),
 })
 
 export async function POST(req: NextRequest) {
@@ -175,6 +176,8 @@ Rules:
       })
       return NextResponse.json(parsed)
     } catch (err) {
+      const limited = aiAbuseControlResponse(err)
+      if (limited) return limited
       console.error('[recommendations] AI request failed', {
         error: safeErrorLogDetails(err),
         ...requestMetadata,
@@ -182,6 +185,8 @@ Rules:
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

@@ -14,6 +14,7 @@ import {
   type GroceryCleanupItem,
 } from '@/lib/groceryCleanup'
 import { z } from 'zod'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 // Single source of truth for the allowed categories — imported from the shared
 // taxonomy so the prompt and validation can never drift from lib/groceryCategories.
@@ -21,18 +22,18 @@ const CATEGORIES = GROCERY_CATEGORIES as readonly string[]
 
 const GROCERY_CHANGE_SCHEMA = z.object({
   originalIndex: z.number().int(),
-  name: z.string(),
-  quantity: z.string(),
-  unit: z.string(),
-  category: z.string(),
+  name: z.string().max(500),
+  quantity: z.string().max(100),
+  unit: z.string().max(100),
+  category: z.string().max(100),
   action: z.enum(['merge', 'normalize', 'remove']),
-  mergedWith: z.array(z.number().int()),
+  mergedWith: z.array(z.number().int()).max(100),
 })
 
 const PARSED_LINE_SCHEMA = z.object({
-  quantity: z.string(),
-  unit: z.string(),
-  name: z.string(),
+  quantity: z.string().max(100),
+  unit: z.string().max(100),
+  name: z.string().max(1_000),
 })
 
 const GROCERY_MAX_BODY_BYTES = 256_000
@@ -129,13 +130,15 @@ Rules:
 
     let parsedChanges: any[] = []
     try {
-      parsedChanges = await generateAIArray({
+      parsedChanges = (await generateAIArray({
         feature: 'grocery-cleanup',
         userId: uid,
         prompt,
         element: GROCERY_CHANGE_SCHEMA,
-      })
+      })).slice(0, MAX_GROCERY_ITEMS)
     } catch (err) {
+      const limited = aiAbuseControlResponse(err)
+      if (limited) return limited
       console.error('[grocery-cleanup] AI request failed', {
         error: safeErrorLogDetails(err),
         ...requestMetadata,
@@ -151,6 +154,8 @@ Rules:
       sanitizeGroceryCleanupChanges(items, parsedChanges as GroceryCleanupChange[]),
     )
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }
@@ -194,7 +199,9 @@ Return ONLY this JSON object, no markdown:
       prompt,
       schema: PARSED_LINE_SCHEMA,
     })
-  } catch {
+  } catch (error) {
+    const limited = aiAbuseControlResponse(error)
+    if (limited) return limited
     return NextResponse.json(fallback)
   }
 

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { z } from 'zod'
 import { generateAIObject } from '@/lib/ai'
+import { isAIAbuseControlError } from '@/lib/aiAbuseControl'
 import {
   AI_MODEL,
   COOKING_MODE_MAPPING_REVIEWER_PROMPT_VERSION,
@@ -316,6 +317,7 @@ export async function executeMappingReviewer(
       console.warn('[cooking-mapping-reviewer]', { event: 'failed', reviewerSlot: input.reviewerSlot,
         attempt, runId, code: parsed.diagnosticCode })
     } catch (error) {
+      if (isAIAbuseControlError(error)) throw error
       const failure = classifyExecutionFailure(error)
       const completedAt = now()
       const outputHash = failure.rawText === null ? null : await sha256(failure.rawText)

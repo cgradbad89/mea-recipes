@@ -90,7 +90,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves a bounded food name via USDA/AI. Read-only. |
 | `/api/nutrition-revalidate` | POST | Bearer token (required; admin for apply) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` requires `verifyAdminToken` and persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
 | `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute is dry-run by default, not dry-run-only. Explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`; this apply path was used for the documented Batch 4 apply. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
-| `/api/mapping/generate` | POST | Bearer token (**admin required**, `verifyAdminToken`) | **Implementation 6.** Trusted Cooking Mode mapping-generation trigger — `{recipeId, expectedRecipeRevision?}`. Loads the recipe, optionally 409s if `expectedRecipeRevision` no longer matches the live revision, then calls `generateAndPersistCookingModeMappingProposal` (`lib/cookingModeMappingIngestion.ts`) and returns its sanitized outcome (`GENERATED`\|`REUSED_EXISTING`\|`BLOCKED`\|`FAILED`, revision/proposal ids, candidate/routing counts) as HTTP 200 — mapping generation is a best-effort post-save enrichment, so its own failure/blocked outcome is not an HTTP error (matching `/api/cooking-step-map`'s convention); 401/400/404/409/500 are reserved for real auth/request/not-found/conflict/unexpected-exception cases. `export const maxDuration = 280` (reviewer execution can run substantially longer than ordinary persistence). Called after all three create-only publication paths via `triggerCookingModeMappingGeneration` (`lib/recipes.ts`), concurrently with nutrition, never blocking publish. |
+| `/api/mapping/generate` | POST | Bearer token (**admin required**, `verifyAdminToken`) | **Implementation 6.** Trusted Cooking Mode mapping-generation trigger — `{recipeId, expectedRecipeRevision?}`. Loads the recipe, optionally 409s if `expectedRecipeRevision` no longer matches the live revision, then calls `generateAndPersistCookingModeMappingProposal` (`lib/cookingModeMappingIngestion.ts`) and returns its sanitized outcome (`GENERATED`\|`REUSED_EXISTING`\|`BLOCKED`\|`FAILED`, revision/proposal ids, candidate/routing counts) as HTTP 200 — ordinary mapping failure/blocked outcomes remain best-effort, while centralized quota/concurrency denial is preserved as the stable 429. `export const maxDuration = 280` (reviewer execution can run substantially longer than ordinary persistence). Called after all three create-only publication paths via `triggerCookingModeMappingGeneration` (`lib/recipes.ts`), concurrently with nutrition, never blocking publish. |
 | `/api/mapping-review/queue` | GET | Bearer token (**admin required**, `verifyAdminToken`) | Recipe-level mapping-review queue (`loadMappingReviewQueue`). |
 | `/api/mapping-review/[recipeId]` | GET | Bearer token (admin required) | Joined mapping-review state for one recipe (`loadMappingReviewRecipe`) — live revision, current/stale proposal, full candidate population, completion, attestation status, approved-map pointer. |
 | `/api/mapping-review/[recipeId]/decisions` | POST | Bearer token (admin required) | Include/Exclude (and correction) for one candidate. `decidedBy` is always the server-verified admin uid — never a client-supplied field. Wraps `appendMappingReviewDecision`. |
@@ -99,6 +99,13 @@ wrapped in a per-route `layout.tsx`.
 | `/api/mapping-review/[recipeId]/attestation` | POST | Bearer token (admin required) | Map-level completeness attestation (`recordMappingCompletenessAttestation`) — a distinct, explicit act; never inferred from the last candidate decision. |
 | `/api/mapping-review/[recipeId]/approve` | POST | Bearer token (admin required) | Map approval. Revalidates the caller-supplied `proposalId`/`recipeRevision` against the live server state before building (a stale browser can't approve an outdated map), then `buildApprovedMapping` → `persistApprovedMapping` → `updateCurrentApprovedMappingPointer`. No AI re-run, no candidate recomputation. |
 | `/api/barcode-lookup` | POST | Bearer token (required) | Packaged-product nutrition by barcode. `{barcode:"<UPC/EAN>"}` → cascade Open Food Facts (`source:"openfoodfacts"`, confidence medium\|low) → USDA branded by GTIN (`source:"usda_branded"`, confidence medium) → miss. Hit returns `{found,name,nutrition,serving_size,serving_grams?,servings_per_container?,source,confidence,basis}` where `basis` is `per_serving`\|`per_100g` (OFF often gives per-100g). `serving_grams?` (numeric grams in one declared serving) and `servings_per_container?` (≈ servings/pack, derived from OFF `product_quantity`/`serving_quantity` or USDA `packageWeight`) are present when derivable — they drive the servings/grams toggle and the serving-context lines in Scan. Server-side fetch sets OFF's courtesy User-Agent. Read-only. Fed by the **Scan** mode in `LogFoodSheet.tsx` (camera → BarcodeDetector or zxing fallback). |
+
+Every active route that can reach the paid AI Gateway—directly or through nutrition or
+Cooking Mode helpers—derives the uid from its verified Firebase token and passes it to
+`lib/ai.ts`. That helper acquires a distributed quota/concurrency lease before provider
+invocation, applies finite retry/deadline/output bounds, and releases the lease in `finally`.
+The complete route/fan-out inventory and exact profiles are in
+`docs/architecture/ai-abuse-control.md`.
 
 ---
 
@@ -371,6 +378,17 @@ the UI shows persisted publication status and identifies private changes that ha
 owner's `PlannedEntry[]` down to bare IDs via `plannedRecipeIDList`, so friends see *which* recipes
 were planned but never the owner's private day/role assignments.
 
+### `_internalAiUsage/{namespaced-sha256(uid)}` — server-only AI quota state (`lib/aiAbuseControl.ts`)
+One bounded document per authenticated user. The document ID is an opaque namespaced SHA-256 digest,
+never the raw uid. Fields: `version, dayKey, totalDailyCount, classes{className:
+{windowStartMs,windowCount,dailyCount}}, leases{randomLeaseId:{usageClass,expiresAtMs}}, updatedAtMs`.
+Only Firebase Admin code reads or writes this root collection; it is never exposed through a client
+API and no request body can select its uid. Firestore transactions serialize quota acquisition
+across server instances. Completed leases are removed; crash-or-timeout leases are ignored after
+their deadline plus a 30-second grace period. The document stays constant-size (five classes and
+only bounded active leases), resets counters logically at the next UTC day/window, and needs no
+TTL migration or composite index. This repository does not deploy Firestore rules or indexes.
+
 ### `stravaActivities/{id}` — historical/legacy synced Strava activities
 One doc per Strava activity, historically synced by an external process/webhook.
 Fields: `id, name, type, start_date_local (Timestamp), calories, moving_time_s`.
@@ -417,14 +435,17 @@ retained as historical data and are not modified or deleted by this app.
    linking/changing is handled by a Google `reauthenticateWithPopup` + one retry. **Console
    prerequisite:** the Email/Password provider must be enabled in Firebase Auth or these calls throw
    `auth/operation-not-allowed` (see §6, §8).
-8. **Authenticated AI request boundaries are bounded and fail closed.** `/api/ai-ingest`,
-   `/api/new-recipe-suggestions`, `/api/recommendations`, and `/api/recipe-assistant` authenticate
-   with the existing Firebase Bearer-token helper, enforce a streaming raw-body byte ceiling before
-   JSON parsing, validate their known request fields and route-specific semantic limits before any AI
-   or URL-fetch work, and ignore unknown metadata. Malformed/invalid input returns a controlled 400,
-   an oversized raw body returns 413, and arbitrary Firebase, AI Gateway, provider, credential, or
-   internal exception messages are never returned to clients. Server logs use stable route identifiers
-   plus safe counts/lengths rather than bearer tokens or complete request content.
+8. **Authenticated AI request boundaries are distributed, bounded, and fail closed.** Every active
+   AI-capable route verifies a Firebase Bearer token before model work and charges the resulting uid
+   through `lib/aiAbuseControl.ts`; admin mapping/apply routes additionally use `verifyAdminToken`.
+   Firestore transactions enforce generous finite short-window, per-class daily, global daily, and
+   concurrent-lease ceilings across Vercel instances. The centralized helper denies before model
+   invocation, clamps provider retries to one, applies a finite class deadline/output ceiling, and
+   releases concurrency after success or exception (with expiring leases for crashed invocations).
+   Route schemas bound raw body, strings, arrays, history, recipes, ingredients, and batch size.
+   Denial is a sanitized HTTP 429 with `code:'ai-request-limited'` and `Retry-After`; quota document
+   paths, uid, provider errors, secrets, and stack traces are never returned. Exact profiles and the
+   active-route inventory live in `docs/architecture/ai-abuse-control.md`.
 9. **Canonical recipe categories on new shared writes.** All new `recipes/{id}` writes use the
    single ordered 12-category contract in `lib/recipeCategories.ts`. Legacy stored recipe and
    personal-override strings are compatibility inputs only, never valid new shared outputs;
@@ -1416,10 +1437,20 @@ retained as historical data and are not modified or deleted by this app.
   (`lib/userdata.ts`) — a raw `.includes(recipeID)` or `.map(id => …)` over the array will break on
   object elements. Writers must be read-modify-write: `arrayUnion`/`arrayRemove` compare by deep value
   and silently fail to dedupe/remove object elements. `cookedRecipeIDs[]` is unaffected (still `string[]`).
-- **AI is centrally configured.** All AI routes call the helpers in `lib/ai.ts`; provider,
-  model, prompt version, cache version, and provenance live in `lib/aiConfig.ts`. Production
-  uses Vercel AI Gateway authentication (`AI_GATEWAY_API_KEY`, with Vercel OIDC supported by
-  the provider). There is no direct-provider fallback.
+- **AI is centrally configured and quota-controlled.** All active AI routes call the helpers in
+  `lib/ai.ts`; provider, model, prompt version, cache version, and provenance live in
+  `lib/aiConfig.ts`. Before each provider call, `lib/aiAbuseControl.ts` transactionally acquires a
+  per-verified-uid Firestore lease in `_internalAiUsage`, with short-window, daily, global-daily,
+  concurrency, deadline, retry, and output ceilings. A denied acquisition throws the stable
+  `AIAbuseControlError`; nested nutrition/mapping fallbacks must rethrow it so the route returns
+  sanitized HTTP 429 rather than hiding it as an optional-AI failure. Leases expire after the class
+  deadline + 30 seconds, preventing crash-created permanent lockout. Production uses Vercel AI
+  Gateway authentication (`AI_GATEWAY_API_KEY`, with Vercel OIDC supported by the provider).
+  There is no direct-provider fallback. See `docs/architecture/ai-abuse-control.md`.
+- **The required test gate is repository-owned and clean-checkout safe.** The Cooking Mode arbiter
+  regression test reconstructs its accepted/rejected state from immutable repository audit evidence;
+  it never reads `/tmp/cooking-step-arbiter-v10a-2026-08-28-state.json` or any other machine-local
+  generated state. Do not reintroduce external scratch artifacts into `npm test`.
 - **Firebase web config is hardcoded** in `lib/firebase.ts` (apiKey, project, appId). This is
   normal for Firebase web apps but means the client config is committed, not env-driven.
 - **MFP nutrition sync is HTML scraping, not an API — validate before wiping.** `app/api/cron/sync-nutrition`
@@ -2201,6 +2232,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Grocery unit conversion | Low | Done | Compatible-unit quantity merge (volume↔volume, mass↔mass) shipped 2026-08-23 in `mergeQuantities`/`convertQuantity`; see §5.16 and `docs/audits/grocery-unit-conversion-2026-08-23.md`. No density/cross-dimension conversion; no data migration. |
 | Dietary tags/filtering | Low | Backlog | Separate product feature; not part of grocery taxonomy. |
 | Recommendations trigger button (avoid charges) | Medium | Done | Recommendations/suggestions only fire on explicit button + are cached |
+| Distributed AI abuse/cost controls | High | Done | All authenticated AI routes use the Firestore-transactional per-uid guard in `lib/aiAbuseControl.ts`: class-based 10-minute and daily limits, a global 500/day ceiling, expiring concurrency leases, finite model deadlines/retries/output, bounded route fan-out, and sanitized 429 denial before model invocation. See `docs/architecture/ai-abuse-control.md`. |
 | Manual grocery category assignment | Medium | Done | `GroceryItem.manualSection` + the exact current 11-value `MANUAL_CATEGORIES`; retired values normalize on read and never appear as picker choices. |
 | Saved/remembered grocery items | Medium | Done | `savedGroceryItems` ranks by `timesUsed` for fast re-entry |
 | FlavorGraph-informed generation | Medium | Done | `getComplementaryIngredients` seeds Discover + plan-suggestions prompts |
@@ -2251,9 +2283,9 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 Normal application APIs verify a Firebase Bearer token before request parsing, provider
 calls, model invocation, Admin SDK work, or outbound fetches. Global nutrition applies
 additionally require `verifyAdminToken`; the scheduler route instead requires an exact,
-non-empty `CRON_SECRET`. Application rate limits and Vercel Firewall SDK rules are not
-used by product decision, so missing Firewall configuration cannot produce a 503 for an
-authenticated request. Vercel's platform-level DDoS mitigation remains separate.
+non-empty `CRON_SECRET`. Paid AI calls additionally use the application-owned Firestore Admin
+quota/lease boundary described above; it returns sanitized 429 denials and does not depend on
+Vercel Firewall SDK rules. Vercel's platform-level DDoS mitigation remains separate.
 
 Public URL fetches are restricted to authenticated users and retain HTTP(S)-only URLs,
 no credentials, DNS/IP validation and address pinning for every redirect hop, redirect,

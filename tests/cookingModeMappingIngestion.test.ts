@@ -5,6 +5,7 @@ vi.mock('@/lib/ai', () => ({ generateAIObject: vi.fn() }))
 
 import { createFakeMappingFirestore } from './helpers/fakeMappingFirestore'
 import { COOKING_MODE_MAPPING_REVIEWER_PROMPT_VERSION } from '@/lib/aiConfig'
+import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 import { COOKING_MAPPING_PARSER_VERSION } from '@/lib/cookingStepMapping'
 import { computeMappingProposalId, computeMappingRecipeRevision } from '@/lib/cookingModeMappingIdentity'
 import { getMappingProposal, listMappingCandidates } from '@/lib/cookingModeMappingProposalPersistence'
@@ -211,6 +212,16 @@ describe('generateAndPersistCookingModeMappingProposal', () => {
     })
     expect(result.outcome).toBe('BLOCKED')
     expect(result.approvalBlocked).toBe(true)
+  })
+
+  it('rethrows centralized limiter denial instead of converting it to a blocked proposal', async () => {
+    const db = createFakeMappingFirestore()
+    const denied = vi.fn().mockRejectedValue(new AIAbuseControlError('concurrency', 45))
+
+    await expect(generateAndPersistCookingModeMappingProposal({
+      recipeId: RECIPE_ID, recipe: recipe(), db,
+      generate: denied as never, now: deterministicNow, idFactory: deterministicIds,
+    })).rejects.toEqual(expect.objectContaining({ reason: 'concurrency', status: 429 }))
   })
 
   it('reports FAILED (never throws) when persistence cannot durably complete', async () => {

@@ -20,6 +20,7 @@ vi.mock('@/lib/firebaseAdmin', () => ({
 }))
 
 import { AI_PROVENANCE } from '@/lib/aiConfig'
+import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 import { computeRecipeNutrition, lookupFoodByName, parseIngredientLine, parseIngredientList } from '@/lib/nutritionEngine'
 
 const AI_FOOD_RESULT = {
@@ -189,7 +190,7 @@ describe('nutrition migration behavior', () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {})
     mocks.generateAIObject.mockResolvedValueOnce(AI_FOOD_RESULT)
 
-    const result = await lookupFoodByName('mystery protein bowl xyzq')
+    const result = await lookupFoodByName('mystery protein bowl xyzq', 'user-123')
 
     expect(result).toEqual(expect.objectContaining({
       source: 'ai_estimate',
@@ -198,11 +199,21 @@ describe('nutrition migration behavior', () => {
     }))
     expect(mocks.generateAIObject).toHaveBeenCalledWith(expect.objectContaining({
       feature: 'nutrition-food-estimate',
+      userId: 'user-123',
       schema: expect.anything(),
     }))
     expect(log).toHaveBeenCalledWith('[nutrition-usda]', expect.objectContaining({
       code: 'invalid_response', operation: 'food-search', errorName: 'MissingUsdaApiKey',
     }))
+  })
+
+  it('does not hide a limiter denial as a nutrition miss', async () => {
+    delete process.env.USDA_API_KEY
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.generateAIObject.mockRejectedValueOnce(new AIAbuseControlError('daily', 3_600))
+
+    await expect(lookupFoodByName('limiter propagation fixture', 'user-123'))
+      .rejects.toEqual(expect.objectContaining({ reason: 'daily', status: 429 }))
   })
 })
 

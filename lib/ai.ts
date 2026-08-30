@@ -9,6 +9,7 @@ import {
   AI_PROVIDER,
   aiGatewayProviderOptions,
 } from './aiConfig'
+import { withAIAbuseControl, type AIUsageClass, type AIUsageProfile } from './aiAbuseControl'
 
 interface AIRequestBase {
   feature: string
@@ -18,6 +19,8 @@ interface AIRequestBase {
   temperature?: number
   timeout?: number
   maxRetries?: number
+  maxOutputTokens?: number
+  usageClass?: AIUsageClass
 }
 
 interface AIPromptRequest extends AIRequestBase {
@@ -50,50 +53,61 @@ function recordUsage(feature: string, usage: LanguageModelUsage, promptVersion: 
   })
 }
 
+function controlledOptions(request: AIRequestBase, profile: AIUsageProfile) {
+  return {
+    timeout: Math.max(1, Math.min(request.timeout ?? profile.deadlineMs, profile.deadlineMs)),
+    maxRetries: Math.max(0, Math.min(request.maxRetries ?? 1, 1)),
+    maxOutputTokens: Math.max(1, Math.min(request.maxOutputTokens ?? profile.maxOutputTokens, profile.maxOutputTokens)),
+  }
+}
+
 export async function generateAIText(request: AIRequest): Promise<string> {
-  const result = await generateText({
-    model: gateway(AI_MODEL),
-    system: request.system,
-    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
-    ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
-    ...(request.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
-    ...requestInput(request),
-    providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
-  })
-  recordUsage(request.feature, result.usage, request.promptVersion)
-  return result.text
+  return withAIAbuseControl(request.feature, request.userId, async profile => {
+    const result = await generateText({
+      model: gateway(AI_MODEL),
+      system: request.system,
+      ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
+      ...controlledOptions(request, profile),
+      ...requestInput(request),
+      providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
+    })
+    recordUsage(request.feature, result.usage, request.promptVersion)
+    return result.text
+  }, request.usageClass)
 }
 
 export async function generateAIObject<T>(
   request: AIRequest & { schema: ZodType<T> },
 ): Promise<T> {
-  const result = await generateText({
-    model: gateway(AI_MODEL),
-    system: request.system,
-    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
-    ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
-    ...(request.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
-    ...requestInput(request),
-    output: Output.object({ schema: request.schema }),
-    providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
-  })
-  recordUsage(request.feature, result.usage, request.promptVersion)
-  return result.output
+  return withAIAbuseControl(request.feature, request.userId, async profile => {
+    const result = await generateText({
+      model: gateway(AI_MODEL),
+      system: request.system,
+      ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
+      ...controlledOptions(request, profile),
+      ...requestInput(request),
+      output: Output.object({ schema: request.schema }),
+      providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
+    })
+    recordUsage(request.feature, result.usage, request.promptVersion)
+    return result.output
+  }, request.usageClass)
 }
 
 export async function generateAIArray<T>(
   request: AIRequest & { element: ZodType<T> },
 ): Promise<T[]> {
-  const result = await generateText({
-    model: gateway(AI_MODEL),
-    system: request.system,
-    ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
-    ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
-    ...(request.maxRetries === undefined ? {} : { maxRetries: request.maxRetries }),
-    ...requestInput(request),
-    output: Output.array({ element: request.element }),
-    providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
-  })
-  recordUsage(request.feature, result.usage, request.promptVersion)
-  return result.output
+  return withAIAbuseControl(request.feature, request.userId, async profile => {
+    const result = await generateText({
+      model: gateway(AI_MODEL),
+      system: request.system,
+      ...(request.temperature === undefined ? {} : { temperature: request.temperature }),
+      ...controlledOptions(request, profile),
+      ...requestInput(request),
+      output: Output.array({ element: request.element }),
+      providerOptions: aiGatewayProviderOptions(request.feature, request.userId, request.promptVersion),
+    })
+    recordUsage(request.feature, result.usage, request.promptVersion)
+    return result.output
+  }, request.usageClass)
 }

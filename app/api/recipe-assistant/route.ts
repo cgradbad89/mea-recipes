@@ -4,12 +4,15 @@ import { generateAIText } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import type { ModelMessage } from 'ai'
 import { z } from 'zod'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 const AI_STANDARD_MAX_BODY_BYTES = 256_000
 const MAX_MESSAGE_COUNT = 40
 const MAX_MESSAGE_LENGTH = 8_000
 const MAX_HISTORY_LENGTH = 64_000
 const MAX_RECIPE_CONTEXT_LENGTH = 16_000
+const MAX_RECIPE_INGREDIENTS = 200
+const MAX_RECIPE_INSTRUCTIONS = 150
 
 type AssistantMessage = {
   role: 'user' | 'assistant'
@@ -34,8 +37,8 @@ const RECIPE_SCHEMA: z.ZodType<AssistantRecipe> = z.object({
   title: CONTEXT_TEXT,
   cuisine: CONTEXT_TEXT,
   category: CONTEXT_TEXT,
-  ingredients: z.array(CONTEXT_TEXT),
-  instructions: z.array(CONTEXT_TEXT),
+  ingredients: z.array(CONTEXT_TEXT).max(MAX_RECIPE_INGREDIENTS),
+  instructions: z.array(CONTEXT_TEXT).max(MAX_RECIPE_INSTRUCTIONS),
 })
 const MESSAGE_SCHEMA: z.ZodType<AssistantMessage> = z.object({
   role: z.enum(['user', 'assistant']),
@@ -124,6 +127,8 @@ ${instructions.length ? instructions.map((s, i) => `${i + 1}. ${s}`).join('\n') 
       })
       return NextResponse.json({ reply })
     } catch (err) {
+      const limited = aiAbuseControlResponse(err)
+      if (limited) return limited
       console.error('[recipe-assistant] AI request failed', {
         error: safeErrorLogDetails(err),
         ...requestMetadata,
@@ -131,6 +136,8 @@ ${instructions.length ? instructions.map((s, i) => `${i + 1}. ${s}`).join('\n') 
       return NextResponse.json({ error: 'Assistant request failed' }, { status: 500 })
     }
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

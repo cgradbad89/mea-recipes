@@ -5,6 +5,7 @@ import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
+import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
 const AI_STANDARD_MAX_BODY_BYTES = 256_000
 const MAX_PLANNED_RECIPES = 21
@@ -14,15 +15,15 @@ const MAX_INGREDIENTS_LENGTH = 4_000
 
 export const PLAN_SUGGESTIONS_SCHEMA = z.object({
   existing: z.array(z.object({
-    title: z.string(),
-    reason: z.string(),
-  })),
+    title: z.string().max(300),
+    reason: z.string().max(1_000),
+  })).max(3),
   new: z.array(z.object({
-    title: z.string(),
-    cuisine: z.string(),
+    title: z.string().max(300),
+    cuisine: z.string().max(100),
     category: z.enum(RECIPE_CATEGORIES),
-    reason: z.string(),
-  })),
+    reason: z.string().max(1_000),
+  })).max(3),
 })
 
 interface PlannedRecipeIn {
@@ -117,6 +118,8 @@ ${!wantExisting ? '- "existing" MUST be an empty array.\n' : ''}${!wantNew ? '- 
         schema: PLAN_SUGGESTIONS_SCHEMA,
       })
     } catch (err) {
+      const limited = aiAbuseControlResponse(err)
+      if (limited) return limited
       console.error('[plan-suggestions] AI request failed', { error: safeErrorLogDetails(err) })
       return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
     }
@@ -147,6 +150,8 @@ ${!wantExisting ? '- "existing" MUST be an empty array.\n' : ''}${!wantNew ? '- 
       new: wantNew ? newFiltered : [],
     })
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     if (err instanceof ApiRequestError) {
       return NextResponse.json({ error: err.message }, { status: err.status })
     }

@@ -6,6 +6,7 @@ vi.mock('server-only', () => ({}))
 vi.mock('@/lib/ai', () => ({ generateAIObject: vi.fn() }))
 
 import { COOKING_MODE_MAPPING_REVIEWER_PROMPT_VERSION } from '@/lib/aiConfig'
+import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 import {
   buildMappingReviewerPrompt,
   executeBlindMappingReviewers,
@@ -187,6 +188,16 @@ describe('versioned blind reviewer request', () => {
       generate: generate as never,
     })).rejects.toThrow(/ingredient row limit exceeded/)
     expect(generate).not.toHaveBeenCalled()
+  })
+
+  it('stops reviewer retries when the centralized limiter denies', async () => {
+    const generate = vi.fn().mockRejectedValue(new AIAbuseControlError('daily', 3_600))
+
+    await expect(executeMappingReviewer({
+      reviewerSlot: 'A', recipeId: source.recipeId, source,
+      generate: generate as never,
+    })).rejects.toEqual(expect.objectContaining({ reason: 'daily', status: 429 }))
+    expect(generate).toHaveBeenCalledOnce()
   })
 })
 

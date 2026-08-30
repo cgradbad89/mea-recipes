@@ -3,6 +3,7 @@ import { verifyAdminToken, verifyAuthToken, getAdminDb } from '@/lib/firebaseAdm
 import { computeRecipeNutrition } from '@/lib/nutritionEngine'
 import type { NutritionMacros, RecipeNutrition } from '@/types/recipe'
 import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
+import { aiAbuseControlResponse, isAIAbuseControlError } from '@/lib/aiAbuseControl'
 
 // ─── Canonical-staples recompute — DRY-RUN by default; ?apply=true WRITES ──────
 //
@@ -36,7 +37,7 @@ import { parseBoundedInteger, safeErrorLogDetails } from '@/lib/apiRequest'
 // Recompute makes live USDA (+ AI on Vercel) calls per non-canonical ingredient, so
 // extend the serverless function timeout and keep apply batches small (the runner
 // pages with a low limit) to finish within it.
-export const maxDuration = 60
+export const maxDuration = 280
 
 const DEFAULT_LIMIT = 25
 const MAX_LIMIT = 50
@@ -93,7 +94,8 @@ function materialVsStored(proposed: NutritionMacros | undefined, stored: Partial
 export async function POST(req: NextRequest) {
   const params = req.nextUrl.searchParams
   const apply = params.get('apply') === 'true'   // DEFAULT FALSE — dry-run unless explicit
-  if (!(apply ? await verifyAdminToken(req) : await verifyAuthToken(req))) {
+  const uid = apply ? await verifyAdminToken(req) : await verifyAuthToken(req)
+  if (!uid) {
     return NextResponse.json(
       { error: apply ? 'Admin access required' : 'Unauthorized' },
       { status: apply ? 403 : 401 },
@@ -134,7 +136,11 @@ export async function POST(req: NextRequest) {
       const old = (data as any).nutrition as RecipeNutrition | undefined
       const title = (data as any).title || id
       try {
-        const proposed = await computeRecipeNutrition(id, { useCanonical: true })
+        const proposed = await computeRecipeNutrition(id, {
+          useCanonical: true,
+          userId: uid,
+          aiUsageClass: 'admin-batch',
+        })
         const affected = proposed.canonicalHits.length > 0
         if (affected) affectedCount++
 
@@ -144,7 +150,11 @@ export async function POST(req: NextRequest) {
         // value (which also captures unrelated engine drift / AI variance, e.g. a recipe
         // whose dried fruit re-resolves higher while canonical only touched its oats).
         let baseline = proposed
-        if (affected) baseline = await computeRecipeNutrition(id, { useCanonical: false })
+        if (affected) baseline = await computeRecipeNutrition(id, {
+          useCanonical: false,
+          userId: uid,
+          aiUsageClass: 'admin-batch',
+        })
         const delta = macroDelta(proposed.nutrition.total, baseline.nutrition.total)
         const changedVsBaseline = affected && anyMacroChanged(delta)   // canonicalΔ material
 
@@ -202,6 +212,7 @@ export async function POST(req: NextRequest) {
           prevCaptured: prevCaptured ? { source: prevCaptured.source ?? null, confidence: prevCaptured.confidence ?? null, servings: prevCaptured.servings ?? null, total: prevCaptured.total ?? null, calories: prevCaptured.calories ?? null, protein_g: prevCaptured.protein_g ?? null, carbs_g: prevCaptured.carbs_g ?? null, fat_g: prevCaptured.fat_g ?? null, fiber_g: prevCaptured.fiber_g ?? null, sugar_g: prevCaptured.sugar_g ?? null, serving_size: prevCaptured.serving_size ?? null } : null,
         })
       } catch (e: any) {
+        if (isAIAbuseControlError(e)) throw e
         errorCount++; skipped.error++
         console.error('[nutrition-canonical-dryrun] recomputation failed', {
           recipeId: id,
@@ -232,6 +243,8 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(result)
   } catch (err) {
+    const limited = aiAbuseControlResponse(err)
+    if (limited) return limited
     console.error('[nutrition-canonical-dryrun] request failed', { error: safeErrorLogDetails(err) })
     return NextResponse.json({ error: 'Unable to complete the request.' }, { status: 500 })
   }
