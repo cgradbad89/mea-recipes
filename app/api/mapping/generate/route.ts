@@ -21,7 +21,7 @@ import { generateAndPersistCookingModeMappingProposal } from '@/lib/cookingModeM
 // computed here, never trusted from the request body (Phase 20).
 //
 // Mapping generation intentionally never blocks or reverses a recipe's own
-// save — by the time this route is called, `saveRecipe()` has already
+// save — by the time this route is called, `createRecipe()` has already
 // succeeded client-side. A `BLOCKED`/`FAILED` outcome here means only that
 // the mapping workflow needs attention; it carries no HTTP error status of
 // its own, matching the existing `/api/cooking-step-map` convention of

@@ -1045,7 +1045,7 @@ against.
 
 ### 27.4 Post-save sequencing
 
-Called from every `saveRecipe()` site (three total: Queue publish, Discover generate-and-save,
+Called from every successful create-only publication path (three total: Queue publish, Discover generate-and-save,
 Discover plan-suggestion save) via a client helper mirroring the existing auto-nutrition pattern —
 timeout-guarded, never-throwing — run concurrently with nutrition computation via
 `Promise.allSettled` rather than sequentially, so neither delays the other or the recipe's own

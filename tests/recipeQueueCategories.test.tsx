@@ -9,7 +9,7 @@ import type { QueuedRecipe } from '@/lib/queue'
 const mocks = vi.hoisted(() => ({
   updateQueueItem: vi.fn(),
   deleteFromQueue: vi.fn(),
-  saveRecipe: vi.fn(),
+  publishQueuedRecipe: vi.fn(),
   prepareCookingStepIngredientMap: vi.fn(),
   computeAndStoreNutrition: vi.fn(),
   triggerCookingModeMappingGeneration: vi.fn(),
@@ -22,10 +22,10 @@ vi.mock('@/lib/queue', async importOriginal => {
     ...actual,
     updateQueueItem: mocks.updateQueueItem,
     deleteFromQueue: mocks.deleteFromQueue,
+    publishQueuedRecipe: mocks.publishQueuedRecipe,
   }
 })
 vi.mock('@/lib/recipes', () => ({
-  saveRecipe: mocks.saveRecipe,
   prepareCookingStepIngredientMap: mocks.prepareCookingStepIngredientMap,
   computeAndStoreNutrition: mocks.computeAndStoreNutrition,
   triggerCookingModeMappingGeneration: mocks.triggerCookingModeMappingGeneration,
@@ -70,7 +70,7 @@ function renderCard(category: string) {
 beforeEach(() => {
   mocks.updateQueueItem.mockReset().mockResolvedValue(undefined)
   mocks.deleteFromQueue.mockReset().mockResolvedValue(undefined)
-  mocks.saveRecipe.mockReset().mockResolvedValue('queued-recipe')
+  mocks.publishQueuedRecipe.mockReset().mockResolvedValue({ recipeId: 'queued-recipe', created: true })
   mocks.prepareCookingStepIngredientMap.mockReset().mockResolvedValue({
     schemaVersion: 1,
     parserVersion: 'recipe-content-v1',
@@ -91,7 +91,7 @@ describe('queue category review boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
 
     expect((await screen.findByRole('alert')).textContent).toContain('Choose a canonical category')
-    expect(mocks.saveRecipe).not.toHaveBeenCalled()
+    expect(mocks.publishQueuedRecipe).not.toHaveBeenCalled()
   })
 
   it('displays legacy values truthfully and offers all 12 canonical replacements', () => {
@@ -116,12 +116,12 @@ describe('queue category review boundary', () => {
     await waitFor(() => expect(mocks.updateQueueItem).toHaveBeenCalled())
     fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
 
-    await waitFor(() => expect(mocks.saveRecipe).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.publishQueuedRecipe).toHaveBeenCalledTimes(1))
     expect(mocks.prepareCookingStepIngredientMap).toHaveBeenCalledWith(
       expect.stringContaining('INGREDIENTS\n1 test ingredient'),
       'token',
     )
-    expect(mocks.saveRecipe.mock.calls[0][0]).toMatchObject({
+    expect(mocks.publishQueuedRecipe.mock.calls[0][2]).toMatchObject({
       category: 'Sauces & Condiments',
       cookingStepIngredientMap: expect.objectContaining({ sourceHash: 'a'.repeat(64) }),
     })
@@ -147,7 +147,7 @@ describe('nutrition / Cooking Mode mapping independence on publish (Implementati
     fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
 
     await waitFor(() => expect(onPublish).toHaveBeenCalledWith('queue-1'))
-    expect(mocks.saveRecipe).toHaveBeenCalledTimes(1)
+    expect(mocks.publishQueuedRecipe).toHaveBeenCalledTimes(1)
     expect(mocks.computeAndStoreNutrition).toHaveBeenCalledTimes(1)
     expect(mocks.triggerCookingModeMappingGeneration).toHaveBeenCalledTimes(1)
     expect(mocks.deleteFromQueue).toHaveBeenCalledWith('user-1', 'queue-1')
@@ -176,5 +176,29 @@ describe('nutrition / Cooking Mode mapping independence on publish (Implementati
     // rather than one awaiting the other's completion first.
     expect(order.indexOf('mapping-start')).toBeLessThan(order.indexOf('nutrition-end'))
     expect(order.indexOf('nutrition-start')).toBeLessThan(order.indexOf('mapping-end'))
+  })
+
+  it('keeps the queued draft recoverable and skips enrichment on a title collision', async () => {
+    mocks.publishQueuedRecipe.mockRejectedValueOnce(new Error(
+      'A recipe with this title already exists. Change the title, or open the existing recipe to edit it intentionally.',
+    ))
+    renderCard('Sides')
+    fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain('already exists')
+    expect(screen.getByText('Queued Recipe')).toBeTruthy()
+    expect(mocks.deleteFromQueue).not.toHaveBeenCalled()
+    expect(mocks.computeAndStoreNutrition).not.toHaveBeenCalled()
+    expect(mocks.triggerCookingModeMappingGeneration).not.toHaveBeenCalled()
+  })
+
+  it('retries queue cleanup without re-running recipe enrichment', async () => {
+    mocks.publishQueuedRecipe.mockResolvedValue({ recipeId: 'queued-recipe', created: false })
+    renderCard('Sides')
+    fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
+
+    await waitFor(() => expect(mocks.deleteFromQueue).toHaveBeenCalledTimes(1))
+    expect(mocks.computeAndStoreNutrition).not.toHaveBeenCalled()
+    expect(mocks.triggerCookingModeMappingGeneration).not.toHaveBeenCalled()
   })
 })

@@ -90,7 +90,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/nutrition-lookup` | POST | Bearer token (required) | Shared nutrition engine (`lib/nutritionEngine.ts`). `{type:"recipe",recipeId}` computes a full `nutrition` object from the recipe's ingredients (parser → **canonical staples table (Batch 4)** → USDA with match validation → AI Gateway fallback); `{type:"food",name}` resolves a bounded food name via USDA/AI. Read-only. |
 | `/api/nutrition-revalidate` | POST | Bearer token (required; admin for apply) | Re-validate low-confidence recipe nutrition by re-running the shared engine (`computeRecipeNutrition`). **DRY-RUN by default** — diffs old vs proposed per-serving/total macros, matched tier, new confidence, **without** writing; `?apply=true` requires `verifyAdminToken` and persists. Filters recipes whose estimate is low-confidence / AI-derived / assumed-servings (`servingsAssumed` OR source contains `ai`). Apply persists **only** recomputes that are no longer `low` confidence (still-low → left untouched). Bounded batches: `?limit` (default 25, max 50) + `?offset`. Engine-reuse only — no parallel estimator. |
 | `/api/nutrition-canonical-dryrun` | POST | Bearer token (required; admin for apply) | Canonical-staples recompute is dry-run by default, not dry-run-only. Explicit `?apply=true` requires `verifyAdminToken` and uses the conservative canonical-hit/material-change/no-confidence-downgrade write gate, preserving `nutrition_prev`; this apply path was used for the documented Batch 4 apply. `?scope=low` restricts to `confidence==='low'`; `?recipeId=<id>` targets one; bounded `?limit`(≤50)/`?offset`. |
-| `/api/mapping/generate` | POST | Bearer token (**admin required**, `verifyAdminToken`) | **Implementation 6.** Trusted Cooking Mode mapping-generation trigger — `{recipeId, expectedRecipeRevision?}`. Loads the recipe, optionally 409s if `expectedRecipeRevision` no longer matches the live revision, then calls `generateAndPersistCookingModeMappingProposal` (`lib/cookingModeMappingIngestion.ts`) and returns its sanitized outcome (`GENERATED`\|`REUSED_EXISTING`\|`BLOCKED`\|`FAILED`, revision/proposal ids, candidate/routing counts) as HTTP 200 — mapping generation is a best-effort post-save enrichment, so its own failure/blocked outcome is not an HTTP error (matching `/api/cooking-step-map`'s convention); 401/400/404/409/500 are reserved for real auth/request/not-found/conflict/unexpected-exception cases. `export const maxDuration = 280` (reviewer execution can run substantially longer than ordinary persistence). Called from all three `saveRecipe()` sites via `triggerCookingModeMappingGeneration` (`lib/recipes.ts`), concurrently with nutrition, never blocking publish. |
+| `/api/mapping/generate` | POST | Bearer token (**admin required**, `verifyAdminToken`) | **Implementation 6.** Trusted Cooking Mode mapping-generation trigger — `{recipeId, expectedRecipeRevision?}`. Loads the recipe, optionally 409s if `expectedRecipeRevision` no longer matches the live revision, then calls `generateAndPersistCookingModeMappingProposal` (`lib/cookingModeMappingIngestion.ts`) and returns its sanitized outcome (`GENERATED`\|`REUSED_EXISTING`\|`BLOCKED`\|`FAILED`, revision/proposal ids, candidate/routing counts) as HTTP 200 — mapping generation is a best-effort post-save enrichment, so its own failure/blocked outcome is not an HTTP error (matching `/api/cooking-step-map`'s convention); 401/400/404/409/500 are reserved for real auth/request/not-found/conflict/unexpected-exception cases. `export const maxDuration = 280` (reviewer execution can run substantially longer than ordinary persistence). Called after all three create-only publication paths via `triggerCookingModeMappingGeneration` (`lib/recipes.ts`), concurrently with nutrition, never blocking publish. |
 | `/api/mapping-review/queue` | GET | Bearer token (**admin required**, `verifyAdminToken`) | Recipe-level mapping-review queue (`loadMappingReviewQueue`). |
 | `/api/mapping-review/[recipeId]` | GET | Bearer token (admin required) | Joined mapping-review state for one recipe (`loadMappingReviewRecipe`) — live revision, current/stale proposal, full candidate population, completion, attestation status, approved-map pointer. |
 | `/api/mapping-review/[recipeId]/decisions` | POST | Bearer token (admin required) | Include/Exclude (and correction) for one candidate. `decidedBy` is always the server-verified admin uid — never a client-supplied field. Wraps `appendMappingReviewDecision`. |
@@ -112,6 +112,11 @@ shared this Firestore project, but MEA Recipes web now owns the supported data b
 Doc ID = slugified title. Fields (see `types/recipe.ts` → `Recipe`):
 `recipeID, title, content, category, cuisine, imageURL, sourceURL, sourceFile, labels,
 hasImage, created, modified, addedBy?, prepTime?, cookTime?, cookingStepIngredientMap?, servings?, nutrition?, nutritionStatus?, defaultRole?`.
+- Existing document IDs and `/recipes/[id]` URLs remain title slugs for backward compatibility.
+  New-recipe creation uses `createRecipe` and a Firestore transaction that requires the slug ID to
+  be absent; a normalized-title collision returns an explicit conflict and cannot replace the
+  existing document. Existing-document mutations remain exact-ID operations through dedicated
+  merge/update/delete helpers.
 - `prepTime` and `cookTime` are the only canonical recipe-time fields. `totalTime` is never
   persisted; `getTotalTime` derives it at read time (§5.8). The 2026-08-24 catalog audit populated
   both fields for all 234 usable production recipes (including explicit `cookTime: '0 min'` for
@@ -333,7 +338,7 @@ source('usda'|'ai_estimate'|'manual'), created_at`.
 ### `users/{uid}/recipeQueue/{id}` — AI parse queue (`QueuedRecipe`, `lib/queue.ts`)
 Staging area for AI-parsed/generated recipes before publishing into `recipes`. Fields:
 `title, cuisine, category, ingredients[], instructions[], imageURL, sourceURL, description,
-servings, prepTime, cookTime, status('pending'|'published'), createdAt?`.
+servings, prepTime, cookTime, status('pending'|'published'), publishedRecipeId?, publishedAt?, createdAt?`.
 `buildRecipeContent()` serializes the structured fields back into the flat `content` format.
 Queue category strings intentionally remain tolerant (`blank`/legacy/invalid) because this is
 the review boundary, but publishing to `recipes/{id}` requires an explicit canonical category.
@@ -342,6 +347,10 @@ the review boundary, but publishing to `recipes/{id}` requires an explicit canon
 wrong or is **invisible in the queue UI entirely**. Bulk writers may add an extra `generatedBatch`
 tag (a string the app ignores) so a batch can be found and deleted as a unit; see
 `scripts/write-sides-batch.js`, which wrote the `sides-american-veg-2026-08` batch of 24 side dishes.
+Publication transactionally creates `recipes/{slug}` and changes the queue record from `pending` to
+`published`, recording `publishedRecipeId`. A collision leaves the queue item pending and editable.
+If later enrichment or queue cleanup is interrupted, retry recognizes the persisted publication,
+does not recreate or re-enrich the recipe, and resumes cleanup.
 
 ### `sharedWeekPlans/{weekID}/users/{uid}` — friends' published plans (`SharedPlanEntry`)
 Fields: `uid, displayName, photoURL, plannedRecipeIDs[], updatedAt?`. The Plan page can
@@ -409,6 +418,10 @@ retained as historical data and are not modified or deleted by this app.
    single ordered 12-category contract in `lib/recipeCategories.ts`. Legacy stored recipe and
    personal-override strings are compatibility inputs only, never valid new shared outputs;
    missing, combined, arbitrary, or unknown values fail before the Firestore write.
+10. **Shared-recipe creation is create-only.** A normalized title still determines the document ID
+    for URL compatibility, but `createRecipe` transactionally requires that ID to be absent. A title
+    collision is explicit and recoverable; it cannot become an update. Existing shared-recipe
+    mutations receive the intended document ID and use dedicated merge/update/delete helpers.
 
 ---
 
@@ -430,13 +443,16 @@ retained as historical data and are not modified or deleted by this app.
 3. **Default recipe source filter** — defaults to `all`; the user's explicit source selection
    persists in `mea_recipes_source`. Sign-in does not auto-switch the list to "Added by me".
 4. **AI recipe generation flow** — Discover page: free-text dish name → `POST /api/ai-ingest`
-   with `{ generate }` → AI Gateway returns schema-validated structured data → user reviews/edits → `saveRecipe`
+   with `{ generate }` → AI Gateway returns schema-validated structured data → user reviews/edits → `createRecipe`
    into `recipes`. Generation is **FlavorGraph-informed**: `getComplementaryIngredients` seeds
    the prompt with scientifically complementary ingredients (`lib/flavorPairings.ts` +
    `lib/flavor-pairings.json`).
    All recipe-category-producing AI prompts are built from `RECIPE_CATEGORIES`, and generated
    category fields use a Zod enum derived from that same tuple. Noncanonical output fails the
    route's existing safe validation/error path; it is never replaced with the first category.
+   A title collision keeps the generated draft visible for correction, reports that the title
+   already exists, and does not start nutrition or mapping-proposal enrichment against the existing
+   catalog document.
 5. **AI recipe import flow** — Add modal / Queue: URL or pasted text → `POST /api/ai-ingest`
    → structured recipe → saved to `recipeQueue` (`status: 'pending'`) → reviewed in `/queue`
    → published into `recipes`. Client-provided `imageURL`/`prepTime`/`cookTime` (e.g. from the
@@ -533,7 +549,7 @@ retained as historical data and are not modified or deleted by this app.
 14. **Week navigation memory** — Plan page remembers the last-viewed week in `sessionStorage`
     `mea_plan_last_week`; defaults toward the upcoming week when the current is empty.
 15. **Auto-nutrition on publish** — `computeAndStoreNutrition(recipeId, token, timeoutMs)`
-    (`lib/recipes.ts`) runs right after `saveRecipe()` at every recipe-create site (queue
+    (`lib/recipes.ts`) runs only after create-only publication succeeds at every recipe-create site (queue
     publish + Discover direct-save). It POSTs `{type:"recipe",recipeId}` to `/api/nutrition-lookup`,
     then merges the returned `nutrition` (stamping a fresh `computed_at` Timestamp) onto the doc and
     sets `nutritionStatus:'computed'`. The call is wrapped in `AbortSignal.timeout` (~20s at publish,
@@ -1321,7 +1337,7 @@ retained as historical data and are not modified or deleted by this app.
     `STALE` (§3) until the new revision is separately reviewed and approved.
 
     Wired behind the trusted `POST /api/mapping/generate` route (admin-only, `verifyAdminToken`) and
-    called from all three `saveRecipe()` sites (Queue publish, Discover generate-and-save, Discover
+    called from all three successful creation sites (Queue publish, Discover generate-and-save, Discover
     plan-suggestion save) via `triggerCookingModeMappingGeneration` (`lib/recipes.ts`) — a
     never-throwing, `AbortSignal.timeout`-bounded client helper mirroring item 15's
     `computeAndStoreNutrition` exactly, run concurrently with it via `Promise.allSettled` so neither
@@ -1428,8 +1444,10 @@ retained as historical data and are not modified or deleted by this app.
   `addRecipeToWeekPlan`, shows an "Added!" confirmation, and auto-closes after ~1.5s. It is
   rendered at `z-[100]`; the recipes-page time-filter dropdown is `z-50` — keep popover layers
   above page chrome to avoid the historical z-index overlap.
-- **Recipe doc IDs are slugified titles.** Two recipes with the same title collide on the same
-  `recipes/{slug}` document; `saveRecipe` overwrites by slug.
+- **Recipe doc IDs are slugified titles, with create-only collision handling.** Existing IDs and
+  `/recipes/[id]` URLs remain stable. A new recipe whose normalized title targets an existing
+  `recipes/{slug}` document fails explicitly inside a Firestore transaction; the existing document
+  is untouched, and the generated/queued draft remains available for correction.
 - **Some `imageURL`s are hotlinked to external hosts, not Firebase Storage.** The Aug 2026 photo
   backfill (`scripts/audit-missing-photos.js` + `scripts/apply-photo-matches.js`) filled 13 recipes'
   missing `imageURL` with Wikimedia Commons/Openverse URLs (`upload.wikimedia.org`,
@@ -1952,9 +1970,10 @@ retained as historical data and are not modified or deleted by this app.
   missing reviewers/evidence fail closed, and prepared components remain separately gated. See
   `docs/architecture/cooking-mode-review-routing-contract.md`.
 - **Cooking Mode mapping generation is now wired into recipe ingestion, but no production edit path
-  exists to actually trigger the edit branch (2026-08-29, Implementation 6).** `saveRecipe()`
-  (`lib/recipes.ts`) is a create/full-replace write used only by the three new-recipe finalization
-  call sites (Queue publish, Discover "Generate a recipe" save, Discover "Save to my collection"
+  exists to actually trigger the edit branch (2026-08-29, Implementation 6).** `createRecipe()`
+  (`lib/recipes.ts`) is a transactionally create-only write used by the two Discover finalization
+  paths; Queue reuses the same transaction helper while atomically recording publication. These are
+  the three new-recipe finalization call sites (Queue publish, Discover "Generate a recipe" save, Discover "Save to my collection"
   from a plan suggestion) — **there is no current UI path that mutates an already-published shared
   recipe's `content`.** `RecipeEditModal.tsx`'s "Save changes" writes only `meta.overrides` (a
   per-user shadow of the shared recipe, §4 domain invariant 6) and the shared `nutrition`/servings
@@ -1970,7 +1989,7 @@ retained as historical data and are not modified or deleted by this app.
 - **Mapping generation runs concurrently with nutrition on publish, not sequentially, and neither
   blocks the other or the recipe save.** All three new-recipe call sites now fire
   `computeAndStoreNutrition` and the new `triggerCookingModeMappingGeneration` (`lib/recipes.ts`)
-  via `Promise.allSettled` right after `saveRecipe()` succeeds. Both helpers already never throw
+  via `Promise.allSettled` right after create-only publication succeeds. Both helpers already never throw
   (nutrition flags `needs_calc`; mapping returns `null` and logs) — publish completion never waits
   on mapping generation succeeding, and a slow/failed mapping call never delays or fails nutrition
   or the recipe's own already-completed save. The mapping call uses a 90s client-side timeout
@@ -1982,7 +2001,7 @@ retained as historical data and are not modified or deleted by this app.
   added — the existing "Computing nutrition…" publish-stage indicator simply covers a slightly
   longer window when mapping happens to be the slower of the two.
 - **`/api/mapping/generate` reuses `verifyAdminToken`, matching every other Cooking-Mode-mapping-
-  writing route.** This is a stricter boundary than ordinary recipe publication (`saveRecipe` itself
+  writing route.** This is a stricter boundary than ordinary recipe publication (`createRecipe` itself
   has no admin check) — deliberate per the task brief, since mapping generation performs paid AI
   calls and writes shared catalog workflow state. In practice this app has exactly one user who is
   also the sole admin (§1), so this is not currently observable as a restriction, but a future
@@ -2169,7 +2188,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Barcode-based packaged-food lookup | Medium | Done | Server-side lookup: `/api/barcode-lookup` + `lib/nutritionEngine.ts` `lookupFoodByBarcode` (Open Food Facts → USDA branded GTIN → miss), client helper `lookupBarcode` (`lib/nutrition.ts`), returns `basis` per_serving\|per_100g. Camera UI: **Scan** mode (4th tab) in `LogFoodSheet.tsx` — native `BarcodeDetector` where supported, lazy-loaded `@zxing/browser` fallback; EAN/UPC only; rear camera via getUserMedia; graceful permission-denied and not-found fallbacks route to Search. Dev panel (`BarcodeTestPanel.tsx`) removed. Reuses `saved_foods`/`consumption_log` — no new collection. Serving/grams amount entry **Done**: per-100g hits take grams directly, per-serving hits with a numeric serving size get a Servings⇄Grams toggle (engine now returns `serving_grams`/`servings_per_container`; entry records `amount_label`). |
 | Push meal plan to Google Calendar | Medium | Done | Manual **"Add this week to Calendar"** on the Plan page → one event per planned day, idempotent re-push via `weekPlans.calendarEventIds`. **Option B auth:** client mints a `calendar.events` OAuth token via a Firebase Google re-auth popup and passes it to the auth-gated `/api/calendar/push` executor (no server-side Google creds; route has no list/search). Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6). |
 | Password login (email/password via account linking) | Medium | Done | Batch 7. Google-signed-in user adds a password in settings (`PasswordLoginSettings` → `linkWithCredential`, same uid/data, no new account); login screen (`SignInOptions`, used in the `/favorites` + `/plan` gates) keeps Google and adds email/password **sign-in only** (no signup) + "Forgot password?" (`sendPasswordResetEmail`, neutral confirmation). Requires the Email/Password provider enabled in the Firebase console (see §4 #7, §6, §8). |
-| Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called after `saveRecipe()` from queue publish (`app/queue/page.tsx`) and Discover direct-save (`app/discover/page.tsx`), with a "Calculating nutrition…" loading state. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window). **(Implementation 6, 2026-08-29)** Runs concurrently with `triggerCookingModeMappingGeneration()` at all three sites via `Promise.allSettled` — see the Cooking Mode recall remediation row below; the two enrichments are fully independent. |
+| Auto-nutrition on recipe create/publish | High | Done | New recipes land with `nutrition` populated. `computeAndStoreNutrition()` (`lib/recipes.ts`) is called only after create-only Queue/Discover publication succeeds, with a "Calculating nutrition…" loading state. A title collision never invokes it against the existing recipe. Timeout-guarded (~20s) — never blocks the save; on failure the recipe is flagged `nutritionStatus:'needs_calc'`. Manual retry: "Calculate nutrition" button in the Surface 1 empty state (`components/NutritionSection.tsx`, 45s window). **(Implementation 6, 2026-08-29)** Runs concurrently with `triggerCookingModeMappingGeneration()` at all three sites via `Promise.allSettled` — see the Cooking Mode recall remediation row below; the two enrichments are fully independent. |
 | AI Gateway cost and cache observability | Low | Backlog | Evaluate provider-supported context caching and cost reporting beyond the token usage metadata logged by `lib/ai.ts`. |
 | Activity calories in nutrition views | Medium | Done | Nutrition Today and Insights now read user-scoped `healthMetrics.move_calories`, combine it with the user-entered `NutritionGoals.calorie_baseline`, and no longer use the unowned Strava collection. |
 

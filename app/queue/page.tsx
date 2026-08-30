@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/AuthContext'
-import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, addToQueue, QueuedRecipe } from '@/lib/queue'
-import { saveRecipe, computeAndStoreNutrition, prepareCookingStepIngredientMap, triggerCookingModeMappingGeneration } from '@/lib/recipes'
+import { getQueue, deleteFromQueue, updateQueueItem, buildRecipeContent, addToQueue, publishQueuedRecipe, QueuedRecipe } from '@/lib/queue'
+import { computeAndStoreNutrition, prepareCookingStepIngredientMap, triggerCookingModeMappingGeneration } from '@/lib/recipes'
 import { slugify } from '@/lib/utils'
 import {
   Loader2, Trash2, Check, ChefHat, ExternalLink,
@@ -36,6 +36,7 @@ export function QueueCard({
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [publishError, setPublishError] = useState('')
+  const [publishedRecipeId, setPublishedRecipeId] = useState(item.publishedRecipeId || null)
   const { user } = useAuth()
 
   const handleSaveEdit = async () => {
@@ -78,8 +79,11 @@ export function QueueCard({
       }
       const content = buildRecipeContent(updatedItem)
       const token = await user.getIdToken()
-      const cookingStepIngredientMap = await prepareCookingStepIngredientMap(content, token)
-      const recipeId = await saveRecipe({
+      const alreadyPublished = item.status === 'published' || Boolean(publishedRecipeId)
+      const cookingStepIngredientMap = alreadyPublished
+        ? undefined
+        : await prepareCookingStepIngredientMap(content, token)
+      const publication = await publishQueuedRecipe(uid, item.id!, {
         recipeID: slugify(title),
         title: title.trim(),
         content,
@@ -92,20 +96,30 @@ export function QueueCard({
         hasImage: imageURL ? 'true' : 'false',
         created: new Date().toString(),
         modified: new Date().toString(),
-        cookingStepIngredientMap,
+        ...(cookingStepIngredientMap ? { cookingStepIngredientMap } : {}),
       }, uid)
+      const recipeId = publication.recipeId
+      setPublishedRecipeId(recipeId)
       // Auto-nutrition + Cooking Mode mapping generation: both run concurrently
       // as independent, timeout-guarded, never-throwing post-save enrichments —
       // neither blocks publishing, and neither's failure affects the other
       // (Implementation 6, Phase 6/7). computeAndStoreNutrition and
       // triggerCookingModeMappingGeneration each flag/log their own failure
       // instead of throwing, so this Promise.allSettled never rejects.
-      setPublishStage('nutrition')
-      await Promise.allSettled([
-        computeAndStoreNutrition(recipeId, token),
-        triggerCookingModeMappingGeneration(recipeId, token),
-      ])
-      await deleteFromQueue(uid, item.id!)
+      if (publication.created) {
+        setPublishStage('nutrition')
+        await Promise.allSettled([
+          computeAndStoreNutrition(recipeId, token),
+          triggerCookingModeMappingGeneration(recipeId, token),
+        ])
+      }
+      try {
+        await deleteFromQueue(uid, item.id!)
+      } catch {
+        setPublishError('The recipe is published, but removing it from the queue failed. Retry to finish cleanup; the recipe will not be published again.')
+        setPublishStage(null)
+        return
+      }
       onPublish(item.id!)
     } catch (err) {
       console.error('Publish error:', err)
@@ -255,6 +269,7 @@ export function QueueCard({
                 {publishing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                 {publishStage === 'nutrition' ? 'Calculating nutrition…'
                   : publishStage === 'saving' ? 'Adding…'
+                  : publishedRecipeId || item.status === 'published' ? 'Finish publishing'
                   : 'Publish to collection'}
               </button>
             </div>

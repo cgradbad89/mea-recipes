@@ -5,13 +5,16 @@ import { deleteDoc,
   getDoc,
   addDoc,
   setDoc,
+  runTransaction,
   query,
   where,
   orderBy,
   limit,
   DocumentData,
+  type Transaction,
 } from 'firebase/firestore'
 import { db } from './firebase'
+import { slugify } from './utils'
 import type { CookingStepIngredientMap, Recipe, RecipeNutrition } from '@/types/recipe'
 import { perServingFromTotal, servingSizeLabel } from './nutrition'
 import { isIngredientSubheader, parseRecipeContent } from './recipeContent'
@@ -98,17 +101,60 @@ export type SharedRecipeWrite = Omit<Recipe, 'id' | 'category'> & {
   category: RecipeCategory
 }
 
-export async function saveRecipe(recipe: SharedRecipeWrite, addedByUid?: string): Promise<string> {
+export class RecipeAlreadyExistsError extends Error {
+  readonly code = 'recipe-already-exists'
+  readonly recipeId: string
+
+  constructor(recipeId: string) {
+    super('A recipe with this title already exists. Change the title, or open the existing recipe to edit it intentionally.')
+    this.name = 'RecipeAlreadyExistsError'
+    this.recipeId = recipeId
+  }
+}
+
+export function recipeIdForTitle(title: string): string {
+  const id = slugify(title)
+  if (!id) throw new Error('Enter a recipe title before publishing.')
+  return id
+}
+
+function sharedRecipeDocument(recipe: SharedRecipeWrite, id: string, addedByUid?: string) {
   if (!isRecipeCategory(recipe.category)) {
     throw new Error('Choose a valid recipe category before publishing.')
   }
-  const id = slugify(recipe.title)
-  await setDoc(doc(db, COLLECTION, id), {
+  return {
     ...recipe,
     id,
     recipeID: id,
     ...(addedByUid ? { addedBy: addedByUid } : {}),
-  })
+  }
+}
+
+/**
+ * Create a shared recipe inside an existing Firestore transaction.
+ *
+ * The transaction read is the authoritative collision check: concurrent
+ * creators race on the same normalized title, and only one may set the absent
+ * document. Callers that also transition related state (for example Queue)
+ * can reuse this operation without weakening the create-only precondition.
+ */
+export async function createRecipeInTransaction(
+  transaction: Transaction,
+  recipe: SharedRecipeWrite,
+  addedByUid?: string,
+): Promise<string> {
+  const id = recipeIdForTitle(recipe.title)
+  const recipeData = sharedRecipeDocument(recipe, id, addedByUid)
+  const recipeRef = doc(db, COLLECTION, id)
+  const existing = await transaction.get(recipeRef)
+  if (existing.exists()) throw new RecipeAlreadyExistsError(id)
+  transaction.set(recipeRef, recipeData)
+  return id
+}
+
+/** Create a new shared recipe. Never updates or replaces an existing recipe. */
+export async function createRecipe(recipe: SharedRecipeWrite, addedByUid?: string): Promise<string> {
+  const id = await runTransaction(db, transaction => createRecipeInTransaction(transaction, recipe, addedByUid))
   invalidateRecipeCache()
   return id
 }
@@ -321,14 +367,6 @@ export async function triggerCookingModeMappingGeneration(
     console.error('Cooking Mode mapping generation failed (recipe saved anyway):', err)
     return null
   }
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }
 
 // Canonical production origin for building shareable ABSOLUTE recipe links (e.g.

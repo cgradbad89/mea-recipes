@@ -100,7 +100,7 @@ starts.
 ## 6. Group E — future ingestion boundary
 
 `lib/recipes.ts` still unconditionally computes a deterministic v4/v5-style map at save time, and as
-of Implementation 6 (2026-08-29) every `saveRecipe()` call site also triggers
+of Implementation 6 (2026-08-29) every successful create-only publication path also triggers
 `POST /api/mapping/generate`. A genuinely new recipe therefore already enters the new-system
 pipeline automatically at creation. It should be reviewed through ordinary `/mapping-review`, never
 folded into a batch-remediation run — batch remediation exists solely for the pre-Implementation-6

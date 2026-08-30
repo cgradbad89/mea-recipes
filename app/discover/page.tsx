@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import { useAppData } from '@/components/AppDataProvider'
 import {
-  saveRecipe,
+  createRecipe,
   invalidateRecipeCache,
   getTotalTime,
   computeAndStoreNutrition,
@@ -336,7 +336,7 @@ export default function DiscoverPage() {
       })
       const token = await user.getIdToken()
       const cookingStepIngredientMap = await prepareCookingStepIngredientMap(content, token)
-      const recipeId = await saveRecipe({
+      const recipeId = await createRecipe({
         recipeID: '',
         title: (gen.title || suggestion.title).trim(),
         content,
@@ -589,7 +589,7 @@ export default function DiscoverPage() {
       })
       const token = await user.getIdToken()
       const cookingStepIngredientMap = await prepareCookingStepIngredientMap(content, token)
-      const recipeId = await saveRecipe({
+      const recipeId = await createRecipe({
         recipeID: '',
         title: (generatedRecipe.title || 'Untitled Recipe').trim(),
         content,

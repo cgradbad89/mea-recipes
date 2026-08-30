@@ -1,8 +1,14 @@
 import {
   collection, addDoc, getDocs, deleteDoc, doc,
-  orderBy, query, serverTimestamp, updateDoc
+  orderBy, query, runTransaction, serverTimestamp, updateDoc, type Transaction
 } from 'firebase/firestore'
 import { db } from './firebase'
+import {
+  createRecipeInTransaction,
+  invalidateRecipeCache,
+  recipeIdForTitle,
+  type SharedRecipeWrite,
+} from './recipes'
 
 export interface QueuedRecipe {
   id?: string
@@ -19,6 +25,8 @@ export interface QueuedRecipe {
   prepTime: string
   cookTime: string
   status: 'pending' | 'published'
+  publishedRecipeId?: string
+  publishedAt?: unknown
   createdAt?: unknown
 }
 
@@ -46,6 +54,64 @@ export async function updateQueueItem(uid: string, id: string, data: Partial<Que
 
 export async function deleteFromQueue(uid: string, id: string): Promise<void> {
   await deleteDoc(doc(queuePath(uid), id))
+}
+
+export class QueuePublicationStateError extends Error {
+  readonly code = 'queue-publication-state-conflict'
+
+  constructor(message = 'This queued recipe has an inconsistent publication state. It was left unchanged.') {
+    super(message)
+    this.name = 'QueuePublicationStateError'
+  }
+}
+
+/**
+ * Atomically create the shared recipe and mark its queue source published.
+ * A retry of the same completed transition returns the original recipe ID and
+ * reports `created: false`, allowing cleanup to resume without publishing or
+ * enriching the recipe a second time.
+ */
+export async function publishQueuedRecipe(
+  uid: string,
+  queueId: string,
+  recipe: SharedRecipeWrite,
+  addedByUid: string,
+): Promise<{ recipeId: string; created: boolean }> {
+  const result = await runTransaction(db, transaction =>
+    publishQueuedRecipeInTransaction(transaction, uid, queueId, recipe, addedByUid))
+
+  if (result.created) invalidateRecipeCache()
+  return result
+}
+
+export async function publishQueuedRecipeInTransaction(
+  transaction: Transaction,
+  uid: string,
+  queueId: string,
+  recipe: SharedRecipeWrite,
+  addedByUid: string,
+): Promise<{ recipeId: string; created: boolean }> {
+  const targetRecipeId = recipeIdForTitle(recipe.title)
+  const queueRef = doc(queuePath(uid), queueId)
+  const queueSnapshot = await transaction.get(queueRef)
+  if (!queueSnapshot.exists()) throw new QueuePublicationStateError('This queued recipe no longer exists.')
+
+  const queued = queueSnapshot.data() as Partial<QueuedRecipe>
+  if (queued.status === 'published') {
+    const publishedRecipeId = queued.publishedRecipeId || targetRecipeId
+    if (publishedRecipeId !== targetRecipeId) throw new QueuePublicationStateError()
+    const recipeSnapshot = await transaction.get(doc(db, 'recipes', publishedRecipeId))
+    if (!recipeSnapshot.exists()) throw new QueuePublicationStateError()
+    return { recipeId: publishedRecipeId, created: false }
+  }
+
+  const recipeId = await createRecipeInTransaction(transaction, recipe, addedByUid)
+  transaction.update(queueRef, {
+    status: 'published',
+    publishedRecipeId: recipeId,
+    publishedAt: serverTimestamp(),
+  })
+  return { recipeId, created: true }
 }
 
 export function buildRecipeContent(recipe: QueuedRecipe): string {
