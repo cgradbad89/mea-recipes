@@ -10,7 +10,8 @@ import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan, getWeekPlan,
   markRecipeCooked, addRecipeIngredientsToGrocery,
   moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
-  publishSharedPlan, subscribeSharedWeekPlans, addRecipeToWeekPlan,
+  publishSharedPlan, unpublishSharedPlan, subscribeSharedPlanPublication,
+  subscribeSharedWeekPlans, addRecipeToWeekPlan,
   assignRecipeToDay, setPlannedRecipeRole, resolveRecipeRole,
   normalizePlanned, plannedRecipeIDList, saveCalendarEventIds,
   type WeekPlan, type RecipeMeta, type SharedPlanEntry, type PlannedEntry, type PlannedRole
@@ -217,10 +218,14 @@ export default function PlanPage() {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null)
   const [planActionError, setPlanActionError] = useState('')
   const [sharedPublishError, setSharedPublishError] = useState('')
+  const [publishedPlan, setPublishedPlan] = useState<SharedPlanEntry | null>(null)
+  const [sharingPlan, setSharingPlan] = useState(false)
+  const [sharedStatusError, setSharedStatusError] = useState('')
   const [planSubscriptionError, setPlanSubscriptionError] = useState('')
   const [friendPlansSubscriptionError, setFriendPlansSubscriptionError] = useState('')
   const [planSubscriptionAttempt, setPlanSubscriptionAttempt] = useState(0)
   const [friendPlansSubscriptionAttempt, setFriendPlansSubscriptionAttempt] = useState(0)
+  const [sharedStatusSubscriptionAttempt, setSharedStatusSubscriptionAttempt] = useState(0)
   const defaultCheckedRef = useRef(false)
 
   // First-mount: restore last-viewed week from sessionStorage OR auto-default to next week if current is empty
@@ -293,19 +298,23 @@ export default function PlanPage() {
   }, [user, weekID, planSubscriptionAttempt])
 
 
-  // Publish shared plan whenever local plan changes (mirror stays a flat ID list —
-  // friends never see the owner's private day/role assignments)
+  // The owner's public mirror is persistence-backed and changes only through the
+  // explicit publish/update/unpublish controls below. Private plan edits stay private.
   useEffect(() => {
-    if (!user || !plan) return
-    const displayName = user.displayName || user.email || 'Anonymous'
-    const photoURL = user.photoURL || ''
-    setSharedPublishError('')
-    publishSharedPlan(user.uid, displayName, photoURL, weekID, plan.plannedRecipeIDs || [])
-      .catch(error => {
-        console.error('Failed to publish shared plan:', error)
-        setSharedPublishError('Your plan is saved, but the shared view may be out of date.')
-      })
-  }, [user, plan, weekID])
+    if (!user) {
+      setPublishedPlan(null)
+      setSharedStatusError('')
+      return
+    }
+    setSharedStatusError('')
+    const unsub = subscribeSharedPlanPublication(user.uid, weekID, nextPlan => {
+      setPublishedPlan(nextPlan)
+      setSharedStatusError('')
+    }, error => {
+      setSharedStatusError(error.message || 'Shared-plan status stopped updating')
+    })
+    return unsub
+  }, [user, weekID, sharedStatusSubscriptionAttempt])
 
   // Subscribe to friends' shared plans
   useEffect(() => {
@@ -343,8 +352,47 @@ export default function PlanPage() {
   )
   const cookedSet = new Set(plan?.cookedRecipeIDs || [])
   const plannedIDList = plannedRecipeIDList(plan?.plannedRecipeIDs)
+  const publishedIDList = publishedPlan?.plannedRecipeIDs || []
+  const sharedPlanChanged = Boolean(publishedPlan) && (
+    plannedIDList.length !== publishedIDList.length ||
+    plannedIDList.some((id, index) => id !== publishedIDList[index])
+  )
   const uncookedEntries = plannedEntries.filter(e => !cookedSet.has(e.recipeID))
   const cooked = plannedIDList.filter(id => cookedSet.has(id))
+
+  const handlePublishSharedPlan = async () => {
+    if (!user || !plan || plannedIDList.length === 0) return
+    setSharingPlan(true)
+    setSharedPublishError('')
+    try {
+      await publishSharedPlan(
+        user.uid,
+        user.displayName || user.email || 'Anonymous',
+        user.photoURL || '',
+        weekID,
+        plan.plannedRecipeIDs || [],
+      )
+    } catch (error) {
+      console.error('Failed to publish shared plan:', error)
+      setSharedPublishError('Your private plan is saved, but publishing its shared snapshot failed. Try again.')
+    } finally {
+      setSharingPlan(false)
+    }
+  }
+
+  const handleUnpublishSharedPlan = async () => {
+    if (!user || !publishedPlan) return
+    setSharingPlan(true)
+    setSharedPublishError('')
+    try {
+      await unpublishSharedPlan(user.uid, weekID)
+    } catch (error) {
+      console.error('Failed to unpublish shared plan:', error)
+      setSharedPublishError('The shared snapshot is still published. Try unpublishing again.')
+    } finally {
+      setSharingPlan(false)
+    }
+  }
 
   // Mains before sides within a day for readability.
   const sortByRole = (a: PlannedEntry, b: PlannedEntry) =>
@@ -1060,9 +1108,20 @@ export default function PlanPage() {
         </p>
       )}
       {sharedPublishError && (
-        <p role="status" className="mb-4 rounded-xl border border-amber/20 bg-amber/5 px-4 py-3 text-amber text-sm font-body">
+        <p role="alert" className="mb-4 rounded-xl border border-amber/20 bg-amber/5 px-4 py-3 text-amber text-sm font-body">
           {sharedPublishError}
         </p>
+      )}
+      {sharedStatusError && (
+        <LoadingErrorRetry
+          loading={false}
+          error={sharedStatusError}
+          retry={() => setSharedStatusSubscriptionAttempt(attempt => attempt + 1)}
+          errorPrefix="Your shared-plan status may be out of date."
+          className="mb-4"
+        >
+          {null}
+        </LoadingErrorRetry>
       )}
       {planSubscriptionError && (
         <LoadingErrorRetry
@@ -1075,6 +1134,35 @@ export default function PlanPage() {
           {null}
         </LoadingErrorRetry>
       )}
+
+      {/* Sharing is explicit: private edits never mutate the persisted public snapshot. */}
+      {plannedIDList.length > 0 || publishedPlan ? (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface/50 px-4 py-3">
+          <span role="status" className="text-sm font-body text-muted">
+            Shared plan: {publishedPlan
+              ? sharedPlanChanged ? 'Published — private changes not shared' : 'Published'
+              : 'Private'}
+          </span>
+          {plannedIDList.length > 0 && (
+            <button
+              onClick={handlePublishSharedPlan}
+              disabled={sharingPlan}
+              className="text-sm font-body text-faint hover:text-amber transition-colors disabled:opacity-40"
+            >
+              {sharingPlan && !publishedPlan ? 'Publishing…' : publishedPlan ? 'Update shared plan' : 'Publish plan'}
+            </button>
+          )}
+          {publishedPlan && (
+            <button
+              onClick={handleUnpublishSharedPlan}
+              disabled={sharingPlan}
+              className="text-sm font-body text-faint hover:text-red-400 transition-colors disabled:opacity-40"
+            >
+              {sharingPlan ? 'Working…' : 'Unpublish'}
+            </button>
+          )}
+        </div>
+      ) : null}
 
       {/* Plan controls — rebuild grocery (existing) + add this week to calendar (Batch 6) */}
       {(plannedIDList.length > 0 || hasCalendarWork) && (

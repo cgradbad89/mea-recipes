@@ -354,11 +354,12 @@ does not recreate or re-enrich the recipe, and resumes cleanup.
 
 ### `sharedWeekPlans/{weekID}/users/{uid}` — friends' published plans (`SharedPlanEntry`)
 Fields: `uid, displayName, photoURL, plannedRecipeIDs[], updatedAt?`. The Plan page can
-publish the current user's week and subscribe to other users' entries for the same week.
+explicitly publish/update the current user's week, unpublish only that caller's mirror document,
+and subscribe to other users' entries for the same week. Private plan edits never auto-publish;
+the UI shows persisted publication status and identifies private changes that have not been shared.
 **`plannedRecipeIDs[]` here stays a flat `string[]`** (Batch 5): `publishSharedPlan` maps the
 owner's `PlannedEntry[]` down to bare IDs via `plannedRecipeIDList`, so friends see *which* recipes
-were planned but never the owner's private day/role assignments. The publish/Friends' feature is
-otherwise unchanged.
+were planned but never the owner's private day/role assignments.
 
 ### `stravaActivities/{id}` — historical/legacy synced Strava activities
 One doc per Strava activity, historically synced by an external process/webhook.

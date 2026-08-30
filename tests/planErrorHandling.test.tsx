@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 
 const mocks = vi.hoisted(() => {
   const user = {
@@ -28,6 +28,14 @@ const mocks = vi.hoisted(() => {
     user,
     recipe,
     plan,
+    sharedPlan: null as null | {
+      uid: string
+      displayName: string
+      photoURL: string
+      plannedRecipeIDs: string[]
+    },
+    publishSharedPlan: vi.fn().mockResolvedValue(undefined),
+    unpublishSharedPlan: vi.fn().mockResolvedValue(undefined),
     setPlannedRecipeRole: vi.fn(),
     refetchRecipes: vi.fn().mockResolvedValue(undefined),
     refetchMetas: vi.fn().mockResolvedValue(undefined),
@@ -69,9 +77,14 @@ vi.mock('@/lib/userdata', () => ({
     onData([])
     return vi.fn()
   },
+  subscribeSharedPlanPublication: (_uid: string, _weekID: string, onData: (plan: unknown) => void) => {
+    onData(mocks.sharedPlan)
+    return vi.fn()
+  },
   weekIDFromDate: () => '2026-08-17',
   getWeekPlan: vi.fn().mockResolvedValue(null),
-  publishSharedPlan: vi.fn().mockResolvedValue(undefined),
+  publishSharedPlan: mocks.publishSharedPlan,
+  unpublishSharedPlan: mocks.unpublishSharedPlan,
   normalizePlanned: (entries?: unknown[]) => entries || [],
   plannedRecipeIDList: (entries?: Array<{ recipeID: string }>) => (entries || []).map(entry => entry.recipeID),
   resolveRecipeRole: () => 'main',
@@ -104,6 +117,13 @@ vi.mock('@/components/RecipeImage', () => ({ default: () => <div data-testid="re
 
 import PlanPage from '@/app/plan/page'
 
+beforeEach(() => {
+  mocks.sharedPlan = null
+  mocks.publishSharedPlan.mockReset().mockResolvedValue(undefined)
+  mocks.unpublishSharedPlan.mockReset().mockResolvedValue(undefined)
+  mocks.setPlannedRecipeRole.mockReset()
+})
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
@@ -119,5 +139,47 @@ describe('plan write errors', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Couldn’t change that recipe’s role')
+  })
+
+  it('keeps private plan edits private until the user explicitly publishes', async () => {
+    render(<PlanPage />)
+
+    expect(await screen.findByText('Shared plan: Private')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Test Recipe — open actions' }))
+    fireEvent.click(await screen.findByRole('button', { name: /side/i }))
+    await waitFor(() => expect(mocks.setPlannedRecipeRole).toHaveBeenCalled())
+    expect(mocks.publishSharedPlan).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Publish plan' }))
+    await waitFor(() => expect(mocks.publishSharedPlan).toHaveBeenCalledWith(
+      'user-1',
+      'Meal Planner',
+      '',
+      '2026-08-17',
+      mocks.plan.plannedRecipeIDs,
+    ))
+  })
+
+  it('shows a persisted publication and unpublishes only the signed-in user', async () => {
+    mocks.sharedPlan = {
+      uid: 'user-1',
+      displayName: 'Meal Planner',
+      photoURL: '',
+      plannedRecipeIDs: ['recipe-1'],
+    }
+    render(<PlanPage />)
+
+    expect(await screen.findByText('Shared plan: Published')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Unpublish' }))
+    await waitFor(() => expect(mocks.unpublishSharedPlan).toHaveBeenCalledWith('user-1', '2026-08-17'))
+  })
+
+  it('keeps sharing failures visible without changing the private plan', async () => {
+    mocks.publishSharedPlan.mockRejectedValueOnce(new Error('permission denied'))
+    render(<PlanPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Publish plan' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('publishing its shared snapshot failed')
+    expect(screen.getByText('Test Recipe')).toBeTruthy()
   })
 })

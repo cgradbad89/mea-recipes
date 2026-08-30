@@ -471,6 +471,29 @@ export async function publishSharedPlan(
   )
 }
 
+/** Delete only the authenticated caller's published mirror for one week. */
+export async function unpublishSharedPlan(uid: string, weekID: string): Promise<void> {
+  await deleteDoc(doc(db, 'sharedWeekPlans', weekID, 'users', uid))
+}
+
+/**
+ * Observe whether this user has explicitly published a snapshot for the week.
+ * Private plan writes never call publishSharedPlan, so this document changes
+ * only through the explicit publish/update/unpublish controls.
+ */
+export function subscribeSharedPlanPublication(
+  uid: string,
+  weekID: string,
+  cb: (plan: SharedPlanEntry | null) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(
+    doc(db, 'sharedWeekPlans', weekID, 'users', uid),
+    snap => cb(snap.exists() ? (snap.data() as SharedPlanEntry) : null),
+    onError,
+  )
+}
+
 export function subscribeSharedWeekPlans(
   weekID: string,
   currentUid: string,
