@@ -12,16 +12,39 @@
 // emulator has no rules file (per CLAUDE.md, this repo must never touch Firestore
 // rules), so it runs in its default allow-all mode, same as `dev:emulator`.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { spawn, ChildProcess } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
+import { createServer } from 'node:net'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 
-const EMULATOR_PORT = 8080
-let emulator: ChildProcess
+let emulatorPort = 0
+let emulator: ChildProcess | undefined
+let emulatorConfigDirectory = ''
+
+async function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer()
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      if (!address || typeof address === 'string') {
+        server.close(() => reject(new Error('Could not allocate an emulator port')))
+        return
+      }
+      server.close(error => error ? reject(error) : resolve(address.port))
+    })
+  })
+}
 
 async function waitForEmulator(timeoutMs = 30_000): Promise<void> {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
+    if (emulator && emulator.exitCode !== null) {
+      throw new Error(`Firestore emulator exited before readiness (code ${emulator.exitCode})`)
+    }
     try {
-      const res = await fetch(`http://127.0.0.1:${EMULATOR_PORT}`)
+      const res = await fetch(`http://127.0.0.1:${emulatorPort}`)
       if (res.status) return
     } catch {
       // not up yet
@@ -32,10 +55,26 @@ async function waitForEmulator(timeoutMs = 30_000): Promise<void> {
 }
 
 beforeAll(async () => {
+  emulatorPort = await freePort()
+  const authPort = await freePort()
+  emulatorConfigDirectory = mkdtempSync(join(tmpdir(), 'mea-week-plan-emulator-'))
+  const configPath = join(emulatorConfigDirectory, 'firebase.json')
+  writeFileSync(configPath, JSON.stringify({
+    emulators: {
+      firestore: { host: '127.0.0.1', port: emulatorPort },
+      ui: { enabled: false },
+      singleProjectMode: false,
+    },
+  }))
   process.env.NEXT_PUBLIC_USE_FIRESTORE_EMULATOR = 'true'
+  process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT = String(emulatorPort)
+  process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT = String(authPort)
   emulator = spawn(
     'firebase',
-    ['emulators:start', '--only', 'firestore', '--project', 'malignant-metro'],
+    [
+      'emulators:start', '--only', 'firestore', '--project', 'malignant-metro',
+      '--config', configPath, '--log-verbosity', 'QUIET',
+    ],
     { stdio: 'ignore' }
   )
   await waitForEmulator()
@@ -43,6 +82,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   if (emulator) emulator.kill('SIGTERM')
+  if (emulatorConfigDirectory) rmSync(emulatorConfigDirectory, { recursive: true, force: true })
 })
 
 // Each test uses a fresh, random uid/weekID so tests never interfere with each other

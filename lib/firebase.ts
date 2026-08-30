@@ -21,12 +21,20 @@ export const googleProvider = new GoogleAuthProvider()
 // Note: Emulators start empty. You must manually seed data or export production data using:
 // firebase emulators:export ./emulator-data (and --import ./emulator-data on start).
 const IS_EMULATOR = process.env.NEXT_PUBLIC_USE_FIRESTORE_EMULATOR === 'true'
+const FIRESTORE_EMULATOR_PORT = Number.parseInt(
+  process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT || '8080',
+  10,
+)
+const AUTH_EMULATOR_PORT = Number.parseInt(
+  process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT || '9099',
+  10,
+)
 
 if (IS_EMULATOR) {
   // Use a global flag to prevent double-connecting during Next.js hot module replacement
   if (!(globalThis as any)._EMULATORS_STARTED) {
-    connectFirestoreEmulator(db, '127.0.0.1', 8080)
-    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+    connectFirestoreEmulator(db, '127.0.0.1', FIRESTORE_EMULATOR_PORT)
+    connectAuthEmulator(auth, `http://127.0.0.1:${AUTH_EMULATOR_PORT}`, { disableWarnings: true })
     ;(globalThis as any)._EMULATORS_STARTED = true
     
     // Log clearly on both server and client console
