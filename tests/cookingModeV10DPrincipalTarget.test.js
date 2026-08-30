@@ -181,8 +181,22 @@ describe('Cooking Mode V10D frozen reproduction and regression gates', () => {
   })
 
   it('routes the identical risk population size as V10C among base-accepted candidates (Phase 14: only risk-routed candidates get AI arbitration)', () => {
-    const v10aState = JSON.parse(fs.readFileSync(`/tmp/cooking-step-arbiter-v10a-${date}-state.json`, 'utf8'))
-    const v10aDecisions = new Map(Object.entries(v10aState.ingredientResults))
+    // The original audit runner kept raw model state in /tmp. Reconstruct the
+    // exact final ACCEPT/REJECT set from the repository-owned frozen population
+    // and final analysis so a clean checkout exercises the same historical gate.
+    const correctRejectIds = new Set(v10a.experimentAErrors.correctRejects.map(item => item.candidateId))
+    const incorrectAcceptIds = new Set(v10a.experimentAErrors.incorrectAccepts.map(item => item.candidateId))
+    const v10aDecisions = new Map(ingredients.map(candidate => {
+      const rejected = correctRejectIds.has(candidate.candidateId) ||
+        (candidate.adjudicatedTruth === 'INCORRECT' && !incorrectAcceptIds.has(candidate.candidateId))
+      return [candidate.candidateId, { decision: rejected ? 'REJECT' : 'ACCEPT' }]
+    }))
+    expect([...v10aDecisions.values()].filter(item => item.decision === 'ACCEPT')).toHaveLength(
+      v10a.experimentA.correctAccept + v10a.experimentA.incorrectAccept,
+    )
+    expect([...v10aDecisions.values()].filter(item => item.decision === 'REJECT')).toHaveLength(
+      v10a.experimentA.correctReject + v10a.experimentA.incorrectReject,
+    )
     const baseIds = new Set(ingredients.filter(candidate => candidate.provenanceClass === '2_OF_2_REVIEWERS' || v10aDecisions.get(candidate.candidateId)?.decision === 'ACCEPT').map(item => item.candidateId))
     const routedV10D = ingredients.filter(candidate => {
       if (!baseIds.has(candidate.candidateId)) return false
