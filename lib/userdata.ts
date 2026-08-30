@@ -23,7 +23,11 @@ import {
 } from './groceryCategories'
 import { normalizeNoun, mergeQuantities } from './ingredientParser'
 import { prepareGroceryItem } from './groceryItemPreparation'
-import { commitFirestoreBatches, type FirestoreBatchOperation } from './firestoreBatch'
+import {
+  commitFirestoreBatches,
+  FIRESTORE_SAFE_BATCH_SIZE,
+  type FirestoreBatchOperation,
+} from './firestoreBatch'
 import { normalizeRecipeCategory } from './recipeCategories'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
@@ -737,6 +741,15 @@ export async function deleteSavedGroceryItem(uid: string, itemId: string): Promi
 }
 
 // ─── Rebuild grocery from plan ───────────────────────────────────────────────
+export class GroceryRebuildSafetyError extends Error {
+  readonly code = 'grocery-rebuild-aborted'
+
+  constructor(message: string) {
+    super(message)
+    this.name = 'GroceryRebuildSafetyError'
+  }
+}
+
 export async function rebuildGroceryFromPlan(
   uid: string,
   plannedRecipeIDs: PlannedElement[],
@@ -744,51 +757,120 @@ export async function rebuildGroceryFromPlan(
   parseContent: (content: string) => { ingredients: string[]; instructions: string[]; description: string },
   metas?: Record<string, { overrides?: { content?: string } }>,
 ): Promise<void> {
-  // Step 1: Capture the temporary intent on recipe items that this rebuild is
-  // about to replace, then delete those items. Manual items survive in place,
-  // so their active-document metadata needs no special handling.
+  // Read the current state, but do not mutate it until every replacement recipe
+  // has resolved, parsed, merged, validated, and fit inside one atomic batch.
   const snap = await getDocs(groceryPath(uid))
   const overriddenRecipeIdentities = new Set<string>()
-  snap.docs.forEach(item => {
+  const manualDocumentIDs = new Set<string>()
+  const existingAutoDocuments = snap.docs.filter(item => {
     const data = item.data() as GroceryItem
-    if (data.isManual || item.id.includes('/') || data.needThisTrip !== true) return
-    const identity = normalizeNoun(data.name)
-    if (identity) overriddenRecipeIdentities.add(identity)
+    if (data.isManual) {
+      manualDocumentIDs.add(item.id)
+      return false
+    }
+    if (data.needThisTrip === true) {
+      const identity = normalizeNoun(data.name)
+      if (identity) overriddenRecipeIdentities.add(identity)
+    }
+    return true
   })
-  const deleteOperations = snap.docs
-    .filter(item => {
-      const data = item.data() as GroceryItem
-      return !data.isManual && !item.id.includes('/')
+
+  const plannedIDs = plannedRecipeIDList(plannedRecipeIDs)
+  const resolvedRecipes = await Promise.all(plannedIDs.map(async recipeID => ({
+    recipeID,
+    recipe: await getRecipeById(recipeID),
+  })))
+  const missingRecipe = resolvedRecipes.find(({ recipe }) => !recipe)
+  if (missingRecipe) {
+    throw new GroceryRebuildSafetyError(
+      `Rebuild stopped because planned recipe "${missingRecipe.recipeID}" could not be loaded. Your grocery list was not changed.`,
+    )
+  }
+
+  const desiredByIdentity = new Map<string, GroceryItem>()
+  for (const { recipeID, recipe } of resolvedRecipes) {
+    const effectiveContent = metas?.[recipeID]?.overrides?.content || recipe!.content
+    let ingredients: string[]
+    try {
+      const parsed = parseContent(effectiveContent)
+      if (!Array.isArray(parsed.ingredients)) throw new Error('Ingredient parser returned an invalid result')
+      ingredients = parsed.ingredients
+    } catch (error) {
+      throw new GroceryRebuildSafetyError(
+        `Rebuild stopped because "${recipe!.title || recipeID}" could not be parsed. Your grocery list was not changed.`,
+      )
+    }
+
+    let usableIngredientCount = 0
+    for (const ingredient of ingredients) {
+      const prepared = prepareGroceryItem({ raw: ingredient, rejectContentArtifacts: true })
+      if (!prepared) continue
+      usableIngredientCount++
+      const { quantity, unit, name, normalizedName: identity } = prepared
+      const existing = desiredByIdentity.get(identity)
+      if (existing) {
+        if (existing.sourceRecipeIDs.includes(recipeID)) continue
+        const merged = mergeQuantities(
+          { quantity: existing.quantity, unit: existing.unit },
+          { quantity, unit },
+        )
+        existing.quantity = merged.quantity
+        existing.unit = merged.unit
+        existing.sourceRecipeIDs = [...existing.sourceRecipeIDs, recipeID]
+      } else {
+        desiredByIdentity.set(identity, {
+          id: '',
+          name,
+          quantity,
+          unit,
+          isChecked: false,
+          isManual: false,
+          sourceRecipeIDs: [recipeID],
+          ...(overriddenRecipeIdentities.has(identity) ? { needThisTrip: true } : {}),
+        })
+      }
+    }
+    if (usableIngredientCount === 0) {
+      throw new GroceryRebuildSafetyError(
+        `Rebuild stopped because "${recipe!.title || recipeID}" had no usable ingredients. Your grocery list was not changed.`,
+      )
+    }
+  }
+
+  // Allocate deterministic recipe-item IDs without ever targeting a surviving
+  // manual document, even when a manual item has the same normalized name.
+  const reservedDocumentIDs = new Set(manualDocumentIDs)
+  for (const [identity, item] of desiredByIdentity) {
+    let suffix = 0
+    let id = sanitizeDocId(identity)
+    while (!id || reservedDocumentIDs.has(id)) {
+      suffix++
+      id = sanitizeDocId(`${identity}-recipe${suffix === 1 ? '' : `-${suffix}`}`)
+    }
+    item.id = id
+    reservedDocumentIDs.add(id)
+  }
+
+  const desiredIDs = new Set([...desiredByIdentity.values()].map(item => item.id))
+  const staleAutoDocuments = existingAutoDocuments.filter(item => !desiredIDs.has(item.id))
+  const writeCount = staleAutoDocuments.length + desiredByIdentity.size
+  if (writeCount > FIRESTORE_SAFE_BATCH_SIZE) {
+    throw new GroceryRebuildSafetyError(
+      `Rebuild needs ${writeCount} writes, above the safe atomic limit of ${FIRESTORE_SAFE_BATCH_SIZE}. Your grocery list was not changed.`,
+    )
+  }
+
+  if (writeCount === 0) return
+  const batch = writeBatch(db)
+  staleAutoDocuments.forEach(item => batch.delete(item.ref))
+  for (const item of desiredByIdentity.values()) {
+    batch.set(doc(groceryPath(uid), item.id), {
+      ...item,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
-    .map<FirestoreBatchOperation>(item => batch => batch.delete(item.ref))
-  await commitFirestoreBatches(db, deleteOperations)
-
-  // Step 2: Re-add ingredients from EVERY planned recipe, regardless of day or
-  // role (neither affects the grocery list — we pull all planned recipes).
-  for (const recipeID of plannedRecipeIDList(plannedRecipeIDs)) {
-    const recipe = await getRecipeById(recipeID)
-    if (!recipe) continue
-    const effectiveContent = metas?.[recipeID]?.overrides?.content || recipe.content
-    const { ingredients } = parseContent(effectiveContent)
-    await addRecipeIngredientsToGrocery(uid, recipeID, ingredients)
   }
-
-  // Step 3: Reapply only to recreated recipe items with the exact same
-  // normalized identity. Missing identities expire naturally and fuzzy or
-  // substring reassignment is intentionally impossible.
-  if (overriddenRecipeIdentities.size > 0) {
-    const rebuilt = await getDocs(groceryPath(uid))
-    const reapplyOperations = rebuilt.docs
-      .filter(item => {
-        const data = item.data() as GroceryItem
-        return !data.isManual && overriddenRecipeIdentities.has(normalizeNoun(data.name))
-      })
-      .map<FirestoreBatchOperation>(item => batch => batch.update(item.ref, {
-        needThisTrip: true,
-        updatedAt: serverTimestamp(),
-      }))
-    await commitFirestoreBatches(db, reapplyOperations)
-  }
+  await batch.commit()
 }
 
 // ─── Add recipe ingredients to grocery ───────────────────────────────────────

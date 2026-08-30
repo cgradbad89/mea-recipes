@@ -36,6 +36,7 @@ const mocks = vi.hoisted(() => {
     },
     publishSharedPlan: vi.fn().mockResolvedValue(undefined),
     unpublishSharedPlan: vi.fn().mockResolvedValue(undefined),
+    rebuildGroceryFromPlan: vi.fn().mockResolvedValue(undefined),
     setPlannedRecipeRole: vi.fn(),
     refetchRecipes: vi.fn().mockResolvedValue(undefined),
     refetchMetas: vi.fn().mockResolvedValue(undefined),
@@ -95,7 +96,7 @@ vi.mock('@/lib/userdata', () => ({
   moveRecipeToWeek: vi.fn(),
   saveRecipeMeta: vi.fn(),
   getRecipeMeta: vi.fn(),
-  rebuildGroceryFromPlan: vi.fn(),
+  rebuildGroceryFromPlan: mocks.rebuildGroceryFromPlan,
   addRecipeToWeekPlan: vi.fn(),
   assignRecipeToDay: vi.fn(),
   saveCalendarEventIds: vi.fn(),
@@ -110,6 +111,7 @@ vi.mock('@/lib/recipes', () => ({
 vi.mock('@/lib/googleCalendar', () => ({ runCalendarPush: vi.fn() }))
 vi.mock('@/lib/consumptionLog', () => ({
   logCookEvent: vi.fn(),
+  undoCookEvent: vi.fn(),
   getTodayCookEventForRecipe: vi.fn().mockResolvedValue(null),
 }))
 vi.mock('@/lib/nutrition', () => ({ perServingForViewer: vi.fn() }))
@@ -121,6 +123,7 @@ beforeEach(() => {
   mocks.sharedPlan = null
   mocks.publishSharedPlan.mockReset().mockResolvedValue(undefined)
   mocks.unpublishSharedPlan.mockReset().mockResolvedValue(undefined)
+  mocks.rebuildGroceryFromPlan.mockReset().mockResolvedValue(undefined)
   mocks.setPlannedRecipeRole.mockReset()
 })
 
@@ -181,5 +184,18 @@ describe('plan write errors', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Publish plan' }))
     expect((await screen.findByRole('alert')).textContent).toContain('publishing its shared snapshot failed')
     expect(screen.getByText('Test Recipe')).toBeTruthy()
+  })
+
+  it('reports an atomic grocery rebuild abort and clears the pending state', async () => {
+    mocks.rebuildGroceryFromPlan.mockRejectedValueOnce(new Error(
+      'Rebuild stopped because a planned recipe could not be loaded. Your grocery list was not changed.',
+    ))
+    render(<PlanPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Rebuild grocery list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Rebuild' }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain('grocery list was not changed')
+    expect(screen.getByRole('button', { name: 'Rebuild grocery list' }).getAttribute('disabled')).toBeNull()
   })
 })

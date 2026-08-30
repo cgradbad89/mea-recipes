@@ -22,6 +22,7 @@ import {
   where,
   orderBy,
   limit as qLimit,
+  runTransaction,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore'
@@ -30,11 +31,10 @@ import type { NutritionMacros } from '@/types/recipe'
 import type { ConsumptionEntry, NutritionGoals, SavedFood, RecentFood, Meal } from '@/types/nutrition'
 import { servingsAmountLabel } from './nutrition'
 import {
-  getWeekPlan,
-  addRecipeToWeekPlan,
-  markRecipeCooked,
+  weekPlansPath,
   weekIDFromDate,
   plannedRecipeIDList,
+  type WeekPlan,
   type PlannedRole,
 } from './userdata'
 
@@ -73,8 +73,6 @@ export function scaleMacros(perServing: NutritionMacros, servings: number): Nutr
     sugar_g: r1(perServing.sugar_g * servings),
   }
 }
-
-const ZERO_MACROS: NutritionMacros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0, sugar_g: 0 }
 
 export function dayBounds(d: Date): { start: Date; end: Date } {
   const start = new Date(d); start.setHours(0, 0, 0, 0)
@@ -240,16 +238,38 @@ export interface CookEventResult {
   duplicate: boolean
 }
 
+export class CookEventNutritionError extends Error {
+  readonly code = 'cook-event-nutrition-unavailable'
+
+  constructor() {
+    super('Nutrition is not available for this recipe yet. Calculate nutrition, or use “Just mark cooked” without a nutrition log.')
+    this.name = 'CookEventNutritionError'
+  }
+}
+
+function localDateKey(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** Stable identity for one recipe's logical cook action on one local calendar day. */
+export function cookEventDocumentId(recipeId: string, occurredAt: Date): string {
+  const safeRecipeId = recipeId
+    .trim()
+    .replace(/[/\\]/g, '-')
+    .replace(/[^a-zA-Z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 200)
+  if (!safeRecipeId) throw new Error('A recipe ID is required to log a cook event.')
+  return `cook-${localDateKey(occurredAt)}-${safeRecipeId}`
+}
+
 /**
  * The single "mark as cooked" pathway used by BOTH Cooking Mode and the plan
- * page checkmark, so they act as one system:
- *  1. plan: if the recipe is on this week's plan → flag it cooked
- *     (cookedRecipeIDs union via markRecipeCooked); if not on the plan →
- *     add it to BOTH plannedRecipeIDs and cookedRecipeIDs (a recipe only in
- *     cookedRecipeIDs renders nowhere on the plan page).
- *  2. log: write ONE consumption_log entry with is_cook_event: true — unless
- *     a cook-event for this recipe already exists today (duplicate guard for
- *     the CookingMode-then-checkmark double-fire case).
+ * page checkmark. It transactionally updates plan membership/cooked state and
+ * creates one deterministic nutrition snapshot for recipe + local date. Both
+ * persisted identity and a read of legacy same-day cook logs prevent duplicate
+ * capture during retries or the CookingMode-then-checkmark sequence.
  *
  * Leftover/quick logging must NOT call this — it never touches the plan.
  */
@@ -262,35 +282,128 @@ export async function logCookEvent(
     servingsEaten: number
     weekID?: string                       // defaults to the current week
     role?: PlannedRole                    // existing caller context; no recipe fetch required
+    occurredAt?: Date                     // testable/local-day idempotency boundary; defaults now
   },
 ): Promise<CookEventResult> {
-  const weekID = params.weekID || weekIDFromDate(new Date())
-
-  // 1. plan update — reuse the exact existing write paths. Membership is checked via
-  // the shape-agnostic ID list (planned elements are objects now). Callers that
-  // already have recipe context pass its resolved role. No new recipe
-  // read is performed here; absent context retains the safe main fallback. An
-  // already-planned recipe keeps its existing day/role (the add is idempotent).
-  const plan = await getWeekPlan(userId, weekID)
-  if (!plan || !plannedRecipeIDList(plan.plannedRecipeIDs).includes(params.recipeId)) {
-    await addRecipeToWeekPlan(userId, weekID, params.recipeId, params.role)
+  if (!Number.isFinite(params.servingsEaten) || params.servingsEaten <= 0) {
+    throw new Error('Servings eaten must be greater than zero.')
   }
-  await markRecipeCooked(userId, weekID, params.recipeId, true)
+  const occurredAt = params.occurredAt || new Date()
+  const weekID = params.weekID || weekIDFromDate(occurredAt)
+  const entryId = cookEventDocumentId(params.recipeId, occurredAt)
+  const perServing = params.perServing
+  const planRef = doc(weekPlansPath(userId), weekID)
+  const logRef = doc(logPath(userId), entryId)
+  const occurrenceBounds = dayBounds(occurredAt)
+  const existingLegacyEvent = (await getEntriesForRange(
+    userId,
+    occurrenceBounds.start,
+    occurrenceBounds.end,
+  )).find(entry => entry.is_cook_event && entry.recipe_id === params.recipeId)
+  const legacyLogRef = existingLegacyEvent && existingLegacyEvent.id !== entryId
+    ? doc(logPath(userId), existingLegacyEvent.id)
+    : null
 
-  // 2. consumption log with duplicate guard
-  const existing = await getTodayCookEventForRecipe(userId, params.recipeId)
-  if (existing) return { loggedEntryId: null, duplicate: true }
+  const duplicate = await runTransaction(db, async transaction => {
+    const [planSnapshot, logSnapshot, legacyLogSnapshot] = await Promise.all([
+      transaction.get(planRef),
+      transaction.get(logRef),
+      legacyLogRef ? transaction.get(legacyLogRef) : Promise.resolve(null),
+    ])
+    const existingPlan = planSnapshot.exists() ? planSnapshot.data() as WeekPlan : null
+    const planned = existingPlan?.plannedRecipeIDs || []
+    const cooked = existingPlan?.cookedRecipeIDs || []
+    const alreadyPlanned = plannedRecipeIDList(planned).includes(params.recipeId)
+    const alreadyCooked = cooked.includes(params.recipeId)
 
-  const per = params.perServing ?? ZERO_MACROS
-  const entryId = await addLogEntry(userId, {
-    meal: autoMealForTime(),
-    type: 'recipe',
-    is_cook_event: true,
-    recipe_id: params.recipeId,
-    name: params.recipeName,
-    servings_eaten: params.servingsEaten,
-    nutrition: scaleMacros(per, params.servingsEaten),
-    source: 'recipe',
+    const cookLogExists = logSnapshot.exists() || legacyLogSnapshot?.exists() === true
+    if (!cookLogExists && !perServing) throw new CookEventNutritionError()
+
+    if (!existingPlan) {
+      transaction.set(planRef, {
+        weekID,
+        weekStartISO: weekID,
+        plannedRecipeIDs: [{ recipeID: params.recipeId, day: null, role: params.role || 'main' }],
+        cookedRecipeIDs: [params.recipeId],
+        updatedAt: serverTimestamp(),
+      })
+    } else if (!alreadyPlanned || !alreadyCooked) {
+      transaction.update(planRef, {
+        plannedRecipeIDs: alreadyPlanned
+          ? planned
+          : [...planned, { recipeID: params.recipeId, day: null, role: params.role || 'main' }],
+        cookedRecipeIDs: alreadyCooked ? cooked : [...cooked, params.recipeId],
+        updatedAt: serverTimestamp(),
+      })
+    }
+
+    if (cookLogExists) return true
+
+    transaction.set(logRef, {
+      meal: autoMealForTime(occurredAt),
+      type: 'recipe',
+      is_cook_event: true,
+      cook_event_key: entryId,
+      cook_event_week_id: weekID,
+      recipe_id: params.recipeId,
+      name: params.recipeName,
+      servings_eaten: params.servingsEaten,
+      nutrition: scaleMacros(perServing!, params.servingsEaten),
+      source: 'recipe',
+      date: Timestamp.fromDate(occurredAt),
+      created_at: serverTimestamp(),
+      userId,
+    })
+    return false
   })
-  return { loggedEntryId: entryId, duplicate: false }
+
+  return { loggedEntryId: duplicate ? null : entryId, duplicate }
+}
+
+/** Atomically unmark a planned recipe and remove its associated cook logs. */
+export async function undoCookEvent(
+  userId: string,
+  params: { recipeId: string; weekID: string; occurredAt?: Date },
+): Promise<{ removedLogCount: number }> {
+  const occurredAt = params.occurredAt || new Date()
+  const today = dayBounds(occurredAt)
+  const weekStart = new Date(`${params.weekID}T00:00:00`)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+  weekEnd.setMilliseconds(weekEnd.getMilliseconds() - 1)
+  const todayInsideWeek = occurredAt >= weekStart && occurredAt <= weekEnd
+  const ranges = todayInsideWeek
+    ? [{ start: weekStart, end: weekEnd }]
+    : [{ start: today.start, end: today.end }, { start: weekStart, end: weekEnd }]
+  const rangeEntries = await Promise.all(ranges.map(range =>
+    getEntriesForRange(userId, range.start, range.end)))
+  const matchingIDs = new Set(
+    rangeEntries.flat()
+      .filter(entry => entry.is_cook_event && entry.recipe_id === params.recipeId)
+      .map(entry => entry.id),
+  )
+  matchingIDs.add(cookEventDocumentId(params.recipeId, occurredAt))
+
+  const planRef = doc(weekPlansPath(userId), params.weekID)
+  const logRefs = [...matchingIDs].map(id => doc(logPath(userId), id))
+  return runTransaction(db, async transaction => {
+    const [planSnapshot, ...logSnapshots] = await Promise.all([
+      transaction.get(planRef),
+      ...logRefs.map(ref => transaction.get(ref)),
+    ])
+    if (planSnapshot.exists()) {
+      const plan = planSnapshot.data() as WeekPlan
+      transaction.update(planRef, {
+        cookedRecipeIDs: (plan.cookedRecipeIDs || []).filter(id => id !== params.recipeId),
+        updatedAt: serverTimestamp(),
+      })
+    }
+    let removedLogCount = 0
+    logSnapshots.forEach((snapshot, index) => {
+      if (!snapshot.exists()) return
+      transaction.delete(logRefs[index])
+      removedLogCount++
+    })
+    return { removedLogCount }
+  })
 }

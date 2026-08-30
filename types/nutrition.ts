@@ -30,6 +30,8 @@ export interface ConsumptionEntry {
   meal: Meal
   type: LogEntryType
   is_cook_event: boolean
+  cook_event_key?: string   // deterministic logical-action key for idempotent cooked capture
+  cook_event_week_id?: string
   recipe_id: string | null
   name: string
   servings_eaten: number   // canonical multiplier on the per-basis nutrition (grams entries store the equivalent)

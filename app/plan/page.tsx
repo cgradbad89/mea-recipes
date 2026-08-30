@@ -19,7 +19,7 @@ import {
 import { useAppData } from '@/components/AppDataProvider'
 import { parseRecipeContent, getRecipeById, recipeUrl } from '@/lib/recipes'
 import { runCalendarPush, type CalendarOp } from '@/lib/googleCalendar'
-import { logCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
+import { logCookEvent, undoCookEvent, getTodayCookEventForRecipe } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import StarRating from '@/components/StarRating'
 import SignInOptions from '@/components/SignInOptions'
@@ -437,8 +437,8 @@ export default function PlanPage() {
     setPlanActionError('')
     try {
       if (!isCooked) {
-        // un-tick keeps its original behavior: plan-only, never touches the log
-        await markRecipeCooked(user.uid, weekID, recipeID, false)
+        await undoCookEvent(user.uid, { recipeId: recipeID, weekID })
+        await refetchCookingHistory()
         return
       }
       // Tick: if a cook-event was already logged today (e.g. via Cooking Mode),
@@ -608,11 +608,18 @@ export default function PlanPage() {
     if (!user || !plan) return
     setRebuilding(true)
     setShowRebuildConfirm(false)
-    // rebuild pulls ALL planned recipes regardless of day/role.
-    await rebuildGroceryFromPlan(user.uid, plan.plannedRecipeIDs || [], getRecipeById, parseRecipeContent, metas)
-    setRebuilding(false)
-    setRebuildDone(true)
-    setTimeout(() => setRebuildDone(false), 2000)
+    setPlanActionError('')
+    try {
+      // Rebuild pulls ALL planned recipes regardless of day/role and commits the
+      // fully prepared replacement as one all-or-nothing Firestore batch.
+      await rebuildGroceryFromPlan(user.uid, plan.plannedRecipeIDs || [], getRecipeById, parseRecipeContent, metas)
+      setRebuildDone(true)
+      setTimeout(() => setRebuildDone(false), 2000)
+    } catch (error) {
+      setPlanActionError(error instanceof Error ? error.message : 'Couldn’t rebuild the grocery list. Your existing list was not changed.')
+    } finally {
+      setRebuilding(false)
+    }
   }
 
   const handleBulkAddToGrocery = async () => {

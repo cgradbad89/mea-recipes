@@ -254,4 +254,25 @@ describe('Cooking Mode mapping cutover', () => {
     await waitFor(() => expect(onMarkCooked).toHaveBeenCalledWith(1))
     expect(baseProps.onClose).toHaveBeenCalledOnce()
   })
+
+  it('guards duplicate finish submission while the persisted cook action is pending', async () => {
+    let resolveCook!: () => void
+    const onMarkCooked = vi.fn(() => new Promise<void>(resolve => { resolveCook = resolve }))
+    render(
+      <CookingMode
+        {...baseProps}
+        ingredients={['salt']}
+        instructions={['Add salt.']}
+        onMarkCooked={onMarkCooked}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Finish cooking' }))
+    const submit = screen.getByRole('button', { name: 'Mark cooked' })
+    fireEvent.click(submit)
+    fireEvent.click(submit)
+
+    expect(onMarkCooked).toHaveBeenCalledTimes(1)
+    await act(async () => resolveCook())
+    await waitFor(() => expect(baseProps.onClose).toHaveBeenCalledOnce())
+  })
 })

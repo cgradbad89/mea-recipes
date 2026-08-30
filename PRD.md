@@ -311,11 +311,17 @@ backfill is required. New writes use only the current 11-category contract. Lega
 automatically migrated in Firestore.
 
 ### `users/{uid}/nutrition/root/log/{entryId}` — consumption log (`ConsumptionEntry`, `lib/consumptionLog.ts`)
-One doc per consumed item (auto-ID; MFP-synced docs use deterministic `mfp-{date}-{foodEntryId}` IDs). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, recipe_id|null, name, servings_eaten, amount_label?, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'|'openfoodfacts'|'usda_branded'|'mfp'), created_at, userId`.
+One doc per consumed item (ordinary food logs use auto-IDs; cook events use deterministic
+`cook-{localDate}-{recipeId}` IDs; MFP-synced docs retain deterministic
+`mfp-{date}-{foodEntryId}` IDs). Fields: `date (Timestamp eaten), meal('breakfast'|'lunch'|'snack'|'dinner'), type('recipe'|'quick_food'|'manual'), is_cook_event, cook_event_key?, cook_event_week_id?, recipe_id|null, name, servings_eaten, amount_label?, nutrition{6 macros — SNAPSHOT totals = per-serving × servings_eaten}, source('recipe'|'usda'|'ai_estimate'|'manual'|'openfoodfacts'|'usda_branded'|'mfp'), created_at, userId`.
 `servings_eaten` is always the multiplier on the per-basis nutrition (per serving, or per 100 g for grams-entered items); `amount_label?` (optional) records the human-readable amount as entered — e.g. `"45 g"` or `"1.5 servings"` — for the Today view. The recursive console rule `users/{uid}/nutrition/{document=**}` already covers it (no rules change).
 Snapshot semantics: editing a recipe later never rewrites past entries. `is_cook_event: true`
 entries (written only via `logCookEvent` — Cooking Mode finish or plan checkmark) are the only
-ones tied to the plan; leftover/quick logs are `false` and never touch the plan.
+ones tied to the plan. `logCookEvent` transactionally updates the plan and creates the deterministic
+log document, so retries converge and a failed commit cannot expose only one side. Missing nutrition
+fails before either write instead of storing zero macros. Plan Undo atomically unmarks cooked state
+and deletes the associated deterministic/legacy cook-event documents it can resolve. Leftover/quick
+logs are `false` and never touch the plan.
 Note: the spec drafted this as a top-level `consumption_log` collection; implementation follows
 the existing `users/{uid}/{area}/root/*` convention instead.
 
@@ -423,6 +429,11 @@ retained as historical data and are not modified or deleted by this app.
     for URL compatibility, but `createRecipe` transactionally requires that ID to be absent. A title
     collision is explicit and recoverable; it cannot become an update. Existing shared-recipe
     mutations receive the intended document ID and use dedicated merge/update/delete helpers.
+11. **Cooked capture is one atomic logical action.** One recipe on one local calendar day maps to a
+    deterministic cook-log ID. `logCookEvent` writes the plan membership/cooked flag and nutrition
+    snapshot in one transaction; retry is idempotent, a later local day remains a distinct cook,
+    and missing nutrition cannot be zero-filled. The Plan Undo action transactionally reconciles the
+    cooked flag and associated log rather than silently changing only one side.
 
 ---
 
@@ -530,15 +541,15 @@ retained as historical data and are not modified or deleted by this app.
     Apply operations are committed in sequential chunks of at most 450 writes. Last-run tracked in
     `localStorage` `mea-grocery-last-cleaned`.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) captures exact
-    normalized identities of non-manual items whose temporary `needThisTrip` flag is true, deletes
-    non-manual/non-legacy items, then re-adds parsed ingredients from each planned recipe via
-    `addRecipeIngredientsToGrocery`, which merges by normalized noun and unions `sourceRecipeIDs`
-    (see §5.16). It finally reapplies the flag only to recreated non-manual exact-identity matches;
-    unmatched overrides expire and fuzzy/substring reassignment is never attempted. Manual items
-    survive in place with their active metadata unchanged. Idempotent: re-adding a recipe already
-    in `sourceRecipeIDs` is a no-op, and the
-    delete-then-re-add means quantities never double-count across rebuilds. Rebuild deletes and
-    clear operations are committed in sequential chunks of at most 450 writes.
+    normalized identities of non-manual items whose temporary `needThisTrip` flag is true, then
+    resolves every planned recipe and precomputes the complete parsed/merged replacement before any
+    write. Missing recipes, parser failures, unusable ingredient sets, or a replacement requiring
+    more than 450 writes abort visibly with the current list unchanged. A valid replacement deletes
+    stale auto items and sets the complete desired auto state in one atomic Firestore batch; it
+    merges by normalized noun, unions `sourceRecipeIDs`, and reapplies `needThisTrip` only to exact
+    recreated identities. Manual documents survive untouched, including same-name ID collisions.
+    Repeating a rebuild derives from recipe sources again and never doubles quantities. Independent
+    clear operations may still use sequential batches of at most 450 writes.
 12. **Flavor pairing scoring** — `getComplementaryIngredients` normalizes input ingredients
     (strips quantities/units/prep words), looks up pairings (exact → suffix → last word), and
     scores candidates by rank-weighted frequency, returning the top N not already present.
@@ -645,7 +656,9 @@ retained as historical data and are not modified or deleted by this app.
     override — it is pure render-time derivation. The "servings were assumed" caveat is suppressed
     once a viewer sets their own count. Override-aware cooked-capture: both `logCookEvent` call
     sites (recipe detail Cooking Mode + plan-page checkmark) snapshot `perServingForViewer(...)` so
-    a logged cook reflects the macros the user actually saw. The **edit modal** keeps a separate
+    a logged cook reflects the macros the user actually saw. Missing nutrition blocks the combined
+    log-and-mark action; the separate “Just mark cooked” control remains an explicit plan-only choice.
+    The **edit modal** keeps a separate
     "Recipe default servings · shared" control that writes the shared doc via `updateRecipeServings`
     (correcting a genuinely-wrong default for everyone) and preserves `overrides.servings` on save.
 18. **Low-confidence macro gating (display-only)** (Batch 3) — `nutrition.confidence` is
@@ -670,16 +683,15 @@ retained as historical data and are not modified or deleted by this app.
     normalization: canonical **Sides** and **Sauces & Condiments** → `side`; every other canonical
     category (including Breakfast, Snacks, and Drinks) → `main`; unknown/empty → `main` (a missing
     side is less wrong than a missing main). Recipe-specific legacy compatibility is used when the
-    recipe ID is already available. Cook-event adds pass the caller's already-resolved role and add
-    no Firestore read.
+    recipe ID is already available. Cook-event adds pass the caller's already-resolved role; the
+    cook transaction reads only the target plan and deterministic log documents.
     The role used on `addRecipeToWeekPlan` is `resolveRecipeRole(recipe)` at every add site (recipe
     detail, RecipeCard, Discover, Friends' "add to my plan"). A user can override per entry via the
     card's Main/Side toggle (`setPlannedRecipeRole`); the override is **persisted on the entry**, so the
     read-time derivation never clobbers a manual choice. The Plan UI groups cards by day (7-col grid on
     `lg`, stacked sections on mobile) with a shared **Unscheduled** area and **mains sorted before sides**
     within each day. Day/role are display/organization only — they **never** affect grocery
-    (`rebuildGroceryFromPlan` pulls all planned recipes regardless) or cooked tracking, and `logCookEvent`
-    is unchanged.
+    (`rebuildGroceryFromPlan` pulls all planned recipes regardless) or cooked tracking.
     **Add-time role precedence (Batch 5.1):** per-week entry override (`setPlannedRecipeRole`) >
     recipe `defaultRole` > category-derived (`resolveRecipeRole` = `defaultRole ?? deriveRoleFromCategory`).
     Setting a recipe's `defaultRole` (recipe-detail control, §3) applies to **future adds only** — it
