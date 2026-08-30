@@ -715,7 +715,7 @@ export default function PlanPage() {
     setPushError(null)
     setPushResult(null)
     try {
-      const results = await runCalendarPush(buildCalendarOperations())
+      const results = await runCalendarPush(weekID, buildCalendarOperations())
       // Start the next map from the prior one so partial failures keep prior truth: a
       // failed create is never added; a failed update/delete keeps its old id (the event
       // still exists on Google), so we never claim a missing event nor orphan a real one.
@@ -750,7 +750,9 @@ export default function PlanPage() {
       const cancelled = e?.code === 'auth/popup-closed-by-user' ||
         e?.code === 'auth/cancelled-popup-request' ||
         /popup/i.test(e?.message || '')
-      setPushError(cancelled ? 'Calendar access was cancelled.' : 'Calendar push failed — please try again.')
+      setPushError(cancelled
+        ? 'Calendar access was cancelled.'
+        : 'Calendar may be updated, but saving its sync status failed. Retry safely to reconcile it.')
     } finally {
       setPushing(false)
     }

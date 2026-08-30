@@ -52,7 +52,7 @@ export async function getCalendarAccessToken(): Promise<string> {
  * them against the user's PRIMARY calendar and returns one result per operation. All
  * calendar writes happen ONLY inside that route, ONLY for the operations passed here.
  */
-export async function runCalendarPush(operations: CalendarOp[]): Promise<CalendarOpResult[]> {
+export async function runCalendarPush(weekID: string, operations: CalendarOp[]): Promise<CalendarOpResult[]> {
   const user = auth.currentUser
   if (!user) throw new Error('Not signed in.')
   const accessToken = await getCalendarAccessToken()
@@ -60,7 +60,7 @@ export async function runCalendarPush(operations: CalendarOp[]): Promise<Calenda
   const res = await fetch('/api/calendar/push', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-    body: JSON.stringify({ accessToken, calendarId: 'primary', operations }),
+    body: JSON.stringify({ accessToken, calendarId: 'primary', weekID, operations }),
   })
   if (!res.ok) {
     const msg = await res.text().catch(() => '')

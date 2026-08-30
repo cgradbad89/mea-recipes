@@ -81,7 +81,7 @@ wrapped in a per-route `layout.tsx`.
 | `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model. |
 | `/api/fetch-recipe` | GET | Bearer token (required) | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted to authenticated users and the shared SSRF-safe public-URL boundary. |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters; failures are sanitized. |
-| `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope) + explicit per-day `create`/`update`/`delete` operations; it is restricted to the user's **primary** calendar and at most seven operations (one weekly plan), has no list/search capability, and never stores the token. |
+| `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope), `weekID`, and explicit per-day `create`/`update`/`delete` operations. It is restricted to the user's **primary** calendar and one validated operation per in-week day (maximum seven), has no list/search capability, and never stores the token. New creates receive an opaque SHA-256 application ID derived server-side from verified uid + week + day; a 409 reconciles by PATCHing that exact ID. |
 | `/api/cooking-step-map` | POST | Bearer token (required) | Publish-time hybrid cooking-step mapping for exact final `{content}`. Auth and bounded parsing precede work; parsed source is capped at 64,000 content characters, 200 ingredients, 150 instructions, and 4,000 characters/line. Fully deterministic recipes make no AI call; eligible unresolved semantics make at most one centralized Gateway call. AI failure returns HTTP 200 with the valid deterministic map and sanitized status. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from the validated `{topCuisines,topCategories,recentTitles}` taste profile. Raw JSON is capped at 256,000 bytes; each collection is capped at 500 strings and each string at 2,000 characters; internal failures are sanitized. |
 | `/api/plan-suggestions` | POST | Bearer token (required) | FlavorGraph-informed AI suggestions for a week plan. Raw JSON is capped at 256 KB; request content is bounded to ≤21 planned recipes and ≤500 existing titles. |
@@ -287,7 +287,11 @@ Calendar event the app created for each pushed day. Drives idempotent re-push (p
 event, absent → CREATE, a stored key whose day has no recipes → DELETE then drop the key). Written
 ONLY by `saveCalendarEventIds` (`lib/userdata.ts`, an `updateDoc` that replaces the whole field so
 removed day-keys disappear) after an **explicit** push; the app only ever updates/deletes IDs stored
-here — never a calendar search. Survives reads because WeekPlan is read as raw `snap.data()` (no field
+here — never a calendar search. Existing server-generated IDs remain valid and are updated/deleted
+in place. A missing legacy update heals into the new deterministic event identity. New creates use
+the route-derived `mea{sha256(uid,week,day)}` Google event ID, so a remote success followed by local
+persistence failure converges on retry without exposing the uid or creating another event. Survives
+reads because WeekPlan is read as raw `snap.data()` (no field
 whitelist; `normalizePlanned` only touches `plannedRecipeIDs[]`). See §5.21.
 
 ### `users/{uid}/pantry/root/groceryItems/{docId}` — grocery list (`GroceryItem`)
@@ -729,17 +733,25 @@ retained as historical data and are not modified or deleted by this app.
     pushed). Title `🍽 Dinner: <first main, else first side>`; description groups main-then-side, each line
     `Name — <recipeUrl(id)>` (`lib/recipes.ts` `recipeUrl` reuses the `/recipes/[id]` route + the recipe's
     slug id — never re-slugified), with a group header only when non-empty. Default start 6:30 PM local,
-    **60-min** duration; the picked time applies to all days in that push. **Idempotency** lives in
-    `weekPlans.calendarEventIds` (§3): client builds explicit per-day ops from the stored map —
+    **60-min** duration; the picked time applies to all days in that push. **Idempotency** uses both
+    `weekPlans.calendarEventIds` (§3) and an externally stable create ID: the client builds explicit
+    per-day ops from the stored map —
     `calendarEventIds[day]` present → `update` that event id, absent → `create`; a stored key whose day no
     longer has recipes → `delete` then drop the key — and `saveCalendarEventIds` persists the recomputed map
-    after the push. **Auth (Option B, no server Google creds):** the client mints a `calendar.events` OAuth
+    after the push. For a new create, the server hashes its verified Firebase uid + week + day into an
+    opaque lowercase-hex Google event ID. Google 409 “already exists” is reconciled by PATCHing that exact
+    owned ID; no alternate ID is generated. Thus a remote create whose Firestore map save fails can be
+    retried safely. Existing legacy IDs continue to update/delete unchanged; a missing legacy update
+    recreates only at the deterministic ID. Delete 404/410 is converged success. **Auth (Option B, no server Google creds):** the client mints a `calendar.events` OAuth
     access token via a Firebase Google **re-auth popup** (`lib/googleCalendar.ts`, scope requested only here,
     never on normal sign-in) and passes it to the auth-gated `/api/calendar/push` executor (§2), which calls
     the Calendar REST API. **Safety:** all writes happen ONLY on the button press (no effect triggers one);
-    the route has no list/search, so the app can only ever update/delete IDs it stored — never a
+    the route has no list/search, so the app can only ever update/delete stored IDs or the single
+    deterministic ID it owns for uid/week/day — never a
     search-and-delete; partial failures keep prior truth (failed create never recorded, failed update/delete
-    keeps its old id) and report the failed days. Day/role/cooked semantics, grocery, and nutrition are
+    keeps its old id) and report the failed days. The route rejects malformed IDs, duplicate/out-of-week
+    days, invalid time ranges/time zones, oversized text/body, and more than seven operations before
+    provider work. Day/role/cooked semantics, grocery, and nutrition are
     untouched. Requires the Calendar API enabled + the scope on the OAuth consent screen (see §6).
 22. **Canonical staples ingredient resolution** (Batch 4) — a curated, **live-verified** lookup
     (`lib/canonicalStaples.ts`, 122 entries) maps common cooking staples → the exact correct USDA
