@@ -96,6 +96,8 @@ export function QueueCard({
         hasImage: imageURL ? 'true' : 'false',
         created: new Date().toString(),
         modified: new Date().toString(),
+        ...(updatedItem.prepTime ? { prepTime: updatedItem.prepTime } : {}),
+        ...(updatedItem.cookTime ? { cookTime: updatedItem.cookTime } : {}),
         ...(cookingStepIngredientMap ? { cookingStepIngredientMap } : {}),
         ...(updatedItem.sourceNutrition ? {
           nutrition: updatedItem.sourceNutrition,

@@ -48,8 +48,8 @@ function queued(category: string): QueuedRecipe {
     sourceURL: '',
     description: '',
     servings: '4',
-    prepTime: '',
-    cookTime: '',
+    prepTime: '10 min',
+    cookTime: '20 min',
     status: 'pending',
   }
 }
@@ -123,6 +123,8 @@ describe('queue category review boundary', () => {
     )
     expect(mocks.publishQueuedRecipe.mock.calls[0][2]).toMatchObject({
       category: 'Sauces & Condiments',
+      prepTime: '10 min',
+      cookTime: '20 min',
       cookingStepIngredientMap: expect.objectContaining({ sourceHash: 'a'.repeat(64) }),
     })
     await waitFor(() => expect(onPublish).toHaveBeenCalledWith('queue-1'))
