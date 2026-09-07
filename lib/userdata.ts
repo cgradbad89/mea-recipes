@@ -60,6 +60,36 @@ export async function removeFavorite(uid: string, recipeID: string): Promise<voi
   await deleteDoc(doc(favoritesPath(uid), recipeID))
 }
 
+// ─── Want to Try ─────────────────────────────────────────────────────────────
+// users/{uid}/recipes/root/wantToTry/{recipeID}
+
+export function wantToTryPath(uid: string) {
+  return collection(db, 'users', uid, 'recipes', 'root', 'wantToTry')
+}
+
+export async function getWantToTryIDs(uid: string): Promise<Set<string>> {
+  const snap = await getDocs(wantToTryPath(uid))
+  return new Set(snap.docs.map(d => d.id))
+}
+
+export function subscribeWantToTry(
+  uid: string,
+  cb: (ids: Set<string>) => void,
+  onError?: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(wantToTryPath(uid), snap => {
+    cb(new Set(snap.docs.map(d => d.id)))
+  }, onError)
+}
+
+export async function addWantToTry(uid: string, recipeID: string): Promise<void> {
+  await setDoc(doc(wantToTryPath(uid), recipeID), { updatedAt: serverTimestamp() })
+}
+
+export async function removeWantToTry(uid: string, recipeID: string): Promise<void> {
+  await deleteDoc(doc(wantToTryPath(uid), recipeID))
+}
+
 // ─── Recipe Meta (notes + ratings) ───────────────────────────────────────────
 // users/{uid}/recipes/root/meta/{recipeID}
 

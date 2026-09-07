@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { CalendarPlus, Check, X, Loader2 } from 'lucide-react'
+import { Bookmark, BookmarkCheck, CalendarPlus, Check, X, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole } from '@/lib/userdata'
+import { useAppData } from '@/components/AppDataProvider'
 import RecipeImage, { getCategoryIcon } from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
@@ -76,6 +77,7 @@ function getWeekOptions(): { weekID: string; label: string; offset: number }[] {
 
 export default function RecipeCard({ recipe, meta, compact = false }: RecipeCardProps) {
   const { user } = useAuth()
+  const { isWantToTry, toggleWantToTry } = useAppData()
   const displayImageURL = meta?.overrides?.imageURL || recipe.imageURL
   const rawCategory = meta?.overrides?.category ?? recipe.category
   const displayCategory = normalizeRecipeCategory(rawCategory, recipe.id) ?? rawCategory
@@ -86,6 +88,7 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const wanted = isWantToTry(recipe.id)
 
   // Close on outside click — exclude the button itself
   useEffect(() => {
@@ -152,6 +155,12 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
     }
   }
 
+  const handleToggleWantToTry = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    void toggleWantToTry(recipe.id)
+  }
+
   return (
     <Link href={`/recipes/${recipe.id}`} className="recipe-card group block relative">
       <div className="relative aspect-[4/3] overflow-hidden bg-card">
@@ -189,6 +198,24 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
           } ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {added ? <Check size={14} /> : <CalendarPlus size={14} />}
+        </button>
+      </div>
+
+      <div className="absolute bottom-3 right-3 z-10">
+        <button
+          onClick={handleToggleWantToTry}
+          aria-label={wanted
+            ? `Remove ${recipe.title} from Want to Try`
+            : `Mark ${recipe.title} as Want to Try`}
+          aria-pressed={wanted}
+          title={wanted ? 'Remove from Want to Try' : 'Want to Try'}
+          className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-ink ${
+            wanted
+              ? 'bg-amber text-ink'
+              : 'bg-ink/60 text-muted hover:bg-amber hover:text-ink'
+          }`}
+        >
+          {wanted ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
         </button>
       </div>
 

@@ -61,8 +61,8 @@ wrapped in a per-route `layout.tsx`.
 | Page | Route | Status | Summary |
 |---|---|---|---|
 | Home (redirect) | `/` (`app/page.tsx`) | Done | Redirects to `/recipes`; no landing page |
-| Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence |
-| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers** and validated persisted `cookingStepIngredientMap` → safe deterministic fallback) |
+| Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence; per-user **Want to Try** bookmark toggle + filter |
+| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, per-user **Want to Try** action, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers** and validated persisted `cookingStepIngredientMap` → safe deterministic fallback) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup, persistent Usually On Hand preferences, and per-list Need This Trip overrides |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
@@ -255,6 +255,11 @@ get-by-known-id; see the rationale comment in `lib/cookingModeMappingFirestore.t
 ### `users/{uid}/recipes/root/favorites/{recipeID}` — favorites
 Doc per favorited recipe; body `{ updatedAt }`. Existence = favorited.
 
+### `users/{uid}/recipes/root/wantToTry/{recipeID}` — Want to Try
+Doc per personally saved recipe; body `{ updatedAt }`. Existence = Want to Try. Authenticated
+state syncs through Firestore; signed-out use is retained only in browser localStorage
+(`mea-want-to-try`), matching the existing Favorites interaction pattern.
+
 ### `users/{uid}/recipes/root/meta/{recipeID}` — notes, ratings, overrides (`RecipeMeta`)
 Fields: `recipeID, note?, rating?, updatedAt?, overrides?`. `overrides` may contain
 `title, cuisine, category, content, imageURL, prepTime, cookTime` (strings) and
@@ -414,7 +419,7 @@ retained as historical data and are not modified or deleted by this app.
    below. Admin-SDK routes bypass rules and are therefore protected separately in application code.
 4. **Week identity = Monday ISO date.** All meal-plan logic keys weeks by the Monday of the
    week as `YYYY-MM-DD` (`weekIDFromDate` in `lib/userdata.ts`).
-5. **Per-user data isolation.** Grocery, favorites, meta, week plans, saved items, and the
+5. **Per-user data isolation.** Grocery, favorites, Want to Try, meta, week plans, saved items, and the
    recipe queue are all scoped to `users/{uid}/…`; users never read each other's subcollections
    (the sole cross-user surface is the opt-in `sharedWeekPlans`).
 6. **Shared catalog, private edits.** Recipe documents in `recipes` are shared/global; a user's
@@ -475,7 +480,8 @@ retained as historical data and are not modified or deleted by this app.
    `mea_recipes_search`, `mea_recipes_cuisine`, `mea_recipes_category`, `mea_recipes_minRating`,
    `mea_recipes_source`, `mea_recipes_sort`, `mea_recipes_filter`, `mea_recipes_timeFilter`.
    `app/favorites/page.tsx` mirrors the same controls with parallel `mea_favorites_*` keys so
-   the two pages persist independently. Favorites does **not** apply the default "Added by me"
+   the two pages persist independently. The `mea_recipes_filter` value also covers the per-user
+   Want to Try filter. Favorites does **not** apply the default "Added by me"
    source filter.
 3. **Default recipe source filter** — defaults to `all`; the user's explicit source selection
    persists in `mea_recipes_source`. Sign-in does not auto-switch the list to "Added by me".
@@ -2319,6 +2325,16 @@ match /recipes/{recipeId} {
   allow write: if isRecipeAdmin();
 }
 ```
+
+Required Want to Try rule (**manual Firebase Console update only; not versioned or deployed from this repository**):
+
+```firestore
+match /users/{userId}/recipes/root/wantToTry/{recipeId} {
+  allow read, write: if isOwner(userId);
+}
+```
+
+This covers the signed-in implementation path. Signed-out bookmarks remain browser-local only and never reach Firestore.
 
 Required Cooking Mode mapping-persistence rules (added 2026-08-28, Implementation 3, extended
 2026-08-29 Implementation 4B with `completenessAttestations` — **not yet deployed to the console**;

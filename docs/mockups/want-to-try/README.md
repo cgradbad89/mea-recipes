@@ -25,13 +25,8 @@ Bookmark is familiar as a “save for later” metaphor and remains visibly dist
 - Bookmark controls are separate from the card navigation target.
 - Mobile targets are at least 40×40px; the final implementation should preserve a visible focus ring consistent with existing amber focus styling.
 
-## Implementation decisions intentionally deferred
+## Implementation status
 
-The mockup does not decide Firestore storage location, data migration, persistence-helper signatures, real filter-state wiring, localStorage persistence behavior, cross-device synchronization, automated tests, or any production component changes. Those decisions belong in a post-approval implementation task.
+The approved direction is now implemented. Want to Try is stored per signed-in user at `users/{uid}/recipes/root/wantToTry/{recipeID}`, with signed-out use retained in browser localStorage (`mea-want-to-try`) to match Favorites. The static board remains non-functional and does not connect to Firebase.
 
-## Scope confirmation
-
-- Production code: unchanged.
-- Data / Firestore: unchanged.
-- Dependencies: unchanged.
-- `PRD.md`: unchanged — design proposal awaiting product-owner approval.
+The Firebase rule is intentionally not versioned or deployed from this repository; see `PRD.md` for the manual Console rule required for the authenticated path.

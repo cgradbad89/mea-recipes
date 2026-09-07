@@ -11,10 +11,11 @@ import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 import { normalizeRecipeCategory } from '@/lib/recipeCategories'
+import { Bookmark, BookmarkCheck } from 'lucide-react'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
 type TimeFilter = 0 | 30 | 45 | 60
-type FilterOption = 'none' | 'cookedRecently'
+type FilterOption = 'none' | 'cookedRecently' | 'wantToTry'
 
 /** Parse a time string like "30 min", "1h 30min", "PT1H30M" into minutes. Returns Infinity if unparseable. */
 function parseMinutes(s?: string): number {
@@ -75,6 +76,10 @@ export default function RecipesPage() {
     recipesLoading: loading,
     recipesError,
     metasError,
+    wantToTry,
+    wantToTryLoading,
+    wantToTryError,
+    refetchWantToTry,
     refetchRecipes,
     refetchMetas,
   } = useAppData()
@@ -200,6 +205,7 @@ export default function RecipesPage() {
         // Never fall through to the full recipe list and mislabel it as filtered.
         if (!cookedRecentlyIDs || !cookedRecentlyIDs.has(r.id)) return false
       }
+      if (filter === 'wantToTry' && !wantToTry.has(r.id)) return false
 
       return matchCuisine && matchCategory && matchRating && matchSource
     })
@@ -228,7 +234,7 @@ export default function RecipesPage() {
       })
     }
     return sorted
-  }, [recipes, debouncedSearch, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, fuse])
+  }, [recipes, debouncedSearch, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, wantToTry, fuse])
 
   const SORT_OPTIONS: { value: SortOption; label: string }[] = [
     { value: 'default', label: 'Default' },
@@ -248,6 +254,7 @@ export default function RecipesPage() {
   const FILTER_OPTIONS: { value: FilterOption; label: string; requiresAuth?: boolean }[] = [
     { value: 'none', label: 'All' },
     { value: 'cookedRecently', label: 'Cooked recently', requiresAuth: true },
+    { value: 'wantToTry', label: 'Want to Try' },
   ]
 
   return (
@@ -320,8 +327,8 @@ export default function RecipesPage() {
           )}
         </div>
 
-        {/* Cooked recently filter */}
-        {user && FILTER_OPTIONS
+        {/* Personal recipe-state filters */}
+        {FILTER_OPTIONS
           .filter(opt => opt.value !== 'none' && (!opt.requiresAuth || !!user))
           .map(opt => (
           <button
@@ -333,6 +340,11 @@ export default function RecipesPage() {
                 : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
             }`}
           >
+            {opt.value === 'wantToTry' && (
+              filter === 'wantToTry'
+                ? <BookmarkCheck size={12} />
+                : <Bookmark size={12} />
+            )}
             {opt.label}
             {opt.value === 'cookedRecently' && loadingCooked && filter === 'cookedRecently' ? '…' : ''}
           </button>
@@ -340,20 +352,32 @@ export default function RecipesPage() {
       </div>
 
       <LoadingErrorRetry
-        loading={loading || (filter === 'cookedRecently' && loadingCooked)}
-        error={recipesError || metasError || (filter === 'cookedRecently' ? cookedRecentlyError : '')}
+        loading={loading || (filter === 'cookedRecently' && loadingCooked) || (filter === 'wantToTry' && wantToTryLoading)}
+        error={recipesError || metasError || (filter === 'cookedRecently' ? cookedRecentlyError : '') || (filter === 'wantToTry' ? wantToTryError : '')}
         retry={() => {
           if (cookedRecentlyError) setCookedLoadAttempt(attempt => attempt + 1)
-          else void Promise.all([refetchRecipes(), refetchMetas()])
+          else if (wantToTryError) void refetchWantToTry()
+          else void Promise.all([refetchRecipes(), refetchMetas(), refetchWantToTry()])
         }}
-        errorPrefix={cookedRecentlyError ? 'Couldn’t apply the Cooked recently filter.' : 'Couldn’t load your recipes.'}
+        errorPrefix={cookedRecentlyError
+          ? 'Couldn’t apply the Cooked recently filter.'
+          : wantToTryError
+            ? 'Couldn’t apply the Want to Try filter.'
+            : 'Couldn’t load your recipes.'}
         loadingFallback={(
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
       >
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && filter === 'wantToTry' && wantToTry.size === 0 ? (
+          <div className="text-center py-24">
+            <Bookmark size={40} className="text-faint mx-auto mb-4" />
+            <p className="font-display text-3xl text-faint font-light mb-2">No recipes to try yet</p>
+            <p className="text-faint text-sm font-body mb-6">Tap the bookmark on any recipe to keep it in your Want to Try list</p>
+            <button onClick={() => setFilter('none')} className="btn-ghost text-xs">Clear Want to Try filter</button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-24">
             <p className="font-display text-3xl text-faint font-light mb-2">No recipes found</p>
             <p className="text-faint text-sm font-body">Try adjusting your filters</p>

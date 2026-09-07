@@ -6,7 +6,14 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta, PlannedElement } from '@/lib/userdata'
-import { getFavoriteIDs, removeFavorite, addFavorite } from '@/lib/userdata'
+import {
+  getFavoriteIDs,
+  removeFavorite,
+  addFavorite,
+  getWantToTryIDs,
+  removeWantToTry,
+  addWantToTry,
+} from '@/lib/userdata'
 import { getAllRecipes as fetchAllRecipes } from '@/lib/recipes'
 
 // We need to define WeekPlanData since we are replacing useCookingHistory
@@ -35,6 +42,13 @@ interface AppDataContextType {
   toggleFavorite: (id: string) => Promise<void>
   isFavorite: (id: string) => boolean
 
+  wantToTry: Set<string>
+  wantToTryLoading: boolean
+  wantToTryError: string | null
+  refetchWantToTry: () => Promise<void>
+  toggleWantToTry: (id: string) => Promise<void>
+  isWantToTry: (id: string) => boolean
+
   cookingHistory: WeekPlanData[]
   cookingHistoryLoading: boolean
   cookingHistoryError: string | null
@@ -46,11 +60,15 @@ const AppDataContext = createContext<AppDataContextType>({
   metas: {}, metasLoading: true, metasError: null, refetchMetas: async () => {},
   favorites: new Set(), favoritesLoading: true, favoritesError: null, refetchFavorites: async () => {},
   toggleFavorite: async () => {}, isFavorite: () => false,
+  wantToTry: new Set(), wantToTryLoading: true, wantToTryError: null, refetchWantToTry: async () => {},
+  toggleWantToTry: async () => {}, isWantToTry: () => false,
   cookingHistory: [], cookingHistoryLoading: true, cookingHistoryError: null, refetchCookingHistory: async () => {},
 })
 
 const LOCAL_FAV_KEY = 'mea-favorites'
 const EMPTY_FAVORITES = new Set<string>()
+const LOCAL_WANT_TO_TRY_KEY = 'mea-want-to-try'
+const EMPTY_WANT_TO_TRY = new Set<string>()
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth()
@@ -189,6 +207,91 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const isFavorite = useCallback((id: string) => favorites.has(id), [favorites])
 
+  // --- Want to Try (User-scoped, + anon local storage) ---
+  // Mirrors Favorites deliberately: a signed-in user's list is Firestore-backed,
+  // while a visitor can use the bookmark before deciding to sign in.
+  const [wantToTryState, setWantToTryState] = useState<{
+    ownerUid: string | null
+    ids: Set<string>
+  } | null>(null)
+  const [wantToTryLoading, setWantToTryLoading] = useState(true)
+  const [wantToTryError, setWantToTryError] = useState<string | null>(null)
+  const wantToTryRequestRef = useRef(0)
+  const currentWantToTryOwnerUid = user?.uid ?? null
+  const currentWantToTryOwnerRef = useRef(currentWantToTryOwnerUid)
+
+  useEffect(() => {
+    currentWantToTryOwnerRef.current = currentWantToTryOwnerUid
+  }, [currentWantToTryOwnerUid])
+
+  const wantToTry = wantToTryState?.ownerUid === currentWantToTryOwnerUid
+    ? wantToTryState.ids
+    : EMPTY_WANT_TO_TRY
+  const currentWantToTryLoading = wantToTryLoading
+    || wantToTryState?.ownerUid !== currentWantToTryOwnerUid
+
+  const refetchWantToTry = useCallback(async () => {
+    const ownerUid = user?.uid ?? null
+    if (currentWantToTryOwnerRef.current !== ownerUid) return
+    const requestId = ++wantToTryRequestRef.current
+
+    setWantToTryError(null)
+
+    if (!ownerUid) {
+      let anonymousWantToTry = new Set<string>()
+      try {
+        const stored = localStorage.getItem(LOCAL_WANT_TO_TRY_KEY)
+        if (stored) anonymousWantToTry = new Set(JSON.parse(stored))
+      } catch {}
+      if (wantToTryRequestRef.current !== requestId
+        || currentWantToTryOwnerRef.current !== ownerUid) return
+      setWantToTryState({ ownerUid, ids: anonymousWantToTry })
+      setWantToTryLoading(false)
+      return
+    }
+    try {
+      setWantToTryLoading(true)
+      const ids = await getWantToTryIDs(ownerUid)
+      if (wantToTryRequestRef.current !== requestId
+        || currentWantToTryOwnerRef.current !== ownerUid) return
+      setWantToTryState({ ownerUid, ids })
+      setWantToTryError(null)
+    } catch (e: any) {
+      if (wantToTryRequestRef.current !== requestId
+        || currentWantToTryOwnerRef.current !== ownerUid) return
+      setWantToTryError(e.message)
+    } finally {
+      if (wantToTryRequestRef.current !== requestId
+        || currentWantToTryOwnerRef.current !== ownerUid) return
+      setWantToTryLoading(false)
+    }
+  }, [user])
+
+  const toggleWantToTry = useCallback(async (id: string) => {
+    const isWanted = wantToTry.has(id)
+    if (user) {
+      try {
+        if (isWanted) await removeWantToTry(user.uid, id)
+        else await addWantToTry(user.uid, id)
+        await refetchWantToTry()
+      } catch (err: any) {
+        console.error('Failed to toggle Want to Try:', err)
+        alert('Failed to update Want to Try. Please try again.')
+      }
+    } else {
+      setWantToTryState(prev => {
+        const current = prev?.ownerUid === null ? prev.ids : EMPTY_WANT_TO_TRY
+        const next = new Set(current)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        try { localStorage.setItem(LOCAL_WANT_TO_TRY_KEY, JSON.stringify(Array.from(next))) } catch {}
+        return { ownerUid: null, ids: next }
+      })
+    }
+  }, [user, wantToTry, refetchWantToTry])
+
+  const isWantToTry = useCallback((id: string) => wantToTry.has(id), [wantToTry])
+
   // --- Cooking History (User-scoped) ---
   const [cookingHistory, setCookingHistory] = useState<WeekPlanData[]>([])
   const [cookingHistoryLoading, setCookingHistoryLoading] = useState(true)
@@ -222,8 +325,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (authLoading) return
     refetchMetas()
     refetchFavorites()
+    refetchWantToTry()
     refetchCookingHistory()
-  }, [authLoading, user, refetchMetas, refetchFavorites, refetchCookingHistory])
+  }, [authLoading, user, refetchMetas, refetchFavorites, refetchWantToTry, refetchCookingHistory])
 
   return (
     <AppDataContext.Provider
@@ -231,6 +335,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         recipes, recipesLoading, recipesError, refetchRecipes,
         metas, metasLoading, metasError, refetchMetas,
         favorites, favoritesLoading: currentFavoritesLoading, favoritesError, refetchFavorites, toggleFavorite, isFavorite,
+        wantToTry, wantToTryLoading: currentWantToTryLoading, wantToTryError, refetchWantToTry, toggleWantToTry, isWantToTry,
         cookingHistory, cookingHistoryLoading, cookingHistoryError, refetchCookingHistory
       }}
     >

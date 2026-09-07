@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
-  BookOpen, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send, ShoppingCart, Check
+  BookOpen, Bookmark, BookmarkCheck, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send, ShoppingCart, Check
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader, setRecipeDefaultRole } from '@/lib/recipes'
 import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, addRecipeIngredientsToGrocery, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
@@ -51,6 +51,8 @@ export default function RecipeDetailPage() {
     favoritesError,
     toggleFavorite: toggle,
     isFavorite,
+    toggleWantToTry,
+    isWantToTry,
     refetchMetas,
     refetchFavorites,
     refetchRecipes,
@@ -316,6 +318,7 @@ export default function RecipeDetailPage() {
 
   const { ingredients, instructions, description } = parseRecipeContent(displayRecipe.content)
   const fav = isFavorite(displayRecipe.id)
+  const wanted = isWantToTry(displayRecipe.id)
   // "edited" badge reflects content edits only — a personal servings override has
   // its own "Your serving size" UI and shouldn't read as the recipe being edited.
   const hasOverrides = !!meta?.overrides &&
@@ -522,7 +525,7 @@ export default function RecipeDetailPage() {
       )}
 
       {/* Action buttons */}
-      <div className="flex gap-3 mb-8 relative">
+      <div className="flex flex-wrap gap-3 mb-8 relative">
         {user && (
           <div className="relative">
             <button onClick={handleOpenPlanPicker}
@@ -582,6 +585,14 @@ export default function RecipeDetailPage() {
             )}
           </div>
         )}
+        <button
+          onClick={() => void toggleWantToTry(displayRecipe.id)}
+          aria-pressed={wanted}
+          className={`btn-ghost w-full sm:w-auto justify-center flex items-center gap-2 ${wanted ? 'border-amber/40 text-amber bg-amber/10' : ''}`}
+        >
+          {wanted ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+          {wanted ? 'Want to Try ✓' : 'Want to Try'}
+        </button>
         {(ingredients.length > 0 || instructions.length > 0) && (
           <button onClick={() => setShowCookingMode(true)} className="btn-primary flex items-center gap-2">
             <ChefHat size={15} /> Cooking Mode

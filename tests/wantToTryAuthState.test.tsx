@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -42,16 +42,21 @@ vi.mock('@/lib/userdata', () => ({
 
 import { AppDataProvider, useAppData } from '@/components/AppDataProvider'
 
-function FavoritesProbe() {
-  const { favorites, favoritesLoading } = useAppData()
-  const ids = [...favorites].sort().join(',')
-  return <div data-testid="favorites">{favoritesLoading ? 'loading' : 'ready'}:{ids}</div>
+function WantToTryProbe() {
+  const { wantToTry, wantToTryLoading, toggleWantToTry } = useAppData()
+  const ids = [...wantToTry].sort().join(',')
+  return (
+    <>
+      <div data-testid="want-to-try">{wantToTryLoading ? 'loading' : 'ready'}:{ids}</div>
+      <button onClick={() => void toggleWantToTry('recipe-c')}>toggle</button>
+    </>
+  )
 }
 
 function provider() {
   return (
     <AppDataProvider>
-      <FavoritesProbe />
+      <WantToTryProbe />
     </AppDataProvider>
   )
 }
@@ -69,7 +74,7 @@ function installLocalStorage() {
   })
 }
 
-describe('AppDataProvider favorites auth ownership', () => {
+describe('AppDataProvider Want to Try auth ownership', () => {
   beforeEach(() => {
     installLocalStorage()
     localStorage.clear()
@@ -77,64 +82,60 @@ describe('AppDataProvider favorites auth ownership', () => {
     mocks.authState.loading = false
     mocks.fetchAllRecipes.mockReset().mockResolvedValue([])
     mocks.getDocs.mockReset().mockResolvedValue({ docs: [] })
-    mocks.getFavoriteIDs.mockReset()
+    mocks.getFavoriteIDs.mockReset().mockResolvedValue(new Set())
     mocks.addFavorite.mockReset()
     mocks.removeFavorite.mockReset()
-    mocks.getWantToTryIDs.mockReset().mockResolvedValue(new Set())
+    mocks.getWantToTryIDs.mockReset()
     mocks.addWantToTry.mockReset()
     mocks.removeWantToTry.mockReset()
   })
 
   afterEach(cleanup)
 
-  it('loads the signed-in user favorites normally', async () => {
+  it('loads the signed-in user Want to Try list from Firestore', async () => {
     mocks.authState.user = { uid: 'user-a' }
-    mocks.getFavoriteIDs.mockResolvedValueOnce(new Set(['recipe-a', 'recipe-b']))
+    mocks.getWantToTryIDs.mockResolvedValueOnce(new Set(['recipe-a', 'recipe-b']))
 
     render(provider())
 
     await waitFor(() => {
-      expect(screen.getByTestId('favorites').textContent).toBe('ready:recipe-a,recipe-b')
+      expect(screen.getByTestId('want-to-try').textContent).toBe('ready:recipe-a,recipe-b')
     })
-    expect(mocks.getFavoriteIDs).toHaveBeenCalledWith('user-a')
+    expect(mocks.getWantToTryIDs).toHaveBeenCalledWith('user-a')
   })
 
-  it('clears authenticated favorites on sign-out without clearing filter preferences', async () => {
-    localStorage.setItem('mea_favorites_search', 'pasta')
-    localStorage.setItem('mea_favorites_sort', 'az')
-    mocks.authState.user = { uid: 'user-a' }
-    mocks.getFavoriteIDs.mockResolvedValueOnce(new Set(['authenticated-recipe']))
-    const { rerender } = render(provider())
+  it('keeps an anonymous list local and toggles it without Firestore writes', async () => {
+    localStorage.setItem('mea-want-to-try', JSON.stringify(['recipe-a']))
+    render(provider())
+
     await waitFor(() => {
-      expect(screen.getByTestId('favorites').textContent).toBe('ready:authenticated-recipe')
+      expect(screen.getByTestId('want-to-try').textContent).toBe('ready:recipe-a')
     })
 
-    mocks.authState.user = null
-    rerender(provider())
-
-    expect(screen.getByTestId('favorites').textContent).not.toContain('authenticated-recipe')
-    await waitFor(() => {
-      expect(screen.getByTestId('favorites').textContent).toBe('ready:')
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'toggle' }))
     })
-    expect(localStorage.getItem('mea_favorites_search')).toBe('pasta')
-    expect(localStorage.getItem('mea_favorites_sort')).toBe('az')
+
+    expect(screen.getByTestId('want-to-try').textContent).toBe('ready:recipe-a,recipe-c')
+    expect(JSON.parse(localStorage.getItem('mea-want-to-try') || '[]')).toEqual(['recipe-a', 'recipe-c'])
+    expect(mocks.addWantToTry).not.toHaveBeenCalled()
   })
 
-  it('hydrates the supported anonymous source and ignores a late authenticated fetch', async () => {
+  it('does not expose a late authenticated response after sign-out', async () => {
     let resolveAuthenticated!: (ids: Set<string>) => void
     const authenticatedRequest = new Promise<Set<string>>(resolve => {
       resolveAuthenticated = resolve
     })
-    localStorage.setItem('mea-favorites', JSON.stringify(['anonymous-recipe']))
+    localStorage.setItem('mea-want-to-try', JSON.stringify(['anonymous-recipe']))
     mocks.authState.user = { uid: 'user-a' }
-    mocks.getFavoriteIDs.mockReturnValueOnce(authenticatedRequest)
+    mocks.getWantToTryIDs.mockReturnValueOnce(authenticatedRequest)
     const { rerender } = render(provider())
-    await waitFor(() => expect(mocks.getFavoriteIDs).toHaveBeenCalledWith('user-a'))
+    await waitFor(() => expect(mocks.getWantToTryIDs).toHaveBeenCalledWith('user-a'))
 
     mocks.authState.user = null
     rerender(provider())
     await waitFor(() => {
-      expect(screen.getByTestId('favorites').textContent).toBe('ready:anonymous-recipe')
+      expect(screen.getByTestId('want-to-try').textContent).toBe('ready:anonymous-recipe')
     })
 
     await act(async () => {
@@ -142,6 +143,6 @@ describe('AppDataProvider favorites auth ownership', () => {
       await authenticatedRequest
     })
 
-    expect(screen.getByTestId('favorites').textContent).toBe('ready:anonymous-recipe')
+    expect(screen.getByTestId('want-to-try').textContent).toBe('ready:anonymous-recipe')
   })
 })
