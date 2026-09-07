@@ -78,7 +78,7 @@ wrapped in a per-route `layout.tsx`.
 
 | Route | Method | Auth | Summary |
 |---|---|---|---|
-| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model. |
+| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). For URL/bookmarklet imports it deterministically extracts Recipe JSON-LD facts before AI parsing: a valid source image and complete publisher `NutritionInformation` (only when all six MEA macros plus a trustworthy serving count are present). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model only for recipe parsing. |
 | `/api/fetch-recipe` | GET | Bearer token (required) | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted to authenticated users and the shared SSRF-safe public-URL boundary. |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters; failures are sanitized. |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope), `weekID`, and explicit per-day `create`/`update`/`delete` operations. It is restricted to the user's **primary** calendar and one validated operation per in-week day (maximum seven), has no list/search capability, and never stores the token. New creates receive an opaque SHA-256 application ID derived server-side from verified uid + week + day; a 409 reconciles by PATCHing that exact ID. |
@@ -498,8 +498,12 @@ retained as historical data and are not modified or deleted by this app.
    catalog document.
 5. **AI recipe import flow** — Add modal / Queue: URL or pasted text → `POST /api/ai-ingest`
    → structured recipe → saved to `recipeQueue` (`status: 'pending'`) → reviewed in `/queue`
-   → published into `recipes`. Client-provided `imageURL`/`prepTime`/`cookTime` (e.g. from the
-   bookmarklet) take precedence over AI-parsed values.
+   → published into `recipes`. The bookmarklet first reads Recipe JSON-LD image (string, array,
+   or `ImageObject`), then recipe microdata, then `og:image`; it preserves the external HTTP(S)
+   URL and never rehosts it. Client-provided/structured `imageURL` and prep/cook facts take
+   precedence over AI-parsed values. Complete publisher nutrition is converted to MEA's
+   per-serving + durable-total contract with `source:'source_site'` and carried through the queue;
+   missing or ambiguous macros/servings are not zero-filled and remain on the existing fallback path.
 6. **Ingredient/instruction parsing** — `parseRecipeContent` (`lib/recipeContent.ts`, re-exported by
    `lib/recipes.ts`) splits the flat `content` string into ingredients/instructions by exact,
    case-insensitive header keywords (`INGREDIENTS`, `INSTRUCTIONS`, etc.) and strips `Step N`
@@ -597,7 +601,11 @@ retained as historical data and are not modified or deleted by this app.
     then merges the returned `nutrition` (stamping a fresh `computed_at` Timestamp) onto the doc and
     sets `nutritionStatus:'computed'`. The call is wrapped in `AbortSignal.timeout` (~20s at publish,
     45s for the manual retry) and **never throws** — on slowness/error it flags
-    `nutritionStatus:'needs_calc'` and returns null so the recipe still saves. Servings defaulting
+    `nutritionStatus:'needs_calc'` and returns null so the recipe still saves. A newly imported
+    recipe with complete, validated publisher nutrition instead persists that nutrition directly
+    (`source:'source_site'`, `confidence:'high'`, source per-serving values × published serving
+    count as `total`) and skips this fallback call; incomplete or ambiguous source nutrition always
+    invokes this unchanged engine path. Servings defaulting
     (→4, `+default_servings`, low confidence, durable `total`) happens inside the engine. The
     detail-page empty state offers a "Calculate nutrition" retry for flagged/uncomputed recipes.
     **(Implementation 6, 2026-08-29)** All three sites now also fire `triggerCookingModeMappingGeneration(recipeId, token)`

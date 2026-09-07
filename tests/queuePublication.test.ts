@@ -22,6 +22,7 @@ vi.mock('@/lib/firebase', () => ({ db: {} }))
 
 import { publishQueuedRecipe, publishQueuedRecipeInTransaction } from '@/lib/queue'
 import { RecipeAlreadyExistsError, type SharedRecipeWrite } from '@/lib/recipes'
+import type { RecipeNutrition } from '@/types/recipe'
 
 const recipe: SharedRecipeWrite = {
   recipeID: '',
@@ -105,5 +106,25 @@ describe('atomic queue publication', () => {
 
     await expect(publishQueuedRecipe('user-1', 'queue-1', recipe, 'user-1'))
       .rejects.toThrow('simulated commit failure')
+  })
+
+  it('preserves complete publisher nutrition on the recipe document', async () => {
+    const nutrition: RecipeNutrition = {
+      calories: 420, protein_g: 28, carbs_g: 36, fat_g: 18, fiber_g: 6, sugar_g: 7,
+      servings: 4, total: { calories: 1680, protein_g: 112, carbs_g: 144, fat_g: 72, fiber_g: 24, sugar_g: 28 },
+      source: 'source_site', confidence: 'high',
+    }
+    const transaction = transactionWith({
+      'users/user-1/recipeQueue/queue-1': snapshot(true, { status: 'pending' }),
+    })
+
+    await publishQueuedRecipeInTransaction(transaction as never, 'user-1', 'queue-1', {
+      ...recipe, nutrition, nutritionStatus: 'computed',
+    }, 'user-1')
+
+    expect(transaction.set).toHaveBeenCalledWith(
+      expect.objectContaining({ path: 'recipes/queue-collision' }),
+      expect.objectContaining({ nutrition, nutritionStatus: 'computed' }),
+    )
   })
 })

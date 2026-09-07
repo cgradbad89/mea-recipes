@@ -44,6 +44,10 @@ function jsonRequest(body: unknown) {
   return request(JSON.stringify(body))
 }
 
+function recipeHtml(recipe: Record<string, unknown>) {
+  return `<script type="application/ld+json">${JSON.stringify(recipe)}</script><article>Recipe</article>`
+}
+
 describe('POST /api/ai-ingest', () => {
   beforeEach(() => {
     mocks.verifyAuthToken.mockResolvedValue('user-123')
@@ -128,6 +132,46 @@ describe('POST /api/ai-ingest', () => {
     })
   })
 
+  it('uses complete publisher nutrition and structured image before AI guesses', async () => {
+    mocks.safeFetchText.mockResolvedValueOnce({
+      ok: true,
+      text: `<script type="application/ld+json">${JSON.stringify({
+        '@type': 'Recipe', image: { url: 'https://images.example/source.jpg' }, recipeYield: '4 servings',
+        nutrition: {
+          calories: '420 calories', proteinContent: '28 g', carbohydrateContent: '36 g',
+          fatContent: '18 g', fiberContent: '6 g', sugarContent: '7 g',
+        },
+      })}</script><title>Publisher Recipe | Site</title><body>Recipe body</body>`,
+    })
+    mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
+
+    const response = await POST(jsonRequest({ url: 'https://recipes.example/publisher' }))
+    const data = await response.json()
+
+    expect(data.imageURL).toBe('https://images.example/source.jpg')
+    expect(data.sourceNutrition).toEqual(expect.objectContaining({
+      source: 'source_site', servings: 4, total: expect.objectContaining({ calories: 1680, protein_g: 112 }),
+    }))
+  })
+
+  it('prefers valid bookmarklet facts over AI image guesses when the source fetch has none', async () => {
+    mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: '<title>Recipe | Site</title><body>Recipe body</body>' })
+    mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
+
+    const response = await POST(jsonRequest({
+      url: 'https://recipes.example/bookmarklet',
+      imageURL: 'https://images.example/bookmarklet.jpg',
+      sourceNutrition: {
+        calories: 420, proteinContent: '28 grams', carbohydrateContent: '36 g', fatContent: '18 g',
+        fiberContent: '6 g', sugarContent: '7 g', recipeYield: 4,
+      },
+    }))
+    const data = await response.json()
+
+    expect(data.imageURL).toBe('https://images.example/bookmarklet.jpg')
+    expect(data.sourceNutrition).toEqual(expect.objectContaining({ source: 'source_site', total: expect.objectContaining({ calories: 1680 }) }))
+  })
+
   it('accepts direct HTML import', async () => {
     mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
 
@@ -139,6 +183,25 @@ describe('POST /api/ai-ingest', () => {
       feature: 'recipe-ingest',
       prompt: expect.stringContaining('<article>Cacio e Pepe recipe</article>'),
     }))
+  })
+
+  it('extracts complete publisher facts from direct HTML imports too', async () => {
+    mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
+    const html = recipeHtml({
+      '@type': 'Recipe', image: '/direct-html.jpg', recipeYield: '2 servings',
+      nutrition: {
+        calories: '300 calories', proteinContent: '15 g', carbohydrateContent: '20 g',
+        fatContent: '10 g', fiberContent: '4 g', sugarContent: '2 g',
+      },
+    })
+
+    const response = await POST(jsonRequest({ html }))
+    const data = await response.json()
+
+    // No page URL was supplied, so a relative source image is not usable; the
+    // complete nutrition remains a deterministic publisher fact.
+    expect(data.imageURL).toBe(parsedRecipe.imageURL)
+    expect(data.sourceNutrition).toEqual(expect.objectContaining({ servings: 2, total: expect.objectContaining({ calories: 600 }) }))
   })
 
   it('accepts pasted text import', async () => {

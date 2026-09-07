@@ -9,6 +9,7 @@ import {
   recipeIdForTitle,
   type SharedRecipeWrite,
 } from './recipes'
+import type { RecipeNutrition } from '@/types/recipe'
 
 export interface QueuedRecipe {
   id?: string
@@ -24,6 +25,9 @@ export interface QueuedRecipe {
   servings: string
   prepTime: string
   cookTime: string
+  // Complete, deterministic publisher nutrition captured before AI parsing.
+  // Partial source metadata is intentionally not stored as a nutrition result.
+  sourceNutrition?: RecipeNutrition
   status: 'pending' | 'published'
   publishedRecipeId?: string
   publishedAt?: unknown

@@ -7,6 +7,8 @@ import { safeFetchText } from '@/lib/safeFetch'
 import { z } from 'zod'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
+import { extractSourceRecipeFacts, normalizeRecipeImageUrl, publisherNutritionFromStructuredData } from '@/lib/sourceRecipeFacts'
+import type { RecipeNutrition } from '@/types/recipe'
 
 const AI_INGEST_MAX_BODY_BYTES = 2_000_000
 const MAX_URL_LENGTH = 2_048
@@ -25,6 +27,7 @@ type AIIngestRequest = {
   imageURL?: string
   prepTime?: string
   cookTime?: string
+  sourceNutrition?: unknown
 }
 
 const REQUEST_SCHEMA: z.ZodType<AIIngestRequest> = z.object({
@@ -35,6 +38,7 @@ const REQUEST_SCHEMA: z.ZodType<AIIngestRequest> = z.object({
   imageURL: z.string().max(MAX_METADATA_LENGTH).optional(),
   prepTime: z.string().max(MAX_METADATA_LENGTH).optional(),
   cookTime: z.string().max(MAX_METADATA_LENGTH).optional(),
+  sourceNutrition: z.unknown().optional(),
 })
 
 export const RECIPE_SCHEMA = z.object({
@@ -108,6 +112,7 @@ export async function POST(req: NextRequest) {
       imageURL: providedImage,
       prepTime: providedPrep,
       cookTime: providedCook,
+      sourceNutrition: providedSourceNutrition,
     } = body
     requestMetadata = {
       mode,
@@ -151,6 +156,14 @@ export async function POST(req: NextRequest) {
     const text = mode === 'text' ? body.text! : ''
     let content = html || text
     let fetchedTitle = ''
+    let extractedNutrition: RecipeNutrition | undefined
+    let extractedImage = ''
+
+    if (mode === 'html') {
+      const sourceFacts = extractSourceRecipeFacts(html)
+      extractedImage = sourceFacts.imageURL
+      extractedNutrition = sourceFacts.nutrition
+    }
 
     if (mode === 'url') {
       try {
@@ -162,6 +175,9 @@ export async function POST(req: NextRequest) {
         })
         if (res.ok) {
           const rawHtml = res.text
+          const sourceFacts = extractSourceRecipeFacts(rawHtml, url)
+          extractedImage = sourceFacts.imageURL
+          extractedNutrition = sourceFacts.nutrition
           const titleMatch = rawHtml.match(/<title[^>]*>([^<]+)<\/title>/i)
           fetchedTitle = titleMatch ? titleMatch[1].replace(' - ', ' | ').split(' | ')[0].trim() : ''
           content = rawHtml
@@ -184,6 +200,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No content to parse' }, { status: 400 })
     }
 
+    // The bookmarklet sees the user's rendered page, which can contain facts a
+    // server fetch cannot reach (for example, a logged-in recipe site). Validate
+    // that compact structured payload here before it crosses the queue boundary.
+    const sourceNutrition = publisherNutritionFromStructuredData(providedSourceNutrition) || extractedNutrition
+
     const userMessage = mode === 'url'
       ? `Parse this recipe from ${url}:\n\n${content}`
       : `Parse this recipe:\n\n${content}`
@@ -201,9 +222,10 @@ export async function POST(req: NextRequest) {
         title: parsed.title || fetchedTitle || 'Untitled Recipe',
         sourceURL: url,
         // Prefer client-provided values (from bookmarklet) over parsed ones
-        imageURL: providedImage || parsed.imageURL || '',
+        imageURL: normalizeRecipeImageUrl(providedImage, url) || extractedImage || normalizeRecipeImageUrl(parsed.imageURL, url),
         prepTime: providedPrep || parsed.prepTime || '',
         cookTime: providedCook || parsed.cookTime || '',
+        ...(sourceNutrition ? { sourceNutrition } : {}),
       })
     } catch (err) {
       const limited = aiAbuseControlResponse(err)

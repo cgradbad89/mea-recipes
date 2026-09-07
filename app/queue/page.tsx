@@ -97,6 +97,10 @@ export function QueueCard({
         created: new Date().toString(),
         modified: new Date().toString(),
         ...(cookingStepIngredientMap ? { cookingStepIngredientMap } : {}),
+        ...(updatedItem.sourceNutrition ? {
+          nutrition: updatedItem.sourceNutrition,
+          nutritionStatus: 'computed' as const,
+        } : {}),
       }, uid)
       const recipeId = publication.recipeId
       setPublishedRecipeId(recipeId)
@@ -107,9 +111,9 @@ export function QueueCard({
       // triggerCookingModeMappingGeneration each flag/log their own failure
       // instead of throwing, so this Promise.allSettled never rejects.
       if (publication.created) {
-        setPublishStage('nutrition')
+        if (!updatedItem.sourceNutrition) setPublishStage('nutrition')
         await Promise.allSettled([
-          computeAndStoreNutrition(recipeId, token),
+          ...(updatedItem.sourceNutrition ? [] : [computeAndStoreNutrition(recipeId, token)]),
           triggerCookingModeMappingGeneration(recipeId, token),
         ])
       }
@@ -284,7 +288,9 @@ export function QueueCard({
 
 function BookmarkletCopy() {
   const [copied, setCopied] = useState(false)
-  const code = 'javascript:(function(){var u=window.location.href,img=\'\',prep=\'\',cook=\'\';var sc=document.querySelectorAll(\'script[type="application/ld+json"]\');for(var i=0;i<sc.length;i++){try{var d=JSON.parse(sc[i].textContent);if(d[\'@graph\'])d=d[\'@graph\'].find(function(x){return x[\'@type\']===\'Recipe\'})||d[\'@graph\'][0];if(d[\'@type\']===\'Recipe\'){img=typeof d.image===\'string\'?d.image:d.image&&d.image.url||\'\';prep=d.prepTime||\'\';cook=d.cookTime||\'\';break;}}catch(e){}}if(!img){var imgs=Array.from(document.images).filter(function(el){return el.naturalWidth>400&&el.naturalHeight>300});if(imgs.length)img=imgs[0].src;}function dur(s){if(!s)return\'\';var m=s.match(/PT(?:(\\d+)H)?(?:(\\d+)M)?/);if(!m)return s;return((m[1]?m[1]+\'h \':\'\')+( m[2]?m[2]+\' min\':\'\')).trim();}var p=new URLSearchParams({ingest:u,img:img,prep:dur(prep),cook:dur(cook)});window.open(\'https://mea-recipes.vercel.app/queue?\'+p.toString(),\'_blank\',\'width=520,height=750\');})();'
+  // Keep this self-contained: it runs on an arbitrary source page. The server
+  // validates every extracted value again before it can become queue data.
+  const code = 'javascript:(function(){var u=location.href,img="",prep="",cook="",nut="";function ok(v){try{var x=new URL(v,u);return /^https?:$/.test(x.protocol)&&!/(^|[\\/_\\-.])(icon|logo|avatar)([\\/_\\-.]|$)/i.test(x.href)?x.href:""}catch(e){return""}}function pic(v){if(typeof v==="string")return ok(v);if(Array.isArray(v)){for(var i=0;i<v.length;i++){var a=pic(v[i]);if(a)return a}}if(v&&typeof v==="object")return ok(v.url||v.contentUrl);return""}function recipes(v){if(Array.isArray(v)){return v.reduce(function(a,x){return a.concat(recipes(x))},[])}if(!v||typeof v!=="object")return[];var t=v["@type"],is=t==="Recipe"||(Array.isArray(t)&&t.indexOf("Recipe")>=0),a=is?[v]:[];return a.concat(v["@graph"]?recipes(v["@graph"]):[])}var sc=document.querySelectorAll("script[type=\\\"application/ld+json\\\"]"),rs=[];for(var i=0;i<sc.length;i++){try{rs=rs.concat(recipes(JSON.parse(sc[i].textContent||"")))}catch(e){}}for(var j=0;j<rs.length;j++){var r=rs[j];if(!img)img=pic(r.image);if(!prep)prep=r.prepTime||"";if(!cook)cook=r.cookTime||"";if(!nut&&r.nutrition){nut=JSON.stringify({calories:r.nutrition.calories,proteinContent:r.nutrition.proteinContent,carbohydrateContent:r.nutrition.carbohydrateContent,fatContent:r.nutrition.fatContent,fiberContent:r.nutrition.fiberContent,sugarContent:r.nutrition.sugarContent,recipeYield:r.recipeYield,servingSize:r.nutrition.servingSize})}}if(!img){var ms=document.querySelectorAll("[itemprop=\\\"image\\\"]");for(var k=0;k<ms.length;k++){if(ms[k].closest("[itemtype*=\\\"Recipe\\\"]")){img=ok(ms[k].content||ms[k].src||ms[k].href||"");if(img)break}}}if(!img){var og=document.querySelector("meta[property=\\\"og:image\\\"],meta[name=\\\"og:image\\\"]");img=ok(og&&og.content||"")}function dur(s){if(!s)return"";var m=String(s).match(/PT(?:(\\d+)H)?(?:(\\d+)M)?/);if(!m)return s;return((m[1]?m[1]+"h ":"")+(m[2]?m[2]+" min":"")).trim()}var p=new URLSearchParams({ingest:u,img:img,prep:dur(prep),cook:dur(cook)});if(nut)p.set("nutrition",nut);open("https://mea-recipes.vercel.app/queue?"+p.toString(),"_blank","width=520,height=750")})();'
   const copy = () => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true)
@@ -347,6 +353,11 @@ export default function QueuePage() {
     const bmImage = params.get('img') || ''
     const bmPrep = params.get('prep') || ''
     const bmCook = params.get('cook') || ''
+    let bmSourceNutrition: unknown
+    try {
+      const encoded = params.get('nutrition')
+      bmSourceNutrition = encoded ? JSON.parse(encoded) : undefined
+    } catch { /* malformed bookmarklet metadata should not prevent import */ }
     let active = true
     const ingest = async () => {
       try {
@@ -354,7 +365,7 @@ export default function QueuePage() {
         const response = await fetch('/api/ai-ingest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook }),
+          body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook, sourceNutrition: bmSourceNutrition }),
         })
         const data = await response.json()
         if (!response.ok || data.error) throw new Error(data.error || 'Recipe parsing failed')
@@ -367,6 +378,7 @@ export default function QueuePage() {
           servings: data.servings || '',
           prepTime: data.prepTime || '',
           cookTime: data.cookTime || '',
+          ...(data.sourceNutrition ? { sourceNutrition: data.sourceNutrition } : {}),
           ingredients: data.ingredients || [],
           instructions: data.instructions || [],
           sourceURL: ingestUrl,
