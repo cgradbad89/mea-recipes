@@ -1,0 +1,1421 @@
+{
+  "adminIdentity": {
+    "disabled": false,
+    "email": "folstromjohn@gmail.com",
+    "uidFingerprint": "a00a17a979665424ec05ff85afaee9530ab36bd4ecb4b957a227773cb85ed0a1",
+    "uidResolutionStatus": "resolved"
+  },
+  "autumnHarvestExpectedCountDiscrepancy": "The authoritative manifest and official JSON-LD both contain 13 legitimate ingredient rows; the brief's earlier expected-count note of 12 is superseded by its source-fidelity instruction.",
+  "batchId": "savory-september-october-2026-nine-recipes",
+  "catalogBaseline": [
+    {
+      "documentFingerprint": "d89604f41b975cc76c3081d151d2d72318306c7be6d4a854682bdbd101150db9",
+      "id": "151",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "b1124568a8704895036e244bdad732bfb2368613081b281f7acc1ac2752ba945",
+      "id": "152",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c35726c53230eb7378560b22c1765e11fbb9ec28c6635f21d233cdea7a2ae676",
+      "id": "155",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "00e1a8ec951f5983dc57a720ed6fa4ec5cf2434f21c2a3d2295e62f83e1a6203",
+      "id": "156",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "3356c6830a2a9cca18d4b4f38c3c0fe1c4ebf52ed733b9022426ff21617b7649",
+      "id": "157",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "3126841fb498096ae2c94d97f36dbfc73979b8bd247d72ddcddceb0d24a25d46",
+      "id": "158",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "68aa307eab312067e474a5832420d14426822ba7300de666171b98d33f397757",
+      "id": "159",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "eda6c4f4b128f73460b80a65f48390d245c205d9d15d3678e929b8cb70759375",
+      "id": "161",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "12ddd1e8ae0577d72ddb86f8f35ff358dbb49bf6d4eeb30cc431ba3a41b158fd",
+      "id": "162",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "7aaaa9fc0df81e18aa43aca2bbc0080ab761bba71597b39d3b50c753d077950a",
+      "id": "164",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "314b9c13753f24dfda23f91c9ba2ef7b81b3b460ab699a3f082f7a5d6c1c64a8",
+      "id": "166",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "bcb48fc9a63a8c728686654135c5845d49200406f5b38fb07ed938a543a87aaf",
+      "id": "167",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "46f8e6ab94f16930bc87f51cd93ba4dd6f158431fbd6eb1075c1fae16a532dfd",
+      "id": "168",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c0e55e2df9ebf36fde6477135844a2980e514190c45ae3b6012c69356a431e2c",
+      "id": "171",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "35fb406e8db2c4dee5f0a154148175a4dddb024c20c6210c5c46a83da0e0d91c",
+      "id": "173",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "219ec81a4108c4ce248464a50c491c499b2b8deb4f460a6e28d57070511a7d1a",
+      "id": "176",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "403e33b5f1efe66040a6d3c856130f9359a11724f86f643d43b52149b048aed3",
+      "id": "178",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4580af049ce6487cc9fce03c5d984dda3555aaa52aa91f91101cedf9b6e499b3",
+      "id": "179",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "783513c6f1cff42148f7e7a38f756097322159883d8c29a78ac904f2e69f76ff",
+      "id": "180",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "1e35c7a50ccc178c0c1e78cefbdb8eb9a6e2d875aceeef935163e4b384a32a81",
+      "id": "182",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "91795e7320476335f5edae39ac06d705dae05b61a39694656da3834f4b0e75a4",
+      "id": "184",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "feef99674586697d12d8f8bf7a2a76462bcba9824d70a2162f89aae8c47e13af",
+      "id": "185",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "9e231293e8dbdfeb2825c1837829eb53defdf229472d058645edd86a622d6471",
+      "id": "186",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "9ebcecbad98d581e2ebba831160497460b33642092622ce844bae8ed04527de4",
+      "id": "187",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "34478009c4e87584eb9b67d8eeb6e39f37b7158823057cb742088327a6ece85e",
+      "id": "188",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4bbdc7bde0018d374e504b47c5db22a9bec78d852aec17016a531e2fcc7e4fca",
+      "id": "189",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d09d986d2ca76183c3204dde7ed197fe834ef784b43268e6e1567ff152a13e1d",
+      "id": "190",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "bbe070105823cf4e58af419ffc1b54522b63b278950f9735b13be675eb009db1",
+      "id": "191",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "cacc3c02a268f072eaf439d52ee6106ec3d4d00aa0225056e2f679e5246f8d0a",
+      "id": "192",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "10a42a3a6499ed54c02b1f65684b6dfbcb12d46374eb392901b8a5eeec49bfea",
+      "id": "194",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0d78cfbba4c3858692fb9e19f9bd6e869e49932f6ba03137046c66574f258be0",
+      "id": "195",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "18db9c647e80b565f8724c959dc877499cefc1ec6eb3d6173aa6e0d38f403484",
+      "id": "197",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4ccc10c54385fd3ce8da5463573e0897b5e2654688668604736373b1912d2e3c",
+      "id": "198",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "b555e33118a9218c97a151d5d8e0d805d76895eda5611b56a472af1d9f0228ba",
+      "id": "199",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "28861ffbd20cba1a3470342cfb1b67a42dbfb06d3bd95e734442a5eb9eafc4f8",
+      "id": "air-fried-sweet-potato-fries-with-rosemary-and-garlic",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0a4b15cc863472f79a3ddf61e1f47c5227d9a99c6b9b67b5b85719b5754cd976",
+      "id": "air-fryer-falafel",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "361105ab15a76b615d9ee12876faace373b7552dd1ccff671e94fd8a5caaa4d3",
+      "id": "balsamic-roasted-beets",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0f63b5067b1cdf955ddeb09b40b2b44896a4b7b8bc5d765aab85ee74c2bcf120",
+      "id": "best-black-bean-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d4b6140bbf901ebdcbeb18c5374d81f4eee6327e389026cfd5175ee7e4e98acb",
+      "id": "black-lentil-and-harissa-roasted-veggie-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6c3834a2391f8e20e877e0cdcd98b565b0d514568c19983d73bed9203a2aaea8",
+      "id": "blackened-chicken-breasts",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0413045c0970aac2041d78cb5d04e430558e72edaa51a10e80ec1061ede8405e",
+      "id": "blue-corn-green-chili-chicken-enchiladas",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "daaceca8cf2b86faea2d771f6985c7292c471e4680b5a3efa67e032ba77dbcaa",
+      "id": "braised-red-cabbage",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4388861d4839da2c34808d2ce127af1ec71798d4ba4c0ee081c547957f93e8c8",
+      "id": "bread",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "a98fa9dc4e0086931df0730b22d632b0461475ad5c0c390744d90a808a613be6",
+      "id": "broccoli-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "826352dc93f4a8c8e7bca0f32c4b40f6670cc759c4a2a9de9afc8e4540d1c68b",
+      "id": "brown-butter-lentil-and-sweet-potato-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "054e1be424c2a8f88904b8604ccbb6089538abb8dfe072d32021ef93754e63bf",
+      "id": "buttered-peas-with-mint",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "3230086f451f405cf7df8cc898b480cc7c5b6ea80b4b058cec9642b7614b1d3b",
+      "id": "buttersoy-chicken-and-asparagus-stirfry",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c858acd9efc1e21383c4dfbe9cd0bd86e10a7aaab3b410bf26bcc91b6774b4d9",
+      "id": "caprese-salad",
+      "updateTimeMillis": 1788027329272
+    },
+    {
+      "documentFingerprint": "ce89fdf83da51c29c12f843f60c563b033511032cdcce0beef5622d552a94708",
+      "id": "caramelized-brussels-sprouts-pasta-with-toasted-chickpeas",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "b69e816f12fd73a67a8c50a89e7a2614a8182a83a6508e04925d42e948a56d7e",
+      "id": "cauliflower-breakfast-muffins",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "bec0924ca283a9d08c1813032a37134cddd4fdc4fa36af740b404f12e696ef17",
+      "id": "cauliflower-curry",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "60544e938e09b22a51427b2e876655f731f23384dde1228eb4c17faf9f4ff1ee",
+      "id": "chana-masala",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "f82b6f5246e570049ffc1bc6aff0d76f662554ceafe35309a4b3dab42d1fce2f",
+      "id": "charlie-bird-s-farro-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "3d44e713309a10f209a8f4646af45b6dcd83152f76f1eea8f2730ce34f707ce3",
+      "id": "charred-corn-and-chickpea-salad-with-lime-crema",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "1c723c2a867206ef35edf6bbe7757715e5d6e014b497228f3036c7e601103fd1",
+      "id": "chicken-chickpea-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "b73fcfc9ce69965c00e84c999bac9c3704babc2dc99aef4a6f7d3d21af4ccd3d",
+      "id": "chicken-chow-mein",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "24ec8bbf2e3854485ed19255a698ae5c5b1bbfa556b7f60257cf357fd477db64",
+      "id": "chicken-enchiladas",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "08b205043deb34f6e6a905cf8676c56e1aea7753fbc44a16674da71a20092d20",
+      "id": "chicken-fajitas",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "eef3ee937976d42c692f02cfeed12bcf27c18a8cb290e406c6ea47e4a333b303",
+      "id": "chicken-gyro-chopped-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "25f002fe34e58b1829a9d5ca16ab6a307c83f22edb2ff27098a1fe3c7ff0069a",
+      "id": "chicken-meatballs-with-peppers-and-orzo",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "b1bbb57e5506ec996aa2318c8901cd7d2977740ccc620863e605c0a28e603bad",
+      "id": "chicken-paprikash",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "f0ed03995e8fc79b873ff583c20a5d84f5303cc0ac83b8522b6a6b3eed1113b6",
+      "id": "chicken-souvlaki-bowl-with-tzatziki",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d34ada7fb322c26b6e21f86c4b6555d9aee1c4e21b21f2aee2cb08ca7537c992",
+      "id": "chicken-stew",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "d150ab1aa2b72704c8c0604c0b5dab5b65b60d0eb2fc256b877b23d9d834953b",
+      "id": "chicken-tacos-w-pineapple",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "9ee9950f6e94c80747029346e0e510e14018711da2120627486cb6d731317724",
+      "id": "chicken-tikka",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d21b8d5ec7e22b2ce1c2851914b47b2bf805aed85f20b90d75e92e6bf8249495",
+      "id": "chicken-wild-rice",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f8556f2418b042def63fb056aad6e1a54a2b738248c88f0f226b30da6fb34c8b",
+      "id": "chickpea-and-fennel-ratatouille",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4fc5c11759fcc560055f1f73936cbf09114a6123b881d0390e50717b63a7448d",
+      "id": "chickpea-curry",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "bf9b26858eefde84a08c6b401b32655b56dce06b19103d48c6f2cc267f98a080",
+      "id": "chilecrisp-tofu-tomatoes-and-cucumbers",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4c1ff6d6e8a4d05057707e47e3773702091d0f37f440d76e3bbfd69d4a0424fb",
+      "id": "chili-lime-fish",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "577c724e4c5ff8ef1fcc3f1b2d4f0bfb7da8c1837a67901245b4ff841808b806",
+      "id": "chimichurri-chicken",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "5eecfa3eb54dd77ad0bbe65c321cd8fbcb1a5358ad913d5133e86910c929c84a",
+      "id": "chinese-chili-oil",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "4818c1b082889455a94671d708476bd01095af79f26ff0b3ad4928a12c3927f5",
+      "id": "chipotle-tahini-bowls",
+      "updateTimeMillis": 1781133585538
+    },
+    {
+      "documentFingerprint": "721aa68e4033b3b21da58c2863449efa51f3d505c600a3d4861850bf48d5295b",
+      "id": "chopped-thai-shrimp-salad-with-garlic-lime-dressing",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6df6371fc7691f435e8016e58814f2a5d6894d8de374eeb5a590385e44edde1a",
+      "id": "citrusy-couscous-salad-with-broccoli-and-feta",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "eb36d8afa2daf466be4f7dca2f2255cadd04e5b5789351964b220c25e05227f5",
+      "id": "classic-bbq-corn",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4b282eb6a376febfe8e5f0dc4ae75bfee3d335f7438a94bb798391b1995d3c4d",
+      "id": "couscous-salad-with-lime-basil-vinaigrette",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "a7399f6b912aede56e4de8afc0a228946d84fdced94d3f4113fe58486d4ca4de",
+      "id": "crazy-good-dal-adas-spicy-red-lentil-tamarind-soup",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "36694f710b8bbf31374b0849a4478a3cf6759c23e946d6ac420a9e31d77c9dd3",
+      "id": "creamy-cauliflower-soup-with-rosemary-olive-oil",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "826014534fb2a12f438ff0d742e5ce5baed1b1badd02751cf5afacab32aa46ca",
+      "id": "creamy-chickpea-spinach-masala-with-tadka",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "009e8f528078dfb09bac116879c3428e0f9f5cef9b8650db234c898b18b80a84",
+      "id": "creamy-kale-pasta",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f7dacc896af6e7991cc58bad81a370082a543dad7508c9e2e2fda2ca34f1eb76",
+      "id": "crisp-gnocchi-with-brussels-sprouts-and-brown-butter",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "45ed8bafca14077dbdb9c1446fe2926da757494b2c874b7afee37dc6fb7ff401",
+      "id": "crispy-gnocchi-with-burst-tomatoes-and-mozzarella",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "0149cf9e3e94f21ace596badabdbf516b82fb0d627cf6421dfec19419acaa26f",
+      "id": "crispy-gnocchi-with-sausage-and-broccoli",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "1e75913cd655f8898efbc50c375cfdcc8fcec804c2aaf5e778def34190fce04f",
+      "id": "crispy-gnocchi-with-tomato-and-red-onion",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f2634dba5c1ffbf0a7228d67e1f34cde56497a5f4bc8bba2158d6171d513d3ca",
+      "id": "crunchy-queso-wrap",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "061a6048bc61d0635f101cf3be5cdf1d754e8fd1b42c53552d476f68ad8eede2",
+      "id": "cucumber-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d82efa9dfe6870b9fe014657b9a61a891c07df0b79ecc6b7ad1fdfe81742f3d7",
+      "id": "cucumber-tomato-salad-with-red-wine-vinaigrette",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "072c44318db79852f44d595e9c9d8060209462766b24cdb6ab117565f6c35230",
+      "id": "curried-red-bean-soup-with-kale",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "f0dab9b93dd4b9683e87f7bd712bba1540fd1edccaa7191e3383c87e907da01d",
+      "id": "curry-tomatoes-and-chickpeas-with-cucumber-yogurt",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "03084a18472a46db3a5ec24bfd9c1d9ffaa760b1440866064f49b118755df4db",
+      "id": "dads-chili",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "b7c173f974ed726e0ea3e97222166af4fc382784712f33b3d0a2096fd0f789ae",
+      "id": "dan-dan-noodles",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4b9cc280120233ce8e0defac6f0c4818d06c40680577ce57ae47aa7ee356c03c",
+      "id": "doro-wat-ethiopianstyle-spicy-chicken",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6157221df42ee1c8a85d04b010598c3cc16b90ef9462fbf3d0875483803d2ec0",
+      "id": "easy-chicken-ramen",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "612afae4aaa65b70af1de8b2f817ec1e4576c8a55fa3b6b1f8f9938f20652da6",
+      "id": "easy-spaghetti-with-meat-sauce",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c0d5594c2582dc422e6dee018a4526a5c561ef827c08631605ed06137e13cfe1",
+      "id": "filipino-brased-chicken-tocino",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "4434fa6366dad15617daf60fe7434766e9e545b4d4ef246f9df5482770b6631f",
+      "id": "fried-chicken-sandwich",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0fa014fd46f3a20d5a960789c7ac7d0d6aa1f69426af0fc33a0527d3320a2fdd",
+      "id": "garlic-bread",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f941d4e39086fd5cb17772838a23788d69179941e70a78a4527af5d548495948",
+      "id": "garlic-butter-herb-steak-bites-with-potatoes",
+      "updateTimeMillis": 1788027329272
+    },
+    {
+      "documentFingerprint": "6ee89593a0bd78b3f57d75dd8a8031475f1a2c3ec901074742e0c3ac2c2698e2",
+      "id": "garlic-butter-roasted-broccoli",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "7b9cdc6f6cb76879cf99a9500f8dbc812592246646ebdb073571e8f0dd284874",
+      "id": "garlic-herb-shrimp-with-white-beans-and-spinach",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "bfaa96d2fb3f316be0bf1ccfd296c9388183d836dfd2b9617ab21be5abad2a78",
+      "id": "garlic-parmesan-roasted-potatoes",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "16165ff69e2c0b03edbdeb8c90f34e8ee7e42b2e4b4c764dc1a4490dab0d9075",
+      "id": "gochugaru-salmon-with-crispy-rice",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "717527cbf439f89a7a28f9a57a9d4719a208ab4caba7252a8b9530a6c5dcf931",
+      "id": "gochujang-noodles-with-crispy-tofu",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0dfa32157c2f1b3bf6fc48e23867a924a100b397fef741b147d8bbdcfac1fc70",
+      "id": "green-goddess-roasted-chicken",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "a376edbd115b0acecadd3e501dd525bde3a96581a3e92e04499478ba345df652",
+      "id": "grilled-chicken-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d05573d9ebf947169a888296f9f4f789e10bd30e5ed569ccd0f1b6497a4c7407",
+      "id": "grilled-fish-tacos",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "472c904d04e77badbcda3c76878925fe69d0a51c05020b225cf141a650336c19",
+      "id": "grilled-salmon",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d714e938babfd09debaa7e3342f4859f2033f5ba0ccd5a1d13ccc15f7ddea46a",
+      "id": "grilled-zucchini-and-summer-squash",
+      "updateTimeMillis": 1788027329272
+    },
+    {
+      "documentFingerprint": "b464f0062bb4f5f67eb9fe7ef22341403c1e0db84c23b570565856cccbaf8ef6",
+      "id": "grownup-mustard-sauce-recipe",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "dd570285cfde7e4740b98960c2be35e92b322bf629d401cb5e3fab6cbdc23359",
+      "id": "hearthealthy-peanut-butter-protein-bars",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "5db6937ac7d2d1a39eff274b36115224142f44f906b5848ace0eff4f0a45c6ca",
+      "id": "herb-roasted-cauliflower",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "3957a9e1aeaa687637da5581b866c702603ed6e42b81d996c3b44571e8e4ba0e",
+      "id": "honey-butter-glazed-carrots",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "bcc6d81f437b2477a9318212d29052b8b0a5da60c047331b2e6085deddbeaefe",
+      "id": "honey-glazed-roasted-parsnips",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c2ef0099870613bda8f065ac057af9dceeb8205445fdf56ecf419ea02b025e04",
+      "id": "honey-sriracha-roasted-brussels-sprouts",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "580e3fffa76b30e545ec4c6403cb691bbe13e7b656d420e7e8891e54546258cc",
+      "id": "hot-mustard-grilled-chicken",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c2f15550cc098eb3de71f9f5d650daa36cea8a3d573f63188bee16eef660c8ca",
+      "id": "huevos-rotos-broken-eggs",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "91e4e6797a7a5ee7ca1b79067cf80ffd88c96799a40621e9cfe4adeeb37a7d12",
+      "id": "indian-spiced-roasted-vegetables",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "67fa17f3c9906f2bff7514c16a0f492a193a4d50f31f08c326208078b1b914b5",
+      "id": "intsa-punjabi-chole",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f6a01c47f513de42bcd87f204151348b3777ea556d90e3f9aa6c348e6b1a69cb",
+      "id": "italian-sausage-and-white-bean-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d5ce2b5d1cc2c495d61796ea47b27765f04f7ffacd0bd11f9e506ec7f3dbadb9",
+      "id": "jalape-o-cheddar-cornbread",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "36b0dbbe35e5c7a9565dd133350c2af631d43d2f79d64aaa48041a2e067fffcb",
+      "id": "jam-oat-bars",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4a99bc94be05bb8a66400257abbea65ae3ef38cc9b949017e026aa2076e0d1e9",
+      "id": "japanese-cold-soba-noodle-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "7100beac797571db82a1cd269af064760dda4e440040aff9223735384d968092",
+      "id": "japanese-teriyaki-salmon-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "158db771d069e3c616b95e5662f477f7bc71fa85949cc9c2bb6d950d5d778f46",
+      "id": "jocn-chicken-and-tomatillo-stew",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "128ccd9685b7f5a5bbdb49666467085efd7b9c9fe3b8a2401676a5c04023509b",
+      "id": "kale-and-quinoa-salad-with-plums-and-herbs",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "47d36439d2c989a3f708372ff0c27ab8d37a73b9bee6caa5c7dcc576f48db59f",
+      "id": "kimchi-ramen",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6710f061f90e157bcbfb6886ecd662db5da92e92e1467fb8eed53835ded6f507",
+      "id": "korean-bulgogi-beef-bowls",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "ac1f8d43027e1522e837604d08cadc4839122a9b9d031591d6df66ed53a40d03",
+      "id": "korean-sundubu-jjigae-soft-tofu-stew",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "2d6c9eddb69740375d6d4839c075634e1387392a821105ef8bfe6741a56fe452",
+      "id": "kung-pao-tofu",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "7cdf8081f0d8dd2478c523192a136e1ca9cde29252bad11f763c4678a657d95a",
+      "id": "lebanese-lemon-garlic-chicken-thighs",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "5dcd0017f3af9c2a75aa723839b8a596dc9fd0a6aff19dae07fd941a1db675c2",
+      "id": "lemon-garlic-roasted-artichokes",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "ed227296c724b1293b158eb419b5eefac31fb8cd3a8619630e79eca0a09856bc",
+      "id": "lemon-herb-pasta-salad-with-marinated-chickpeas",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "1a2c3c02325506990a14773475e501a05618497102f0f5044d9709f2b6df75b8",
+      "id": "lemongrass-chicken",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "b15733ed3c05ad5693034dcefb0142dde253132ad73e60791e4b8a7a147155fc",
+      "id": "mango-black-bean-quinoa-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d4c76c7c689e7c0258dc8bac9ce51d2658864293bb60ce940293590285ea63b9",
+      "id": "maple-roasted-candied-pecans",
+      "updateTimeMillis": 1787659993298
+    },
+    {
+      "documentFingerprint": "6fea925d0a9f3b5c7e3fad5b2b7af66ecbb0116d193c52a2d2d1561a817525b9",
+      "id": "mapo-rag-crazy-good",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "1a8650329e9f163dc111395fbe44d44bca40bfb63b057e0bab1ac20d682f56fd",
+      "id": "maraq-misir-red-lentil-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "9f0a441103a717f5bf322233402288a8c4908ef55fc95d8e8caaffa5a2b1cabe",
+      "id": "mediterranean-grilled-salmon",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "a70c46814033d048970d7d83729e6b747c17f7ee32cbca216c7ce7f217e77a34",
+      "id": "mediterranean-quinoa-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "20deef57150ab8a4f3d029046077c26a5ab7fa5512afa66ee6524d655317fa48",
+      "id": "megans-wild-rice-kale-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6f58e3eee64921852e0fb266ab4e23c67daf74e47641b9e52266bb57629a9647",
+      "id": "mexican-oaxacan-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "22e18bea1746713e82e59437dd512b7427b1973fe7d480992a66b07de5a298cc",
+      "id": "mexican-roasted-cauliflower",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f04f289539fb088ce876eead8eb5a1a17c95c8cf22e5753780f56e49b53f3ccc",
+      "id": "mexican-roasted-zucchini",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d464bee4588484ff9cafc2535ddff813c7c2bd896b39f42021fb441aac0e68e4",
+      "id": "mexican-street-corn",
+      "updateTimeMillis": 1787659993298
+    },
+    {
+      "documentFingerprint": "6647ac99de837719ac4a49cba776ee7e12a474144f448180871e2834d035dae6",
+      "id": "michelada-chicken",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "1e0f57b9fe5e0953b3af9a54f429f54fac940d37bc5027aaba02e3e40d94d459",
+      "id": "miso-glazed-eggplant",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "935d01c5e386b770391ed557c970a862706b57493854ff3892dbd02926f19ed3",
+      "id": "mole-poblano",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "f0d5b015019b7f0ea38cb03db1fee9bafc05f9b8c0fd361d514598a6eb6b0ae5",
+      "id": "moqueca-brazilian-fish-stew",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f9b368df738b6547767128ffa75e4d72cfafbfb9a52fd0ca12abf4b06eef1be0",
+      "id": "moroccan-spiced-carrot-and-chickpea-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "5aeae1c4a5ca46054ce4a6caf1a69427aab1be799ffe23efaf6d985009e928c5",
+      "id": "one-pan-farro-with-tomatoes-and-kale",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "73a296c9c78246e75e43573d436ec10a0c07f73d947ef0f58d9d8c5400742adc",
+      "id": "onepot-beans-greens-and-grains",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f947b8b707f160329d961d8557cbad65cbe5ebc9b6a9d47ee35489bc2b47540b",
+      "id": "onepot-chicken-and-lentil",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "baa65f7439bfab85db2cc80f2a82bb7612216dc83a6e5a947f95899d2c207508",
+      "id": "onepot-chicken-and-rice-with-caramelized-lemon",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "719304dc23c656a680e5192ab4d95533292dbb40a5b0a060c744cab3dc46c801",
+      "id": "onepot-ratatouille-pasta",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "cdb08ea203803a42b22174415213677f9a61dfbd75e65492db717831fce44b11",
+      "id": "onepot-tofu-and-broccoli-rice",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f65adda745dca8c919ea04f3b26a5fecc61433f1945189e3a6fb4b52b7830f43",
+      "id": "original-texas-chili-con-carne",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "dc027857a5bf4b975b9ba54b46381666b3199d1618830cc72fc198507043bf5f",
+      "id": "orzo-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "9023b64d10989b1fcd5451834bfb9236a274aacaf1accbee103ada0b4a63f576",
+      "id": "pad-thai",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "b9eba34d8a7fcec2db597390d480e22293514cab7bc14e948a7105ba32814718",
+      "id": "peanut-butter-oat-protein-shake",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "d1ff9cbf48b5174b787644936d63c30204d6f6aac845f7e18b7020640ac934f4",
+      "id": "pearl-couscous-skillet-with-tomatoes-chickpeas-and-feta",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "ca927fc286e3105b43335c3c28f08cb346d0128c058e0aead42f9e67eaab129c",
+      "id": "pearl-couscous-with-creamy-feta-and-chickpeas-meh",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "9b0b24d5d06885adf32dd94d52e2cf4b6c6e2175b7294af30537fe7b214d49f7",
+      "id": "pepper-steak",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "2eadc0008419043ef4615ee50fb146363c59050b62e4bd51a1b260828e18774a",
+      "id": "peruvian-chicken-w-green-sauce",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "e0d18e6c8c6267432aa8f8c2122eb37f016cee50e37af8a41ae4211d2855e156",
+      "id": "peruvian-roasted-chicken-with-spicy-cilantro-sauce",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "c4dd50ab7d0cb4ccd3ba0f98f7189100b39e01a08a1eed41e1cf2f5e906c1ee2",
+      "id": "pesto",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "a9cd51f7cc8694d0bee743189311544d1a45e2f32f6efef78cbec823bc90590c",
+      "id": "pork-fried-rice",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "9a103140b01ca52376ba3ac34693a5256d62cdbc6c62cd08cc3744f57d921874",
+      "id": "pozole-verde-wowza",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "82a97e8a1978305b566d1cf1407217aa02187cd9a28777d0a979cbaf57651938",
+      "id": "pulled-pork",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0b4d0e4f6f5bff1d817c03cedfeff7261b92d740a589546d36785c086ec1b275",
+      "id": "queso-chicken-chili-with-roasted-corn-and-jalape-o",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "73cd2d031d02ed57f1b21f6eb7bd14452aedb12cdc87489bca33d23ae0a7ddcb",
+      "id": "quinoa-sweet-potato-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6453134bd9a76a1baab40493a5f6611764f6962cfab8b84f361c4a84d66e33df",
+      "id": "radish-cucumber-and-white-bean-farro-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "7117a02a1370544286c4cac4c196b9c3463a4af535ca87a14e6e122a47043963",
+      "id": "rainbow-quinoa-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d75f17638d47de90b88f8a566e79b236bca8ef3dd96b0625d991af4b21553357",
+      "id": "ramen-carbonara",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4273bfd692341774fea0ea6d34260910476f9eb801b5a31660b179cfae0b2e0e",
+      "id": "ribollita-tuscan-white-bean-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "187772f26fad8307daabe07bba2091e420d76fbfacc119d7b6f293f3970f49e5",
+      "id": "rice-pilaf",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "85159b589901814682e3d793900fe3f718cd39f85a50213443a69398d4f6e4c9",
+      "id": "rising-sun-mazcal",
+      "updateTimeMillis": 1787659993298
+    },
+    {
+      "documentFingerprint": "485704857930477ca7f20f96c726f539eba49776a680657ace4536ab0b697c68",
+      "id": "roasted-acorn-squash-with-brown-butter",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "eed65c76aec0cf1486cd66742b9ade195786d997029347f9a4cbc835c2c7395b",
+      "id": "roasted-asparagus-with-lemon",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c0656de514e0e5e285a83b8e4c7540784a04d26f70bd5e631449f124bc33ada0",
+      "id": "roasted-broccoli-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "edbd14ff61652685f9e62045ec545ea074b26911a63a207a4c7ec41cc88141a6",
+      "id": "roasted-brussels-sprouts-with-bacon",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "73a6966a5b5fd88e3e2c163aac3185f8c5c1d2aa409fd370afb5c686387919dc",
+      "id": "roasted-cauliflower-tacos-with-chipotle-crema",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0fe0fe9fe5d8ab27993fd1c8e0a4f1bc8b1ae427ee71db549e4b5aef497272ae",
+      "id": "roasted-radishes-with-herb-butter",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "914b3959b91577fa3f3df49e721e349549577b00a8ba00c0d1e69b94bf60f127",
+      "id": "roasted-root-vegetable-medley",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "e5ac43f061538896b4452db2536ba294b9220dc37f364aa1d2ecd8ab51f6a9ea",
+      "id": "roasted-veggie-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "414c41b930f3a5a6c12e9359664b785ee9cb0d131f29ddecee7a27fcd1c20419",
+      "id": "roasted-white-bean-and-tomato-pasta",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "2c853200a2ec6862911e55fe7ed8975305f2104e696c8f5220b2f86d9df9cf1f",
+      "id": "saucy-gochujang-noodles-with-chicken",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "541b475c0e2aa4653e63c97b2e8c836a6bb8c1d59254b4983e5c376065e720cb",
+      "id": "sausage-rag",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "f3f5cdd589c42a37de5d6463aaaad970ca54c13a960f7f6cef9ae4ead95ba2a8",
+      "id": "saut-ed-garlic-green-beans",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "5cd0804c663872eadec65eb3f8c022a6c46e1650c171deaf4408fab691fa5b34",
+      "id": "saut-ed-kale-with-garlic-and-lemon",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "4ca80b29d91da060753b6791c7463d4d19ad6455bcf5a83c983fbc7e223b9492",
+      "id": "schmancy-hot-smoked-salmon",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "e5e11d76c2265d636511a2972e1c79ac21034fd30bf84dfb671b2a8d23157ded",
+      "id": "seared-broccoli-and-potato-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6158fce70647a363dde3d32b644dd07b2a292e6a3d21cbe8eb97682103f8fcd4",
+      "id": "sesame-apricot-tofu",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "978f89eb281b9538f9d212786b3eefc88095b2710920c08304554d580197254f",
+      "id": "shakshucka",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "a002674b843ed337ca5a87dc2343a1f519c7165f93a3b7f463ddcebd7a21af39",
+      "id": "shakshuka-with-feta",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "13d16d7beb6bbcaa2a2f081f30f40918d41f720252a842479ff91250c5df1cfb",
+      "id": "sheet-pan-bibimbap",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d3bf2de8ae7c8ccf906e78b6184409814c3ed627e6f5e48963c183349369b42c",
+      "id": "sheet-pan-chicken-tinga-bowls",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "ef303919889b215076b72291bcf9377f2d5244a15bb77cdcc9fce95e4519a41f",
+      "id": "sheet-pan-kielbasa-with-cabbage-and-beans",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "fbdb8e83ae02b932184d9d2b15ad41cf0295e984b614aa44cdcb2ce041f13e97",
+      "id": "sheetpan-gochujang-chicken-and-roasted-vegetables",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "4d1cadb0a9496d5932f2319bc5942b9e80fd80459e1da24adcbfa871d03a86df",
+      "id": "shrimp-pullao",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "e3815a0c0be0ac4ffa423fe7e905d55591d2fd1818a786b013ccb99e62b7b704",
+      "id": "simple-house-salad-with-vinaigrette",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "8835194a298fd64b9852c9d9a043619bb59ce76f31878466e3692691a7d47596",
+      "id": "singapore-mei-fun",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "53d242fdde5079779a97b91714b74113ec5c7201e80dd43acbe76d795f9de510",
+      "id": "skillet-chicken-and-pearl-couscous-with-moroccan-spices",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "33ae0127fb24a736d0c39c9f7f7d29506779c313fb3be27c275e6d77700c02c7",
+      "id": "skillet-gnocchi-with-miso-butter-and-asparagus",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "ab1e86784f27c8e841085031cc7e59c04238ccd6354d38fe54b0f2bdfe75223f",
+      "id": "slow-cooker-creamy-tomato-lentil-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "90ec63544e0e9807fcc4443a1e9b950a418e33e4a41af9ada0f3d8c41313801e",
+      "id": "slow-cooker-hot-honey-chicken",
+      "updateTimeMillis": 1787921586358
+    },
+    {
+      "documentFingerprint": "002b474f650e08bca16a8255a49156fedac36a72e45511ce6afb9964ee6ede2f",
+      "id": "smashed-cucumber-edamame-rice-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "848fa60d259facdf8fffbbc6f6b3236c2022903f2f4e07a5595a7b6ed3f06e5e",
+      "id": "smashed-zucchini-with-chickpeas-and-peanuts",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "df7937c3966316bdd118a2f777d27e9244a636c623952c0beb6e19acb8d9bb6a",
+      "id": "smoothies",
+      "updateTimeMillis": 1787659993298
+    },
+    {
+      "documentFingerprint": "cf25ae525bf6cdbb0c856e569e24df51e85db2310285768331e943baa0b4ae88",
+      "id": "spaghetti-carbonara",
+      "updateTimeMillis": 1787323393277
+    },
+    {
+      "documentFingerprint": "a019608c645b77580eca5391852975623b55d2e1728d3bbe4a4c8e29d77c9675",
+      "id": "spanish-chickpea-and-spinach-espinacas-con-garbanzos",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "1fca8df431e595bdad3615e6531792cbe00f1a67cfc8df1eba7ea249b565f411",
+      "id": "speget-with-fake-meat-meatballs",
+      "updateTimeMillis": 1787418254030
+    },
+    {
+      "documentFingerprint": "ca74e2337bf60159a47032b0ef07fe396c4a6bbd8a2dbc45cf72c55cafc6e9fb",
+      "id": "spicy-coconut-lentil-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "faa4f29a7c250bfa437a3b1feed452d2ed31b890f5a01eb8705e860f87bf38b5",
+      "id": "spicy-ovenfried-rice-with-gochujang-and-fried-eggs",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "219853939e1295a618a32213b5502868d5f6c491cb8d889aae6f2cda5b700023",
+      "id": "sticky-miso-salmon-bowl",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "8fe697a09f43739a209904297f720a40ff2b29c03489a929d04c245ce27ff99d",
+      "id": "sticky-pineapple-ribs",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "5665da1c5c7bef64aaa665838fb6dc6fdae99b32f7f99815193b5cce7c0e0eb6",
+      "id": "suadero-tacos",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "a5c7f90cb149b527ae02fad0c90937c88c06daea3b8ce72bb9272f9c9cd8f5b6",
+      "id": "taco-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "97dc94a9b00ff60f32a1aa4e763936b2f7100abb1579c0781360e7b617111958",
+      "id": "tacos-al-pastor",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "5ea4ce7f3171701be49365842971acad4fc99f435349fff51f2551bd365789dc",
+      "id": "taiwanese-three-cup-tofu",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d2dc6e92e113be9164e62e02d5551137ce403fbdd65a1d71b0b9ab56805dcea0",
+      "id": "tamales-chicken",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "c6dc8030688cfc7e9093b9f0b60b5026755be4f18fc94952f3506a970a51e418",
+      "id": "thai-basil-chicken-pad-kra-pao",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "177aa38c7c28eb5422016e1b706b312b72ef30e5da6f2331d5a923d88bbe115e",
+      "id": "thai-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "ae3edc1dbdce2f3f5779a3774a9c1d74e2c86f759a25e4a988711a9dcf659ebc",
+      "id": "the-easiest-vegetable-stir-fry",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "8d0eb77c71ee96ad4950ec157c61c7fe2a8b66339568307c3f6ec1d8e877d621",
+      "id": "tom-kha-gai-thai-coconut-chicken-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "808e059dbe96ae80e8971c15bd8568fbe8c91bd6c5d5fa704049474f4b0230cf",
+      "id": "tomato-avo-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "dc3fb5dfd217fd36a22485138d79ae3b56518accc7302f0185570b88afedc42f",
+      "id": "toor-dal-split-yellow-pigeon-peas",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "d4884c8c4daa21ed5b9a53b2af778256d4f85fca118d4a57a3ab2a8ea316b2fa",
+      "id": "traditional-southern-butter-butter-beans-recipe",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "6823d8bc62bb9be2abc9d272ef804e03edf397ea697bb5d144dcb5a721fd7f87",
+      "id": "turkish-red-lentil-soup",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "e1bb8cc4260625a339171cf8bed6beeddfe003d935a4fbb1f85fbadc10e1c64e",
+      "id": "tuscan-bean-soup",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "99e286e7426df3372303508ba4b1dc0bb0f889a2841dbd9a3504bceba6d90ab3",
+      "id": "tzatziki-chickpea-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "40678874ef87454bf3acfa97bb0bfb3bcf7ddccb27828f06f9e568240be28a47",
+      "id": "vegetarian-skillet-chili",
+      "updateTimeMillis": 1787787376251
+    },
+    {
+      "documentFingerprint": "fd88891f59131927043e209d20cf9a3ff816c206bad0046386f1285623b68896",
+      "id": "west-african-peanut-stew",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "534709e8a35c50265e5ac453a750a3b38117d4da06427351284862196d684880",
+      "id": "white-bean-caprese-salad",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "0b51933dcbdd9f50561c119106caf5628999fe44a8facfc69b6951244adf5b71",
+      "id": "yogurt-dill-sauce",
+      "updateTimeMillis": 1787760207546
+    },
+    {
+      "documentFingerprint": "485c49ab79567a40e2ae34d88787a40f59b14924198a061b3f98789d66fde46e",
+      "id": "zesty-quinoa-salad",
+      "updateTimeMillis": 1781477591306
+    },
+    {
+      "documentFingerprint": "8e019abffc0d405153cea46e37edef83f4ea1d20370a31eef8b2d3745147be16",
+      "id": "zibdiyit-gambari-spicy-shrimp-and-tomato-stew",
+      "updateTimeMillis": 1787787376251
+    }
+  ],
+  "catalogBaselineFingerprint": "d76f7fde2c502599fa209b24768e82dc23bfc34f5fddac978c02e8ce4e75595c",
+  "gateStatus": "PASSED",
+  "generatedAt": "2026-09-07T01:12:11.840Z",
+  "manifestPath": "scripts/savory-sept-oct-2026-manifest.json",
+  "manifestSha256": "ae824873d8e869401fdfef3ec0abbb17bfbb22471a546ed968d482bbd2bdc262",
+  "mode": "dry-run",
+  "productionCatalogCount": 237,
+  "projectId": "malignant-metro",
+  "proposedWrites": 9,
+  "rows": [
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Beef & Pork",
+      "cookTime": "30 min",
+      "cuisine": "american",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 13,
+      "instructionCount": 5,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "15 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "pan-seared-steak-with-cauliflower-mash",
+      "title": "Pan-Seared Steak with Cauliflower Mash"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Soups, Stews & Chili",
+      "cookTime": "8 hr 15 min",
+      "cuisine": "american",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 12,
+      "instructionCount": 3,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "15 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 6,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "slow-cooker-beef-and-butternut-squash-chili",
+      "title": "Slow Cooker Beef and Butternut Squash Chili"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Soups, Stews & Chili",
+      "cookTime": "35 min",
+      "cuisine": "italian",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 9,
+      "instructionCount": 3,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "5 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "grandma-s-italian-chicken-noodle-soup",
+      "title": "Grandma's Italian Chicken Noodle Soup"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Vegetarian Mains",
+      "cookTime": "1 hr",
+      "cuisine": "american",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 10,
+      "instructionCount": 3,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "8 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "cheese-and-veggie-stuffed-acorn-squash",
+      "title": "Cheese and Veggie Stuffed Acorn Squash"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Pasta, Noodles & Rice",
+      "cookTime": "33 min",
+      "cuisine": "italian",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 9,
+      "instructionCount": 3,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "5 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "chicken-ricotta-meatballs-with-angel-hair-pasta",
+      "title": "Chicken-Ricotta Meatballs with Angel Hair Pasta"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Chicken & Poultry",
+      "cookTime": "50 min",
+      "cuisine": "american",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 12,
+      "instructionCount": 5,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "5 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "crispy-chicken-with-rice-pilaf-and-roasted-acorn-squash",
+      "title": "Crispy Chicken with Rice Pilaf and Roasted Acorn Squash"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Soups, Stews & Chili",
+      "cookTime": "45 min",
+      "cuisine": "american",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 11,
+      "instructionCount": 3,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "15 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "roasted-vegetable-soup",
+      "title": "Roasted Vegetable Soup"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": "The authoritative manifest and official JSON-LD both contain 13 legitimate ingredient rows; the brief's earlier expected-count note of 12 is superseded by its source-fidelity instruction.",
+      "category": "Salads & Bowls",
+      "cookTime": "35 min",
+      "cuisine": "american",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 13,
+      "instructionCount": 3,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "10 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "autumn-harvest-quinoa-bowl",
+      "title": "Autumn Harvest Quinoa Bowl"
+    },
+    {
+      "addedByUidResolutionStatus": "resolved",
+      "auditNote": null,
+      "category": "Vegetarian Mains",
+      "cookTime": "10 min",
+      "cuisine": "italian",
+      "existingClassification": "absent",
+      "imageURLStatus": "verified",
+      "ingredientCount": 12,
+      "instructionCount": 2,
+      "parseRecipeContent": {
+        "ingredientsExact": true,
+        "instructionsExact": true,
+        "status": "passed"
+      },
+      "prepTime": "10 min",
+      "proposedWriteStatus": "READY_TO_CREATE",
+      "servings": 4,
+      "sourceURLStatus": "verified",
+      "targetDocExists": false,
+      "targetRecipeID": "one-pot-marry-me-butter-beans",
+      "title": "One-Pot Marry Me Butter Beans"
+    }
+  ],
+  "sourceVerification": {
+    "method": "Official Savory recipe page canonical link and Recipe JSON-LD inspected in a browser",
+    "status": "verified",
+    "verifiedAt": "2026-09-06"
+  },
+  "writesPerformed": 0
+}

@@ -1,0 +1,198 @@
+{
+  "batchId": "savory-september-october-2026-nine-recipes",
+  "dryRunReport": "docs/audits/savory-sept-oct-2026-import-dry-run.json",
+  "dryRunReportSha256": "8539077ad12a94827d5558ba78c30d89bedcbe3288dfc906105762ed96c1aedb",
+  "failedRecipes": [],
+  "gateStatus": "PASSED",
+  "generatedAt": "2026-09-07T01:12:50.308Z",
+  "manifestPath": "scripts/savory-sept-oct-2026-manifest.json",
+  "manifestSha256": "ae824873d8e869401fdfef3ec0abbb17bfbb22471a546ed968d482bbd2bdc262",
+  "mode": "apply",
+  "projectId": "malignant-metro",
+  "results": [
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical",
+      "recipeID": "pan-seared-steak-with-cauliflower-mash",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Pan-Seared Steak with Cauliflower Mash",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "slow-cooker-beef-and-butternut-squash-chili",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Slow Cooker Beef and Butternut Squash Chili",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "grandma-s-italian-chicken-noodle-soup",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Grandma's Italian Chicken Noodle Soup",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "cheese-and-veggie-stuffed-acorn-squash",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Cheese and Veggie Stuffed Acorn Squash",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "chicken-ricotta-meatballs-with-angel-hair-pasta",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Chicken-Ricotta Meatballs with Angel Hair Pasta",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "crispy-chicken-with-rice-pilaf-and-roasted-acorn-squash",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Crispy Chicken with Rice Pilaf and Roasted Acorn Squash",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "roasted-vegetable-soup",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Roasted Vegetable Soup",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical",
+      "recipeID": "autumn-harvest-quinoa-bowl",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "Autumn Harvest Quinoa Bowl",
+      "written": true
+    },
+    {
+      "image": true,
+      "nutritionAttempts": 1,
+      "nutritionComputed": true,
+      "nutritionSource": "usda+canonical+ai",
+      "recipeID": "one-pot-marry-me-butter-beans",
+      "sourceURL": true,
+      "status": "WRITTEN_VERIFIED",
+      "title": "One-Pot Marry Me Butter Beans",
+      "written": true
+    }
+  ],
+  "verification": {
+    "actualIncrease": 9,
+    "autumnHarvestCount": 1,
+    "catalogCountAfter": 246,
+    "catalogCountBefore": 237,
+    "documentIdsWritten": [
+      "pan-seared-steak-with-cauliflower-mash",
+      "slow-cooker-beef-and-butternut-squash-chili",
+      "grandma-s-italian-chicken-noodle-soup",
+      "cheese-and-veggie-stuffed-acorn-squash",
+      "chicken-ricotta-meatballs-with-angel-hair-pasta",
+      "crispy-chicken-with-rice-pilaf-and-roasted-acorn-squash",
+      "roasted-vegetable-soup",
+      "autumn-harvest-quinoa-bowl",
+      "one-pot-marry-me-butter-beans"
+    ],
+    "exactTitleSearches": [
+      {
+        "count": 1,
+        "ids": [
+          "pan-seared-steak-with-cauliflower-mash"
+        ],
+        "title": "Pan-Seared Steak with Cauliflower Mash"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "slow-cooker-beef-and-butternut-squash-chili"
+        ],
+        "title": "Slow Cooker Beef and Butternut Squash Chili"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "grandma-s-italian-chicken-noodle-soup"
+        ],
+        "title": "Grandma's Italian Chicken Noodle Soup"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "cheese-and-veggie-stuffed-acorn-squash"
+        ],
+        "title": "Cheese and Veggie Stuffed Acorn Squash"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "chicken-ricotta-meatballs-with-angel-hair-pasta"
+        ],
+        "title": "Chicken-Ricotta Meatballs with Angel Hair Pasta"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "crispy-chicken-with-rice-pilaf-and-roasted-acorn-squash"
+        ],
+        "title": "Crispy Chicken with Rice Pilaf and Roasted Acorn Squash"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "roasted-vegetable-soup"
+        ],
+        "title": "Roasted Vegetable Soup"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "autumn-harvest-quinoa-bowl"
+        ],
+        "title": "Autumn Harvest Quinoa Bowl"
+      },
+      {
+        "count": 1,
+        "ids": [
+          "one-pot-marry-me-butter-beans"
+        ],
+        "title": "One-Pot Marry Me Butter Beans"
+      }
+    ],
+    "expectedIncrease": 9,
+    "unrelatedRecipeChanges": []
+  },
+  "writesPerformed": 9
+}

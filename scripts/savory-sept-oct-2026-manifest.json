@@ -1,0 +1,288 @@
+{
+  "batchId": "savory-september-october-2026-nine-recipes",
+  "sourceFile": "Savory — September/October 2026 print issue",
+  "defaultRole": "main",
+  "sourceVerification": {
+    "verifiedAt": "2026-09-06",
+    "method": "Official Savory recipe page canonical link and Recipe JSON-LD inspected in a browser",
+    "status": "verified"
+  },
+  "recipes": [
+    {
+      "title": "Pan-Seared Steak with Cauliflower Mash",
+      "category": "Beef & Pork",
+      "cuisine": "american",
+      "prepTime": "15 min",
+      "cookTime": "30 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "beef", "steak", "cauliflower", "weeknight"],
+      "sourceURL": "https://www.savoryonline.com/recipes/pan-seared-steak-with-cauliflower-mash/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268717/pan-seared-steak-with-cauliflower-mash-scaled.jpg",
+      "sourceMetadata": {"name": "Pan-Seared Steak with Cauliflower Mash", "prepTime": "PT15M", "cookTime": "PT30M", "servings": 4, "ingredientCount": 13, "instructionCount": 5},
+      "ingredients": [
+        "1 (1 lb) flank steak",
+        "3 tbsp olive oil, divided",
+        "1 1/2 tsp garlic powder, divided",
+        "1 head cauliflower",
+        "1/4 cup light sour cream",
+        "1 (8 oz) pkg sliced baby bella mushrooms",
+        "1 small shallot, finely chopped",
+        "1 tbsp all-purpose flour",
+        "1 cup low-sodium beef broth",
+        "2 sprigs fresh rosemary",
+        "2 tsp Worcestershire sauce",
+        "Chopped chives, to garnish",
+        "1/2 French baguette, to serve"
+      ],
+      "instructions": [
+        "Bring a large pot of water to a boil. Place the steak in a large baking dish. Rub 1 tbsp oil all over steak and season with 1 tsp garlic powder, salt, and pepper. Cover and refrigerate.",
+        "Core and cut the cauliflower into florets. Add florets to boiling water and cook 8–10 min., until tender. Drain, reserving 1/2 cup cooking liquid, and transfer cauliflower to a food processor. Add the sour cream, 1 tbsp oil, and remaining 1/2 tsp garlic powder and season with salt and pepper. Pulse until smooth, adding a splash of reserved cooking liquid if necessary. Transfer mash to a bowl and cover to keep warm.",
+        "Heat a 12-inch skillet on medium-high. Remove steak from baking dish and transfer to skillet. Cook 3–6 min. per side, until desired doneness (145°F for medium). Transfer to cutting board and let rest.",
+        "Heat remaining 1 tbsp oil in same skillet on medium. Add the mushrooms and shallot and season with salt and pepper. Cook 6–8 min., until browned and tender. Stir in the flour; cook 1 min., stirring constantly. Add the broth and rosemary sprigs, scraping up any browned bits on bottom of pan. Stir in Worcestershire sauce and season with salt and pepper. Simmer 2–3 min., until thickened slightly. Discard rosemary sprigs.",
+        "Thinly slice steak against the grain. Reheat cauliflower mash in the microwave, if desired. Divide steak among plates and top with mushroom sauce. Serve with cauliflower mash garnished with chives. Serve baguette on the side."
+      ]
+    },
+    {
+      "title": "Slow Cooker Beef and Butternut Squash Chili",
+      "category": "Soups, Stews & Chili",
+      "cuisine": "american",
+      "prepTime": "15 min",
+      "cookTime": "8 hr 15 min",
+      "servings": 6,
+      "labels": ["Savory", "September/October 2026", "beef", "chili", "slow cooker", "butternut squash", "fall"],
+      "sourceURL": "https://www.savoryonline.com/recipes/slow-cooker-beef-and-butternut-squash-chili/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268718/slow-cooker-beef-and-butternut-squash-chili-scaled.jpg",
+      "sourceMetadata": {"name": "Slow Cooker Beef and Butternut Squash Chili", "prepTime": "PT15M", "cookTime": "PT495M", "servings": 6, "ingredientCount": 12, "instructionCount": 3},
+      "ingredients": [
+        "1 (1 1/2 lb) pkg beef chuck roast",
+        "2 tbsp vegetable oil, divided",
+        "1 yellow onion, finely chopped",
+        "1 bell pepper, finely chopped",
+        "1 jalapeño pepper, finely chopped",
+        "2 cloves garlic, finely chopped",
+        "1 (28 oz) can fire-roasted crushed tomatoes",
+        "1 (14 oz) pkg Nature's Promise Butternut Squash",
+        "2 tbsp chili powder",
+        "1 tbsp smoked paprika",
+        "1 1/2 tsp ground cumin",
+        "Sour cream, grated Cheddar cheese, cilantro, and corn chip dippers, to serve (optional)"
+      ],
+      "instructions": [
+        "Cut the beef into 1-inch chunks. Pat dry with paper towels. Season all over with salt and pepper. In a 12-inch skillet, heat 1 tbsp oil on medium-high. In batches, add beef to skillet and cook 2–3 min. per side, until browned on 2 sides. Transfer to a large slow cooker.",
+        "Heat remaining 1 tbsp oil and add the onion and bell pepper, scraping up any browned bits. Sauté 6–8 min., until golden and tender. Stir in the jalapeño and garlic and cook 1 min., stirring constantly. Add to slow cooker.",
+        "To slow cooker, add the crushed tomatoes, butternut squash, chili powder, smoked paprika, and cumin. Season with salt and pepper. Cover and cook on low 6–8 hours, until meat is tender. Serve chili with sour cream, grated Cheddar cheese, cilantro, and corn chips as desired."
+      ]
+    },
+    {
+      "title": "Grandma's Italian Chicken Noodle Soup",
+      "category": "Soups, Stews & Chili",
+      "cuisine": "italian",
+      "prepTime": "5 min",
+      "cookTime": "35 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "chicken", "soup", "pasta", "family-friendly"],
+      "sourceURL": "https://www.savoryonline.com/recipes/grandmas-italian-chicken-noodle-soup/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268732/grandmas-italian-chicken-noodle-soup-scaled.jpg",
+      "sourceMetadata": {"name": "Grandma’s Italian Chicken Noodle Soup", "prepTime": "PT5M", "cookTime": "PT35M", "servings": 4, "ingredientCount": 9, "instructionCount": 3},
+      "ingredients": [
+        "1 large onion",
+        "4 medium carrots",
+        "2 tbsp olive oil",
+        "2 cups baby spinach",
+        "2 tsp Italian seasoning",
+        "1 (32 oz) pkg low-sodium chicken broth",
+        "1 boneless, skinless chicken breast",
+        "1/2 (16 oz) box angel hair pasta",
+        "Chopped fresh parsley and grated Parmesan, to garnish"
+      ],
+      "instructions": [
+        "Finely chop the onion. Peel the carrots and roughly chop. Heat the oil in a medium Dutch oven on medium-high. Add onion and carrots to pot and season with salt and pepper. Cook 6–8 min., until vegetables soften, stirring occasionally. In batches, stir in the spinach until wilted. Add the Italian seasoning and cook 1 min., stirring constantly.",
+        "To pot, add the broth and 4 cups water and bring to a boil. Meanwhile, slice the chicken in half horizontally. Reduce liquid to a simmer and add chicken. Season with salt and pepper. Simmer, covered, 15–20 min., until chicken reaches an internal temperature of 165°F. Using tongs, remove chicken and transfer to cutting board. When cool enough to handle, shred chicken.",
+        "Using an immersion blender or transferring to a blender in batches, purée half the soup until smooth. Return to pot and bring to a boil. Break the pasta into roughly 2-inch pieces and add to soup. Cook 3–4 min., until pasta is al dente. Stir in shredded chicken and cook 1 min. more, until warmed through. Ladle soup into bowls and garnish with chopped parsley and Parmesan."
+      ]
+    },
+    {
+      "title": "Cheese and Veggie Stuffed Acorn Squash",
+      "category": "Vegetarian Mains",
+      "cuisine": "american",
+      "prepTime": "8 min",
+      "cookTime": "1 hr",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "vegetarian", "acorn squash", "fall", "rice"],
+      "sourceURL": "https://www.savoryonline.com/recipes/cheese-and-veggie-stuffed-acorn-squash/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268733/cheese-and-veggie-stuffed-acorn-squash-scaled.jpg",
+      "sourceMetadata": {"name": "Cheese and Veggie Stuffed Acorn Squash", "prepTime": "PT8M", "cookTime": "PT60M", "servings": 4, "ingredientCount": 10, "instructionCount": 3},
+      "ingredients": [
+        "2 medium acorn squash",
+        "3 tbsp olive oil, divided",
+        "1 medium onion",
+        "2 carrots, peeled",
+        "1/2 cup long-grain white rice, rinsed",
+        "2 cups baby spinach",
+        "1/4 cup + 2 tbsp grated Parmesan cheese, divided",
+        "1 cup part-skim ricotta cheese",
+        "1/2 cup panko bread crumbs",
+        "2 tbsp finely chopped parsley"
+      ],
+      "instructions": [
+        "Preheat oven to 425°F. Halve each acorn squash vertically, from the stem to the tip. With a spoon, scoop out and discard seeds. Brush cut sides with 1 tbsp oil and season with salt and pepper. Arrange cut-sides down in a 9x13-inch baking pan. Roast 20–25 min., until tender when pierced with the tip of a knife.",
+        "Meanwhile, finely dice the onion and carrots. Heat remaining 2 tbsp oil in a medium pot on medium-high. Add onion and carrots. Season with salt and pepper. Cook 4–5 min., until beginning to soften, stirring occasionally. Add the rice and 3/4 cup water and bring to a boil. Cover and reduce heat to a simmer. Cook 20 min., until liquid is absorbed and rice is cooked through. Remove pot from heat and let stand, covered, 5 min. Stir in the spinach, 1/4 cup Parmesan, and ricotta. Season with salt and pepper.",
+        "Scoop out the squash flesh, leaving 1/4 inch to keep intact. Stir squash into rice mixture. Turn squash cavity-sides up. Spoon rice mixture into cavities, packing tightly. In a small bowl, combine bread crumbs, parsley, and remaining 2 tbsp Parmesan. Sprinkle mixture over filling. Return to oven and bake 15–20 min., until tops are golden brown and filling is hot."
+      ]
+    },
+    {
+      "title": "Chicken-Ricotta Meatballs with Angel Hair Pasta",
+      "category": "Pasta, Noodles & Rice",
+      "cuisine": "italian",
+      "prepTime": "5 min",
+      "cookTime": "33 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "chicken", "meatballs", "pasta", "ricotta"],
+      "sourceURL": "https://www.savoryonline.com/recipes/chicken-ricotta-meatballs-with-angel-hair-pasta/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268730/chicken-ricotta-meatballs-with-angel-hair-pasta-scaled.jpg",
+      "sourceMetadata": {"name": "Chicken-Ricotta Meatballs with Angel Hair Pasta", "prepTime": "PT5M", "cookTime": "PT33M", "servings": 4, "ingredientCount": 9, "instructionCount": 3},
+      "ingredients": [
+        "Cooking spray",
+        "2 boneless, skinless chicken breasts",
+        "1 cup part-skim ricotta cheese",
+        "1/4 cup grated Parmesan cheese",
+        "2/3 cup panko bread crumbs",
+        "1/4 cup chopped fresh parsley, plus more to garnish",
+        "1 tbsp + 1 tsp Italian seasoning, divided",
+        "3/4 (16 oz) box angel hair pasta",
+        "1 (23 oz) jar marinara sauce"
+      ],
+      "instructions": [
+        "Preheat oven to 400°F. Line 2 rimmed baking sheets with foil and coat with cooking spray. Roughly chop the chicken into pieces. Add chicken to a food processor and pulse until chicken is finely ground.",
+        "To a large bowl, add ground chicken, ricotta, Parmesan, panko, parsley, and 1 tbsp Italian seasoning. Season with salt and pepper. Mix gently until combined. Using your hands, roll chicken mixture into balls about 1 inch in diameter. Arrange meatballs on prepared baking sheets, spacing evenly apart, and coat tops with cooking spray. Bake 18–20 min., until almost fully cooked, flipping halfway.",
+        "Meanwhile, bring a large pot of salted water to a boil. Cook the pasta according to package directions and drain. To a 12-inch skillet, add the marinara sauce and remaining 1 tsp Italian seasoning. Add meatballs to skillet, spooning sauce on top. Cover skillet and simmer 4–5 min. Toss pasta with sauce and meatballs, sprinkling with more parsley if desired."
+      ]
+    },
+    {
+      "title": "Crispy Chicken with Rice Pilaf and Roasted Acorn Squash",
+      "category": "Chicken & Poultry",
+      "cuisine": "american",
+      "prepTime": "5 min",
+      "cookTime": "50 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "chicken", "acorn squash", "rice", "family-friendly"],
+      "sourceURL": "https://www.savoryonline.com/recipes/crispy-chicken-with-rice-pilaf-and-roasted-acorn-squash/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268731/crispy-chicken-with-rice-pilaf-and-roasted-acorn-squash-scaled.jpg",
+      "sourceMetadata": {"name": "Crispy Chicken with Rice Pilaf and Roasted Acorn Squash", "prepTime": "PT5M", "cookTime": "PT50M", "servings": 4, "ingredientCount": 12, "instructionCount": 5},
+      "ingredients": [
+        "2 medium acorn squash, halved and seeded",
+        "4 tbsp olive oil, divided",
+        "4 tsp Italian seasoning, divided",
+        "2 boneless, skinless chicken breasts",
+        "1/2 cup part-skim ricotta cheese",
+        "1 1/2 cups panko bread crumbs",
+        "Cooking spray",
+        "1 onion, finely chopped",
+        "1/4 (16 oz) box angel hair pasta",
+        "1 cup long-grain white rice, rinsed",
+        "2 cups low-sodium chicken broth",
+        "1/4 cup chopped fresh parsley"
+      ],
+      "instructions": [
+        "Preheat oven to 425°F. Cut squash into 1/2-inch-thick wedges and add to a baking sheet. Toss with 2 tbsp oil, 1 tsp Italian seasoning, salt, and pepper.",
+        "Cut each chicken breast horizontally into cutlets. With a meat mallet, pound each cutlet between pieces of plastic wrap to 1/2-inch thickness. Season with salt and pepper. Add the ricotta to a shallow dish and whisk in 1/2 cup water until smooth. Season mixture with salt and pepper. Add the bread crumbs and 1 tsp Italian seasoning to another shallow dish.",
+        "Dip each piece of chicken in the ricotta mixture, letting excess drip off, then add to bread crumbs, pressing so crumbs adhere. Set a wire rack inside a rimmed baking sheet. Lightly coat with cooking spray. Add chicken to rack and coat with cooking spray.",
+        "Add squash and chicken to oven. Bake squash 22–25 min., until golden brown and tender, flipping wedges halfway through. Bake chicken 30–35 min., until internal temperature reaches 165°F.",
+        "Meanwhile, heat remaining 2 tbsp oil in a medium saucepan on medium-high. Add the onion; season with salt and pepper. Cook 4–5 min., until beginning to soften. Break the angel hair pasta into 2-inch pieces and add to pot. Cook 2–3 min., to toast, stirring frequently. Add the rice and cook 1 min. Add the chicken broth and remaining 2 tsp Italian seasoning. Bring to a boil. Cover and reduce heat to low. Simmer 15 min., until rice is done. Keep covered for 5 min. Fluff rice and fold in the parsley. Serve with roasted squash and crispy chicken."
+      ]
+    },
+    {
+      "title": "Roasted Vegetable Soup",
+      "category": "Soups, Stews & Chili",
+      "cuisine": "american",
+      "prepTime": "15 min",
+      "cookTime": "45 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "soup", "vegetables", "roasted", "fall"],
+      "sourceURL": "https://www.savoryonline.com/recipes/roasted-vegetable-soup/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268710/roasted-vegetable-soup-scaled.jpg",
+      "sourceMetadata": {"name": "Roasted Vegetable Soup", "prepTime": "PT15M", "cookTime": "PT45M", "servings": 4, "ingredientCount": 11, "instructionCount": 3},
+      "ingredients": [
+        "3 large yellow or orange bell peppers",
+        "1 large yellow onion",
+        "2 large carrots",
+        "1/2 head cauliflower",
+        "1 garlic bulb",
+        "3 tbsp olive oil, plus more to serve",
+        "1 tsp smoked paprika",
+        "2 cups low-sodium chicken or vegetable broth",
+        "1 (15.5 oz) can Nature's Promise Low Sodium Cannellini Beans",
+        "1/2 (5 oz) bag cheese and garlic croutons, crushed",
+        "Chopped fresh parsley, to garnish"
+      ],
+      "instructions": [
+        "Preheat oven to 425°F. Line a large rimmed baking sheet with parchment. Halve and remove seeds from the bell peppers. Thinly slice bell peppers and onion. Cut the carrots and cauliflower into 2-inch pieces. Arrange vegetables on prepared sheet pan in a single layer, adding the garlic bulb last. Drizzle with the oil and sprinkle with paprika. Season with salt and pepper. Toss to coat.",
+        "Roast 40–45 min., stirring halfway, until vegetables are tender and browned in spots. Meanwhile, to a small pot, add the broth and beans. Heat on high until bubbling, about 5 min.",
+        "To a blender, transfer roasted vegetables and any pan juices. Into blender, squeeze garlic from bulb and add bean mixture. Purée until smooth. Season with salt and pepper. Divide soup among bowls. If desired, drizzle a little olive oil on top of each bowl. Top with the croutons and parsley to serve."
+      ]
+    },
+    {
+      "title": "Autumn Harvest Quinoa Bowl",
+      "category": "Salads & Bowls",
+      "cuisine": "american",
+      "prepTime": "10 min",
+      "cookTime": "35 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "vegetarian", "quinoa", "fall", "bowl", "roasted vegetables"],
+      "sourceURL": "https://www.savoryonline.com/recipes/autumn-harvest-quinoa-bowl/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268709/autumn-harvest-quinoa-bowl-scaled.jpg",
+      "sourceMetadata": {"name": "Autumn Harvest Quinoa Bowl", "prepTime": "PT10M", "cookTime": "PT35M", "servings": 4, "ingredientCount": 13, "instructionCount": 3},
+      "auditNote": "The authoritative manifest and official JSON-LD both contain 13 legitimate ingredient rows; the brief's earlier expected-count note of 12 is superseded by its source-fidelity instruction.",
+      "ingredients": [
+        "2 small red onions",
+        "2 medium beets",
+        "1 (12 oz) pkg halved Brussels sprouts",
+        "1/2 head cauliflower, cut into 2-inch pieces",
+        "1 (20 oz) pkg cubed butternut squash",
+        "9 tbsp olive oil, divided",
+        "1 tbsp Dijon mustard",
+        "1 tbsp apple cider vinegar",
+        "1 tbsp maple syrup",
+        "1/2 (5 oz) pkg Nature's Promise Baby Spinach and Spring Mix",
+        "2 (8.8 oz) pkgs Nature's Promise Precooked White Quinoa",
+        "1/2 cup dried cranberries",
+        "1/2 (4 oz) Taste of Inspirations Goat Cheese Log, crumbled"
+      ],
+      "instructions": [
+        "Preheat oven to 425°F. Line 2 large baking sheets with parchment. Peel the onions and beets and cut each into thin wedges. Divide beets and onions between prepared baking sheets along with the Brussels sprouts, cauliflower, and squash. Drizzle with 6 tbsp oil and season with salt and pepper. Toss to coat. Roast 30–35 min., until vegetables are tender, stirring halfway through cooking.",
+        "Meanwhile, in a small bowl, whisk together remaining 3 tbsp oil, mustard, vinegar, and maple syrup. Season with salt and pepper. When vegetables are done roasting, add the greens to a baking sheet, tossing with vegetables to wilt.",
+        "Microwave the quinoa according to package directions and divide evenly among bowls. Top with vegetables and drizzle with dressing. Top with dried cranberries and goat cheese."
+      ]
+    },
+    {
+      "title": "One-Pot Marry Me Butter Beans",
+      "category": "Vegetarian Mains",
+      "cuisine": "italian",
+      "prepTime": "10 min",
+      "cookTime": "10 min",
+      "servings": 4,
+      "labels": ["Savory", "September/October 2026", "vegetarian", "beans", "one-pot", "quick", "spinach"],
+      "sourceURL": "https://www.savoryonline.com/recipes/one-pot-marry-me-butter-beans/",
+      "imageURL": "https://www.savoryonline.com/app/uploads/recipes/268724/one-pot-marry-me-butter-beans-scaled.jpg",
+      "sourceMetadata": {"name": "One-Pot Marry Me Butter Beans", "prepTime": "PT10M", "cookTime": "PT10M", "servings": 4, "ingredientCount": 12, "instructionCount": 2},
+      "ingredients": [
+        "1 tbsp olive oil",
+        "3 cloves garlic, minced",
+        "1 tbsp tomato paste",
+        "1 tsp Italian seasoning",
+        "1/2 cup low-sodium vegetable broth",
+        "2 (15.5 oz) cans butter beans, drained and rinsed",
+        "1/2 cup julienne-cut sun-dried tomatoes in oil",
+        "2 cups baby spinach",
+        "1/2 cup half & half",
+        "1/4 cup grated Parmesan cheese",
+        "1/4 cup fresh basil leaves",
+        "Sliced crusty bread, to serve (optional)"
+      ],
+      "instructions": [
+        "In a 12-inch skillet, heat the oil on medium. Add the garlic, tomato paste, and Italian seasoning and cook 30 sec.–1 min., until fragrant, stirring constantly. Add the broth and cook 1 min., scraping up any browned bits on bottom of pan.",
+        "Stir in the beans and sun-dried tomatoes and cook 2 min. In batches, stir in the spinach and cook until wilted. Reduce heat to low and add half & half and Parmesan to skillet. Simmer 2–3 min., until sauce thickens slightly, stirring occasionally. Season with salt and pepper. Garnish with the basil and serve with the bread, if desired."
+      ]
+    }
+  ]
+}
