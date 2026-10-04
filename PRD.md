@@ -293,7 +293,10 @@ remaining production category override is the intentional recipe `182` classific
 (`Salads & Bowls` over shared `Vegetarian Mains`).
 
 ### `users/{uid}/pantry/root/weekPlans/{weekID}` — meal plans (`WeekPlan`)
-`weekID` = ISO date of the **Monday** of the week (`weekIDFromDate`). Per-user (keyed per uid).
+`weekID` = the **local-calendar Monday**, encoded `YYYY-MM-DD` (`weekIDFromDate`,
+re-exported by `lib/userdata.ts` from `lib/weekDates.ts`). UTC conversion must not determine
+document identity. Per-user (keyed per uid). Historical non-Monday Firestore documents are
+not automatically recovered, merged, or migrated.
 Fields: `weekID, weekStartISO, plannedRecipeIDs[], cookedRecipeIDs[], calendarEventIds?, updatedAt?`.
 **`plannedRecipeIDs[]` element shape (Batch 5):** each element is a `PlannedEntry`
 `{ recipeID, day: string | null, role: 'main' | 'side', slot?: string | null }`. `day` is an ISO
@@ -436,8 +439,10 @@ retained as historical data and are not modified or deleted by this app.
    the shared `malignant-metro` Firebase Console (never deployed from this repo). The required
    `recipes/{recipeId}` rule restricts writes to the verified admin email; see **Firestore rules**
    below. Admin-SDK routes bypass rules and are therefore protected separately in application code.
-4. **Week identity = Monday ISO date.** All meal-plan logic keys weeks by the Monday of the
-   week as `YYYY-MM-DD` (`weekIDFromDate` in `lib/userdata.ts`).
+4. **Week identity = local-calendar Monday.** All ordinary application-generated week-plan
+   IDs encode the local Monday as `YYYY-MM-DD`; serialize local year/month/day, never UTC
+   (`weekIDFromDate`, re-exported by `lib/userdata.ts`). Plan subscription data renders only
+   for the displayed authenticated owner/week; obsolete subscription callbacks are ignored.
 5. **Per-user data isolation.** Grocery, favorites, Want to Try, meta, week plans, saved items, and the
    recipe queue are all scoped to `users/{uid}/…`; users never read each other's subcollections
    (the sole cross-user surface is the opt-in `sharedWeekPlans`).
@@ -623,7 +628,12 @@ retained as historical data and are not modified or deleted by this app.
     (`mea-recommendations-cache`, `mea-new-suggestions-cache`) and triggered by an explicit
     button to avoid unnecessary API charges.
 14. **Week navigation memory** — Plan page remembers the last-viewed week in `sessionStorage`
-    `mea_plan_last_week`; defaults toward the upcoming week when the current is empty.
+    `mea_plan_last_week`. Valid calendar-date values are canonicalized locally to Monday and
+    persisted; malformed/impossible dates are ignored. No historical Firestore document is
+    recovered by this browser normalization. Without a remembered week, select next week only
+    when current is empty and next is populated; a pending automatic decision cannot supersede
+    explicit week navigation. Owner/week changes hide prior subscription data immediately and
+    show the existing loading treatment until the first snapshot, rather than a false empty plan.
 15. **Auto-nutrition on publish** — `computeAndStoreNutrition(recipeId, token, timeoutMs)`
     (`lib/recipes.ts`) runs only after create-only publication succeeds at every recipe-create site (queue
     publish + Discover direct-save). It POSTs `{type:"recipe",recipeId}` to `/api/nutrition-lookup`,

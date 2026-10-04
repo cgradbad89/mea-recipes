@@ -29,6 +29,7 @@ import {
   type FirestoreBatchOperation,
 } from './firestoreBatch'
 import { normalizeRecipeCategory } from './recipeCategories'
+export { weekIDFromDate } from './weekDates'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
 // users/{uid}/recipes/root/favorites/{recipeID}
@@ -291,14 +292,6 @@ export interface WeekPlan {
 
 export function weekPlansPath(uid: string) {
   return collection(db, 'users', uid, 'pantry', 'root', 'weekPlans')
-}
-
-export function weekIDFromDate(date: Date): string {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
-  d.setDate(diff)
-  return d.toISOString().split('T')[0]
 }
 
 export async function getWeekPlan(uid: string, weekID: string): Promise<WeekPlan | null> {

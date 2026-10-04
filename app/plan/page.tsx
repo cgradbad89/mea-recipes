@@ -24,6 +24,15 @@ import SignInOptions from '@/components/SignInOptions'
 import RecipeImage from '@/components/RecipeImage'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
+import { normalizeRememberedWeekID } from '@/lib/weekDates'
+
+type WeekScopedState<T> = {
+  uid: string
+  weekID: string
+  attempt: number
+  data: T
+  error: string
+}
 
 function getWeekDates(weekID: string): string[] {
   const dates = []
@@ -169,6 +178,7 @@ function CenteredOverlay({ children, onClose }: { children: ReactNode; onClose: 
 
 export default function PlanPage() {
   const { user } = useAuth()
+  const uid = user?.uid
   const {
     recipes: allRecipes,
     recipesLoading: loadingRecipes,
@@ -188,7 +198,7 @@ export default function PlanPage() {
   }, [allRecipes])
 
   const [weekID, setWeekID] = useState(() => weekIDFromDate(new Date()))
-  const [plan, setPlan] = useState<WeekPlan | null>(null)
+  const [planState, setPlanState] = useState<WeekScopedState<WeekPlan | null> | null>(null)
   const [addingToGrocery, setAddingToGrocery] = useState<string | null>(null)
   // Batch 5.2: tapping a tile opens this action sheet (replaces the inline action row
   // + the per-tile day/week dropdowns).
@@ -198,7 +208,7 @@ export default function PlanPage() {
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [rebuildDone, setRebuildDone] = useState(false)
-  const [friendPlans, setFriendPlans] = useState<SharedPlanEntry[]>([])
+  const [friendPlansState, setFriendPlansState] = useState<WeekScopedState<SharedPlanEntry[]> | null>(null)
   const [addedFriendRecipe, setAddedFriendRecipe] = useState<string | null>(null)
   const [addedToGrocery, setAddedToGrocery] = useState<string | null>(null)
   const [bulkAddingGrocery, setBulkAddingGrocery] = useState(false)
@@ -216,28 +226,51 @@ export default function PlanPage() {
   const [dragOverKey, setDragOverKey] = useState<string | null>(null)
   const [planActionError, setPlanActionError] = useState('')
   const [sharedPublishError, setSharedPublishError] = useState('')
-  const [publishedPlan, setPublishedPlan] = useState<SharedPlanEntry | null>(null)
+  const [publishedPlanState, setPublishedPlanState] = useState<WeekScopedState<SharedPlanEntry | null> | null>(null)
   const [sharingPlan, setSharingPlan] = useState(false)
-  const [sharedStatusError, setSharedStatusError] = useState('')
-  const [planSubscriptionError, setPlanSubscriptionError] = useState('')
-  const [friendPlansSubscriptionError, setFriendPlansSubscriptionError] = useState('')
   const [planSubscriptionAttempt, setPlanSubscriptionAttempt] = useState(0)
   const [friendPlansSubscriptionAttempt, setFriendPlansSubscriptionAttempt] = useState(0)
   const [sharedStatusSubscriptionAttempt, setSharedStatusSubscriptionAttempt] = useState(0)
   const defaultCheckedRef = useRef(false)
+  const rememberedWeekRef = useRef<string | null | undefined>(undefined)
+  const manualNavigationRef = useRef(false)
+
+  // Match at render time: an effect cleanup alone cannot hide old data on the
+  // first render with a new owner/week. Null state means no snapshot yet.
+  const currentPlanState = planState && planState.uid === uid && planState.weekID === weekID &&
+    planState.attempt === planSubscriptionAttempt ? planState : null
+  const plan = currentPlanState?.data ?? null
+  const planLoading = Boolean(uid && !currentPlanState)
+  const planSubscriptionError = currentPlanState?.error || ''
+  const currentPublishedState = publishedPlanState && publishedPlanState.uid === uid && publishedPlanState.weekID === weekID &&
+    publishedPlanState.attempt === sharedStatusSubscriptionAttempt ? publishedPlanState : null
+  const publishedPlan = currentPublishedState?.data ?? null
+  const sharedStatusError = currentPublishedState?.error || ''
+  const currentFriendsState = friendPlansState && friendPlansState.uid === uid && friendPlansState.weekID === weekID &&
+    friendPlansState.attempt === friendPlansSubscriptionAttempt ? friendPlansState : null
+  const friendPlans = currentFriendsState?.data ?? []
+  const friendPlansSubscriptionError = currentFriendsState?.error || ''
+
+  const navigateWeek = (delta: number) => {
+    manualNavigationRef.current = true
+    setWeekID(w => addWeeks(w, delta))
+  }
 
   // First-mount: restore last-viewed week from sessionStorage OR auto-default to next week if current is empty
   useEffect(() => {
-    if (!user || defaultCheckedRef.current) return
-    defaultCheckedRef.current = true
+    // Read once, so effect replay cannot mistake our own persistence for a
+    // remembered selection and cancel an unfinished automatic check.
+    if (rememberedWeekRef.current === undefined) {
+      rememberedWeekRef.current = null
+      try {
+        rememberedWeekRef.current = normalizeRememberedWeekID(sessionStorage.getItem('mea_plan_last_week'))
+      } catch {}
+    }
+    if (!uid || defaultCheckedRef.current || manualNavigationRef.current) return
 
-    let remembered: string | null = null
-    try {
-      remembered = sessionStorage.getItem('mea_plan_last_week')
-    } catch {}
-
-    if (remembered) {
-      setWeekID(remembered)
+    if (rememberedWeekRef.current) {
+      defaultCheckedRef.current = true
+      setWeekID(rememberedWeekRef.current)
       return
     }
 
@@ -249,10 +282,11 @@ export default function PlanPage() {
       const nextWeekID = weekIDFromDate(nextDate)
       try {
         const [cur, nxt] = await Promise.all([
-          getWeekPlan(user.uid, currentWeekID),
-          getWeekPlan(user.uid, nextWeekID),
+          getWeekPlan(uid, currentWeekID),
+          getWeekPlan(uid, nextWeekID),
         ])
-        if (cancelled) return
+        if (cancelled || manualNavigationRef.current) return
+        defaultCheckedRef.current = true
         const curHas = (cur?.plannedRecipeIDs || []).length > 0
         const nxtHas = (nxt?.plannedRecipeIDs || []).length > 0
         if (!curHas && nxtHas) {
@@ -264,15 +298,15 @@ export default function PlanPage() {
     }
     decide()
     return () => { cancelled = true }
-  }, [user])
+  }, [uid])
 
   // Persist active week to sessionStorage
   useEffect(() => {
-    if (!weekID) return
+    if (!uid || !weekID) return
     try {
       sessionStorage.setItem('mea_plan_last_week', weekID)
     } catch {}
-  }, [weekID])
+  }, [uid, weekID])
 
   // Auto-clear remove confirm after 3 seconds
   useEffect(() => {
@@ -284,48 +318,56 @@ export default function PlanPage() {
 
   // Subscribe to week plan
   useEffect(() => {
-    if (!user) { setPlanSubscriptionError(''); return }
-    setPlanSubscriptionError('')
-    const unsub = subscribeWeekPlan(user.uid, weekID, nextPlan => {
-      setPlan(nextPlan)
-      setPlanSubscriptionError('')
+    if (!uid) { setPlanState(null); return }
+    let active = true
+    const scope = { uid, weekID, attempt: planSubscriptionAttempt }
+    setPlanState(null)
+    const unsub = subscribeWeekPlan(uid, weekID, nextPlan => {
+      if (active) setPlanState({ ...scope, data: nextPlan, error: '' })
     }, error => {
-      setPlanSubscriptionError(error.message || 'The meal plan stopped updating')
+      if (active) setPlanState(previous => ({
+        ...scope, data: previous?.data ?? null,
+        error: error.message || 'The meal plan stopped updating',
+      }))
     })
-    return unsub
-  }, [user, weekID, planSubscriptionAttempt])
+    return () => { active = false; unsub() }
+  }, [uid, weekID, planSubscriptionAttempt])
 
 
   // The owner's public mirror is persistence-backed and changes only through the
   // explicit publish/update/unpublish controls below. Private plan edits stay private.
   useEffect(() => {
-    if (!user) {
-      setPublishedPlan(null)
-      setSharedStatusError('')
-      return
-    }
-    setSharedStatusError('')
-    const unsub = subscribeSharedPlanPublication(user.uid, weekID, nextPlan => {
-      setPublishedPlan(nextPlan)
-      setSharedStatusError('')
+    if (!uid) { setPublishedPlanState(null); return }
+    let active = true
+    const scope = { uid, weekID, attempt: sharedStatusSubscriptionAttempt }
+    setPublishedPlanState(null)
+    const unsub = subscribeSharedPlanPublication(uid, weekID, nextPlan => {
+      if (active) setPublishedPlanState({ ...scope, data: nextPlan, error: '' })
     }, error => {
-      setSharedStatusError(error.message || 'Shared-plan status stopped updating')
+      if (active) setPublishedPlanState(previous => ({
+        ...scope, data: previous?.data ?? null,
+        error: error.message || 'Shared-plan status stopped updating',
+      }))
     })
-    return unsub
-  }, [user, weekID, sharedStatusSubscriptionAttempt])
+    return () => { active = false; unsub() }
+  }, [uid, weekID, sharedStatusSubscriptionAttempt])
 
   // Subscribe to friends' shared plans
   useEffect(() => {
-    if (!user) { setFriendPlansSubscriptionError(''); return }
-    setFriendPlansSubscriptionError('')
-    const unsub = subscribeSharedWeekPlans(weekID, user.uid, nextPlans => {
-      setFriendPlans(nextPlans)
-      setFriendPlansSubscriptionError('')
+    if (!uid) { setFriendPlansState(null); return }
+    let active = true
+    const scope = { uid, weekID, attempt: friendPlansSubscriptionAttempt }
+    setFriendPlansState(null)
+    const unsub = subscribeSharedWeekPlans(weekID, uid, nextPlans => {
+      if (active) setFriendPlansState({ ...scope, data: nextPlans, error: '' })
     }, error => {
-      setFriendPlansSubscriptionError(error.message || 'Friends’ plans stopped updating')
+      if (active) setFriendPlansState(previous => ({
+        ...scope, data: previous?.data ?? [],
+        error: error.message || 'Friends’ plans stopped updating',
+      }))
     })
-    return unsub
-  }, [user, weekID, friendPlansSubscriptionAttempt])
+    return () => { active = false; unsub() }
+  }, [uid, weekID, friendPlansSubscriptionAttempt])
 
   const handleAddFriendRecipe = async (recipeID: string) => {
     if (!user) return
@@ -1083,7 +1125,8 @@ export default function PlanPage() {
         <h1 className="font-display text-4xl text-cream font-light">Meal Plan</h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setWeekID(w => addWeeks(w, -1))}
+            onClick={() => navigateWeek(-1)}
+            aria-label="Previous week"
             className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-cream hover:border-amber/30 transition-all"
           >
             <ChevronLeft size={16} />
@@ -1092,7 +1135,8 @@ export default function PlanPage() {
             {formatWeekLabel(weekID)}
           </span>
           <button
-            onClick={() => setWeekID(w => addWeeks(w, 1))}
+            onClick={() => navigateWeek(1)}
+            aria-label="Next week"
             className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-cream hover:border-amber/30 transition-all"
           >
             <ChevronRight size={16} />
@@ -1121,18 +1165,6 @@ export default function PlanPage() {
           {null}
         </LoadingErrorRetry>
       )}
-      {planSubscriptionError && (
-        <LoadingErrorRetry
-          loading={false}
-          error={planSubscriptionError}
-          retry={() => setPlanSubscriptionAttempt(attempt => attempt + 1)}
-          errorPrefix="Your meal-plan view may be out of date."
-          className="mb-4"
-        >
-          {null}
-        </LoadingErrorRetry>
-      )}
-
       {/* Sharing is explicit: private edits never mutate the persisted public snapshot. */}
       {plannedIDList.length > 0 || publishedPlan ? (
         <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface/50 px-4 py-3">
@@ -1204,9 +1236,13 @@ export default function PlanPage() {
       )}
 
       <LoadingErrorRetry
-        loading={loadingRecipes}
-        error={recipesError || metasError || cookingHistoryError}
-        retry={() => { void Promise.all([refetchRecipes(), refetchMetas(), refetchCookingHistory()]) }}
+        loading={loadingRecipes || planLoading}
+        loadingLabel={planLoading ? 'Loading meal plan…' : 'Loading…'}
+        error={planSubscriptionError || recipesError || metasError || cookingHistoryError}
+        retry={() => {
+          if (planSubscriptionError) setPlanSubscriptionAttempt(attempt => attempt + 1)
+          else void Promise.all([refetchRecipes(), refetchMetas(), refetchCookingHistory()])
+        }}
         errorPrefix="Couldn’t load your meal plan data."
       >
         <>
