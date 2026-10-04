@@ -286,6 +286,16 @@ value clears it individually. They never replay snapshot notes, ratings, or serv
 The separate `onSaved` object is clean metadata without persistence sentinels. Full
 reset sends only whole-map removal intent. Shared-default servings remain a separate
 explicit operation; private string changes never write to the shared catalog.
+**Metadata state and completion:** Provider data, loading, and errors are bound to
+the authenticated uid. Only the latest active request may publish; superseded,
+previous-owner, signed-out, and retired-instance reads cannot restore metadata.
+Imperative metadata refresh rejects failed or obsolete readback, while passive
+loads expose an error/retry state. Detail/Plan and editor success requires the
+requested readback to complete. A persisted edit or reset followed by failed
+readback remains saved and can retry the read without repeating the write.
+Private metadata and shared-default servings are separate completion boundaries:
+if shared servings fails after private edits persist, show partial completion and
+retry the unfinished boundary, sending only any newly intended private deltas.
 Historical `overrides.category` strings remain tolerated and are canonicalized at read time
 after override precedence is applied. The approved 2026-08-25 migration removed only the nested
 category field from 24 redundant/legacy overrides, preserving all sibling metadata. The sole
@@ -495,6 +505,12 @@ retained as historical data and are not modified or deleted by this app.
     personal content (override when present, otherwise shared). Direct Add transactionally reads
     and writes its destination documents, so overlapping callers preserve both contributions.
     Recipe-derived writes never merge into or overwrite persisted manual grocery documents.
+13. **Private metadata state and save completion are explicit.** RecipeMeta results
+    render only for their current authenticated owner and latest valid request.
+    Required readback failure and a separate shared-servings write failure must not
+    appear as complete success or erase already-persisted private edits. Retrying an
+    unfinished read/write preserves fresh notes, ratings, personal servings, and
+    sibling overrides rather than replaying a stale metadata snapshot.
 
 ---
 
@@ -1478,7 +1494,8 @@ retained as historical data and are not modified or deleted by this app.
   regressions cover actual SDK persistence and actual detail/Plan handler payloads.
   This prevents future destructive patches; it does not recover previously deleted
   data or establish the chronology of historical incidents. Metadata state/error and
-  readback behavior, grocery fixes, and week-plan fixes remain separate slices.
+  readback boundaries are now guarded as described in §3 and §4.13; grocery and
+  week-plan work remain separate slices.
 
 - **Recipe total time is derived, so source labels cannot be copied blindly.** Firestore stores only
   `prepTime` and `cookTime`; `getTotalTime` sums whatever `parseTimeToMinutes` extracts. Range/prose

@@ -357,7 +357,7 @@ export default function RecipesPage() {
         retry={() => {
           if (cookedRecentlyError) setCookedLoadAttempt(attempt => attempt + 1)
           else if (wantToTryError) void refetchWantToTry()
-          else void Promise.all([refetchRecipes(), refetchMetas(), refetchWantToTry()])
+          else void Promise.allSettled([refetchRecipes(), refetchMetas(), refetchWantToTry()])
         }}
         errorPrefix={cookedRecentlyError
           ? 'Couldn’t apply the Cooked recently filter.'

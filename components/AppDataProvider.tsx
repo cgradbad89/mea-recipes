@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState, useCallback, useRef, ReactNode } from 'react'
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
@@ -69,6 +69,7 @@ const LOCAL_FAV_KEY = 'mea-favorites'
 const EMPTY_FAVORITES = new Set<string>()
 const LOCAL_WANT_TO_TRY_KEY = 'mea-want-to-try'
 const EMPTY_WANT_TO_TRY = new Set<string>()
+const EMPTY_METAS: Record<string, RecipeMeta> = {}
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth()
@@ -96,30 +97,70 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [refetchRecipes])
 
   // --- Metas (User-scoped) ---
-  const [metas, setMetas] = useState<Record<string, RecipeMeta>>({})
-  const [metasLoading, setMetasLoading] = useState(true)
-  const [metasError, setMetasError] = useState<string | null>(null)
+  const metasOwnerUid = user?.uid ?? null
+  const [metasState, setMetasState] = useState<{
+    ownerUid: string | null
+    data: Record<string, RecipeMeta>
+    loading: boolean
+    error: string | null
+  } | null>(null)
+  const metasRequestRef = useRef(0)
+  const metasOwnerRef = useRef(metasOwnerUid)
+  const metasActiveRef = useRef(false)
+
+  useLayoutEffect(() => {
+    metasOwnerRef.current = metasOwnerUid
+    metasActiveRef.current = !authLoading
+    const requestCounter = metasRequestRef
+    return () => {
+      metasActiveRef.current = false
+      ++requestCounter.current
+    }
+  }, [metasOwnerUid, authLoading])
+
+  // Bind the render as well as async publication to the authenticated owner.
+  const metasCurrent = !authLoading && metasState?.ownerUid === metasOwnerUid
+  const metas = metasCurrent ? metasState.data : EMPTY_METAS
+  const metasLoading = !metasCurrent || metasState.loading
+  const metasError = metasCurrent ? metasState.error : null
 
   const refetchMetas = useCallback(async () => {
-    if (!user) {
-      setMetas({})
-      setMetasLoading(false)
+    const ownerUid = metasOwnerUid
+    if (!metasActiveRef.current || metasOwnerRef.current !== ownerUid) {
+      throw new Error('Recipe data refresh is no longer current. Please retry.')
+    }
+    const requestId = ++metasRequestRef.current
+    const isCurrent = () => metasActiveRef.current
+      && metasOwnerRef.current === ownerUid && metasRequestRef.current === requestId
+    if (!ownerUid) {
+      setMetasState({ ownerUid, data: {}, loading: false, error: null })
       return
     }
+    setMetasState(previous => ({
+      ownerUid, data: previous?.ownerUid === ownerUid ? previous.data : {},
+      loading: true, error: null,
+    }))
     try {
-      setMetasLoading(true)
-      const path = collection(db, 'users', user.uid, 'recipes', 'root', 'meta')
+      const path = collection(db, 'users', ownerUid, 'recipes', 'root', 'meta')
       const snap = await getDocs(path)
+      if (!isCurrent()) throw new Error('Recipe data refresh was superseded. Please retry.')
       const map: Record<string, RecipeMeta> = {}
       snap.docs.forEach(d => { map[d.id] = d.data() as RecipeMeta })
-      setMetas(map)
-      setMetasError(null)
-    } catch (e: any) {
-      setMetasError(e.message)
+      setMetasState({ ownerUid, data: map, loading: false, error: null })
+    } catch (error) {
+      if (isCurrent()) {
+        setMetasState(previous => ({
+          ownerUid, data: previous?.ownerUid === ownerUid ? previous.data : {},
+          loading: false, error: error instanceof Error ? error.message : 'Failed to load recipe data',
+        }))
+      }
+      // Imperative readback must distinguish failure (including retirement) from
+      // a result actually published. Passive loads explicitly handle rejection.
+      throw error
     } finally {
-      setMetasLoading(false)
+      if (isCurrent()) setMetasState(previous => previous ? { ...previous, loading: false } : previous)
     }
-  }, [user])
+  }, [metasOwnerUid])
 
   // --- Favorites (User-scoped, + anon local storage) ---
   const [favoritesState, setFavoritesState] = useState<{
@@ -323,7 +364,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // Fetch user-scoped data when auth finishes loading and user changes
   useEffect(() => {
     if (authLoading) return
-    refetchMetas()
+    void refetchMetas().catch(() => {}) // failure is already exposed as metasError
     refetchFavorites()
     refetchWantToTry()
     refetchCookingHistory()

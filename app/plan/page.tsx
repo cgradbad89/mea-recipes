@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, CalendarPlus, Plus, GripVertical, BookOpen, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/AuthContext'
 import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan, getWeekPlan,
   markRecipeCooked, addRecipeIngredientsToGrocery,
-  moveRecipeToWeek, saveRecipeMeta, getRecipeMeta, rebuildGroceryFromPlan,
+  moveRecipeToWeek, saveRecipeMeta, rebuildGroceryFromPlan,
   publishSharedPlan, unpublishSharedPlan, subscribeSharedPlanPublication,
   subscribeSharedWeekPlans, addRecipeToWeekPlan,
   assignRecipeToDay, setPlannedRecipeRole, resolveRecipeRole,
@@ -123,10 +123,16 @@ function CookRatingModal({
   recipeName,
   onSave,
   onSkip,
+  saving,
+  refreshPending,
+  error,
 }: {
   recipeName: string
   onSave: (rating: number, note: string) => void
   onSkip: () => void
+  saving: boolean
+  refreshPending: boolean
+  error: string
 }) {
   const [rating, setRating] = useState(0)
   const [note, setNote] = useState('')
@@ -137,10 +143,11 @@ function CookRatingModal({
         How was <span className="text-amber">{recipeName}</span>?
       </p>
       <div className="mb-3">
-        <StarRating value={rating} onChange={setRating} />
+        <StarRating value={rating} onChange={saving || refreshPending ? undefined : setRating} />
       </div>
       <textarea
         value={note}
+        disabled={saving || refreshPending}
         onChange={e => setNote(e.target.value)}
         placeholder="Any notes? (optional)"
         rows={2}
@@ -149,15 +156,16 @@ function CookRatingModal({
       <div className="flex gap-2">
         <button
           onClick={() => onSave(rating, note)}
-          disabled={rating === 0}
+          disabled={rating === 0 || saving}
           className="btn-primary text-xs px-3 py-1.5 disabled:opacity-40"
         >
-          Save
+          {refreshPending ? 'Retry refresh' : 'Save'}
         </button>
-        <button onClick={onSkip} className="btn-ghost text-xs px-3 py-1.5">
+        <button onClick={onSkip} disabled={saving} className="btn-ghost text-xs px-3 py-1.5">
           Skip
         </button>
       </div>
+      {error && <p role="alert" className="text-red-400 text-xs font-body mt-2">{error}</p>}
     </div>
   )
 }
@@ -204,6 +212,18 @@ export default function PlanPage() {
   // + the per-tile day/week dropdowns).
   const [sheetFor, setSheetFor] = useState<string | null>(null)
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
+  const [ratingReadbackPending, setRatingReadbackPending] = useState<string | null>(null)
+  const [savingRating, setSavingRating] = useState(false)
+  const ratingOwnerRef = useRef(uid)
+  useLayoutEffect(() => {
+    ratingOwnerRef.current = uid
+    return () => { ratingOwnerRef.current = undefined }
+  }, [uid])
+  useEffect(() => {
+    setRatingPromptFor(null)
+    setRatingReadbackPending(null)
+    setSavingRating(false)
+  }, [uid])
   const [servingsPromptFor, setServingsPromptFor] = useState<string | null>(null)
   const [showRebuildConfirm, setShowRebuildConfirm] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
@@ -537,20 +557,36 @@ export default function PlanPage() {
   }
 
   const handleRatingSave = async (recipeID: string, rating: number, note: string) => {
-    if (!user) return
+    if (!user || savingRating) return
     setPlanActionError('')
+    setSavingRating(true)
+    let persisted = ratingReadbackPending === recipeID
     try {
-      const data: Partial<RecipeMeta> = { rating }
-      if (note.trim()) data.note = note
-      await saveRecipeMeta(user.uid, recipeID, data)
+      if (!persisted) {
+        const data: Partial<RecipeMeta> = { rating }
+        if (note.trim()) data.note = note
+        await saveRecipeMeta(user.uid, recipeID, data)
+        persisted = true
+        if (ratingOwnerRef.current !== uid) return
+        setRatingReadbackPending(recipeID)
+      }
       await refetchMetas()
+      if (ratingOwnerRef.current !== uid) return
+      setRatingReadbackPending(null)
       setRatingPromptFor(null)
     } catch {
-      setPlanActionError('Couldn’t save your rating — try again.')
+      if (ratingOwnerRef.current !== uid) return
+      setPlanActionError(persisted
+        ? 'Rating saved, but couldn’t refresh the latest recipe data. Retry the refresh.'
+        : 'Couldn’t save your rating — try again.')
+    } finally {
+      if (ratingOwnerRef.current === uid) setSavingRating(false)
     }
   }
 
   const handleRatingSkip = () => {
+    if (savingRating) return
+    setRatingReadbackPending(null)
     setRatingPromptFor(null)
   }
 
@@ -1063,6 +1099,9 @@ export default function PlanPage() {
             recipeName={recipes[ratingPromptFor].title}
             onSave={(r, n) => handleRatingSave(ratingPromptFor, r, n)}
             onSkip={handleRatingSkip}
+            saving={savingRating}
+            refreshPending={ratingReadbackPending === ratingPromptFor}
+            error={planActionError}
           />
         </CenteredOverlay>
       )}
@@ -1144,7 +1183,7 @@ export default function PlanPage() {
         </div>
       </div>
 
-      {planActionError && (
+      {planActionError && !ratingPromptFor && (
         <p role="alert" className="mb-4 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
           {planActionError}
         </p>
@@ -1241,7 +1280,7 @@ export default function PlanPage() {
         error={planSubscriptionError || recipesError || metasError || cookingHistoryError}
         retry={() => {
           if (planSubscriptionError) setPlanSubscriptionAttempt(attempt => attempt + 1)
-          else void Promise.all([refetchRecipes(), refetchMetas(), refetchCookingHistory()])
+          else void Promise.allSettled([refetchRecipes(), refetchMetas(), refetchCookingHistory()])
         }}
         errorPrefix="Couldn’t load your meal plan data."
       >

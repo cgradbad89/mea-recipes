@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Save, RotateCcw, Loader2, Check } from 'lucide-react'
 import { saveRecipeMeta } from '@/lib/userdata'
 import { updateRecipeServings } from '@/lib/recipes'
@@ -18,7 +18,7 @@ interface Props {
   recipe: Recipe
   meta: RecipeMeta | null
   onClose: () => void
-  onSaved: (updatedMeta: RecipeMeta) => void
+  onSaved: (updatedMeta: RecipeMeta) => void | Promise<void>
   onNutritionSaved?: (nutrition: RecipeNutrition) => void
 }
 
@@ -36,7 +36,6 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   )
   const parsedServings = Number(servingsInput)
   const servingsValid = servingsInput.trim() !== '' && Number.isFinite(parsedServings) && parsedServings > 0
-  const servingsChanged = servingsValid && parsedServings !== initServings
   // Live per-serving preview, recomputed from the durable whole-recipe total.
   const previewPerServing = hasTotal && servingsValid
     ? perServingFromTotal(nutrition!.total, parsedServings)
@@ -56,20 +55,30 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   const [resetting, setResetting] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [showDiscardWarning, setShowDiscardWarning] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [privateSaved, setPrivateSaved] = useState(false)
+  const [resetSaved, setResetSaved] = useState(false)
+  const latestMetaRef = useRef(meta)
+  const savedIntentRef = useRef<NonNullable<RecipeMeta['overrides']>>({})
+  useEffect(() => { latestMetaRef.current = meta }, [meta])
   const categoryIsCanonical = isRecipeCategory(category)
 
   // Initial values for dirty check
-  const initTitle = overrides.title || recipe.title
-  const initCuisine = overrides.cuisine || recipe.cuisine
-  const initContent = overrides.content || recipe.content
-  const initImageURL = overrides.imageURL || recipe.imageURL || ''
-  const initPrepTime = overrides.prepTime || (recipe as any).prepTime || ''
-  const initCookTime = overrides.cookTime || (recipe as any).cookTime || ''
+  const [savedFields, setSavedFields] = useState({
+    title, cuisine, category: initialDisplayCategory, content, imageURL, prepTime, cookTime,
+  })
+  const [savedServings, setSavedServings] = useState(initServings)
+  const initTitle = savedFields.title
+  const initCuisine = savedFields.cuisine
+  const initContent = savedFields.content
+  const initImageURL = savedFields.imageURL
+  const initPrepTime = savedFields.prepTime
+  const initCookTime = savedFields.cookTime
 
-  const categoryChanged = category !== initialDisplayCategory
+  const categoryChanged = category !== savedFields.category
   const isDirty = title !== initTitle || cuisine !== initCuisine || categoryChanged ||
     content !== initContent || imageURL !== initImageURL || prepTime !== initPrepTime ||
-    cookTime !== initCookTime || servingsChanged
+    cookTime !== initCookTime || (servingsValid && parsedServings !== savedServings)
 
   // Auto-reset confirmReset after 3 seconds
   useEffect(() => {
@@ -79,8 +88,9 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   }, [confirmReset])
 
   const handleSave = async () => {
-    if (!user) return
+    if (!user || saving || resetting || resetSaved) return
     setSaving(true)
+    setSaveError('')
     // Only changed controls belong in the patch. Keep own undefined values as
     // explicit field clears; omit untouched siblings, including personal servings.
     // The category's initial display may be a read-time legacy normalization, so
@@ -89,63 +99,97 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
     const fields = [
       ['title', title, initTitle, recipe.title],
       ['cuisine', cuisine, initCuisine, recipe.cuisine],
-      ['category', category, initialDisplayCategory, recipe.category],
+      ['category', category, savedFields.category, recipe.category],
       ['content', content, initContent, recipe.content],
       ['imageURL', imageURL, initImageURL, recipe.imageURL || ''],
       ['prepTime', prepTime, initPrepTime, recipe.prepTime || ''],
       ['cookTime', cookTime, initCookTime, recipe.cookTime || ''],
     ] as const
-    const clean = { ...overrides }
     for (const [key, value, initialValue, sharedValue] of fields) {
       if (value === initialValue) continue
       overridePatch[key] = value !== sharedValue ? value : undefined
-      if (overridePatch[key] === undefined) delete clean[key]
-      else clean[key] = value
     }
-    const updatedMeta: RecipeMeta = {
-      ...meta,
-      overrides: Object.keys(clean).length > 0 ? clean : undefined,
+    let stage: 'private' | 'shared' | 'readback' = 'private'
+    try {
+      if (!privateSaved || Object.keys(overridePatch).length > 0) {
+        await saveRecipeMeta(user.uid, recipe.id, { overrides: overridePatch })
+        // Advance the baseline only after persistence. A retry sends new deltas,
+        // never a previous override map or snapshot notes/ratings/servings.
+        setPrivateSaved(true)
+        savedIntentRef.current = { ...savedIntentRef.current, ...overridePatch }
+        setSavedFields({ title, cuisine, category, content, imageURL, prepTime, cookTime })
+      }
+      stage = 'shared'
+      if (hasNutrition && servingsValid && parsedServings !== savedServings) {
+        const updatedNutrition = await updateRecipeServings(recipe.id, parsedServings, nutrition!)
+        setSavedServings(parsedServings)
+        stage = 'readback'
+        onNutritionSaved?.(updatedNutrition)
+      }
+      stage = 'readback'
+      const currentMeta = latestMetaRef.current
+      const clean = { ...currentMeta?.overrides }
+      for (const [key, value] of Object.entries(savedIntentRef.current)) {
+        if (value === undefined) delete clean[key as keyof typeof clean]
+        else Object.assign(clean, { [key]: value })
+      }
+      await onSaved({ ...currentMeta, overrides: Object.keys(clean).length ? clean : undefined })
+      setSaveSuccess(true)
+    } catch {
+      setSaveError(stage === 'private'
+        ? 'Couldn’t save your recipe edits. Please try again.'
+        : stage === 'shared'
+          ? 'Recipe edits were saved, but the shared servings update failed. Please try again.'
+          : 'Saved, but couldn’t refresh the latest recipe data. Please try again.')
+    } finally {
+      setSaving(false)
     }
-    await saveRecipeMeta(user.uid, recipe.id, { overrides: overridePatch })
-
-    // Persist a servings correction back onto the shared recipe's nutrition object.
-    // Recomputes per-serving from the durable `total`; never touches `total` itself.
-    if (hasNutrition && servingsChanged) {
-      const updatedNutrition = await updateRecipeServings(recipe.id, parsedServings, nutrition!)
-      onNutritionSaved?.(updatedNutrition)
-    }
-
-    setSaving(false)
-    setSaveSuccess(true)
-    onSaved(updatedMeta)
-    setTimeout(() => onClose(), 1500)
   }
 
+  useEffect(() => {
+    if (!saveSuccess) return
+    const timer = setTimeout(onClose, 1500)
+    return () => clearTimeout(timer)
+  }, [saveSuccess, onClose])
+
   const handleResetClick = () => {
-    if (!confirmReset) { setConfirmReset(true); return }
-    handleReset()
+    if (!confirmReset && !resetSaved) { setConfirmReset(true); return }
+    void handleReset()
   }
 
   const handleReset = async () => {
-    if (!user) return
+    if (!user || saving || resetting) return
     setResetting(true)
     setConfirmReset(false)
-    const updatedMeta: RecipeMeta = { ...meta, overrides: undefined }
-    await saveRecipeMeta(user.uid, recipe.id, { overrides: undefined })
-    setTitle(recipe.title)
-    setCuisine(recipe.cuisine)
-    setCategory(normalizeRecipeCategory(recipe.category, recipe.id) ?? recipe.category)
-    setContent(recipe.content)
-    setImageURL(recipe.imageURL || '')
-    setPrepTime((recipe as any).prepTime || '')
-    setCookTime((recipe as any).cookTime || '')
-    setServingsInput(initServings != null ? String(initServings) : '')
-    setResetting(false)
-    onSaved(updatedMeta)
-    onClose()
+    setSaveError('')
+    let persisted = resetSaved
+    try {
+      if (!persisted) {
+        await saveRecipeMeta(user.uid, recipe.id, { overrides: undefined })
+        persisted = true
+        setResetSaved(true)
+        setTitle(recipe.title)
+        setCuisine(recipe.cuisine)
+        setCategory(normalizeRecipeCategory(recipe.category, recipe.id) ?? recipe.category)
+        setContent(recipe.content)
+        setImageURL(recipe.imageURL || '')
+        setPrepTime(recipe.prepTime || '')
+        setCookTime(recipe.cookTime || '')
+        setServingsInput(initServings != null ? String(initServings) : '')
+      }
+      await onSaved({ ...latestMetaRef.current, overrides: undefined })
+      onClose()
+    } catch {
+      setSaveError(persisted
+        ? 'Reset saved, but couldn’t refresh the latest recipe data. Please retry the refresh.'
+        : 'Couldn’t reset your recipe edits. Please try again.')
+    } finally {
+      setResetting(false)
+    }
   }
 
   const handleClose = () => {
+    if (saving || resetting) return
     if (isDirty) { setShowDiscardWarning(true); return }
     onClose()
   }
@@ -162,12 +206,13 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
               Changes are personal — the shared recipe stays the same for other users
             </p>
           </div>
-          <button onClick={handleClose} className="text-faint hover:text-cream transition-colors">
+          <button onClick={handleClose} disabled={saving || resetting} className="text-faint hover:text-cream transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
+          <fieldset disabled={saving || resetting || resetSaved || saveSuccess} className="space-y-4">
           {/* Title */}
           <div>
             <label className="text-faint text-xs font-body uppercase tracking-widest mb-1.5 block">Title</label>
@@ -280,6 +325,8 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
             <textarea value={content} onChange={e => setContent(e.target.value)} rows={12} className="input-field resize-none text-xs leading-relaxed" />
           </div>
 
+          </fieldset>
+
           {/* Unsaved changes warning */}
           {showDiscardWarning && (
             <div className="bg-amber/10 border border-amber/20 rounded-xl p-3 flex items-center justify-between gap-3 animate-fade-in">
@@ -291,17 +338,19 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
             </div>
           )}
 
+          {saveError && <p role="alert" className="text-red-400 text-xs font-body">{saveError}</p>}
+
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            {hasOverrides && (
-              <button onClick={handleResetClick} disabled={resetting} className={`btn-ghost flex items-center gap-2 ${confirmReset ? 'text-red-400 border-red-400/30' : 'text-faint'}`}>
+            {(hasOverrides || resetSaved) && (
+              <button onClick={handleResetClick} disabled={resetting || saving || saveSuccess} className={`btn-ghost flex items-center gap-2 ${confirmReset ? 'text-red-400 border-red-400/30' : 'text-faint'}`}>
                 {resetting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-                {confirmReset ? 'Click again to reset' : 'Reset to original'}
+                {resetSaved ? 'Retry refresh' : confirmReset ? 'Click again to reset' : 'Reset to original'}
               </button>
             )}
             <div className="flex-1" />
-            <button onClick={handleClose} className="btn-ghost">Cancel</button>
-            <button onClick={handleSave} disabled={saving || saveSuccess} className={`btn-primary flex items-center gap-2 ${saveSuccess ? 'bg-green-500 hover:bg-green-500' : ''}`}>
+            <button onClick={handleClose} disabled={saving || resetting} className="btn-ghost">Cancel</button>
+            <button onClick={handleSave} disabled={saving || resetting || resetSaved || saveSuccess} className={`btn-primary flex items-center gap-2 ${saveSuccess ? 'bg-green-500 hover:bg-green-500' : ''}`}>
               {saving ? <Loader2 size={14} className="animate-spin" /> : saveSuccess ? <Check size={14} /> : <Save size={14} />}
               {saveSuccess ? 'Saved!' : 'Save changes'}
             </button>

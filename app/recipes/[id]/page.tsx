@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Heart, ExternalLink, ChefHat,
   BookOpen, Bookmark, BookmarkCheck, Calendar, Loader2, Pencil, Trash2, Clock, Sparkles, Send, ShoppingCart, Check
 } from 'lucide-react'
 import { getRecipeById, parseRecipeContent, deleteRecipe, getTotalTime, detectIngredientHeader, setRecipeDefaultRole } from '@/lib/recipes'
-import { getRecipeMeta, saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, addRecipeIngredientsToGrocery, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
+import { saveRecipeMeta, setServingsOverride, addRecipeToWeekPlan, addRecipeIngredientsToGrocery, weekIDFromDate, resolveRecipeRole, type PlannedRole } from '@/lib/userdata'
 import { logCookEvent } from '@/lib/consumptionLog'
 import { perServingForViewer } from '@/lib/nutrition'
 import { useAppData } from '@/components/AppDataProvider'
@@ -79,6 +79,14 @@ export default function RecipeDetailPage() {
   const [canDelete, setCanDelete] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [noteRefreshPending, setNoteRefreshPending] = useState(false)
+  const [servingsError, setServingsError] = useState('')
+  const detailScope = `${user?.uid ?? ''}:${id}`
+  const detailScopeRef = useRef<string | null>(detailScope)
+  useLayoutEffect(() => {
+    detailScopeRef.current = detailScope
+    return () => { detailScopeRef.current = null }
+  }, [detailScope])
   const [showUnsavedBanner, setShowUnsavedBanner] = useState(false)
   const [showCookingMode, setShowCookingMode] = useState(false)
   const [assistantMessages, setAssistantMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
@@ -105,11 +113,24 @@ export default function RecipeDetailPage() {
   }, [id, recipeLoadAttempt])
 
   useEffect(() => {
-    if (meta) {
-      setNote(meta.note || '')
-      setRating(meta.rating || 0)
-    }
-  }, [meta])
+    setNote(meta?.note || '')
+    setRating(meta?.rating || 0)
+  }, [meta, user?.uid, id])
+
+  useEffect(() => {
+    setSaveError('')
+    setSaveSuccess(false)
+    setNoteRefreshPending(false)
+    setSavingNote(false)
+    setServingsError('')
+    setShowEdit(false)
+  }, [user?.uid, id])
+
+  useEffect(() => {
+    if (!saveSuccess) return
+    const timer = setTimeout(() => setSaveSuccess(false), 2000)
+    return () => clearTimeout(timer)
+  }, [saveSuccess])
 
   useEffect(() => {
     let active = true
@@ -173,19 +194,46 @@ export default function RecipeDetailPage() {
   } : null
 
   const handleSaveNote = async () => {
-    if (!user || !id) return
+    if (!user || !id || savingNote) return false
     setSavingNote(true)
     setSaveError('')
     setSaveSuccess(false)
+    let persisted = false
     try {
       await saveRecipeMeta(user.uid, id, { note, rating })
+      persisted = true
+      if (detailScopeRef.current !== detailScope) return false
       await refetchMetas()
+      if (detailScopeRef.current !== detailScope) return false
+      setNoteRefreshPending(false)
       setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2000)
+      return true
     } catch (e: any) {
-      setSaveError(e?.message || 'Failed to save notes')
+      if (detailScopeRef.current !== detailScope) return false
+      setNoteRefreshPending(persisted)
+      setSaveError(persisted
+        ? 'Saved, but couldn’t refresh the latest recipe data. Retry the refresh.'
+        : e?.message || 'Failed to save notes')
+      return false
     } finally {
-      setSavingNote(false)
+      if (detailScopeRef.current === detailScope) setSavingNote(false)
+    }
+  }
+
+  const handleRetryNoteRefresh = async () => {
+    setSavingNote(true)
+    setSaveError('')
+    try {
+      await refetchMetas()
+      if (detailScopeRef.current !== detailScope) return
+      setNoteRefreshPending(false)
+      setSaveSuccess(true)
+    } catch {
+      if (detailScopeRef.current === detailScope) {
+        setSaveError('Saved, but couldn’t refresh the latest recipe data. Retry the refresh.')
+      }
+    } finally {
+      if (detailScopeRef.current === detailScope) setSavingNote(false)
     }
   }
 
@@ -194,11 +242,18 @@ export default function RecipeDetailPage() {
   // (and any cooked-capture below) recompute live from the shared nutrition.total.
   const handleSetServings = async (servings: number | null) => {
     if (!user || !id) return
+    setServingsError('')
+    let persisted = false
     try {
       await setServingsOverride(user.uid, id, servings)
+      persisted = true
+      if (detailScopeRef.current !== detailScope) return
       await refetchMetas()
     } catch {
-      /* best-effort — the live view already reflects the user's intent */
+      if (detailScopeRef.current !== detailScope) return
+      setServingsError(persisted
+        ? 'Serving size saved, but couldn’t refresh the latest recipe data.'
+        : 'Couldn’t save your serving size. Please try again.')
     }
   }
 
@@ -393,17 +448,22 @@ export default function RecipeDetailPage() {
   return (
     <LoadingErrorRetry
       loading={false}
-      error={metasError || favoritesError}
-      retry={() => { void Promise.all([refetchMetas(), refetchFavorites()]) }}
+      error={favoritesError}
+      retry={() => { void Promise.allSettled([refetchMetas(), refetchFavorites()]) }}
       errorPrefix="Couldn’t load your recipe details."
       className="max-w-3xl mx-auto mt-6"
     >
     <div className="max-w-3xl mx-auto px-4 py-6">
+      <LoadingErrorRetry loading={false} error={metasError}
+        retry={() => { void refetchMetas().catch(() => {}) }}
+        errorPrefix="Couldn’t refresh your recipe details." className="mb-4">
+        {null}
+      </LoadingErrorRetry>
       {showUnsavedBanner && (
         <div className="bg-amber/10 border border-amber/20 rounded-xl p-3 mb-4 flex items-center justify-between gap-3 animate-fade-in">
           <p className="text-amber text-xs font-body">You have unsaved notes. Save before leaving?</p>
           <div className="flex gap-2 shrink-0">
-            <button onClick={async () => { await handleSaveNote(); router.back() }} className="text-xs font-body text-amber font-semibold">Save now</button>
+            <button onClick={async () => { if (await handleSaveNote()) router.back() }} className="text-xs font-body text-amber font-semibold">Save now</button>
             <button onClick={() => { setShowUnsavedBanner(false); router.back() }} className="text-xs font-body text-faint hover:text-cream">Leave anyway</button>
           </div>
         </div>
@@ -621,6 +681,8 @@ export default function RecipeDetailPage() {
         }
       />
 
+      {servingsError && <p role="alert" className="text-red-400 text-xs font-body mb-4">{servingsError}</p>}
+
       {ingredients.length > 0 && (
         <section className="mb-8">
           <div className="flex items-start justify-between gap-3 mb-4">
@@ -790,7 +852,9 @@ export default function RecipeDetailPage() {
             Save Notes
           </button>
           {saveSuccess && <p className="text-green-400 text-xs font-body mt-2">Saved!</p>}
-          {saveError && <p className="text-red-400 text-xs font-body mt-2">{saveError}</p>}
+          {saveError && <p role="alert" className="text-red-400 text-xs font-body mt-2">{saveError}</p>}
+          {noteRefreshPending && <button onClick={handleRetryNoteRefresh} disabled={savingNote}
+            className="btn-ghost mt-2 text-xs">Retry refresh</button>}
         </section>
       )}
 
@@ -818,8 +882,9 @@ export default function RecipeDetailPage() {
         />
       )}
 
-      {showEdit && recipe && (
+      {showEdit && recipe && user && (
         <RecipeEditModal
+          key={`${user.uid}:${recipe.id}`}
           recipe={recipe}
           meta={meta}
           onClose={() => setShowEdit(false)}

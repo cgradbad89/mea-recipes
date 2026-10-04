@@ -303,3 +303,150 @@ describe('RecipeEditModal explicit private patch intent', () => {
     expect(onSaved).toHaveBeenCalledWith({ overrides: { servings: 2 } })
   })
 })
+
+function pending<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: Error) => void
+  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no })
+  return { promise, resolve, reject }
+}
+
+describe('RecipeEditModal async completion and retry', () => {
+  it('waits for async readback before success and always releases saving', async () => {
+    const readback = pending<void>()
+    const onSaved = vi.fn(() => readback.promise)
+    render(<RecipeEditModal recipe={recipe('Seafood')} meta={null} onClose={vi.fn()} onSaved={onSaved} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
+    expect(screen.getByRole('button', { name: 'Save changes' }).hasAttribute('disabled')).toBe(true)
+    expect(screen.queryByText('Saved!')).toBeNull()
+    readback.resolve()
+    await screen.findByRole('button', { name: 'Saved!' })
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Saved!' }).querySelector('.animate-spin')).toBeNull()
+  })
+
+  it('catches a private write rejection and allows retry without reporting success', async () => {
+    mocks.saveRecipeMeta.mockRejectedValueOnce(new Error('offline'))
+    const { onSaved } = renderModal('Seafood')
+    fireEvent.change(titleControl(), { target: { value: 'New title' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Couldn’t save your recipe edits')
+    expect(screen.getByRole('button', { name: 'Save changes' }).hasAttribute('disabled')).toBe(false)
+    expect(onSaved).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByText('Saved!')
+    expect(mocks.saveRecipeMeta).toHaveBeenCalledTimes(2)
+    expect(mocks.saveRecipeMeta.mock.calls[1][2]).toEqual({ overrides: { title: 'New title' } })
+  })
+
+  it('catches reset rejection, keeps the form usable, and retries the explicit reset', async () => {
+    mocks.saveRecipeMeta.mockRejectedValueOnce(new Error('reset failed'))
+    const { onSaved, onClose } = renderModal('Seafood', { overrides: { title: 'Personal title' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to original' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Click again to reset' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Couldn’t reset')
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(titleControl().value).toBe('Personal title')
+    expect(screen.getByRole('button', { name: 'Reset to original' }).hasAttribute('disabled')).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to original' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Click again to reset' }))
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+  })
+
+  it('reports save readback failure and retries only the read without replaying private data', async () => {
+    const onSaved = vi.fn().mockRejectedValueOnce(new Error('read offline')).mockResolvedValue(undefined)
+    const shared = recipe('Seafood')
+    const onClose = vi.fn()
+    render(<RecipeEditModal recipe={shared} meta={{ note: 'original', overrides: { servings: 2 } }}
+      onClose={onClose} onSaved={onSaved} />)
+    fireEvent.change(contentControl(), { target: { value: 'Saved personal content' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Saved, but couldn’t refresh')
+    expect(screen.queryByText('Saved!')).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByText('Saved!')
+    expect(mocks.saveRecipeMeta).toHaveBeenCalledOnce()
+    expect(onSaved).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries a saved reset readback without another destructive reset write', async () => {
+    const onSaved = vi.fn().mockRejectedValueOnce(new Error('read offline')).mockResolvedValue(undefined)
+    const onClose = vi.fn()
+    render(<RecipeEditModal recipe={recipe('Seafood')} meta={{ note: 'keep', overrides: { content: 'personal' } }}
+      onClose={onClose} onSaved={onSaved} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to original' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Click again to reset' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Reset saved, but couldn’t refresh')
+    expect(onClose).not.toHaveBeenCalled()
+    const retry = screen.getByRole('button', { name: 'Retry refresh' })
+    expect(retry.hasAttribute('disabled')).toBe(false)
+    fireEvent.click(retry)
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+    expect(mocks.saveRecipeMeta).toHaveBeenCalledOnce()
+    expect(onSaved).toHaveBeenLastCalledWith({ note: 'keep', overrides: undefined })
+  })
+
+  it('retries shared servings without replaying successful metadata and uses current callback siblings', async () => {
+    const shared = recipe('Seafood')
+    const macros = { calories: 100, protein_g: 10, carbs_g: 10, fat_g: 2, fiber_g: 1, sugar_g: 1 }
+    shared.nutrition = { ...macros, servings: 4, total: macros }
+    const updated = { ...shared.nutrition, servings: 8 }
+    mocks.updateRecipeServings.mockRejectedValueOnce(new Error('shared failed')).mockResolvedValueOnce(updated)
+    const onSaved = vi.fn(), onClose = vi.fn()
+    const view = render(<RecipeEditModal recipe={shared} meta={{ note: 'old', overrides: { servings: 2 } }}
+      onClose={onClose} onSaved={onSaved} />)
+    fireEvent.change(contentControl(), { target: { value: 'Saved content' } })
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Recipe edits were saved, but the shared servings update failed')
+    expect(screen.queryByText('Saved!')).toBeNull()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    // Another source updated notes, rating, personal servings and a sibling override.
+    view.rerender(<RecipeEditModal recipe={shared} meta={{ note: 'fresh', rating: 5,
+      overrides: { servings: 6, title: 'Fresh title', content: 'Saved content' } }}
+      onClose={onClose} onSaved={onSaved} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByText('Saved!')
+    expect(mocks.saveRecipeMeta).toHaveBeenCalledExactlyOnceWith('user-1', shared.id, { overrides: { content: 'Saved content' } })
+    expect(mocks.updateRecipeServings).toHaveBeenCalledTimes(2)
+    expect(onSaved).toHaveBeenCalledWith({ note: 'fresh', rating: 5,
+      overrides: { servings: 6, title: 'Fresh title', content: 'Saved content' } })
+  })
+
+  it('sends only newly changed controls on retry after private completion', async () => {
+    const shared = recipe('Seafood')
+    const macros = { calories: 100, protein_g: 10, carbs_g: 10, fat_g: 2, fiber_g: 1, sugar_g: 1 }
+    shared.nutrition = { ...macros, servings: 4, total: macros }
+    mocks.updateRecipeServings.mockRejectedValueOnce(new Error('shared failed')).mockResolvedValueOnce({ ...shared.nutrition, servings: 8 })
+    render(<RecipeEditModal recipe={shared} meta={{ note: 'snapshot', overrides: { servings: 2 } }}
+      onClose={vi.fn()} onSaved={vi.fn()} />)
+    fireEvent.change(contentControl(), { target: { value: 'First content' } })
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByRole('alert')
+    fireEvent.change(titleControl(), { target: { value: 'New title' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByText('Saved!')
+    expect(mocks.saveRecipeMeta.mock.calls.map(call => call[2])).toEqual([
+      { overrides: { content: 'First content' } }, { overrides: { title: 'New title' } },
+    ])
+  })
+
+  it('does not start shared servings when the first private boundary fails', async () => {
+    const shared = recipe('Seafood')
+    const macros = { calories: 100, protein_g: 10, carbs_g: 10, fat_g: 2, fiber_g: 1, sugar_g: 1 }
+    shared.nutrition = { ...macros, servings: 4, total: macros }
+    mocks.saveRecipeMeta.mockRejectedValueOnce(new Error('private failed'))
+    const onSaved = vi.fn()
+    render(<RecipeEditModal recipe={shared} meta={null} onClose={vi.fn()} onSaved={onSaved} />)
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '8' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByRole('alert')
+    expect(mocks.updateRecipeServings).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+})
