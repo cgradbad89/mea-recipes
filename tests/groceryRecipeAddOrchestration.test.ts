@@ -8,15 +8,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // separation) still behaves exactly as before. No live Firestore is used.
 
 const firestore = vi.hoisted(() => {
-  const batch = {
+  const transaction = {
     set: vi.fn(),
     update: vi.fn(),
-    commit: vi.fn(async () => undefined),
+    get: vi.fn(),
   }
   return {
-    batch,
+    transaction,
     getDocs: vi.fn(),
-    writeBatch: vi.fn(() => batch),
+    runTransaction: vi.fn(async (_db, run) => run(transaction)),
   }
 })
 
@@ -34,23 +34,26 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn(),
   serverTimestamp: vi.fn(() => 'mock-timestamp'),
   onSnapshot: vi.fn(),
-  writeBatch: firestore.writeBatch,
+  writeBatch: vi.fn(),
   deleteField: vi.fn(),
-  runTransaction: vi.fn(),
+  runTransaction: firestore.runTransaction,
 }))
 
 import { addRecipeIngredientsToGrocery } from '@/lib/userdata'
 
 function mockExisting(items: Array<{ id: string; data: Record<string, unknown> }>) {
+  firestore.transaction.get.mockImplementation(async (ref: { id: string }) => {
+    const item = items.find(item => item.id === ref.id)
+    return { exists: () => !!item, data: () => item?.data }
+  })
   firestore.getDocs.mockResolvedValue({
     docs: items.map(({ id, data }) => ({ id, data: () => data })),
   })
 }
 
 beforeEach(() => {
-  firestore.batch.set.mockClear()
-  firestore.batch.update.mockClear()
-  firestore.batch.commit.mockClear()
+  firestore.transaction.set.mockClear()
+  firestore.transaction.update.mockClear()
   mockExisting([])
 })
 
@@ -63,11 +66,11 @@ describe('addRecipeIngredientsToGrocery — same-unit merge (Case B, unchanged)'
 
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['1 cup flour'])
 
-    expect(firestore.batch.update).toHaveBeenCalledWith(
+    expect(firestore.transaction.update).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ quantity: '3', unit: 'cups', sourceRecipeIDs: ['recipe-0', 'recipe-1'] }),
     )
-    expect(firestore.batch.commit).toHaveBeenCalledOnce()
+    expect(firestore.runTransaction).toHaveBeenCalledOnce()
   })
 })
 
@@ -80,7 +83,7 @@ describe('addRecipeIngredientsToGrocery — compatible-unit merge (Case C)', () 
 
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['8 tbsp chicken broth'])
 
-    expect(firestore.batch.update).toHaveBeenCalledWith(
+    expect(firestore.transaction.update).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ quantity: '1.5', unit: 'cup' }),
     )
@@ -97,12 +100,15 @@ describe('addRecipeIngredientsToGrocery — compatible-unit merge (Case C)', () 
 
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['8 tbsp chicken broth'])
 
-    expect(firestore.batch.update).toHaveBeenCalledWith(
+    expect(firestore.transaction.update).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        quantity: '1.5', unit: 'cup', sourceRecipeIDs: ['recipe-0', 'recipe-1'], needThisTrip: true,
+        quantity: '1.5', unit: 'cup', sourceRecipeIDs: ['recipe-0', 'recipe-1'],
       }),
     )
+    // A narrow transaction update preserves the stored trip flag by omission;
+    // groceryPersistence.test.tsx verifies that preservation in real Firestore.
+    expect(firestore.transaction.update.mock.calls[0][1]).not.toHaveProperty('needThisTrip')
   })
 })
 
@@ -115,7 +121,7 @@ describe('addRecipeIngredientsToGrocery — incompatible-unit merge (Case D, sid
 
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['200 g flour'])
 
-    expect(firestore.batch.update).toHaveBeenCalledWith(
+    expect(firestore.transaction.update).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ quantity: '1 cup + 200 g', unit: '' }),
     )
@@ -131,9 +137,8 @@ describe('addRecipeIngredientsToGrocery — idempotency', () => {
 
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['1 cup flour'])
 
-    expect(firestore.batch.update).not.toHaveBeenCalled()
-    expect(firestore.batch.set).not.toHaveBeenCalled()
-    expect(firestore.batch.commit).not.toHaveBeenCalled()
+    expect(firestore.transaction.update).not.toHaveBeenCalled()
+    expect(firestore.transaction.set).not.toHaveBeenCalled()
   })
 })
 
@@ -147,8 +152,8 @@ describe('addRecipeIngredientsToGrocery — manual/recipe pool separation', () =
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['garlic'])
 
     // A NEW recipe-sourced item is created instead of updating the manual one.
-    expect(firestore.batch.update).not.toHaveBeenCalled()
-    expect(firestore.batch.set).toHaveBeenCalledWith(
+    expect(firestore.transaction.update).not.toHaveBeenCalled()
+    expect(firestore.transaction.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'garlic', isManual: false, sourceRecipeIDs: ['recipe-1'] }),
     )
@@ -159,13 +164,13 @@ describe('addRecipeIngredientsToGrocery — new item creation', () => {
   it('creates a new recipe-sourced item with sourceRecipeIDs and no manualSection', async () => {
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['2 cups rice'])
 
-    expect(firestore.batch.set).toHaveBeenCalledWith(
+    expect(firestore.transaction.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         name: 'rice', quantity: '2', unit: 'cups', isManual: false, sourceRecipeIDs: ['recipe-1'],
       }),
     )
-    const [, written] = firestore.batch.set.mock.calls[0]
+    const [, written] = firestore.transaction.set.mock.calls[0]
     expect(written).not.toHaveProperty('manualSection')
   })
 })

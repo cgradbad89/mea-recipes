@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { categorizeIngredient } from '@/lib/groceryCategories'
 
 const firestore = vi.hoisted(() => {
-  const batch = {
+  const transaction = {
     set: vi.fn(),
     update: vi.fn(),
-    commit: vi.fn(async () => undefined),
+    get: vi.fn(),
   }
   return {
-    batch,
+    transaction,
     getDocs: vi.fn(),
-    writeBatch: vi.fn(() => batch),
+    runTransaction: vi.fn(async (_db, run) => run(transaction)),
   }
 })
 
@@ -38,15 +38,16 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn(),
   serverTimestamp: vi.fn(() => 'mock-timestamp'),
   onSnapshot: vi.fn(),
-  writeBatch: firestore.writeBatch,
+  writeBatch: vi.fn(),
   deleteField: vi.fn(),
-  runTransaction: vi.fn(),
+  runTransaction: firestore.runTransaction,
 }))
 
 import { addRecipeIngredientsToGrocery } from '@/lib/userdata'
 
 beforeEach(() => {
   firestore.getDocs.mockResolvedValue({ docs: [] })
+  firestore.transaction.get.mockResolvedValue({ exists: () => false })
 })
 
 describe('addRecipeIngredientsToGrocery final boundary', () => {
@@ -59,19 +60,18 @@ describe('addRecipeIngredientsToGrocery final boundary', () => {
   ])('does not write a %s', async (_case, line) => {
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', [line])
 
-    expect(firestore.batch.set).not.toHaveBeenCalled()
-    expect(firestore.batch.update).not.toHaveBeenCalled()
-    expect(firestore.batch.commit).not.toHaveBeenCalled()
+    expect(firestore.transaction.set).not.toHaveBeenCalled()
+    expect(firestore.transaction.update).not.toHaveBeenCalled()
   })
 
   it('accepts a real no-quantity ingredient', async () => {
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['garlic'])
 
-    expect(firestore.batch.set).toHaveBeenCalledWith(
+    expect(firestore.transaction.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'garlic', quantity: '', unit: '' }),
     )
-    expect(firestore.batch.commit).toHaveBeenCalledOnce()
+    expect(firestore.runTransaction).toHaveBeenCalledOnce()
   })
 
   it('accepts a real ingredient even when its category is Other', async () => {
@@ -79,30 +79,30 @@ describe('addRecipeIngredientsToGrocery final boundary', () => {
 
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['brusselsprouts'])
 
-    expect(firestore.batch.set).toHaveBeenCalledWith(
+    expect(firestore.transaction.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'brusselsprouts' }),
     )
-    expect(firestore.batch.commit).toHaveBeenCalledOnce()
+    expect(firestore.runTransaction).toHaveBeenCalledOnce()
   })
 
   it('keeps normal parsed quantity/unit/name behavior unchanged', async () => {
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['2 cups rice'])
 
-    expect(firestore.batch.set).toHaveBeenCalledWith(
+    expect(firestore.transaction.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'rice', quantity: '2', unit: 'cups' }),
     )
-    expect(firestore.batch.commit).toHaveBeenCalledOnce()
+    expect(firestore.runTransaction).toHaveBeenCalledOnce()
   })
 
   it('keeps a quantified green chile sauce as a grocery candidate', async () => {
     await addRecipeIngredientsToGrocery('user-1', 'recipe-1', ['1 cup green chile sauce'])
 
-    expect(firestore.batch.set).toHaveBeenCalledWith(
+    expect(firestore.transaction.set).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ name: 'green chile sauce', quantity: '1', unit: 'cup' }),
     )
-    expect(firestore.batch.commit).toHaveBeenCalledOnce()
+    expect(firestore.runTransaction).toHaveBeenCalledOnce()
   })
 })

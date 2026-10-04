@@ -22,7 +22,7 @@ import {
   type GroceryCategory,
 } from './groceryCategories'
 import { normalizeNoun, mergeQuantities } from './ingredientParser'
-import { prepareGroceryItem } from './groceryItemPreparation'
+import { prepareRecipeGroceryItems } from './groceryItemPreparation'
 import {
   commitFirestoreBatches,
   FIRESTORE_SAFE_BATCH_SIZE,
@@ -599,6 +599,14 @@ function sanitizeDocId(id: string): string {
   return id.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9-_]/g, '-').substring(0, 100)
 }
 
+function recipeGroceryDocumentID(identity: string, suffix = 0): string {
+  const base = sanitizeDocId(identity)
+  if (suffix === 0) return base
+  const ending = `-recipe${suffix === 1 ? '' : `-${suffix}`}`
+  // Retain the collision suffix even when the normalized identity is long.
+  return `${base.slice(0, 100 - ending.length)}${ending}`
+}
+
 export function subscribeGroceryItems(
   uid: string,
   cb: (items: GroceryItem[]) => void,
@@ -850,11 +858,8 @@ export async function rebuildGroceryFromPlan(
       )
     }
 
-    let usableIngredientCount = 0
-    for (const ingredient of ingredients) {
-      const prepared = prepareGroceryItem({ raw: ingredient, rejectContentArtifacts: true })
-      if (!prepared) continue
-      usableIngredientCount++
+    const preparedItems = prepareRecipeGroceryItems(ingredients)
+    for (const prepared of preparedItems) {
       const { quantity, unit, name, normalizedName: identity } = prepared
       const existing = desiredByIdentity.get(identity)
       if (existing) {
@@ -879,7 +884,7 @@ export async function rebuildGroceryFromPlan(
         })
       }
     }
-    if (usableIngredientCount === 0) {
+    if (preparedItems.length === 0) {
       throw new GroceryRebuildSafetyError(
         `Rebuild stopped because "${recipe!.title || recipeID}" had no usable ingredients. Your grocery list was not changed.`,
       )
@@ -891,10 +896,10 @@ export async function rebuildGroceryFromPlan(
   const reservedDocumentIDs = new Set(manualDocumentIDs)
   for (const [identity, item] of desiredByIdentity) {
     let suffix = 0
-    let id = sanitizeDocId(identity)
+    let id = recipeGroceryDocumentID(identity)
     while (!id || reservedDocumentIDs.has(id)) {
       suffix++
-      id = sanitizeDocId(`${identity}-recipe${suffix === 1 ? '' : `-${suffix}`}`)
+      id = recipeGroceryDocumentID(identity, suffix)
     }
     item.id = id
     reservedDocumentIDs.add(id)
@@ -941,72 +946,84 @@ export async function addRecipeIngredientsToGrocery(
   recipeID: string,
   ingredients: string[]
 ): Promise<void> {
-  // Snapshot existing items once; index non-manual items by normalized noun.
+  const preparedItems = prepareRecipeGroceryItems(ingredients)
+  if (preparedItems.length === 0) return
+  const identities = new Set(preparedItems.map(item => item.normalizedName))
+  const path = groceryPath(uid)
+  // The web SDK cannot query inside a transaction. Discover legacy document IDs
+  // here, then re-read their values inside the transaction. Missing deterministic
+  // destinations are also read there so overlapping creates conflict and retry.
   const snap = await getDocs(groceryPath(uid))
-  const byNoun = new Map<string, { id: string; data: GroceryItem }>()
-  snap.docs.forEach(d => {
-    const data = d.data() as GroceryItem
-    if (data.isManual) return
-    const noun = normalizeNoun(data.name)
-    if (noun && !byNoun.has(noun)) byNoun.set(noun, { id: d.id, data })
-  })
+  const legacyIDs = snap.docs
+    .filter(item => identities.has(normalizeNoun((item.data() as GroceryItem).name)))
+    .map(item => item.id)
 
-  const batch = writeBatch(db)
-  let wrote = false
-
-  for (const ingredient of ingredients) {
-    // Shared deterministic preparation (lib/groceryItemPreparation.ts):
-    // subheader/URL/empty-name rejection, parseIngredient, and normalizeNoun.
-    // `rejectContentArtifacts: true` reproduces this path's historic
-    // subheader/URL/empty-parsed-name rejection exactly. `prepared.category`
-    // is intentionally unused here — recipe-sourced items have never stored a
-    // category at write time; it's derived from `name` at read time instead
-    // (see getCategory/normalizePersistedGroceryCategory), so leaving
-    // `manualSection` unset is unchanged behavior.
-    const prepared = prepareGroceryItem({ raw: ingredient, rejectContentArtifacts: true })
-    if (!prepared) continue
-    const { quantity, unit, name, normalizedName: noun } = prepared
-
-    const target = noun ? byNoun.get(noun) : undefined
-    if (target) {
-      const data = target.data
-      const sources = data.sourceRecipeIDs || []
-      if (sources.includes(recipeID)) continue // already contributed — idempotent
-      const merged = mergeQuantities(
-        { quantity: data.quantity || '', unit: data.unit || '' },
-        { quantity, unit },
-      )
-      const newSources = [...sources, recipeID]
-      batch.update(doc(groceryPath(uid), target.id), {
-        quantity: merged.quantity,
-        unit: merged.unit,
-        sourceRecipeIDs: newSources,
-        ...(data.needThisTrip === true ? { needThisTrip: true } : {}),
-        updatedAt: serverTimestamp(),
-      })
-      // Reflect the merge in-memory so later same-noun lines fold in too.
-      target.data = { ...data, quantity: merged.quantity, unit: merged.unit, sourceRecipeIDs: newSources }
-      wrote = true
-    } else {
-      const id = sanitizeDocId(noun || `${recipeID}-${name.toLowerCase().slice(0, 40)}`)
-      const newItem: GroceryItem = {
-        id,
-        name,
-        quantity,
-        unit,
-        isChecked: false,
-        isManual: false,
-        sourceRecipeIDs: [recipeID],
-      }
-      batch.set(doc(groceryPath(uid), id), {
-        ...newItem,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-      if (noun) byNoun.set(noun, { id, data: newItem })
-      wrote = true
+  await runTransaction(db, async tx => {
+    // All state belongs to this attempt; a retry recomputes quantity/source merges.
+    const byID = new Map<string, GroceryItem | null>()
+    const byNoun = new Map<string, string>()
+    const readItem = async (id: string): Promise<GroceryItem | null> => {
+      if (byID.has(id)) return byID.get(id)!
+      const current = await tx.get(doc(path, id))
+      const data = current.exists() ? current.data() as GroceryItem : null
+      byID.set(id, data)
+      return data
     }
-  }
+    for (const id of legacyIDs) {
+      const data = await readItem(id)
+      if (!data || data.isManual) continue
+      const noun = normalizeNoun(data.name)
+      if (noun && !byNoun.has(noun)) byNoun.set(noun, id)
+    }
 
-  if (wrote) await batch.commit()
+    const writes: Array<{ id: string; data: DocumentData; isNew: boolean }> = []
+    for (const { quantity, unit, name, normalizedName: noun } of preparedItems) {
+      let id = byNoun.get(noun)
+      let data = id ? byID.get(id) : null
+      if (!id) {
+        const identity = noun || `${recipeID}-${name.toLowerCase().slice(0, 40)}`
+        let suffix = 0
+        id = recipeGroceryDocumentID(identity)
+        data = id ? await readItem(id) : null
+        // Never target manual data or an unrelated identity, even if sanitized
+        // IDs collide. Every occupied candidate is read transactionally.
+        while (!id || (data && (data.isManual || normalizeNoun(data.name) !== noun))) {
+          id = recipeGroceryDocumentID(identity, ++suffix)
+          data = await readItem(id)
+        }
+      }
+
+      if (data) {
+        const sources = data.sourceRecipeIDs || []
+        if (sources.includes(recipeID)) continue
+        const merged = mergeQuantities(
+          { quantity: data.quantity || '', unit: data.unit || '' },
+          { quantity, unit },
+        )
+        const patch = {
+          ...merged,
+          sourceRecipeIDs: [...sources, recipeID],
+          updatedAt: serverTimestamp(),
+        }
+        writes.push({ id, data: patch, isNew: false })
+        byID.set(id, { ...data, ...patch })
+      } else {
+        const item: GroceryItem = {
+          id, name, quantity, unit, isChecked: false, isManual: false,
+          sourceRecipeIDs: [recipeID],
+        }
+        writes.push({ id, isNew: true, data: {
+          ...item, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+        } })
+        byID.set(id, item)
+      }
+      byNoun.set(noun, id)
+    }
+
+    // Firestore requires every read (including collision candidates) before writes.
+    for (const write of writes) {
+      if (write.isNew) tx.set(doc(path, write.id), write.data)
+      else tx.update(doc(path, write.id), write.data)
+    }
+  })
 }

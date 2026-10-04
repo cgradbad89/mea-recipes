@@ -327,9 +327,11 @@ whitelist; `normalizePlanned` only touches `plannedRecipeIDs[]`). See §5.21.
 Fields: `id, name, quantity, unit, isChecked, isManual, sourceRecipeIDs[], manualSection?, needThisTrip?,
 createdAt?, updatedAt?`. Per-user isolated (explicit comment in `userdata.ts`). `quantity`/`unit`/
 `name` are populated by the shared parser at add time (see §5.16) — `name` holds the bare noun
-phrase, not the whole line. Auto-added (recipe) items are keyed `sanitize(normalizedNoun)` so the
+phrase, not the whole line. Auto-added (recipe) items normally use `sanitize(normalizedNoun)` so the
 same ingredient across recipes lands on one doc (legacy `sanitize(recipeID-ingredient)` ids are
-still read/merged); manual items keyed `sanitize(name)-<timestamp>`. Existing items are never
+still read/merged). Occupied manual or different-identity IDs use deterministic `-recipe`,
+`-recipe-2`, etc. suffixes retained within the ID length limit; recipe writes cannot overwrite
+manual documents. Manual items are keyed `sanitize(name)-<timestamp>`. Existing items are never
 re-parsed — parsing is additive, on the add path only. New `manualSection` writes use only the
 current 11-category grocery contract. Historical `Staples` and `Canned / Jarred / Sauces` values
 may remain in stored documents; they are deterministically reclassified from `name` at read time
@@ -481,6 +483,13 @@ retained as historical data and are not modified or deleted by this app.
     snapshot in one transaction; retry is idempotent, a later local day remains a distinct cook,
     and missing nutrition cannot be zero-filled. The Plan Undo action transactionally reconciles the
     cooked flag and associated log rather than silently changing only one side.
+12. **Recipe grocery contributions are complete and isolated.** All legitimate ingredient lines
+    within one recipe request aggregate by normalized identity before persisted source idempotency
+    is applied. A repeated Add does not double an already-contributed identity; a missing identity
+    can still be added. Direct Add remains additive, while rebuild replaces from current effective
+    personal content (override when present, otherwise shared). Direct Add transactionally reads
+    and writes its destination documents, so overlapping callers preserve both contributions.
+    Recipe-derived writes never merge into or overwrite persisted manual grocery documents.
 
 ---
 
@@ -595,7 +604,10 @@ retained as historical data and are not modified or deleted by this app.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) captures exact
     normalized identities of non-manual items whose temporary `needThisTrip` flag is true, then
     resolves every planned recipe and precomputes the complete parsed/merged replacement before any
-    write. Missing recipes, parser failures, unusable ingredient sets, or a replacement requiring
+    write. Both Plan and Grocery page callers supply the existing AppData personal metadata, so
+    each recipe uses personal content when present, otherwise shared content. All legitimate
+    same-recipe lines aggregate before merging contributions across recipes. Missing recipes,
+    parser failures, unusable ingredient sets, or a replacement requiring
     more than 450 writes abort visibly with the current list unchanged. A valid replacement deletes
     stale auto items and sets the complete desired auto state in one atomic Firestore batch; it
     merges by normalized noun, unions `sourceRecipeIDs`, and reapplies `needThisTrip` only to exact
@@ -703,6 +715,19 @@ retained as historical data and are not modified or deleted by this app.
     no separate preparation path. Verified behavior-preserving via a corpus equivalence audit
     (0 differences across 3,071 grocery-eligible occurrences in 216 recipes) and manual-fixture/
     component regression tests; see `docs/audits/shared-grocery-preparation-pipeline-2026-08-23.md`.
+    **Recipe-request accounting:** `prepareRecipeGroceryItems` composes this preparation boundary
+    with `mergeQuantities`, folding every legitimate same-identity ingredient line within a recipe
+    in source order. Both direct Add and rebuild use that aggregate before checking recipe source
+    membership; each contributing recipe appears once in `sourceRecipeIDs`. Direct Add skips only
+    identities already carrying that recipe ID and adds missing ones. It does not replace earlier
+    contributions after a recipe edit. Plan bulk Add sends every eligible uncooked recipe through
+    this boundary, even if another identity already references that recipe. Direct Add discovers
+    legacy matching document IDs, then re-reads their values and any deterministic collision
+    candidates in a Firestore transaction before all writes. Missing destination reads protect
+    concurrent creates; changed destination reads cause retries that recompute quantity/source
+    merges. Manual documents and unrelated colliding identities are never recipe destinations.
+    Existing checked state, category, and Need This Trip fields survive quantity-only merge patches;
+    no new collection, schema, or migration is required.
 17. **Per-user servings override & effective-servings derivation** (Batch 3) — each viewer can set
     their own serving size on the recipe detail page (`NutritionSection` stepper/input), stored at
     `meta.overrides.servings` via `setServingsOverride` (`lib/userdata.ts`). Per-serving macros are

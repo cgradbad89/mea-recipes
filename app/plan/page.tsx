@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Check, X, Loader2, ShoppingCart, ArrowRightLeft, RefreshCw, Calendar, CalendarPlus, Plus, GripVertical, BookOpen, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { getDocs, collection } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import {
   subscribeWeekPlan, weekIDFromDate, removeRecipeFromWeekPlan, getWeekPlan,
@@ -627,17 +625,8 @@ export default function PlanPage() {
     setBulkAddingGrocery(true)
     setBulkAddResult(null)
     try {
-      const grocerySnap = await getDocs(collection(db, 'users', user.uid, 'pantry', 'root', 'groceryItems'))
-      const alreadyAdded = new Set<string>()
-      grocerySnap.docs.forEach(d => {
-        const data = d.data()
-        if (data.sourceRecipeIDs && Array.isArray(data.sourceRecipeIDs)) {
-          data.sourceRecipeIDs.forEach((rid: string) => alreadyAdded.add(rid))
-        }
-      })
       let addedCount = 0
       for (const entry of uncookedEntries) {
-        if (alreadyAdded.has(entry.recipeID)) continue
         const recipe = recipes[entry.recipeID]
         if (!recipe) continue
         const effectiveContent = metas[entry.recipeID]?.overrides?.content || recipe.content

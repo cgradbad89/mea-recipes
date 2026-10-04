@@ -30,7 +30,7 @@
 // header comment on lib/ingredientParser.ts ("single source of truth for
 // measurement/unit vocabulary").
 
-import { parseIngredient, normalizeNoun } from './ingredientParser'
+import { parseIngredient, normalizeNoun, mergeQuantities } from './ingredientParser'
 import { categorizeIngredient, type GroceryCategory } from './groceryCategories'
 import { isExplicitUrl, isIngredientSubheader } from './recipeContent'
 
@@ -124,4 +124,24 @@ export function prepareGroceryItem(input: PrepareGroceryItemInput): PreparedGroc
     category: input.categoryOverride ?? categorizeIngredient(name),
     confidence,
   }
+}
+
+/**
+ * Prepare a complete recipe request before applying persisted source idempotency.
+ * Repeated ingredient identities within this request are legitimate contributions;
+ * fold all of them in source order using the established quantity/unit rules.
+ */
+export function prepareRecipeGroceryItems(ingredients: string[]): PreparedGroceryItem[] {
+  const byIdentity = new Map<string, PreparedGroceryItem>()
+  for (const raw of ingredients) {
+    const prepared = prepareGroceryItem({ raw, rejectContentArtifacts: true })
+    if (!prepared) continue
+    const existing = byIdentity.get(prepared.normalizedName)
+    if (existing) {
+      Object.assign(existing, mergeQuantities(existing, prepared))
+    } else {
+      byIdentity.set(prepared.normalizedName, prepared)
+    }
+  }
+  return [...byIdentity.values()]
 }

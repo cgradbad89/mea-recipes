@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import { useAppData } from '@/components/AppDataProvider'
 import {
   GROCERY_CATEGORIES,
   MANUAL_CATEGORIES,
@@ -89,6 +90,7 @@ function extractIngredientName(name: string): string {
 
 export default function GroceryPage() {
   const { user } = useAuth()
+  const { metas } = useAppData()
   const [items, setItems] = useState<GroceryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [subscriptionError, setSubscriptionError] = useState('')
@@ -603,7 +605,7 @@ export default function GroceryPage() {
     const currentWeekID = weekIDFromDate(new Date())
     const plan = await getWeekPlan(user.uid, currentWeekID)
     const recipeIDs = plan?.plannedRecipeIDs || []
-    await rebuildGroceryFromPlan(user.uid, recipeIDs, getRecipeById, parseRecipeContent)
+    await rebuildGroceryFromPlan(user.uid, recipeIDs, getRecipeById, parseRecipeContent, metas)
     setRebuilding(false)
     setRebuildDone(true)
     setTimeout(() => setRebuildDone(false), 2000)
