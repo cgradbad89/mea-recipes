@@ -9,7 +9,7 @@ import {
 import { MAPPING_HUMAN_REVIEW_REASON_ORDER } from '@/types/cookingModeMappingPersistence'
 import { serializeMappingTimestamps } from '@/lib/mappingReviewSerialize'
 
-export const MAPPING_DECISION_MAX_BODY_BYTES = 8_000
+const MAPPING_DECISION_MAX_BODY_BYTES = 8_000
 const MAX_NOTE_LENGTH = 2_000
 
 const REQUEST_SCHEMA = z.object({

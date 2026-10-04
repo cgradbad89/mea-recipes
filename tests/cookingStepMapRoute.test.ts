@@ -13,8 +13,8 @@ vi.mock('@/lib/ai', () => ({ generateAIObject: mocks.generateAIObject }))
 import {
   COOKING_STEP_MAP_MAX_BODY_BYTES,
   COOKING_STEP_MAP_MAX_LINE_LENGTH,
-  POST,
-} from '@/app/api/cooking-step-map/route'
+} from '@/lib/cookingStepMapLimits'
+import { POST } from '@/app/api/cooking-step-map/route'
 import { computeCookingMappingSourceHash } from '@/lib/cookingStepMapping'
 import { parseRecipeContent } from '@/lib/recipeContent'
 

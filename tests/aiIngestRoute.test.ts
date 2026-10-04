@@ -15,7 +15,8 @@ vi.mock('@/lib/flavorPairings', () => ({
 }))
 vi.mock('@/lib/safeFetch', () => ({ safeFetchText: mocks.safeFetchText }))
 
-import { POST, RECIPE_SCHEMA, SYSTEM_PROMPT } from '@/app/api/ai-ingest/route'
+import { POST } from '@/app/api/ai-ingest/route'
+import { RECIPE_SCHEMA, SYSTEM_PROMPT } from '@/lib/aiIngestContract'
 import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 

@@ -42,7 +42,7 @@ import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 // values and rationale.
 export const maxDuration = 280
 
-export const MAPPING_GENERATE_MAX_BODY_BYTES = 2_000
+const MAPPING_GENERATE_MAX_BODY_BYTES = 2_000
 
 const REQUEST_SCHEMA = z.object({
   recipeId: z.string().min(1).max(300),

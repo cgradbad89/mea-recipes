@@ -3,6 +3,7 @@ import { verifyAuthToken } from '@/lib/firebaseAdmin'
 import { generateAIArray } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
+import { NEW_SUGGESTION_SCHEMA } from '@/lib/newRecipeSuggestionSchema'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
@@ -21,14 +22,6 @@ const REQUEST_SCHEMA: z.ZodType<NewRecipeSuggestionsRequest> = z.object({
   topCuisines: z.array(BOUNDED_TEXT).max(MAX_COLLECTION_SIZE),
   topCategories: z.array(BOUNDED_TEXT).max(MAX_COLLECTION_SIZE),
   recentTitles: z.array(BOUNDED_TEXT).max(MAX_COLLECTION_SIZE),
-})
-
-export const NEW_SUGGESTION_SCHEMA = z.object({
-  title: z.string().max(300),
-  cuisine: z.string().max(100),
-  category: z.enum(RECIPE_CATEGORIES),
-  description: z.string().max(1_000),
-  searchQuery: z.string().max(500),
 })
 
 export async function POST(req: NextRequest) {

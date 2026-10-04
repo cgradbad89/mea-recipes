@@ -269,6 +269,23 @@ per-user servings override (Batch 3): when set, this user's per-serving macros d
 the shared `nutrition.total ÷ servings`; written/cleared by `setServingsOverride` via a
 deep-merge that touches only that nested field (other overrides + the shared doc untouched).
 See §5.17.
+**Private metadata patch contract:** `saveRecipeMeta` atomically merges only supplied
+fields in this document. Omitted `note`, `rating`, or `overrides` preserve stored values.
+A supplied nonempty override object patches only its own fields; an own nested
+`undefined` value explicitly deletes that field via Firestore `deleteField()`, preserving
+all omitted siblings, including unknown stored fields and personal servings. An empty
+patch or `overrides: {}` is non-destructive; no empty override map or raw undefined value
+is sent to Firestore. An own top-level `overrides: undefined` (or legacy runtime `null`)
+explicitly removes the entire override map, **including personal servings**, while
+preserving notes and ratings. Null is reset intent only, never a persisted override type.
+Valid falsy values remain values. Every write derives `recipeID` from the function
+argument and `updatedAt` from `serverTimestamp()`, regardless of caller snapshots.
+The helper resolves only after write completion and rejects on write failure.
+Ordinary editor saves patch only changed string controls; returning one to its shared
+value clears it individually. They never replay snapshot notes, ratings, or servings.
+The separate `onSaved` object is clean metadata without persistence sentinels. Full
+reset sends only whole-map removal intent. Shared-default servings remain a separate
+explicit operation; private string changes never write to the shared catalog.
 Historical `overrides.category` strings remain tolerated and are canonicalized at read time
 after override precedence is applied. The approved 2026-08-25 migration removed only the nested
 category field from 24 redundant/legacy overrides, preserving all sibling metadata. The sole
@@ -1414,6 +1431,19 @@ retained as historical data and are not modified or deleted by this app.
 ---
 
 ## Section 6 — Known Sharp Edges
+
+- **Private metadata omission and explicit clears have distinct meanings (remediated
+  2026-10-04).** Previously, ordinary detail/Plan note/rating patches deleted the entire
+  override map because the writer translated omitted overrides into `deleteField()`.
+  The editor also stripped nested undefined values, so Firestore deep merge retained
+  reverted personal fields. The writer now preserves omission, translates explicit
+  nested clears, and omits empty maps; the editor sends only intended changes and an
+  explicit whole-map reset. Ordinary saves preserve personal servings; full reset
+  intentionally removes them while preserving notes/ratings. Synthetic emulator
+  regressions cover actual SDK persistence and actual detail/Plan handler payloads.
+  This prevents future destructive patches; it does not recover previously deleted
+  data or establish the chronology of historical incidents. Metadata state/error and
+  readback behavior, grocery fixes, and week-plan fixes remain separate slices.
 
 - **Recipe total time is derived, so source labels cannot be copied blindly.** Firestore stores only
   `prepTime` and `cookTime`; `getTotalTime` sums whatever `parseTimeToMinutes` extracts. Range/prose

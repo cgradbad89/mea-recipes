@@ -29,6 +29,7 @@ const BEHAVIOR_FILES = [
   'lib/cookingStepMapping.ts', 'lib/cookingStepMappingAi.ts', 'lib/ai.ts',
   'lib/aiConfig.ts', 'lib/ingredientParser.ts', 'lib/recipeContent.ts',
   'types/recipe.ts', 'app/api/cooking-step-map/route.ts',
+  'lib/cookingStepMapLimits.ts',
 ]
 
 function sha256(value) { return createHash('sha256').update(value).digest('hex') }

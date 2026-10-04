@@ -8,7 +8,7 @@ import {
 } from '@/lib/cookingModeMappingCompletenessAttestation'
 import { serializeMappingTimestamps } from '@/lib/mappingReviewSerialize'
 
-export const MAPPING_ATTESTATION_MAX_BODY_BYTES = 2_000
+const MAPPING_ATTESTATION_MAX_BODY_BYTES = 2_000
 
 const REQUEST_SCHEMA = z.object({
   proposalId: z.string().min(1),

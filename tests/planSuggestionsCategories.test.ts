@@ -15,7 +15,8 @@ vi.mock('@/lib/flavorPairings', () => ({
   getComplementaryIngredients: mocks.getComplementaryIngredients,
 }))
 
-import { POST, PLAN_SUGGESTIONS_SCHEMA } from '@/app/api/plan-suggestions/route'
+import { POST } from '@/app/api/plan-suggestions/route'
+import { PLAN_SUGGESTIONS_SCHEMA } from '@/lib/planSuggestionsSchema'
 
 describe('POST /api/plan-suggestions canonical categories', () => {
   beforeEach(() => {

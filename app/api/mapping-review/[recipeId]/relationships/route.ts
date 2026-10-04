@@ -15,7 +15,7 @@ import { MAPPING_HUMAN_REVIEW_REASON_ORDER } from '@/types/cookingModeMappingPer
 import { serializeMappingTimestamps } from '@/lib/mappingReviewSerialize'
 import type { MappingRevisionSource } from '@/types/cookingModeMapping'
 
-export const MAPPING_RELATIONSHIP_MAX_BODY_BYTES = 8_000
+const MAPPING_RELATIONSHIP_MAX_BODY_BYTES = 8_000
 const MAX_NOTE_LENGTH = 2_000
 
 const ADD_SCHEMA = z.object({

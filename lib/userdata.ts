@@ -127,11 +127,30 @@ export async function getRecipeMeta(uid: string, recipeID: string): Promise<Reci
   return snap.data() as RecipeMeta
 }
 
+/**
+ * Atomically patch private metadata. Omitted fields are preserved; an own
+ * overrides: undefined (or legacy runtime null) resets the whole map. Within a
+ * supplied map, own undefined values clear only those fields. Never send an
+ * empty map: Firestore would overwrite the existing map even with merge: true.
+ */
 export async function saveRecipeMeta(uid: string, recipeID: string, meta: Partial<RecipeMeta>): Promise<void> {
-  const data: any = { ...meta, recipeID, updatedAt: serverTimestamp() }
-  if (data.overrides === undefined || data.overrides === null) {
-    data.overrides = deleteField()
+  const data: DocumentData = Object.fromEntries(
+    Object.entries(meta).filter(([key, value]) => key !== 'overrides' && value !== undefined),
+  )
+  if (Object.prototype.hasOwnProperty.call(meta, 'overrides')) {
+    if (meta.overrides == null) {
+      data.overrides = deleteField()
+    } else {
+      const entries = Object.entries(meta.overrides)
+      if (entries.length > 0) {
+        data.overrides = Object.fromEntries(
+          entries.map(([key, value]) => [key, value === undefined ? deleteField() : value]),
+        )
+      }
+    }
   }
+  data.recipeID = recipeID
+  data.updatedAt = serverTimestamp()
   await setDoc(doc(metaPath(uid), sanitizeMetaID(recipeID)), data, { merge: true })
 }
 

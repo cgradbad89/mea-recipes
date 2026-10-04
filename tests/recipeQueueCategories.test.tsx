@@ -34,7 +34,7 @@ vi.mock('@/lib/AuthContext', () => ({
   useAuth: () => ({ user: { uid: 'user-1', getIdToken: mocks.getIdToken } }),
 }))
 
-import { QueueCard } from '@/app/queue/page'
+import { QueueCard } from '@/components/QueueCard'
 
 function queued(category: string): QueuedRecipe {
   return {

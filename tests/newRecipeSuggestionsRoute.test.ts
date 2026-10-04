@@ -9,7 +9,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/firebaseAdmin', () => ({ verifyAuthToken: mocks.verifyAuthToken }))
 vi.mock('@/lib/ai', () => ({ generateAIArray: mocks.generateAIArray }))
 
-import { POST, NEW_SUGGESTION_SCHEMA } from '@/app/api/new-recipe-suggestions/route'
+import { POST } from '@/app/api/new-recipe-suggestions/route'
+import { NEW_SUGGESTION_SCHEMA } from '@/lib/newRecipeSuggestionSchema'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
 const validBody = {

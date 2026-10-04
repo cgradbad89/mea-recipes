@@ -15,11 +15,13 @@ import {
 import type { CookingStepMapApiResponse } from '@/types/recipe'
 import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
-export const COOKING_STEP_MAP_MAX_BODY_BYTES = 128_000
-export const COOKING_STEP_MAP_MAX_CONTENT_LENGTH = 64_000
-export const COOKING_STEP_MAP_MAX_INGREDIENTS = 200
-export const COOKING_STEP_MAP_MAX_INSTRUCTIONS = 150
-export const COOKING_STEP_MAP_MAX_LINE_LENGTH = 4_000
+import {
+  COOKING_STEP_MAP_MAX_BODY_BYTES,
+  COOKING_STEP_MAP_MAX_CONTENT_LENGTH,
+  COOKING_STEP_MAP_MAX_INGREDIENTS,
+  COOKING_STEP_MAP_MAX_INSTRUCTIONS,
+  COOKING_STEP_MAP_MAX_LINE_LENGTH,
+} from '@/lib/cookingStepMapLimits'
 
 const REQUEST_SCHEMA = z.object({
   content: z.string().min(1).max(COOKING_STEP_MAP_MAX_CONTENT_LENGTH),

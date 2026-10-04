@@ -16,7 +16,7 @@ import type {
 } from '@/types/cookingModeMappingPersistence'
 import { serializeMappingTimestamps } from '@/lib/mappingReviewSerialize'
 
-export const MAPPING_APPROVE_MAX_BODY_BYTES = 2_000
+const MAPPING_APPROVE_MAX_BODY_BYTES = 2_000
 
 const REQUEST_SCHEMA = z.object({
   proposalId: z.string().min(1),

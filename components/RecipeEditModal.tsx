@@ -81,30 +81,32 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
-    const newOverrides: Record<string, string | number | undefined> = {
-      title: title !== recipe.title ? title : undefined,
-      cuisine: cuisine !== recipe.cuisine ? cuisine : undefined,
-      // Merely opening a legacy recipe shows its canonical read-time value but
-      // must not manufacture a personal override. Preserve an existing raw
-      // override until the user intentionally changes this control.
-      category: categoryChanged
-        ? (category !== recipe.category ? category : undefined)
-        : overrides.category,
-      content: content !== recipe.content ? content : undefined,
-      imageURL: imageURL !== (recipe.imageURL || '') ? imageURL : undefined,
-      prepTime: prepTime !== ((recipe as any).prepTime || '') ? prepTime : undefined,
-      cookTime: cookTime !== ((recipe as any).cookTime || '') ? cookTime : undefined,
-      // Preserve THIS user's personal servings override (set on the detail page).
-      // The servings input below edits the SHARED recipe default, not this — they
-      // are independent, so rebuilding overrides here must not drop it.
-      servings: overrides.servings,
+    // Only changed controls belong in the patch. Keep own undefined values as
+    // explicit field clears; omit untouched siblings, including personal servings.
+    // The category's initial display may be a read-time legacy normalization, so
+    // opening the modal or changing another control must not persist that value.
+    const overridePatch: NonNullable<RecipeMeta['overrides']> = {}
+    const fields = [
+      ['title', title, initTitle, recipe.title],
+      ['cuisine', cuisine, initCuisine, recipe.cuisine],
+      ['category', category, initialDisplayCategory, recipe.category],
+      ['content', content, initContent, recipe.content],
+      ['imageURL', imageURL, initImageURL, recipe.imageURL || ''],
+      ['prepTime', prepTime, initPrepTime, recipe.prepTime || ''],
+      ['cookTime', cookTime, initCookTime, recipe.cookTime || ''],
+    ] as const
+    const clean = { ...overrides }
+    for (const [key, value, initialValue, sharedValue] of fields) {
+      if (value === initialValue) continue
+      overridePatch[key] = value !== sharedValue ? value : undefined
+      if (overridePatch[key] === undefined) delete clean[key]
+      else clean[key] = value
     }
-    const clean = Object.fromEntries(Object.entries(newOverrides).filter(([, v]) => v !== undefined))
     const updatedMeta: RecipeMeta = {
       ...meta,
       overrides: Object.keys(clean).length > 0 ? clean : undefined,
     }
-    await saveRecipeMeta(user.uid, recipe.id, updatedMeta)
+    await saveRecipeMeta(user.uid, recipe.id, { overrides: overridePatch })
 
     // Persist a servings correction back onto the shared recipe's nutrition object.
     // Recomputes per-serving from the durable `total`; never touches `total` itself.
@@ -129,7 +131,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
     setResetting(true)
     setConfirmReset(false)
     const updatedMeta: RecipeMeta = { ...meta, overrides: undefined }
-    await saveRecipeMeta(user.uid, recipe.id, updatedMeta)
+    await saveRecipeMeta(user.uid, recipe.id, { overrides: undefined })
     setTitle(recipe.title)
     setCuisine(recipe.cuisine)
     setCategory(normalizeRecipeCategory(recipe.category, recipe.id) ?? recipe.category)

@@ -57,6 +57,7 @@ const BEHAVIOR_FILES = [
   'lib/recipeContent.ts',
   'types/recipe.ts',
   'app/api/cooking-step-map/route.ts',
+  'lib/cookingStepMapLimits.ts',
 ]
 
 function stableJson(value) { return `${JSON.stringify(value, null, 2)}\n` }

@@ -63,6 +63,7 @@ const BEHAVIOR_FILES = [
   'lib/recipeContent.ts',
   'types/recipe.ts',
   'app/api/cooking-step-map/route.ts',
+  'lib/cookingStepMapLimits.ts',
 ]
 const HISTORICAL_MANIFESTS = [
   ['docs/audits/cooking-step-mapping-dryrun-2026-08-25.json', '03cccba16232237f2ffb8b0c1971ec3a66732da8a0f1480717769ac5f25093ae'],
@@ -145,7 +146,7 @@ async function loadProductionModules() {
       mapping: await server.ssrLoadModule('/lib/cookingStepMapping.ts'),
       mappingAi: mode !== 'deterministic-only' ? await server.ssrLoadModule('/lib/cookingStepMappingAi.ts') : null,
       aiConfig: await server.ssrLoadModule('/lib/aiConfig.ts'),
-      route: await server.ssrLoadModule('/app/api/cooking-step-map/route.ts'),
+      limits: await server.ssrLoadModule('/lib/cookingStepMapLimits.ts'),
       close: () => server.close(),
     }
   } catch (error) {
@@ -190,10 +191,10 @@ async function readSharedRecipes() {
 
 async function buildBaseline(documents, modules) {
   const limits = {
-    maxContentLength: modules.route.COOKING_STEP_MAP_MAX_CONTENT_LENGTH,
-    maxIngredients: modules.route.COOKING_STEP_MAP_MAX_INGREDIENTS,
-    maxInstructions: modules.route.COOKING_STEP_MAP_MAX_INSTRUCTIONS,
-    maxLineLength: modules.route.COOKING_STEP_MAP_MAX_LINE_LENGTH,
+    maxContentLength: modules.limits.COOKING_STEP_MAP_MAX_CONTENT_LENGTH,
+    maxIngredients: modules.limits.COOKING_STEP_MAP_MAX_INGREDIENTS,
+    maxInstructions: modules.limits.COOKING_STEP_MAP_MAX_INSTRUCTIONS,
+    maxLineLength: modules.limits.COOKING_STEP_MAP_MAX_LINE_LENGTH,
   }
   if (JSON.stringify(limits) !== JSON.stringify(LIMITS)) throw new Error('Audit/API parse limits unexpectedly diverged')
   const rows = []

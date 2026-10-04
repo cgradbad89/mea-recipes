@@ -4,6 +4,7 @@ import { getComplementaryIngredients } from '@/lib/flavorPairings'
 import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { z } from 'zod'
+import { PLAN_SUGGESTIONS_SCHEMA } from '@/lib/planSuggestionsSchema'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 
@@ -12,19 +13,6 @@ const MAX_PLANNED_RECIPES = 21
 const MAX_EXISTING_RECIPE_TITLES = 500
 const MAX_TEXT_LENGTH = 2_000
 const MAX_INGREDIENTS_LENGTH = 4_000
-
-export const PLAN_SUGGESTIONS_SCHEMA = z.object({
-  existing: z.array(z.object({
-    title: z.string().max(300),
-    reason: z.string().max(1_000),
-  })).max(3),
-  new: z.array(z.object({
-    title: z.string().max(300),
-    cuisine: z.string().max(100),
-    category: z.enum(RECIPE_CATEGORIES),
-    reason: z.string().max(1_000),
-  })).max(3),
-})
 
 interface PlannedRecipeIn {
   title: string
