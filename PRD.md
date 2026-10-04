@@ -78,7 +78,7 @@ wrapped in a per-route `layout.tsx`.
 
 | Route | Method | Auth | Summary |
 |---|---|---|---|
-| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). For URL/bookmarklet imports it deterministically extracts Recipe JSON-LD facts before AI parsing: a valid source image and complete publisher `NutritionInformation` (only when all six MEA macros plus a trustworthy serving count are present). The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model only for recipe parsing. |
+| `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). HTML/browser-capture imports carry separate `sourceURL` attribution without re-fetching. Before script removal, one unambiguous Recipe JSON-LD entity supplies complete, ordered ingredient/method arrays that override AI output; image and complete publisher nutrition retain their existing precedence. Complete recipe-relevant model evidence is capped at 64,000 characters with explicit rejection, never prefix slicing. The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model only for recipe parsing. |
 | `/api/fetch-recipe` | GET | Bearer token (required) | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted to authenticated users and the shared SSRF-safe public-URL boundary. |
 | `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters; failures are sanitized. |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope), `weekID`, and explicit per-day `create`/`update`/`delete` operations. It is restricted to the user's **primary** calendar and one validated operation per in-week day (maximum seven), has no list/search capability, and never stores the token. New creates receive an opaque SHA-256 application ID derived server-side from verified uid + week + day; a 409 reconciles by PATCHing that exact ID. |
@@ -543,14 +543,54 @@ retained as historical data and are not modified or deleted by this app.
    A title collision keeps the generated draft visible for correction, reports that the title
    already exists, and does not start nutrition or mapping-proposal enrichment against the existing
    catalog document.
-5. **AI recipe import flow** — Add modal / Queue: URL or pasted text → `POST /api/ai-ingest`
-   → structured recipe → saved to `recipeQueue` (`status: 'pending'`) → reviewed in `/queue`
-   → published into `recipes`. The bookmarklet first reads Recipe JSON-LD image (string, array,
-   or `ImageObject`), then recipe microdata, then `og:image`; it preserves the external HTTP(S)
-   URL and never rehosts it. Client-provided/structured `imageURL` and prep/cook facts take
-   precedence over AI-parsed values. Complete publisher nutrition is converted to MEA's
-   per-serving + durable-total contract with `source:'source_site'` and carried through the queue;
-   missing or ambiguous macros/servings are not zero-filled and remain on the existing fallback path.
+5. **AI recipe import flow** — Add modal / Queue: public URL or pasted text → authenticated
+   `POST /api/ai-ingest` → structured recipe → `recipeQueue` (`status: 'pending'`) → existing
+   `/queue` review/edit → publication into `recipes`. Exactly one content mode (`url`, `html`,
+   `text`, `generate`) remains required; `url + html` is invalid. Public URL imports, including
+   the Add Recipe URL tab, continue through the unchanged SSRF-safe server fetch boundary.
+
+   **Browser Bookmarklet capture V1 (2026-10-04):** the self-contained production generator in
+   `lib/bookmarklet.ts` captures allowlisted Recipe JSON-LD plus safe rendered text from the
+   currently authenticated source browser. It prefers a unique generic Recipe scope, then a
+   unique main/article, then visible body text; no site-specific selectors are used. Scripts,
+   application-state properties, forms, hidden text, cookies, storage and authentication tokens
+   are excluded. Captured attribution/image URLs omit queries/fragments and disallow embedded
+   credentials. Capture opens `/queue?capture=1&nonce=<128-bit random hex>` and sends the body only
+   by `postMessage` to the explicit `https://mea-recipes.vercel.app` origin. Queue validates V1,
+   nonce, `event.source === window.opener`, HTTP(S) attribution and matching message origin,
+   allowlisted shape/metadata, and a 1,500,000-byte serialized payload ceiling. Its listener mounts
+   before MEA auth completes, acknowledges once, retains evidence only in memory, and clears the
+   marker from history. Source retries every 500ms for at most 60 seconds; Queue also times out
+   after 60 seconds. Capture errors, missing opener, and timeout use the existing Queue error
+   state. Popup blocking reports a source-browser error. Old URL-only bookmarklets report that
+   their code must be replaced. Capture failure never downgrades to server URL fetching.
+
+   After MEA authentication, Queue sends `{html: capturedHtml, sourceURL, imageURL?, prepTime?,
+   cookTime?}` to the existing route. Nutrition travels in allowlisted Recipe JSON-LD (optional
+   complete nutrition metadata is also validated). `sourceURL` is attribution only in HTML/text
+   mode, never a fetch instruction. The 2,000,000-byte raw request cap remains unchanged.
+
+   **Source precedence:** a single Recipe entity's fully valid nonempty ingredient array and
+   instruction tree are authoritative independently. Rows retain text apart from surrounding
+   whitespace, duplicates, alternatives and order; string/HowToStep/HowToSection/nested ListItem
+   methods flatten in authored order. Multiple Recipe nodes never cross-combine arrays; malformed
+   arrays are not filtered into apparent completeness. Otherwise AI extracts from complete
+   fallback evidence under import-only fidelity rules, and every returned row must be nonempty
+   and literally grounded in the evidence (Unicode/whitespace comparison); unsupported or
+   insufficient evidence fails visibly. This grounding gate cannot prove semantic completeness
+   of arbitrary visible prose. Explicit generation retains its original prompt/schema semantics.
+
+   Complete structured recipes can replace unrelated page chrome in model input; otherwise all
+   cleaned fallback text is retained. The model representation is capped at 64,000 characters;
+   ingredients are limited to 200 × 2,000 characters, instructions to 150 × 4,000. Unsupported
+   recipes/captures reject whole inputs with no silent tail slicing. Image precedence remains
+   valid client metadata → Recipe JSON-LD → recipe microdata → Open Graph → valid AI image.
+   Time precedence is supplied browser metadata → single structured Recipe prep/cook → AI.
+   Complete supplied publisher nutrition precedes extracted publisher nutrition and carries
+   `source:'source_site'` plus durable totals through the existing queue/publication pipeline;
+   incomplete/ambiguous nutrition retains the unchanged engine fallback. No Firestore schema,
+   parser, renderer, rules, or collections change is required. Historical imports predating
+   this repair are not automatically classified as correct or incorrect.
 6. **Ingredient/instruction parsing** — `parseRecipeContent` (`lib/recipeContent.ts`, re-exported by
    `lib/recipes.ts`) splits the flat `content` string into ingredients/instructions by exact,
    case-insensitive header keywords (`INGREDIENTS`, `INSTRUCTIONS`, etc.) and strips `Step N`
@@ -1576,18 +1616,25 @@ retained as historical data and are not modified or deleted by this app.
   only does anything for accounts that actually linked a password — a Google-only account has nothing
   to reset, which the neutral "if an account with a password exists…" confirmation covers without
   leaking which emails are registered.
-- **URL import can't reach paywalled sites.** `/api/ai-ingest` server-fetches the page with a
-  generic User-Agent; paywalled/login-walled sites (e.g. NYT Cooking) return blocked content.
-  Despite the current setup copy, the **bookmarklet** at `/queue#bookmarklet` sends the URL plus
-  image/time metadata; it does **not** send captured page DOM from the logged-in browser. AI ingest
-  therefore still server-fetches the blocked URL. Pasting recipe text directly is the current
-  reliable fallback. Authenticated DOM capture or corrected UI claims remain backlog work.
+- **Paywall/browser capture depends on the source browser (remediated 2026-10-04).** Ordinary
+  public URL imports still cannot use source-browser authentication. The new V1 bookmarklet
+  transmits the authenticated browser's recipe evidence into the existing Queue; attribution is
+  not re-fetched. Existing installed bookmarklets must be replaced with the current copied code.
+  Browsers/sites that block bookmarklets, popups, opener access (including COOP), or the handshake
+  fail clearly; they never silently fetch an unauthenticated copy. Hidden/application-state data
+  is deliberately excluded. Source/image query strings and fragments are omitted for privacy,
+  so query-dependent attribution/image URLs may need manual correction during existing review.
+  Actual authenticated NYT markup and production model behavior were not exercised by the
+  synthetic regression suite. The fixed current capture omission, JSON-LD row loss, and
+  15,000-character prefix loss do not prove which mechanism caused the historical
+  Bricklayer-Style Nachos import: its original bookmarklet/payload/HTML/model response are absent.
+  Historical corpus auditing and repair of the existing recipe remain separate, deferred work.
 - **Ingredient source-contamination cleanup is only at Phase 1.** The content parser now removes
   the evidence-backed metadata/control/boundary classes and shared subheaders cannot become grocery
   or nutrition inputs, while all 173 reviewed legitimate occurrences remain. The read-only Phase 1
   corpus still contains 23 ingredient-parser artifacts plus the explicitly deferred `sasy-notes`,
-  `mole-poblano`, and `chipotle-tahini-bowls` source-data defects. AI-ingest semantic quarantine and
-  authenticated bookmarklet DOM capture are also not implemented; parser defenses reduce downstream
+  `mole-poblano`, and `chipotle-tahini-bowls` source-data defects. Authenticated bookmarklet evidence capture and import grounding now protect new imports;
+  broader semantic quarantine and historical corpus repair remain separate; parser defenses reduce downstream
   impact but do not make noisy persisted input impossible.
 - **Image display precedence.** Cards and detail prefer `meta.overrides.imageURL` over the
   catalog `recipe.imageURL` (`RecipeCard.tsx`, `RecipeEditModal.tsx`). A stale override will
@@ -2314,13 +2361,13 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Canonical recipe category code contract | High | Done | One 12-value tuple drives types, UI, filters, icons, AI schemas/prompts, shared-write validation, defensive read compatibility, and meal-plan role derivation. |
 | Existing recipe category data migration | High | Done | Applied the approved exact 2026-08-25 manifest in one transaction: 66 shared categories normalized; post-apply readback verified 236/236 shared documents canonical with the approved 12-category distribution. See `docs/audits/recipe-category-migration-apply-2026-08-25.md`. |
 | Legacy personal category override cleanup | Medium | Done | Removed only `overrides.category` from 24 exact redundant/legacy rows; post-apply readback found zero legacy/redundant category overrides and preserved the sole intentional Spicy Quinoa (`182`) → `Salads & Bowls` override. |
-| Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Partial | Setup UI exists at `/queue#bookmarklet`, but it sends URL/image/time metadata rather than logged-in page DOM; paywalled server fetches remain blocked. |
+| Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Done (V1 capture, 2026-10-04) | Authenticated-browser allowlisted recipe evidence → bounded nonce/opener/origin-validated postMessage → existing Queue → HTML + sourceURL attribution without re-fetch. Trusted complete structured rows override AI; oversized/insufficient capture fails without truncation or URL fallback. Recopy installed bookmarklets. Synthetic 13/7 capture/route/SDK-publication/parser regressions pass; actual authenticated NYT markup and historical import attribution remain unverified. |
 | AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
 | Usually On Hand — temporary Need This Trip override | Medium | Done (Phase 2) | Transient `GroceryItem.needThisTrip?`; normal-category/reverse controls, merge safety, exact-identity rebuild preservation, and clear-list expiry shipped 2026-08-24. |
-| Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, AI-ingest semantic quarantine, and bookmarklet/paywall behavior. Do not encode taxonomy exceptions. |
+| Grocery corpus/source-content contamination cleanup | Medium | Partial (Phase 1 complete) | Phase 1 adds shared header handling, evidence-backed content boundaries/filters, and narrow grocery/nutrition defenses; all 173 reviewed legitimate occurrences remain and 84/84 audited subheaders are blocked from grocery purchase output. See `docs/audits/ingredient-source-contamination-phase1-remediation-2026-08-22.md`. Wave 3 completed the separately approved `mole-poblano` repair. Remaining: 23 fixture-driven ingredient-parser artifacts, separately approved repairs for `sasy-notes`/`chipotle-tahini-bowls`, broader AI-ingest semantic quarantine and historical corpus repair. V1 bookmarklet capture is complete (see its row); do not encode taxonomy exceptions. |
 | Cooking-step ingredient mapping | High | **Done for supported runtime; excluded-source/personal work is separate** | Full production hybrid-v3 dry run — **Done / failed precision gate**: five false positives in four recipes; its manifest is historical only. Deterministic-v4 remediation — **Done**. Exhaustive deterministic-v4 review — **Done**: 187/187 eligible recipes, 1,040/1,040 references, 0 false-positive mappings/recipes. Full production hybrid-v4 dry run — **Done**: 134/134 accepted semantic relationships correct, 0 ambiguous/incorrect, 0 unsafe stability differences. Existing eligible-recipe cooking-map backfill — **Done**: exact manifest SHA `b07208384369183e70782f2e017fcea141d9436d43d7ea523133c72cd6435a88`, 187 written, 0 skipped, exact readback and zero non-map differences. Excluded-source discovery — **Done**: 49/49 audited. **Wave 1A parser remediation — Done**: 28 parser-only rows parse-clean, 36 excluded rows improved, 0/187 mapped parses or hashes changed. **Wave 2 mixed parser/data repair — Done**: six exact content-only repairs, zero skips, zero non-content/map/mapped-recipe changes. **Wave 3 data-only repair — Done**: seven exact source-evidence-only repairs, zero skips, 7/7 exact readback, zero non-content/map/mapped-recipe changes. **Recovered 41-recipe v4 mapping audit — Failed / historical**: its immutable manifest is never reusable. **Mapping v5 remediation/apply — Done / PASS**: 41 exact field-only writes, exact readback/validation, zero non-map changes, zero apply-time AI/recomputation, original v4 maps unchanged. The former Wave 4/5 mapping-remediation phases and personal-override backfill are not pending mapping work: corpus remediation is stopped. Any future source re-import or personal-override behavior requires its own concrete product problem and separate authorization. Broad NOTES/Tip/first-person termination remains prohibited. See §5.25, §6, `docs/audits/cooking-step-mapping-v4-apply-2026-08-26.md`, `docs/audits/recovered-recipes-mapping-v5-apply-2026-08-26.md`, and the final Cooking Mode closeout. |
 | Cooking Mode completeness audit | High | Done | Full 228-recipe actual-runtime precision + recall audit: two blind reviews per recipe, every discrepancy adjudicated, mandatory UI regressions reproduced, TP 1,375 / FP 12 / FN 2,677, precision 99.13%, recall 33.93%, production mutations 0. See §6 and `docs/audits/cooking-mode-completeness-audit-2026-08-26.md`. |
 | Cooking Mode recall remediation | High | **Done — corpus remediation stopped; selective promotion shipped** | Held-out raw-union and additive strategies failed the practical automatic-rollout gate, so no corpus backfill is planned. The review/approval system remains for new recipes and concrete targeted corrections. The original Steak, Caprese, and Zucchini defects were corrected, frozen in manifest SHA `eb804ad43b50c42c72f02ab54136ef8d2a5f10a1c84301e4ab7d34a86c512a26`, atomically promoted into the existing runtime field, exact-readback verified, and production-UI verified with 0 runtime AI calls and 0 unauthorized recipe writes. Old values are retained for hash-guarded rollback. Prepared components are deferred/separate. **STOP Cooking Mode ingredient-mapping remediation**; do not create V11/V12, another quality-threshold experiment, or a scheduled/bulk corpus rollout. See §5.25, §6, `docs/audits/cooking-mode-selective-promotion-apply-2026-08-29.{md,json}`, and `docs/audits/cooking-mode-mapping-remediation-closeout-2026-08-29.md`. |

@@ -9,6 +9,11 @@ import { servingSizeLabel } from './nutrition'
 export interface SourceRecipeFacts {
   imageURL: string
   nutrition?: RecipeNutrition
+  ingredients?: string[]
+  instructions?: string[]
+  /** A single allowlisted Recipe entity; never cross-combine source arrays. */
+  recipe?: Record<string, unknown>
+  unsupportedRecipe?: boolean
 }
 
 type JsonRecord = Record<string, unknown>
@@ -26,17 +31,87 @@ function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function hasRecipeType(value: JsonRecord): boolean {
-  const type = value['@type']
-  return type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))
+/**
+ * Shared allowlist for server extraction and browser capture. Keep this function
+ * self-contained: the bookmarklet embeds this exact implementation. Unrecognized
+ * fields/state are never serialized; invalid rows remain invalid, never filtered.
+ */
+export function recipeEvidenceFromJsonLd(value: unknown): Record<string, unknown>[] {
+  function record(v: unknown): v is Record<string, unknown> {
+    return !!v && typeof v === 'object' && !Array.isArray(v)
+  }
+  function scalar(v: unknown): string | number | null {
+    return typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v)) ? v : null
+  }
+  function image(v: unknown, depth = 0): unknown {
+    if (depth > 32) return null
+    if (typeof v === 'string') return v
+    if (Array.isArray(v)) return v.map(x => image(x, depth + 1))
+    if (record(v)) return { url: scalar(v.url ?? v.contentUrl) }
+    return null
+  }
+  function method(v: unknown, depth = 0): unknown {
+    if (depth > 32) return null
+    if (typeof v === 'string') return v
+    if (Array.isArray(v)) return v.map(x => method(x, depth + 1))
+    if (!record(v)) return null
+    const types = Array.isArray(v['@type']) ? v['@type'] : [v['@type']]
+    const type = types.find(x => x === 'HowToStep' || x === 'HowToSection' || x === 'ListItem')
+    if (type === 'HowToStep') return { '@type': type, text: scalar(v.text) }
+    if (type === 'HowToSection') return { '@type': type, itemListElement: method(v.itemListElement, depth + 1) }
+    if (type === 'ListItem') return { '@type': type, item: method(v.item, depth + 1) }
+    return null
+  }
+  function visit(v: unknown, depth = 0): Record<string, unknown>[] {
+    // Unknown deep graph content must keep selection ambiguous, never hide a
+    // second Recipe and accidentally promote the first node's rows.
+    if (depth > 32) return [{ '@type': 'Recipe' }]
+    if (Array.isArray(v)) return v.flatMap(x => visit(x, depth + 1))
+    if (!record(v)) return []
+    const type = v['@type']
+    const result: Record<string, unknown>[] = []
+    if (type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))) {
+      const r: Record<string, unknown> = { '@type': 'Recipe' }
+      for (const key of ['name', 'description', 'recipeCuisine', 'recipeCategory', 'recipeYield', 'prepTime', 'cookTime', 'totalTime']) {
+        if (v[key] !== undefined) r[key] = scalar(v[key])
+      }
+      if (v.image !== undefined) r.image = image(v.image)
+      if (v.recipeIngredient !== undefined) {
+        r.recipeIngredient = Array.isArray(v.recipeIngredient) ? v.recipeIngredient.map(scalar) : null
+      }
+      if (v.recipeInstructions !== undefined) r.recipeInstructions = method(v.recipeInstructions)
+      if (record(v.nutrition)) {
+        const n: Record<string, unknown> = {}
+        for (const key of ['calories', 'proteinContent', 'carbohydrateContent', 'fatContent', 'fiberContent', 'sugarContent', 'servingSize']) {
+          if (v.nutrition[key] !== undefined) n[key] = scalar(v.nutrition[key])
+        }
+        r.nutrition = n
+      }
+      result.push(r)
+    }
+    if (v['@graph'] !== undefined) result.push(...visit(v['@graph'], depth + 1))
+    return result
+  }
+  return visit(value)
 }
 
-function recipeNodes(value: unknown): JsonRecord[] {
-  if (Array.isArray(value)) return value.flatMap(recipeNodes)
-  if (!isRecord(value)) return []
-  const nodes = hasRecipeType(value) ? [value] : []
-  if (Array.isArray(value['@graph'])) nodes.push(...recipeNodes(value['@graph']))
-  return nodes
+function ingredientRows(value: unknown): string[] | undefined {
+  if (!Array.isArray(value) || !value.length || value.some(v => typeof v !== 'string' || !v.trim())) return undefined
+  return value.map(v => (v as string).trim())
+}
+
+function instructionRows(value: unknown): string[] | undefined {
+  if (typeof value === 'string') return value.trim() ? [value.trim()] : undefined
+  if (Array.isArray(value)) {
+    if (!value.length) return undefined
+    const parts = value.map(instructionRows)
+    return parts.every(v => v !== undefined) ? parts.flatMap(v => v!) : undefined
+  }
+  if (!isRecord(value)) return undefined
+  if (value['@type'] === 'HowToStep') return instructionRows(value.text)
+  if (value['@type'] === 'HowToSection') return instructionRows(value.itemListElement)
+  if (value['@type'] === 'ListItem') return instructionRows(value.item)
+  return undefined
 }
 
 function normalizeNumber(value: unknown, kind: 'calories' | 'grams'): number | null {
@@ -165,7 +240,7 @@ function ogImage(html: string, pageUrl?: string): string {
 
 /** Extract Recipe JSON-LD facts, then recipe microdata, then Open Graph image. */
 export function extractSourceRecipeFacts(html: string, pageUrl?: string): SourceRecipeFacts {
-  const recipes = jsonLdBlocks(html).flatMap(recipeNodes)
+  const recipes = jsonLdBlocks(html).flatMap(recipeEvidenceFromJsonLd)
   let imageURL = ''
   let nutrition: RecipeNutrition | undefined
   for (const recipe of recipes) {
@@ -178,8 +253,21 @@ export function extractSourceRecipeFacts(html: string, pageUrl?: string): Source
       nutrition = publisherNutritionFromStructuredData(rawNutrition)
     }
   }
+  const recipe = recipes.length === 1 ? recipes[0] : undefined
+  const ingredients = ingredientRows(recipe?.recipeIngredient)
+  const instructions = instructionRows(recipe?.recipeInstructions)
+  // Bounds reject whole recipes in the route. They must never become partial
+  // authoritative arrays or silently fall back to a plausible model replacement.
+  const unsupportedRecipe = !!(
+    (ingredients && (ingredients.length > 200 || ingredients.some(row => row.length > 2_000))) ||
+    (instructions && (instructions.length > 150 || instructions.some(row => row.length > 4_000)))
+  )
   return {
     imageURL: imageURL || microdataImage(html, pageUrl) || ogImage(html, pageUrl),
     ...(nutrition ? { nutrition } : {}),
+    ...(recipe ? { recipe } : {}),
+    ...(ingredients ? { ingredients } : {}),
+    ...(instructions ? { instructions } : {}),
+    ...(unsupportedRecipe ? { unsupportedRecipe } : {}),
   }
 }

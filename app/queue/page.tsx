@@ -1,18 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { getQueue, deleteFromQueue, addToQueue, QueuedRecipe } from '@/lib/queue'
 import { Loader2, ChefHat, Plus } from 'lucide-react'
 import { QueueCard } from '@/components/QueueCard'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
+import { createBookmarklet, receiveBookmarkletCapture, bookmarkletIngestRequest, type BookmarkletCaptureV1 } from '@/lib/bookmarklet'
 
 function BookmarkletCopy() {
   const [copied, setCopied] = useState(false)
-  // Keep this self-contained: it runs on an arbitrary source page. The server
-  // validates every extracted value again before it can become queue data.
-  const code = 'javascript:(function(){var u=location.href,img="",prep="",cook="",nut="";function ok(v){try{var x=new URL(v,u);return /^https?:$/.test(x.protocol)&&!/(^|[\\/_\\-.])(icon|logo|avatar)([\\/_\\-.]|$)/i.test(x.href)?x.href:""}catch(e){return""}}function pic(v){if(typeof v==="string")return ok(v);if(Array.isArray(v)){for(var i=0;i<v.length;i++){var a=pic(v[i]);if(a)return a}}if(v&&typeof v==="object")return ok(v.url||v.contentUrl);return""}function recipes(v){if(Array.isArray(v)){return v.reduce(function(a,x){return a.concat(recipes(x))},[])}if(!v||typeof v!=="object")return[];var t=v["@type"],is=t==="Recipe"||(Array.isArray(t)&&t.indexOf("Recipe")>=0),a=is?[v]:[];return a.concat(v["@graph"]?recipes(v["@graph"]):[])}var sc=document.querySelectorAll("script[type=\\\"application/ld+json\\\"]"),rs=[];for(var i=0;i<sc.length;i++){try{rs=rs.concat(recipes(JSON.parse(sc[i].textContent||"")))}catch(e){}}for(var j=0;j<rs.length;j++){var r=rs[j];if(!img)img=pic(r.image);if(!prep)prep=r.prepTime||"";if(!cook)cook=r.cookTime||"";if(!nut&&r.nutrition){nut=JSON.stringify({calories:r.nutrition.calories,proteinContent:r.nutrition.proteinContent,carbohydrateContent:r.nutrition.carbohydrateContent,fatContent:r.nutrition.fatContent,fiberContent:r.nutrition.fiberContent,sugarContent:r.nutrition.sugarContent,recipeYield:r.recipeYield,servingSize:r.nutrition.servingSize})}}if(!img){var ms=document.querySelectorAll("[itemprop=\\\"image\\\"]");for(var k=0;k<ms.length;k++){if(ms[k].closest("[itemtype*=\\\"Recipe\\\"]")){img=ok(ms[k].content||ms[k].src||ms[k].href||"");if(img)break}}}if(!img){var og=document.querySelector("meta[property=\\\"og:image\\\"],meta[name=\\\"og:image\\\"]");img=ok(og&&og.content||"")}function dur(s){if(!s)return"";var m=String(s).match(/PT(?:(\\d+)H)?(?:(\\d+)M)?/);if(!m)return s;return((m[1]?m[1]+"h ":"")+(m[2]?m[2]+" min":"")).trim()}var p=new URLSearchParams({ingest:u,img:img,prep:dur(prep),cook:dur(cook)});if(nut)p.set("nutrition",nut);open("https://mea-recipes.vercel.app/queue?"+p.toString(),"_blank","width=520,height=750")})();'
+  const code = createBookmarklet()
   const copy = () => {
     navigator.clipboard.writeText(code).then(() => {
       setCopied(true)
@@ -45,6 +44,9 @@ export default function QueuePage() {
   const [bmError, setBmError] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [actionError, setActionError] = useState('')
+  const [capture, setCapture] = useState<BookmarkletCaptureV1 | null>(null)
+  const launch = useRef<{ nonce: string; error: string } | null>(null)
+  const ingestedNonce = useRef('')
 
   const loadQueue = useCallback(async () => {
     if (!user) { setLoading(false); return }
@@ -62,34 +64,50 @@ export default function QueuePage() {
 
   useEffect(() => { loadQueue() }, [loadQueue])
 
-  // Auto-ingest from bookmarklet — reads ?ingest=URL param
+  // Capture reception must mount even while Firebase auth is still loading.
   useEffect(() => {
-    if (!user || typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const ingestUrl = params.get('ingest')
-    if (!ingestUrl) return
-    // Clear the param from URL without reload
-    window.history.replaceState({}, '', '/queue')
+    if (!launch.current) {
+      const params = new URLSearchParams(window.location.search)
+      if (!params.has('capture') && !params.has('ingest')) return
+      launch.current = {
+        nonce: params.get('nonce') || '',
+        error: params.has('ingest')
+          ? 'This bookmarklet is outdated. Copy the current code below and launch it again.'
+          : params.get('capture') !== '1' || !/^[a-f0-9]{32}$/.test(params.get('nonce') || '')
+            ? 'Invalid bookmarklet capture session.'
+            : params.has('captureError') ? 'Bookmarklet capture timed out. Launch it again from the recipe page.' : '',
+      }
+      window.history.replaceState({}, '', '/queue')
+    }
+    const session = launch.current
+    if (session.error) { setBmError(session.error); return }
     setBmIngesting(true)
     setBmError('')
-    const bmImage = params.get('img') || ''
-    const bmPrep = params.get('prep') || ''
-    const bmCook = params.get('cook') || ''
-    let bmSourceNutrition: unknown
-    try {
-      const encoded = params.get('nutrition')
-      bmSourceNutrition = encoded ? JSON.parse(encoded) : undefined
-    } catch { /* malformed bookmarklet metadata should not prevent import */ }
     let active = true
+    const receiver = receiveBookmarkletCapture(window, session.nonce)
+    void receiver.promise.then(value => { if (active) setCapture(value) }).catch(error => {
+      if (active) { setBmError(error.message); setBmIngesting(false) }
+    })
+    return () => { active = false; receiver.cancel() }
+  }, [])
+
+  useEffect(() => {
+    if (!user || !capture || ingestedNonce.current === capture.nonce) return
+    ingestedNonce.current = capture.nonce
+    let active = true
+    const controller = new AbortController()
     const ingest = async () => {
       try {
         const token = await user.getIdToken()
+        if (!active) return
         const response = await fetch('/api/ai-ingest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ url: ingestUrl, imageURL: bmImage, prepTime: bmPrep, cookTime: bmCook, sourceNutrition: bmSourceNutrition }),
+          body: JSON.stringify(bookmarkletIngestRequest(capture)),
+          signal: controller.signal,
         })
         const data = await response.json()
+        if (!active) return
         if (!response.ok || data.error) throw new Error(data.error || 'Recipe parsing failed')
         await addToQueue(user.uid, {
           title: data.title || 'Untitled Recipe',
@@ -103,9 +121,9 @@ export default function QueuePage() {
           ...(data.sourceNutrition ? { sourceNutrition: data.sourceNutrition } : {}),
           ingredients: data.ingredients || [],
           instructions: data.instructions || [],
-          sourceURL: ingestUrl,
+          sourceURL: capture.sourceURL,
         })
-        await loadQueue()
+        if (active) await loadQueue()
       } catch (error) {
         if (active) setBmError(error instanceof Error ? error.message : 'Couldn’t import this recipe')
       } finally {
@@ -113,8 +131,8 @@ export default function QueuePage() {
       }
     }
     void ingest()
-    return () => { active = false }
-  }, [user, loadQueue])
+    return () => { active = false; controller.abort() }
+  }, [user, capture, loadQueue])
 
   const handleDiscard = async (id: string) => {
     if (!user) return

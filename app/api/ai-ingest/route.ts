@@ -5,10 +5,11 @@ import { generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import { safeFetchText } from '@/lib/safeFetch'
 import { z } from 'zod'
-import { RECIPE_SCHEMA, SYSTEM_PROMPT } from '@/lib/aiIngestContract'
+import { RECIPE_SCHEMA, SYSTEM_PROMPT, IMPORT_SYSTEM_PROMPT, MAX_IMPORT_EVIDENCE_LENGTH } from '@/lib/aiIngestContract'
 import { aiAbuseControlResponse } from '@/lib/aiAbuseControl'
 import { extractSourceRecipeFacts, normalizeRecipeImageUrl, publisherNutritionFromStructuredData } from '@/lib/sourceRecipeFacts'
-import type { RecipeNutrition } from '@/types/recipe'
+import { load } from 'cheerio'
+import type { SourceRecipeFacts } from '@/lib/sourceRecipeFacts'
 
 const AI_INGEST_MAX_BODY_BYTES = 2_000_000
 const MAX_URL_LENGTH = 2_048
@@ -19,7 +20,9 @@ const MAX_METADATA_LENGTH = 2_048
 
 type AIIngestMode = 'url' | 'html' | 'text' | 'generate'
 
-type AIIngestRequest = {
+type ImportSourceMetadata = { sourceURL?: string }
+
+type AIIngestRequest = ImportSourceMetadata & {
   url?: string
   html?: string
   text?: string
@@ -32,6 +35,9 @@ type AIIngestRequest = {
 
 const REQUEST_SCHEMA: z.ZodType<AIIngestRequest> = z.object({
   url: z.string().max(MAX_URL_LENGTH).optional(),
+  sourceURL: z.string().max(MAX_URL_LENGTH).refine(value => {
+    try { const url = new URL(value); return /^https?:$/.test(url.protocol) && !url.username && !url.password } catch { return false }
+  }).optional(),
   html: z.string().max(MAX_DIRECT_HTML_LENGTH).optional(),
   text: z.string().max(MAX_DIRECT_TEXT_LENGTH).optional(),
   generate: z.string().max(MAX_GENERATION_TEXT_LENGTH).optional(),
@@ -69,6 +75,9 @@ export async function POST(req: NextRequest) {
     }
 
     const mode = activeModes[0]
+    if (body.sourceURL && mode !== 'html' && mode !== 'text') {
+      return NextResponse.json({ error: 'Source attribution is only supported with captured HTML or text.' }, { status: 400 })
+    }
     const {
       imageURL: providedImage,
       prepTime: providedPrep,
@@ -112,19 +121,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const url = mode === 'url' ? body.url! : ''
-    const html = mode === 'html' ? body.html! : ''
-    const text = mode === 'text' ? body.text! : ''
-    let content = html || text
+    const url = mode === 'url' ? body.url! : body.sourceURL || ''
+    let rawHtml = mode === 'html' ? body.html! : ''
+    let content = mode === 'text' ? body.text! : ''
     let fetchedTitle = ''
-    let extractedNutrition: RecipeNutrition | undefined
-    let extractedImage = ''
-
-    if (mode === 'html') {
-      const sourceFacts = extractSourceRecipeFacts(html)
-      extractedImage = sourceFacts.imageURL
-      extractedNutrition = sourceFacts.nutrition
-    }
+    let sourceFacts: SourceRecipeFacts = { imageURL: '' }
 
     if (mode === 'url') {
       try {
@@ -134,20 +135,7 @@ export async function POST(req: NextRequest) {
             'Accept': 'text/html',
           },
         })
-        if (res.ok) {
-          const rawHtml = res.text
-          const sourceFacts = extractSourceRecipeFacts(rawHtml, url)
-          extractedImage = sourceFacts.imageURL
-          extractedNutrition = sourceFacts.nutrition
-          const titleMatch = rawHtml.match(/<title[^>]*>([^<]+)<\/title>/i)
-          fetchedTitle = titleMatch ? titleMatch[1].replace(' - ', ' | ').split(' | ')[0].trim() : ''
-          content = rawHtml
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .slice(0, 15000)
-        }
+        if (res.ok) rawHtml = res.text
       } catch (err) {
         console.error('[ai-ingest] URL fetch failed', {
           error: safeErrorLogDetails(err),
@@ -156,36 +144,58 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Could not fetch URL. Try the bookmarklet or paste text instead.' }, { status: 422 })
       }
     }
-
-    if (!content.trim()) {
-      return NextResponse.json({ error: 'No content to parse' }, { status: 400 })
+    if (rawHtml) {
+      // Preserve structured rows BEFORE script removal. Both browser capture and
+      // public URL ingestion use the same source-fact parser and precedence.
+      sourceFacts = extractSourceRecipeFacts(rawHtml, url)
+      const page = load(rawHtml)
+      fetchedTitle = page('title').first().text().replace(' - ', ' | ').split(' | ')[0].trim()
+      page('script,style,noscript,template,form,nav,header,footer,aside,[hidden],[aria-hidden="true"]').remove()
+      page('br').replaceWith('\n')
+      page('p,div,section,article,li,h1,h2,h3,h4,h5,h6,tr').append('\n')
+      const visibleText = page('body').text().trim()
+      // A complete single structured recipe is already a complete relevant
+      // representation. Otherwise retain ALL fallback text, never a prefix.
+      content = sourceFacts.ingredients && sourceFacts.instructions
+        ? JSON.stringify(sourceFacts.recipe)
+        : [visibleText, sourceFacts.recipe ? JSON.stringify(sourceFacts.recipe) : ''].filter(Boolean).join('\n')
     }
+    if (sourceFacts.unsupportedRecipe || content.length > MAX_IMPORT_EVIDENCE_LENGTH) {
+      return NextResponse.json({ error: 'Recipe evidence exceeds supported capacity. No content was trimmed. Try a complete, smaller recipe text.' }, { status: 413 })
+    }
+    if (!content.trim()) return NextResponse.json({ error: 'No content to parse' }, { status: 400 })
 
-    // The bookmarklet sees the user's rendered page, which can contain facts a
-    // server fetch cannot reach (for example, a logged-in recipe site). Validate
-    // that compact structured payload here before it crosses the queue boundary.
-    const sourceNutrition = publisherNutritionFromStructuredData(providedSourceNutrition) || extractedNutrition
-
-    const userMessage = mode === 'url'
-      ? `Parse this recipe from ${url}:\n\n${content}`
-      : `Parse this recipe:\n\n${content}`
+    const sourceNutrition = publisherNutritionFromStructuredData(providedSourceNutrition) || sourceFacts.nutrition
+    const userMessage = `Parse this recipe${url ? ` from ${url}` : ''}:\n\n${content}`
 
     try {
       const parsed = await generateAIObject({
         feature: 'recipe-ingest',
         userId: uid,
-        system: SYSTEM_PROMPT,
+        system: IMPORT_SYSTEM_PROMPT,
         prompt: userMessage,
         schema: RECIPE_SCHEMA,
       })
+      const ingredients = sourceFacts.ingredients || parsed.ingredients
+      const instructions = sourceFacts.instructions || parsed.instructions
+      // Without a trustworthy source array, require literal grounding in the
+      // complete supplied evidence. A plausible different dish is not success.
+      const normalize = (value: string) => value.normalize('NFKC').replace(/\s+/g, ' ').trim()
+      const evidence = normalize(content)
+      const grounded = (rows: string[]) => rows.length > 0 && rows.every(row => row.trim() && evidence.includes(normalize(row)))
+      if ((!sourceFacts.ingredients && !grounded(ingredients)) || (!sourceFacts.instructions && !grounded(instructions))) {
+        return NextResponse.json({ error: 'Could not establish a complete recipe from the supplied source. Open the full recipe or paste its ingredients and instructions.' }, { status: 422 })
+      }
       return NextResponse.json({
         ...parsed,
+        ingredients,
+        instructions,
         title: parsed.title || fetchedTitle || 'Untitled Recipe',
         sourceURL: url,
         // Prefer client-provided values (from bookmarklet) over parsed ones
-        imageURL: normalizeRecipeImageUrl(providedImage, url) || extractedImage || normalizeRecipeImageUrl(parsed.imageURL, url),
-        prepTime: providedPrep || parsed.prepTime || '',
-        cookTime: providedCook || parsed.cookTime || '',
+        imageURL: normalizeRecipeImageUrl(providedImage, url) || sourceFacts.imageURL || normalizeRecipeImageUrl(parsed.imageURL, url),
+        prepTime: providedPrep || (typeof sourceFacts.recipe?.prepTime === 'string' ? sourceFacts.recipe.prepTime : '') || parsed.prepTime || '',
+        cookTime: providedCook || (typeof sourceFacts.recipe?.cookTime === 'string' ? sourceFacts.recipe.cookTime : '') || parsed.cookTime || '',
         ...(sourceNutrition ? { sourceNutrition } : {}),
       })
     } catch (err) {

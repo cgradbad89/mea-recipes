@@ -203,3 +203,18 @@ describe('recipe read whitelist', () => {
     })
   })
 })
+
+
+import { nachosQueue } from './helpers/bookmarkletFixture'
+it('round-trips all 13/7 bookmarklet rows through publication serialization and recipe readback', async () => {
+  const content = buildRecipeContent(nachosQueue)
+  const parsed = parseRecipeContent(content)
+  expect(parsed.ingredients).toEqual(nachosQueue.ingredients)
+  expect(parsed.instructions).toEqual(nachosQueue.instructions)
+  expect(parsed.ingredients).toHaveLength(13)
+  expect(parsed.instructions).toHaveLength(7)
+  firestore.getDoc.mockResolvedValueOnce({ exists: () => true, id: 'synthetic-nachos', data: () => ({ title: nachosQueue.title, content }) })
+  const read = await getRecipeById('synthetic-nachos')
+  expect(parseRecipeContent(read!.content).ingredients).toEqual(nachosQueue.ingredients)
+  expect(parseRecipeContent(read!.content).instructions).toEqual(nachosQueue.instructions)
+})

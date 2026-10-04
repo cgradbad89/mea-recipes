@@ -16,7 +16,7 @@ vi.mock('@/lib/flavorPairings', () => ({
 vi.mock('@/lib/safeFetch', () => ({ safeFetchText: mocks.safeFetchText }))
 
 import { POST } from '@/app/api/ai-ingest/route'
-import { RECIPE_SCHEMA, SYSTEM_PROMPT } from '@/lib/aiIngestContract'
+import { RECIPE_SCHEMA, SYSTEM_PROMPT, IMPORT_SYSTEM_PROMPT, MAX_IMPORT_EVIDENCE_LENGTH } from '@/lib/aiIngestContract'
 import { AIAbuseControlError } from '@/lib/aiAbuseControl'
 import { RECIPE_CATEGORIES } from '@/lib/recipeCategories'
 
@@ -33,6 +33,8 @@ const parsedRecipe = {
   cookTime: '15 min',
 }
 
+const parsedEvidence = ['Cacio e Pepe', 'Ingredients', ...parsedRecipe.ingredients, 'Instructions', ...parsedRecipe.instructions].join('\n')
+
 function request(body: BodyInit = JSON.stringify({ text: 'Recipe text' })) {
   return new NextRequest('http://localhost/api/ai-ingest', {
     method: 'POST',
@@ -46,7 +48,7 @@ function jsonRequest(body: unknown) {
 }
 
 function recipeHtml(recipe: Record<string, unknown>) {
-  return `<script type="application/ld+json">${JSON.stringify(recipe)}</script><article>Recipe</article>`
+  return `<script type="application/ld+json">${JSON.stringify(recipe)}</script><article>${parsedEvidence}</article>`
 }
 
 describe('POST /api/ai-ingest', () => {
@@ -105,7 +107,7 @@ describe('POST /api/ai-ingest', () => {
   it('routes URL import through the SSRF-safe fetcher and preserves metadata precedence', async () => {
     mocks.safeFetchText.mockResolvedValueOnce({
       ok: true,
-      text: '<html><title>Fetched Recipe | Site</title><script>ignore()</script><body>Recipe body</body></html>',
+      text: `<html><title>Fetched Recipe | Site</title><script>ignore()</script><body>${parsedEvidence}</body></html>`,
     })
     mocks.generateAIObject.mockResolvedValueOnce({ ...parsedRecipe, title: '' })
     const body = {
@@ -142,7 +144,7 @@ describe('POST /api/ai-ingest', () => {
           calories: '420 calories', proteinContent: '28 g', carbohydrateContent: '36 g',
           fatContent: '18 g', fiberContent: '6 g', sugarContent: '7 g',
         },
-      })}</script><title>Publisher Recipe | Site</title><body>Recipe body</body>`,
+      })}</script><title>Publisher Recipe | Site</title><body>${parsedEvidence}</body>`,
     })
     mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
 
@@ -156,7 +158,7 @@ describe('POST /api/ai-ingest', () => {
   })
 
   it('prefers valid bookmarklet facts over AI image guesses when the source fetch has none', async () => {
-    mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: '<title>Recipe | Site</title><body>Recipe body</body>' })
+    mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: `<title>Recipe | Site</title><body>${parsedEvidence}</body>` })
     mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
 
     const response = await POST(jsonRequest({
@@ -176,13 +178,13 @@ describe('POST /api/ai-ingest', () => {
   it('accepts direct HTML import', async () => {
     mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
 
-    const response = await POST(jsonRequest({ html: '<article>Cacio e Pepe recipe</article>' }))
+    const response = await POST(jsonRequest({ html: `<article>${parsedEvidence}</article>` }))
 
     expect(response.status).toBe(200)
     expect(mocks.safeFetchText).not.toHaveBeenCalled()
     expect(mocks.generateAIObject).toHaveBeenCalledWith(expect.objectContaining({
       feature: 'recipe-ingest',
-      prompt: expect.stringContaining('<article>Cacio e Pepe recipe</article>'),
+      prompt: expect.stringContaining('Cacio e Pepe'),
     }))
   })
 
@@ -208,7 +210,7 @@ describe('POST /api/ai-ingest', () => {
   it('accepts pasted text import', async () => {
     mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
 
-    const response = await POST(jsonRequest({ text: 'Cacio e Pepe\n8 oz spaghetti' }))
+    const response = await POST(jsonRequest({ text: parsedEvidence }))
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
@@ -320,6 +322,123 @@ describe('POST /api/ai-ingest', () => {
       error: 'Could not fetch URL. Try the bookmarklet or paste text instead.',
     })
     expect(JSON.stringify(data)).not.toContain('secret-detail')
+    expect(mocks.generateAIObject).not.toHaveBeenCalled()
+  })
+})
+
+
+import { nachosHtml, nachosSource, nachosIngredients, nachosInstructions } from './helpers/bookmarkletFixture'
+const nachosAI = { ...parsedRecipe, ingredients: nachosIngredients, instructions: nachosInstructions }
+
+describe('complete browser and public URL ingestion', () => {
+  beforeEach(() => {
+    mocks.verifyAuthToken.mockResolvedValue('user-123')
+    mocks.getComplementaryIngredients.mockReturnValue([])
+  })
+
+  it.each([
+    ['omitted/reordered', { ...parsedRecipe, ingredients: nachosIngredients.slice(0, 4).reverse(), instructions: nachosInstructions.slice(0, 2).reverse() }],
+    ['plausible different dish', parsedRecipe],
+  ])('preserves captured 13/7 rows despite %s AI output and never fetches sourceURL', async (_name, ai) => {
+    mocks.generateAIObject.mockResolvedValueOnce(ai)
+    const response = await POST(jsonRequest({ html: nachosHtml, sourceURL: 'https://recipes.example/authenticated/nachos' }))
+    const data = await response.json()
+    expect(response.status).toBe(200)
+    expect(data.ingredients).toEqual(nachosIngredients)
+    expect(data.instructions).toEqual(nachosInstructions)
+    expect(data.sourceURL).toBe('https://recipes.example/authenticated/nachos')
+    expect(data.imageURL).toBe(nachosSource.image)
+    expect(data.prepTime).toBe('PT20M')
+    expect(data.cookTime).toBe('PT40M')
+    expect(mocks.safeFetchText).not.toHaveBeenCalled()
+    expect(mocks.generateAIObject.mock.calls[0][0].system).toBe(IMPORT_SYSTEM_PROMPT)
+  })
+
+  it('preserves JSON-LD-only URL recipe facts before removing scripts', async () => {
+    mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: recipeHtml(nachosSource).replace(/<article>[\s\S]*?<\/article>/, '') })
+    mocks.generateAIObject.mockResolvedValueOnce({ ...parsedRecipe, ingredients: [], instructions: [] })
+    const response = await POST(jsonRequest({ url: 'https://recipes.example/nachos' }))
+    const data = await response.json()
+    expect(response.status).toBe(200)
+    expect(data.ingredients).toEqual(nachosIngredients)
+    expect(data.instructions).toEqual(nachosInstructions)
+    expect(mocks.safeFetchText).toHaveBeenCalledTimes(1)
+    expect(mocks.generateAIObject.mock.calls[0][0].prompt).toContain('scallions')
+  })
+
+  it('passes the complete long visible URL source including tail beyond 15,000 characters', async () => {
+    const visible = nachosHtml.replace(/<script[\s\S]*?<\/script>/, '')
+    mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: `<body><p>${'Introduction '.repeat(2000)}</p>${visible}</body>` })
+    mocks.generateAIObject.mockResolvedValueOnce(nachosAI)
+    const response = await POST(jsonRequest({ url: 'https://recipes.example/long' }))
+    const data = await response.json()
+    expect(response.status).toBe(200)
+    expect(data.ingredients).toEqual(nachosIngredients)
+    expect(data.instructions).toEqual(nachosInstructions)
+    const prompt = mocks.generateAIObject.mock.calls[0][0].prompt
+    expect(prompt.indexOf(nachosInstructions[6])).toBeGreaterThan(15_000)
+  })
+
+  it('reduces oversized page chrome only when a complete structured recipe remains', async () => {
+    mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: `<p>${'x'.repeat(100_000)}</p>${nachosHtml}` })
+    mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
+    const response = await POST(jsonRequest({ url: 'https://recipes.example/chrome' }))
+    expect(response.status).toBe(200)
+    expect((await response.json()).instructions).toEqual(nachosInstructions)
+    expect(mocks.generateAIObject.mock.calls[0][0].prompt.length).toBeLessThan(MAX_IMPORT_EVIDENCE_LENGTH)
+  })
+
+  it('rejects model-capacity and structured-row overflows explicitly instead of returning truncated success', async () => {
+    for (const html of [
+      `<main>${'x'.repeat(MAX_IMPORT_EVIDENCE_LENGTH + 1)}scallions</main>`,
+      recipeHtml({ ...nachosSource, recipeIngredient: Array.from({ length: 201 }, () => 'salt') }),
+      recipeHtml({ ...nachosSource, recipeInstructions: [{ '@type': 'HowToStep', text: 'x'.repeat(4001) }] }),
+    ]) {
+      mocks.safeFetchText.mockResolvedValueOnce({ ok: true, text: html })
+      const response = await POST(jsonRequest({ url: 'https://recipes.example/oversized' }))
+      expect(response.status).toBe(413)
+      expect((await response.json()).error).toContain('No content was trimmed')
+    }
+    expect(mocks.generateAIObject).not.toHaveBeenCalled()
+  })
+
+  it('rejects insufficient source evidence and ungrounded replacements in capture mode without URL fallback', async () => {
+    mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
+    const response = await POST(jsonRequest({ html: '<main>Sign in to read the recipe.</main>', sourceURL: 'https://recipes.example/blocked' }))
+    expect(response.status).toBe(422)
+    expect((await response.json()).error).toContain('complete recipe')
+    expect(mocks.safeFetchText).not.toHaveBeenCalled()
+  })
+
+  it('uses complete visible fallback for malformed/ambiguous structured evidence', async () => {
+    const html = nachosHtml.replace('</head>', `<script type="application/ld+json">${JSON.stringify({ '@type': 'Recipe', recipeIngredient: ['beans'], recipeInstructions: null })}</script></head>`)
+    mocks.generateAIObject.mockResolvedValueOnce(nachosAI)
+    const response = await POST(jsonRequest({ html, sourceURL: 'https://recipes.example/nachos' }))
+    expect(response.status).toBe(200)
+    expect((await response.json()).ingredients).toEqual(nachosIngredients)
+    expect(mocks.generateAIObject.mock.calls[0][0].prompt).not.toContain('beans')
+  })
+
+  it('preserves client image/time/nutrition precedence over captured source and AI', async () => {
+    mocks.generateAIObject.mockResolvedValueOnce(parsedRecipe)
+    const response = await POST(jsonRequest({ html: nachosHtml, sourceURL: 'https://recipes.example/nachos', imageURL: '/client.jpg', prepTime: '10 min', cookTime: '50 min', sourceNutrition: {
+      calories: 420, proteinContent: 28, carbohydrateContent: 36, fatContent: 18, fiberContent: 6, sugarContent: 7, recipeYield: 4,
+    } }))
+    const data = await response.json()
+    expect(data.imageURL).toBe('https://recipes.example/client.jpg')
+    expect(data.prepTime).toBe('10 min')
+    expect(data.cookTime).toBe('50 min')
+    expect(data.sourceNutrition).toMatchObject({ source: 'source_site', servings: 4, total: { calories: 1680 } })
+  })
+
+  it('rejects invalid attribution and url + html ambiguity before fetch or model work', async () => {
+    for (const body of [
+      { html: nachosHtml, sourceURL: 'javascript:bad' },
+      { html: nachosHtml, sourceURL: 'https://user:secret@recipes.example/x' },
+      { url: 'https://recipes.example/x', html: nachosHtml },
+      { generate: 'nachos', sourceURL: 'https://recipes.example/x' },
+    ]) expect((await POST(jsonRequest(body))).status).toBe(400)
+    expect(mocks.safeFetchText).not.toHaveBeenCalled()
     expect(mocks.generateAIObject).not.toHaveBeenCalled()
   })
 })

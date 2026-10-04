@@ -204,3 +204,24 @@ describe('nutrition / Cooking Mode mapping independence on publish (Implementati
     expect(mocks.triggerCookingModeMappingGeneration).not.toHaveBeenCalled()
   })
 })
+
+
+import { nachosQueue } from './helpers/bookmarkletFixture'
+import { parseRecipeContent } from '@/lib/recipeContent'
+it('preserves the full 13/7 source in actual QueueCard review/save/publication handlers', async () => {
+  render(<QueueCard item={{ ...nachosQueue, id: 'queue-1' }} uid="user-1" onPublish={vi.fn()} onDiscard={vi.fn()} />)
+  expect(screen.getByText('Ingredients (13)')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'Edit queued recipe' }))
+  const fields = screen.getAllByRole('textbox') as (HTMLInputElement | HTMLTextAreaElement)[]
+  expect(fields.some(field => field.value === nachosQueue.ingredients.join('\n'))).toBe(true)
+  expect(fields.some(field => field.value === nachosQueue.instructions.join('\n\n'))).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+  await waitFor(() => expect(mocks.updateQueueItem).toHaveBeenCalled())
+  expect(mocks.updateQueueItem.mock.calls[0][2].ingredients).toEqual(nachosQueue.ingredients)
+  expect(mocks.updateQueueItem.mock.calls[0][2].instructions).toEqual(nachosQueue.instructions)
+  fireEvent.click(screen.getByRole('button', { name: 'Publish to collection' }))
+  await waitFor(() => expect(mocks.publishQueuedRecipe).toHaveBeenCalled())
+  const parsed = parseRecipeContent(mocks.publishQueuedRecipe.mock.calls[0][2].content)
+  expect(parsed.ingredients).toEqual(nachosQueue.ingredients)
+  expect(parsed.instructions).toEqual(nachosQueue.instructions)
+})

@@ -76,3 +76,59 @@ describe('source recipe facts', () => {
     expect(facts.nutrition).toEqual(expect.objectContaining({ servings: 2, total: expect.objectContaining({ calories: 1000 }) }))
   })
 })
+
+import { nachosHtml, nachosSource, nachosIngredients, nachosInstructions } from './helpers/bookmarkletFixture'
+
+describe('complete ordered source rows', () => {
+  it('preserves all 13 ingredients, seven methods, alternatives, and both tails', () => {
+    const facts = extractSourceRecipeFacts(nachosHtml)
+    expect(facts.ingredients).toEqual(nachosIngredients)
+    expect(facts.instructions).toEqual(nachosInstructions)
+    expect(facts.ingredients).toHaveLength(13)
+    expect(facts.instructions).toHaveLength(7)
+    expect(facts.ingredients?.at(-1)).toBe('scallions')
+    expect(facts.instructions?.at(-1)).toContain('Garnish with avocado, queso fresco and scallions')
+  })
+
+  it.each([
+    ['strings', nachosInstructions],
+    ['HowToStep', nachosSource.recipeInstructions],
+    ['nested HowToSection/ListItem', [{ '@type': 'HowToSection', itemListElement: [
+      { '@type': 'ListItem', item: { '@type': 'HowToStep', text: nachosInstructions[0] } },
+      { '@type': 'HowToSection', itemListElement: nachosInstructions.slice(1) },
+    ] }]],
+  ])('flattens %s in authored order', (_name, recipeInstructions) => {
+    expect(extractSourceRecipeFacts(recipeJson({ ...nachosSource, recipeInstructions })).instructions).toEqual(nachosInstructions)
+    expect(extractSourceRecipeFacts(recipeJson({ ...nachosSource, recipeInstructions: nachosInstructions[0] })).instructions).toEqual([nachosInstructions[0]])
+  })
+
+  it('selects one Recipe in a type array/@graph and ignores malformed/unrelated blocks', () => {
+    const html = '<script type="application/ld+json">{broken</script>' + recipeJson({ '@graph': [
+      { '@type': 'WebSite', recipeIngredient: ['unrelated'] },
+      { ...nachosSource, '@type': ['Thing', 'Recipe'] },
+    ] })
+    expect(extractSourceRecipeFacts(html).ingredients).toEqual(nachosIngredients)
+  })
+
+  it('rejects conflicting or split Recipe entities instead of cross-combining arrays', () => {
+    for (const nodes of [
+      [nachosSource, { ...nachosSource, recipeIngredient: ['beans'] }],
+      [{ '@type': 'Recipe', recipeIngredient: nachosIngredients }, { '@type': 'Recipe', recipeInstructions: nachosInstructions }],
+      [nachosSource, nachosSource],
+    ]) {
+      const facts = extractSourceRecipeFacts(recipeJson({ '@graph': nodes }))
+      expect(facts.ingredients).toBeUndefined()
+      expect(facts.instructions).toBeUndefined()
+      expect(facts.recipe).toBeUndefined()
+    }
+  })
+
+  it('never filters invalid rows into an apparently complete array or deduplicates valid rows', () => {
+    for (const recipeIngredient of [['valid', null], ['valid', ' '], 'not an array']) {
+      expect(extractSourceRecipeFacts(recipeJson({ ...nachosSource, recipeIngredient })).ingredients).toBeUndefined()
+    }
+    const facts = extractSourceRecipeFacts(recipeJson({ ...nachosSource, recipeIngredient: ['  salt  ', 'salt'], recipeInstructions: ['Cook it completely.', { '@type': 'HowToStep' }] }))
+    expect(facts.ingredients).toEqual(['salt', 'salt'])
+    expect(facts.instructions).toBeUndefined()
+  })
+})

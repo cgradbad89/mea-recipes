@@ -20,7 +20,7 @@ vi.mock('firebase/firestore', async importOriginal => {
 
 vi.mock('@/lib/firebase', () => ({ db: {} }))
 
-import { publishQueuedRecipe, publishQueuedRecipeInTransaction } from '@/lib/queue'
+import { publishQueuedRecipe, publishQueuedRecipeInTransaction, buildRecipeContent } from '@/lib/queue'
 import { RecipeAlreadyExistsError, type SharedRecipeWrite } from '@/lib/recipes'
 import type { RecipeNutrition } from '@/types/recipe'
 
@@ -127,4 +127,23 @@ describe('atomic queue publication', () => {
       expect.objectContaining({ nutrition, nutritionStatus: 'computed' }),
     )
   })
+})
+
+
+import { nachosQueue } from './helpers/bookmarkletFixture'
+import { parseRecipeContent } from '@/lib/recipeContent'
+
+it('publishes the entire 13/7 bookmarklet source with exact order and both tails', async () => {
+  const transaction = transactionWith({ 'users/user-1/recipeQueue/queue-1': snapshot(true, { ...nachosQueue }) })
+  const content = buildRecipeContent(nachosQueue)
+  await publishQueuedRecipeInTransaction(transaction as never, 'user-1', 'queue-1', { ...recipe, title: nachosQueue.title, content, sourceURL: nachosQueue.sourceURL }, 'user-1')
+  const stored = transaction.set.mock.calls[0][1]
+  expect(stored.content).toBe(content)
+  const parsed = parseRecipeContent(stored.content)
+  expect(parsed.ingredients).toEqual(nachosQueue.ingredients)
+  expect(parsed.instructions).toEqual(nachosQueue.instructions)
+  expect(parsed.ingredients).toHaveLength(13)
+  expect(parsed.instructions).toHaveLength(7)
+  expect(parsed.ingredients.at(-1)).toBe('scallions')
+  expect(parsed.instructions.at(-1)).toContain('Garnish with avocado, queso fresco and scallions')
 })
