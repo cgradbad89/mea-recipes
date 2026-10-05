@@ -3,6 +3,13 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway'
 export const AI_PROVIDER = 'vercel-ai-gateway'
 export const AI_MODEL = 'openai/gpt-5.6-luna'
 export const AI_PROMPT_VERSION = 'v2'
+export const AI_IMAGE_MODEL = 'openai/gpt-image-2'
+export const AI_IMAGE_PROMPT_VERSION = 'recipe-photo-v1'
+export const AI_IMAGE_PROVENANCE = {
+  provider: AI_PROVIDER,
+  model: AI_IMAGE_MODEL,
+  prompt_version: AI_IMAGE_PROMPT_VERSION,
+} as const
 export const AI_CACHE_VERSION = 'v2'
 export const COOKING_STEP_MAPPING_PROMPT_VERSION = 'v2'
 export const COOKING_STEP_MAPPING_TEMPERATURE = 0

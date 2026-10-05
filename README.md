@@ -36,10 +36,16 @@ MEA Recipes web is the supported client for this data. The former iOS client is 
 
 ## Setup
 
-This project is pinned to Node.js 26.x and npm 11.19.0. Use the committed
+This project is pinned to Node.js 24.x and npm 11.19.0. Use the committed
 `.nvmrc` (for example, `nvm use`) before installing dependencies. The Node
-range is intentionally limited to the 26.x major so installs and Vercel builds
+range is intentionally limited to the 24.x major so installs and Vercel builds
 do not silently move to a future Node major.
+
+Run the build/test/typecheck/lint gates under this Node 24 runtime. Firestore
+integration tests require the existing Firebase CLI and Java installation; they
+allocate their own localhost suite ports and clean up temporary processes/logs.
+No emulator needs to be started manually. Node 26 is not the verification runtime:
+its native storage global can shadow jsdom's browser storage in Vitest 4.
 
 ### 1. Clone and install
 
@@ -188,10 +194,20 @@ types/
 
 ## AI architecture
 
-As of 2026-08-20, every active AI feature uses the central configuration in
-`lib/aiConfig.ts` and the server-only helpers in `lib/ai.ts`. The configured model
-is `openai/gpt-5.6-luna` through Vercel AI Gateway. Structured routes use AI SDK
-schema outputs, model-dependent client caches include the provider/model/version
-identity, and newly generated nutrition data records provider/model/prompt provenance.
-There is no direct-provider fallback, and no retired Gemini or Anthropic provider SDK
-is installed. Provider credentials from those integrations are no longer used.
+All repository-owned model invocation goes through the server-only helpers in
+`lib/ai.ts`; provider/model identity is owned by `lib/aiConfig.ts`. Language and
+structured output use `openai/gpt-5.6-luna` through Vercel AI Gateway. The offline/manual
+`scripts/generate-photos.js` tooling uses `generateAIImage` with `openai/gpt-image-2`
+through the same Gateway boundary. Image generation is not a production browser-app
+feature; the script remains unrun and blocked until the owner explicitly provisions
+Firebase Storage.
+
+Structured routes use AI SDK schema outputs, model-dependent client caches include
+the language provider/model/version identity, and newly generated nutrition data
+records provider/model/prompt provenance. Images have separate `recipe-photo-v1`
+provenance and no cache contract. Image calls default to the finite admin-batch deadline,
+at most one provider retry, one 1024×1024 image, and centralized safe usage logging.
+There is no direct-provider fallback or direct OpenAI/Anthropic/Gemini client.
+`tests/aiBoundaryCoverage.test.ts` scans repository runtime source to prevent routes,
+helpers, and scripts from invoking providers independently; the separate 11-route
+`tests/aiAbuseCoverage.test.ts` inventory protects authentication and limiter propagation.

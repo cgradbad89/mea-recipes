@@ -13,8 +13,8 @@
  *
  * For each of the 18 recipes that had no acceptable real-photo match in the
  * earlier Wikimedia/Openverse backfill, generates one realistic food-photography
- * image via the Vercel AI Gateway (openai/gpt-image-2, the same gateway/auth
- * lib/ai.ts already uses for text), uploads it to Firebase Storage at
+ * image via the centralized lib/ai.ts helper and Vercel AI Gateway, uploads it
+ * to Firebase Storage at
  * `recipe-images/{docId}.png`, and writes the resulting permanent download URL
  * into `recipes/{docId}.imageURL` via the Admin SDK. No other field is touched.
  *
@@ -22,8 +22,10 @@
  * (pulled straight from each recipe doc's `content` field) so the image matches
  * the dish, rather than relying on the title alone.
  *
- * One retry on a failed generation; a recipe that fails both attempts is left
- * untouched and reported in the "failed" list — the run continues regardless.
+ * Generation retries and finite deadlines are owned by lib/ai.ts (at most one
+ * provider retry). Failed generation leaves the recipe untouched and the run
+ * continues. Results report WRITTEN with url/storagePath or FAILED with error;
+ * provider-attempt counts are not exposed by the helper and are not reported.
  */
 const path = require('path')
 const { loadEnv, getAdmin } = require('./_lib')
@@ -109,79 +111,88 @@ const RECIPES = [
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-async function generateOnce(prompt) {
-  const { generateImage } = require('ai')
-  const { gateway } = require('@ai-sdk/gateway')
-  const result = await generateImage({
-    model: gateway.imageModel('openai/gpt-image-2'),
-    prompt,
-    size: '1024x1024',
+async function loadAi() {
+  const { createServer } = await import('vite')
+  const root = path.resolve(__dirname, '..')
+  const server = await createServer({
+    root,
+    configFile: false,
+    server: { middlewareMode: true },
+    resolve: { alias: { '@': root } },
+    plugins: [{
+      name: 'recipe-photo-server-only', enforce: 'pre',
+      resolveId(id) { return id === 'server-only' ? '\0recipe-photo-server-only' : null },
+      load(id) { return id === '\0recipe-photo-server-only' ? 'export {}' : null },
+    }],
   })
-  return result.images[0]
-}
-
-async function generateWithRetry(prompt) {
   try {
-    return { image: await generateOnce(prompt), attempts: 1 }
-  } catch (e1) {
-    console.warn('  attempt 1 failed:', e1.message || e1)
-    await sleep(2000)
-    try {
-      return { image: await generateOnce(prompt), attempts: 2 }
-    } catch (e2) {
-      console.warn('  attempt 2 failed:', e2.message || e2)
-      return { image: null, attempts: 2, error: e2.message || String(e2) }
-    }
+    return { ai: await server.ssrLoadModule('/lib/ai.ts'), close: () => server.close() }
+  } catch (error) {
+    await server.close()
+    throw error
   }
 }
 
 async function main() {
-  const db = getAdmin().firestore()
-  const bucket = getAdmin().storage()
-  const { getDownloadURL } = require('firebase-admin/storage')
+  const { ai, close } = await loadAi()
+  try {
+    const db = getAdmin().firestore()
+    const bucket = getAdmin().storage()
+    const { getDownloadURL } = require('firebase-admin/storage')
 
-  const results = []
-  for (const recipe of RECIPES) {
-    process.stderr.write(`Generating: ${recipe.id} ...\n`)
-    const { image, attempts, error } = await generateWithRetry(recipe.prompt)
+    const results = []
+    for (const recipe of RECIPES) {
+      process.stderr.write(`Generating: ${recipe.id} ...\n`)
+      let image
+      try {
+        image = await ai.generateAIImage({
+          feature: 'recipe-photo-generation',
+          prompt: recipe.prompt,
+          size: '1024x1024',
+        })
+      } catch {
+        // Provider errors may contain request/response details. Report no raw payload.
+        const error = 'Image generation failed; recipe left unchanged'
+        console.warn(`  ${recipe.id}: ${error}`)
+        results.push({ id: recipe.id, status: 'FAILED', error })
+        continue
+      }
 
-    if (!image) {
-      results.push({ id: recipe.id, status: 'FAILED', attempts, error })
-      continue
+      const storagePath = `recipe-images/${recipe.id}.png`
+      const file = bucket.file(storagePath)
+      const buffer = Buffer.from(image.base64, 'base64')
+      const downloadToken = require('crypto').randomUUID()
+      await file.save(buffer, {
+        metadata: {
+          contentType: image.mediaType || 'image/png',
+          metadata: { firebaseStorageDownloadTokens: downloadToken },
+        },
+      })
+      const url = await getDownloadURL(file)
+
+      await db.collection('recipes').doc(recipe.id).update({ imageURL: url })
+
+      results.push({ id: recipe.id, status: 'WRITTEN', url, storagePath })
+      await sleep(500)
     }
 
-    const storagePath = `recipe-images/${recipe.id}.png`
-    const file = bucket.file(storagePath)
-    const buffer = Buffer.from(image.base64, 'base64')
-    const downloadToken = require('crypto').randomUUID()
-    await file.save(buffer, {
-      metadata: {
-        contentType: image.mediaType || 'image/png',
-        metadata: { firebaseStorageDownloadTokens: downloadToken },
-      },
+    console.log('\n=== RESULTS ===')
+    results.forEach((r) => {
+      console.log(r.id, '->', r.status, r.url || r.error || '')
     })
-    const url = await getDownloadURL(file)
 
-    await db.collection('recipes').doc(recipe.id).update({ imageURL: url })
+    const failed = results.filter((r) => r.status === 'FAILED')
+    console.log(`\nWritten: ${results.length - failed.length} / ${results.length}`)
+    console.log(`Failed: ${failed.length}`)
+    if (failed.length) console.log('Failed IDs:', failed.map((f) => f.id).join(', '))
 
-    results.push({ id: recipe.id, status: 'WRITTEN', attempts, url, storagePath })
-    await sleep(500)
+    require('fs').writeFileSync(
+      path.join(__dirname, 'generate-photos-results.json'),
+      JSON.stringify(results, null, 2),
+    )
+  } finally {
+    await close()
   }
-
-  console.log('\n=== RESULTS ===')
-  results.forEach((r) => {
-    console.log(r.id, '->', r.status, `(attempts: ${r.attempts})`, r.url || r.error || '')
-  })
-
-  const failed = results.filter((r) => r.status === 'FAILED')
-  console.log(`\nWritten: ${results.length - failed.length} / ${results.length}`)
-  console.log(`Failed: ${failed.length}`)
-  if (failed.length) console.log('Failed IDs:', failed.map((f) => f.id).join(', '))
-
-  require('fs').writeFileSync(
-    path.join(__dirname, 'generate-photos-results.json'),
-    JSON.stringify(results, null, 2),
-  )
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error('RUN FAILED:', e); process.exit(1) })

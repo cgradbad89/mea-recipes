@@ -1,10 +1,21 @@
 # AI Abuse and Cost-Control Boundary
 
 Status: implemented and regression-tested on 2026-08-29.
+Repository-wide image/provider boundary extended on 2026-10-05.
 
 ## Architecture
 
-All active application AI calls go through `lib/ai.ts`. When a route supplies its
+All repository-owned model invocation goes through the server-only `lib/ai.ts` boundary.
+Provider/model identity lives in `lib/aiConfig.ts`: language/structured output uses
+`openai/gpt-5.6-luna`, and offline recipe photos use `openai/gpt-image-2`. Both use
+Vercel AI Gateway exclusively, with no direct-provider fallback or caller-selected model.
+Only `lib/ai.ts` imports Gateway at runtime and invokes AI SDK model primitives;
+`lib/aiConfig.ts` retains a type-only Gateway import.
+
+### Production application
+
+The 11 paid-AI routes in the inventory below retain verified Firebase authentication.
+When a route supplies its
 server-verified Firebase uid, the helper acquires a Firestore Admin transaction-backed lease from
 `lib/aiAbuseControl.ts` before calling Vercel AI Gateway. A denied acquisition prevents model
 invocation. The lease is removed in `finally`; an invocation that crashes cannot lock the user out
@@ -16,8 +27,33 @@ state contain no raw uid, prompt, recipe, token, or provider response. One bound
 five class counters and active leases, so no TTL migration or composite index is required. This
 server-only Admin path does not require or authorize a rules/index deployment.
 
-Offline repository scripts may omit `userId`; they retain the centralized finite model options but
-do not consume user quota. This is intentional because they do not run as application endpoints.
+### Offline/manual repository tooling
+
+Offline scripts/helpers also must use `lib/ai.ts`. Trusted manual maintenance may
+intentionally omit `userId`; it then consumes no per-user Firestore quota/concurrency
+lease, while retaining centralized model selection, finite profile deadlines and bounded
+retries. These scripts are not application endpoints and are not part of the 11-route inventory.
+
+`scripts/generate-photos.js` loads `lib/ai.ts` through the existing Vite SSR pattern
+(repository-root `@` alias and offline `server-only` shim) and calls `generateAIImage`
+sequentially with feature `recipe-photo-generation`. The helper defaults to `admin-batch`
+(240-second deadline), prompt version `recipe-photo-v1`, one 1024×1024 image and at most
+one provider retry. Caller deadlines are bounded by the selected profile; an AbortController
+signal cancels the SDK/Gateway request at that deadline, and its timer is cleared in `finally`.
+Gateway tags use `aiGatewayProviderOptions`. The helper returns only `{base64, mediaType}`.
+The `[ai-image-usage]` event records provider, image model, bounded feature/prompt version,
+size and image count, never prompt text, image bytes, uid, credentials or full responses.
+Image provenance is separate from the unchanged language `AI_CACHE_ID`; images have no cache contract.
+
+The photo script reports `{id, status:'WRITTEN', url, storagePath}` or
+`{id, status:'FAILED', error}` without inferring provider-attempt counts. It remains
+unrun and blocked by unprovisioned Firebase Storage; provisioning requires explicit owner action.
+
+`tests/aiBoundaryCoverage.test.ts` deterministically scans runtime source for independent
+SDK/Gateway imports, model primitives, direct-provider SDKs/endpoints/credentials and
+invocation model literals outside central configuration. It also checks direct dependencies,
+`.env.example` and the photo script. `tests/aiAbuseCoverage.test.ts` separately preserves
+the production route authentication/uid/limiter inventory.
 
 ## Exact profiles
 

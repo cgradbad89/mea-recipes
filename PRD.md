@@ -34,7 +34,7 @@ credential **linked to the same account** (Batch 7; same uid/data, no separate a
 | Icons | lucide-react | 0.475.0 |
 | Charts | recharts | ^2.12.0 |
 | Utility | clsx | ^2.1.1 |
-| AI | Vercel AI Gateway (`openai/gpt-5.6-luna`) | Vercel AI SDK + `@ai-sdk/gateway` |
+| AI | Language: `openai/gpt-5.6-luna`; offline recipe photos: `openai/gpt-image-2`, both via centralized Vercel AI Gateway | Vercel AI SDK + `@ai-sdk/gateway` |
 | Client telemetry | Vercel Analytics + Speed Insights | `@vercel/analytics` 2.x + `@vercel/speed-insights` 2.x |
 
 ### Project Identifiers
@@ -1558,7 +1558,11 @@ retained as historical data and are not modified or deleted by this app.
   multiple apps** — do not enable it from a script or CLI without the user's explicit go-ahead.
   `scripts/generate-photos.js` (AI-generated fallback photos for the 18 recipes with no good
   real-photo match — see the imageURL sharp edge above) is written and ready but has never been
-  run because of this.
+  run because of this. It now calls the centralized `lib/ai.ts` `generateAIImage` helper
+  through the established offline Vite SSR loader, using the `lib/aiConfig.ts` image model.
+  Its sequential one-image-per-recipe upload/write contract remains unchanged; future results
+  report written URL/storage path or failure, without provider-attempt counts. The owner must
+  explicitly provision Storage before execution; Storage remains unprovisioned.
 
 - **Firestore rules are console-only — do not version them here.** A `firestore.rules` file was
   briefly committed with the auto-nutrition-on-publish work and then removed: the `malignant-metro`
@@ -1573,16 +1577,37 @@ retained as historical data and are not modified or deleted by this app.
   (`lib/userdata.ts`) — a raw `.includes(recipeID)` or `.map(id => …)` over the array will break on
   object elements. Writers must be read-modify-write: `arrayUnion`/`arrayRemove` compare by deep value
   and silently fail to dedupe/remove object elements. `cookedRecipeIDs[]` is unaffected (still `string[]`).
-- **AI is centrally configured and quota-controlled.** All active AI routes call the helpers in
-  `lib/ai.ts`; provider, model, prompt version, cache version, and provenance live in
-  `lib/aiConfig.ts`. Before each provider call, `lib/aiAbuseControl.ts` transactionally acquires a
+- **All repository-owned model invocation is centralized.** Routes, helpers and offline/manual
+  scripts call the server-only helpers in `lib/ai.ts`; only that file invokes AI SDK model
+  primitives and imports Gateway at runtime. Provider, models, prompt versions, cache version,
+  and provenance live in `lib/aiConfig.ts`. Language/structured output uses
+  `openai/gpt-5.6-luna`; offline recipe-photo generation uses `openai/gpt-image-2` via
+  `generateAIImage`, with separate `recipe-photo-v1` provenance and no image cache contract.
+  Both use Vercel AI Gateway exclusively; callers cannot select a provider or model.
+  Repository-wide `tests/aiBoundaryCoverage.test.ts` enforcement covers routes/helpers/scripts,
+  direct-provider dependencies/endpoints/credentials and the photo-script regression.
+  The separate existing 11-route `tests/aiAbuseCoverage.test.ts` inventory still protects
+  production auth/uid/limiter propagation. Before each authenticated provider call,
+  `lib/aiAbuseControl.ts` transactionally acquires a
   per-verified-uid Firestore lease in `_internalAiUsage`, with short-window, daily, global-daily,
   concurrency, deadline, retry, and output ceilings. A denied acquisition throws the stable
   `AIAbuseControlError`; nested nutrition/mapping fallbacks must rethrow it so the route returns
   sanitized HTTP 429 rather than hiding it as an optional-AI failure. Leases expire after the class
   deadline + 30 seconds, preventing crash-created permanent lockout. Production uses Vercel AI
   Gateway authentication (`AI_GATEWAY_API_KEY`, with Vercel OIDC supported by the provider).
-  There is no direct-provider fallback. See `docs/architecture/ai-abuse-control.md`.
+  There is no direct-provider fallback. Trusted offline maintenance may omit `userId`,
+  consuming no Firestore quota lease while retaining centralized finite profile defaults.
+  Image generation defaults to `admin-batch`, one 1024×1024 image, an aborting deadline
+  bounded by that profile, at most one retry, and safe metadata-only `[ai-image-usage]`
+  logging. It is not a production browser-app feature. See `docs/architecture/ai-abuse-control.md`.
+- **Local verification uses the deployment-compatible Node 24 runtime.** `.nvmrc`
+  pins 24.19.0, matching the existing `package.json`/lockfile `24.x` engine decision;
+  npm remains 11.19.0. Node 26's native `localStorage` shadows jsdom storage under
+  Vitest 4, so browser persistence tests assert the real jsdom storage contract.
+  Emulator-backed suites share `tests/helpers/firestoreEmulator.ts`: synthetic
+  demo projects, dynamic Firestore/Hub/logging/WebSocket ports, isolated temporary
+  config/log/locator directories, and awaited CLI plus detached-Java teardown.
+  Tests never regenerate committed audit evidence merely by importing a driver.
 - **The required test gate is repository-owned and clean-checkout safe.** The Cooking Mode arbiter
   regression test reconstructs its accepted/rejected state from immutable repository audit evidence;
   it never reads `/tmp/cooking-step-arbiter-v10a-2026-08-28-state.json` or any other machine-local
@@ -2416,7 +2441,7 @@ Credential **names only** — never commit values. Local `.env.local` is gitigno
 | Firebase Auth | User identity — **Google sign-in** + optional **email/password linked to the same account** (Batch 7) | Web config hardcoded in `lib/firebase.ts` (apiKey, authDomain, projectId, …). **Console prerequisite:** the **Email/Password** provider must be enabled under Authentication → Sign-in method, or the link/sign-in/reset calls throw `auth/operation-not-allowed`. |
 | Firebase Firestore (client) | Recipe catalog + per-user data | Same hardcoded web config |
 | Firebase Admin | Server-side ID-token verification in API routes | `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` |
-| Vercel AI Gateway | AI recipe generation, parsing, grocery cleanup, recommendations, assistant, cooking-step unresolved-semantic resolution, and nutrition fallback | `AI_GATEWAY_API_KEY` in non-Vercel runtimes; Vercel OIDC is also supported. Central config: `lib/aiConfig.ts`. |
+| Vercel AI Gateway | Language (`openai/gpt-5.6-luna`): recipe generation, parsing, grocery cleanup, recommendations, assistant, cooking-step unresolved-semantic resolution, nutrition fallback. Offline/manual recipe photos (`openai/gpt-image-2`) use the same centralized boundary and remain blocked on Storage. | `AI_GATEWAY_API_KEY` in non-Vercel runtimes; Vercel OIDC is also supported. Central config: `lib/aiConfig.ts`; all invocation: `lib/ai.ts`. |
 | Google Calendar API | Push meal-plan days as calendar events (Batch 6) | **No stored credential.** Client-obtained OAuth access token (`calendar.events` scope) via Firebase Google sign-in re-auth popup. Requires the Calendar API **enabled** + the scope on the **OAuth consent screen** in the `malignant-metro` GCP project. |
 | MyFitnessPal (nutrition sync) | Nightly-capable import of the food diary into `users/{uid}/nutrition/root/log` (`source: 'mfp'`). **No API** — `app/api/cron/sync-nutrition` scrapes the classic diary page HTML (`/food/diary/{MFP_USERNAME}?date=…`) with `cheerio`. | `MFP_SYNC_UID`, `MFP_SESSION_COOKIE`, `MFP_USER_AGENT`, `MFP_USERNAME`, `CRON_SECRET`; optional `MFP_DEBUG`. Session cookie expires periodically → refresh manually in Vercel. (`MFP_CSRF_TOKEN` is no longer used by code.) |
 | Vercel | Hosting / deployment | Project/team IDs not stored in repo |
@@ -2435,9 +2460,11 @@ no credentials, DNS/IP validation and address pinning for every redirect hop, re
 timeout, and 2 MB response bounds. Calendar requests are capped at seven operations;
 nutrition pagination only accepts bounded whole integers.
 
-AI model in use across all routes as of 2026-08-20: `openai/gpt-5.6-luna` through
-Vercel AI Gateway and the Vercel AI SDK. No retired Gemini or Anthropic provider SDK
-is installed, and active application code does not reference their credentials.
+Language model across production routes: `openai/gpt-5.6-luna` via Vercel AI Gateway.
+Offline/manual recipe photo generation: `openai/gpt-image-2` via the same centralized
+`lib/ai.ts` Gateway boundary, with model identity owned by `lib/aiConfig.ts`.
+There is no direct-provider fallback or direct OpenAI/Anthropic/Gemini SDK or credential.
+The photo script remains unrun until Firebase Storage is explicitly provisioned by the owner.
 
 ---
 

@@ -11,79 +11,33 @@
 // is spawned and torn down by this file — `npm test` needs no manual setup, and the
 // emulator has no rules file (per CLAUDE.md, this repo must never touch Firestore
 // rules), so it runs in its default allow-all mode, same as `dev:emulator`.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { spawn, type ChildProcess } from 'node:child_process'
-import { createServer } from 'node:net'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
+import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app'
+import { connectFirestoreEmulator, getFirestore, terminate, type Firestore } from 'firebase/firestore'
+import { startFirestoreEmulator } from './helpers/firestoreEmulator'
 
-let emulatorPort = 0
-let emulator: ChildProcess | undefined
-let emulatorConfigDirectory = ''
-
-async function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer()
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address()
-      if (!address || typeof address === 'string') {
-        server.close(() => reject(new Error('Could not allocate an emulator port')))
-        return
-      }
-      server.close(error => error ? reject(error) : resolve(address.port))
-    })
-  })
-}
-
-async function waitForEmulator(timeoutMs = 30_000): Promise<void> {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    if (emulator && emulator.exitCode !== null) {
-      throw new Error(`Firestore emulator exited before readiness (code ${emulator.exitCode})`)
-    }
-    try {
-      const res = await fetch(`http://127.0.0.1:${emulatorPort}`)
-      if (res.status) return
-    } catch {
-      // not up yet
-    }
-    await new Promise(r => setTimeout(r, 500))
-  }
-  throw new Error('Firestore emulator did not become ready in time')
-}
+const sdk = vi.hoisted(() => ({ db: undefined as Firestore | undefined }))
+vi.mock('@/lib/firebase', () => ({ get db() { return sdk.db } }))
+let emulator: Awaited<ReturnType<typeof startFirestoreEmulator>> | undefined
+let app: FirebaseApp | undefined
 
 beforeAll(async () => {
-  emulatorPort = await freePort()
-  const authPort = await freePort()
-  emulatorConfigDirectory = mkdtempSync(join(tmpdir(), 'mea-week-plan-emulator-'))
-  const configPath = join(emulatorConfigDirectory, 'firebase.json')
-  writeFileSync(configPath, JSON.stringify({
-    emulators: {
-      firestore: { host: '127.0.0.1', port: emulatorPort },
-      ui: { enabled: false },
-      singleProjectMode: false,
-    },
-  }))
-  process.env.NEXT_PUBLIC_USE_FIRESTORE_EMULATOR = 'true'
-  process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT = String(emulatorPort)
-  process.env.NEXT_PUBLIC_AUTH_EMULATOR_PORT = String(authPort)
-  emulator = spawn(
-    'firebase',
-    [
-      'emulators:start', '--only', 'firestore', '--project', 'malignant-metro',
-      '--config', configPath, '--log-verbosity', 'QUIET',
-    ],
-    { stdio: 'ignore' }
-  )
-  await waitForEmulator()
+  const projectID = 'demo-mea-week-plan-transactions'
+  emulator = await startFirestoreEmulator(projectID)
+  app = initializeApp({ projectId: projectID }, 'week-plan-transactions')
+  sdk.db = getFirestore(app)
+  connectFirestoreEmulator(sdk.db, '127.0.0.1', emulator.port)
+  expect(sdk.db.app.options.projectId).toBe(projectID)
 }, 45_000)
 
-afterAll(() => {
-  if (emulator) emulator.kill('SIGTERM')
-  if (emulatorConfigDirectory) rmSync(emulatorConfigDirectory, { recursive: true, force: true })
-})
+afterAll(async () => {
+  try {
+    if (sdk.db) await terminate(sdk.db)
+    if (app) await deleteApp(app)
+  } finally {
+    await emulator?.stop()
+  }
+}, 15_000)
 
 // Each test uses a fresh, random uid/weekID so tests never interfere with each other
 // even though they share one emulator instance.

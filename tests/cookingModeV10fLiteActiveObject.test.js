@@ -2,11 +2,17 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { evaluateActiveObjectRescue, ingredientKeyTokens } from '../scripts/analyze-cooking-mode-v10f-lite-active-object-core.mjs'
-import { DSC_IDS, PRONOUN_IDS, NEGATIVE_LEAKAGE_IDS } from '../scripts/analyze-cooking-mode-v10f-lite-active-object.mjs'
 
 const root = path.resolve(process.cwd())
+const artifactPath = path.join(root, 'docs/audits/cooking-mode-v10f-lite-active-object-go-no-go-2026-08-28.json')
+const artifactBeforeImport = fs.readFileSync(artifactPath)
+const { DSC_IDS, PRONOUN_IDS, NEGATIVE_LEAKAGE_IDS } = await import('../scripts/analyze-cooking-mode-v10f-lite-active-object.mjs')
 const readJson = (file) => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'))
 const date = '2026-08-28'
+
+it('imports challenge-set constants without rewriting committed audit evidence', () => {
+  expect(fs.readFileSync(artifactPath)).toEqual(artifactBeforeImport)
+})
 
 const v10a = readJson(`docs/audits/cooking-mode-arbiter-v10a-frozen-candidates-${date}.json`)
 const v10d = readJson(`docs/audits/cooking-mode-v10d-principal-target-analysis-${date}.json`)

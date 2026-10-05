@@ -241,4 +241,5 @@ function main() {
   console.log(`Wrote ${path.relative(ROOT, OUT_PATH)}`)
 }
 
-main()
+// Importing challenge-set constants must not regenerate committed audit evidence.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main()

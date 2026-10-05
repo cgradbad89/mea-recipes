@@ -6,12 +6,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { spawn, type ChildProcess } from 'node:child_process'
-import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
-import { mkdtempSync, openSync, closeSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { startFirestoreEmulator } from './helpers/firestoreEmulator'
 import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app'
 import {
   connectFirestoreEmulator, doc, getDocFromServer, getDocsFromServer, getFirestore,
@@ -103,52 +99,16 @@ import GroceryPage from '@/app/grocery/page'
 const projectID = 'demo-mea-grocery-correctness'
 const apps: FirebaseApp[] = []
 const databases: Firestore[] = []
-let emulator: ChildProcess | undefined
-let directory = ''
+let emulator: Awaited<ReturnType<typeof startFirestoreEmulator>> | undefined
 let writers: typeof import('@/lib/userdata')
 
-async function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer()
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address()
-      if (!address || typeof address === 'string') {
-        server.close(() => reject(new Error('Cannot allocate grocery emulator port')))
-        return
-      }
-      server.close(error => error ? reject(error) : resolve(address.port))
-    })
-  })
-}
-
 beforeAll(async () => {
-  const port = await freePort()
-  directory = mkdtempSync(join(tmpdir(), 'mea-grocery-correctness-'))
-  const config = join(directory, 'firebase.json')
-  const log = join(directory, 'emulator.log')
-  writeFileSync(config, JSON.stringify({ emulators: {
-    firestore: { host: '127.0.0.1', port }, ui: { enabled: false },
-  } }))
-  const logFD = openSync(log, 'w')
-  emulator = spawn('firebase', [
-    'emulators:start', '--only', 'firestore', '--project', projectID,
-    '--config', config, '--log-verbosity', 'QUIET',
-  ], { cwd: directory, stdio: ['ignore', logFD, logFD] })
-  closeSync(logFD)
-  let spawnError: Error | undefined
-  emulator.once('error', error => { spawnError = error })
-  let ready = false
-  const deadline = Date.now() + 30_000
-  while (Date.now() < deadline) {
-    if (spawnError || emulator.exitCode !== null) break
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}`, { signal: AbortSignal.timeout(1000) })
-      if (response.ok) { ready = true; break }
-    } catch { /* wait for the synthetic emulator */ }
-    await new Promise(resolve => setTimeout(resolve, 250))
-  }
-  if (!ready) throw new Error(`Grocery emulator isolation failed: ${spawnError?.message ?? ''}\n${readFileSync(log, 'utf8').slice(-6000)}`)
+  // Node's native storage must not shadow this suite's actual browser storage.
+  const browser = (globalThis as unknown as { jsdom: { window: Window } }).jsdom.window
+  expect(window.localStorage).toBe(browser.localStorage)
+  expect(window.sessionStorage).toBe(browser.sessionStorage)
+  emulator = await startFirestoreEmulator(projectID)
+  const { port } = emulator
   // Two independent SDK clients; no shared Firestore cache or local write queue.
   for (let index = 0; index < 2; index++) {
     const app = initializeApp({ projectId: projectID }, `grocery-${randomUUID()}`)
@@ -164,15 +124,12 @@ beforeAll(async () => {
 }, 45_000)
 
 afterAll(async () => {
-  await Promise.all(databases.map(db => terminate(db)))
-  await Promise.all(apps.map(app => deleteApp(app)))
-  if (emulator && emulator.exitCode === null) {
-    const stopped = new Promise(resolve => emulator!.once('exit', resolve))
-    emulator.kill('SIGINT')
-    await Promise.race([stopped, new Promise(resolve => setTimeout(resolve, 5000))])
-    if (emulator.exitCode === null) emulator.kill('SIGKILL')
+  try {
+    await Promise.all(databases.map(db => terminate(db)))
+    await Promise.all(apps.map(app => deleteApp(app)))
+  } finally {
+    await emulator?.stop()
   }
-  if (directory) rmSync(directory, { recursive: true, force: true })
 }, 15_000)
 afterEach(() => { cleanup(); sdk.afterRead = undefined })
 
@@ -190,8 +147,8 @@ function recipe(id: string, lines: string[]): Recipe {
   }
 }
 beforeEach(() => {
-  localStorage.clear()
-  sessionStorage.clear()
+  window.localStorage.clear()
+  window.sessionStorage.clear()
   sdk.user.uid = `synthetic-${randomUUID()}`
   sdk.recipes = [recipe('recipe-a', fixture)]
   sdk.metas = {}
@@ -203,6 +160,17 @@ beforeEach(() => {
   sdk.afterRead = undefined
   sdk.add.mockReset().mockImplementation(writers.addRecipeIngredientsToGrocery)
   sdk.rebuild.mockReset().mockImplementation(writers.rebuildGroceryFromPlan)
+})
+
+it('uses real jsdom storage with browser round-trip and clear semantics', () => {
+  window.localStorage.setItem('storage-regression', 'persisted')
+  expect(localStorage.getItem('storage-regression')).toBe('persisted')
+  window.localStorage.clear()
+  expect(localStorage.getItem('storage-regression')).toBeNull()
+  window.sessionStorage.setItem('storage-regression', 'session')
+  expect(sessionStorage.getItem('storage-regression')).toBe('session')
+  window.sessionStorage.clear()
+  expect(sessionStorage.length).toBe(0)
 })
 
 function item(id: string, extra: Partial<GroceryItem> = {}): GroceryItem {

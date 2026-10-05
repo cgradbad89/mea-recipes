@@ -5,12 +5,8 @@
 // server read proves preservation; no hand-written merge mock stands in for it.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { spawn, type ChildProcess } from 'node:child_process'
-import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
-import { mkdtempSync, openSync, closeSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { startFirestoreEmulator } from './helpers/firestoreEmulator'
 import { initializeApp, deleteApp, type FirebaseApp } from 'firebase/app'
 import { connectFirestoreEmulator, doc, getDocFromServer, getFirestore, terminate, type Firestore } from 'firebase/firestore'
 import type { RecipeMeta } from '@/lib/userdata'
@@ -85,48 +81,12 @@ import RecipeEditModal from '@/components/RecipeEditModal'
 
 const projectID = 'demo-mea-meta-callers'
 let app: FirebaseApp | undefined
-let emulator: ChildProcess | undefined
-let directory = ''
+let emulator: Awaited<ReturnType<typeof startFirestoreEmulator>> | undefined
 let metadata: typeof import('@/lib/userdata')
 
 beforeAll(async () => {
-  const port = await new Promise<number>((resolve, reject) => {
-    const server = createServer()
-    server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address()
-      if (!address || typeof address === 'string') {
-        server.close(() => reject(new Error('Cannot allocate caller emulator port')))
-        return
-      }
-      server.close(error => error ? reject(error) : resolve(address.port))
-    })
-  })
-  directory = mkdtempSync(join(tmpdir(), 'mea-meta-callers-'))
-  const config = join(directory, 'firebase.json')
-  const log = join(directory, 'emulator.log')
-  writeFileSync(config, JSON.stringify({ emulators: {
-    firestore: { host: '127.0.0.1', port }, ui: { enabled: false },
-  } }))
-  const logFD = openSync(log, 'w')
-  emulator = spawn('firebase', [
-    'emulators:start', '--only', 'firestore', '--project', projectID,
-    '--config', config, '--log-verbosity', 'QUIET',
-  ], { cwd: directory, stdio: ['ignore', logFD, logFD] })
-  closeSync(logFD)
-  let spawnError: Error | undefined
-  emulator.once('error', error => { spawnError = error })
-  let ready = false
-  const deadline = Date.now() + 30_000
-  while (Date.now() < deadline) {
-    if (spawnError || emulator.exitCode !== null) break
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}`, { signal: AbortSignal.timeout(1000) })
-      if (response.ok) { ready = true; break }
-    } catch { /* wait for the synthetic emulator */ }
-    await new Promise(resolve => setTimeout(resolve, 250))
-  }
-  if (!ready) throw new Error(`Caller persistence isolation failed: ${spawnError?.message ?? ''}\n${readFileSync(log, 'utf8').slice(-6000)}`)
+  emulator = await startFirestoreEmulator(projectID)
+  const { port } = emulator
   app = initializeApp({ projectId: projectID }, `callers-${randomUUID()}`)
   mocks.db = getFirestore(app)
   connectFirestoreEmulator(mocks.db, '127.0.0.1', port)
@@ -135,15 +95,12 @@ beforeAll(async () => {
 }, 45_000)
 
 afterAll(async () => {
-  if (mocks.db) await terminate(mocks.db)
-  if (app) await deleteApp(app)
-  if (emulator && emulator.exitCode === null) {
-    const stopped = new Promise(resolve => emulator!.once('exit', resolve))
-    emulator.kill('SIGINT')
-    await Promise.race([stopped, new Promise(resolve => setTimeout(resolve, 5000))])
-    if (emulator.exitCode === null) emulator.kill('SIGKILL')
+  try {
+    if (mocks.db) await terminate(mocks.db)
+    if (app) await deleteApp(app)
+  } finally {
+    await emulator?.stop()
   }
-  if (directory) rmSync(directory, { recursive: true, force: true })
 }, 15_000)
 afterEach(cleanup)
 

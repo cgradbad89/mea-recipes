@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   AI_CACHE_ID,
+  AI_IMAGE_MODEL,
+  AI_IMAGE_PROMPT_VERSION,
+  AI_IMAGE_PROVENANCE,
   AI_MODEL,
   AI_PROMPT_VERSION,
   AI_PROVENANCE,
@@ -11,6 +14,18 @@ import {
 } from '@/lib/aiConfig'
 
 describe('AI configuration', () => {
+  it('owns image provenance separately from the unchanged language cache identity', () => {
+    expect(AI_IMAGE_MODEL).toBe('openai/gpt-image-2')
+    expect(AI_IMAGE_PROMPT_VERSION).toBe('recipe-photo-v1')
+    expect(AI_IMAGE_PROVENANCE).toEqual({
+      provider: 'vercel-ai-gateway',
+      model: 'openai/gpt-image-2',
+      prompt_version: 'recipe-photo-v1',
+    })
+    expect(AI_CACHE_ID).toBe('v2:vercel-ai-gateway:openai/gpt-5.6-luna:v2')
+    expect(AI_CACHE_ID).not.toContain(AI_IMAGE_MODEL)
+    expect(AI_CACHE_ID).not.toContain(AI_IMAGE_PROMPT_VERSION)
+  })
   it('uses the requested Gateway model and a model-aware cache identity', () => {
     expect(AI_MODEL).toBe('openai/gpt-5.6-luna')
     expect(AI_CACHE_ID).toContain(AI_PROVIDER)
