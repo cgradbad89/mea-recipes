@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, type CSSProperties } from 'react'
+import { useState, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   doc, updateDoc, deleteDoc, setDoc, serverTimestamp
@@ -14,7 +14,7 @@ import {
   type GroceryCategory,
 } from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil, House } from 'lucide-react'
-import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setGroceryItemNeedThisTrip, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, type SavedGroceryItem } from '@/lib/userdata'
+import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setGroceryItemNeedThisTrip, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, applyGroceryCleanup, GroceryCleanupApplyError, type GroceryItem, type SavedGroceryItem } from '@/lib/userdata'
 import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 import { prepareGroceryItem } from '@/lib/groceryItemPreparation'
@@ -28,28 +28,7 @@ import {
 } from '@/lib/groceryUsuallyOnHand'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from '@/lib/firestoreBatch'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
-
-interface GroceryItem {
-  id: string
-  name: string
-  quantity?: string
-  unit?: string
-  isChecked?: boolean
-  manualSection?: GroceryCategory
-  isManual?: boolean
-  sourceRecipeIDs?: string[]
-  needThisTrip?: boolean
-}
-
-interface CleanupChange {
-  originalIndex: number
-  name: string
-  quantity: string
-  unit: string
-  category: GroceryCategory
-  action: 'keep' | 'merge' | 'normalize' | 'remove'
-  mergedWith: number[]
-}
+import { requestGroceryCleanup, type GroceryCleanupPlan } from '@/lib/groceryCleanup'
 
 const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
   'Produce': '🥦',
@@ -104,7 +83,11 @@ export default function GroceryPage() {
   // category tile's overflow-hidden can't clip it (small tiles cut it off before).
   const [pickerStyle, setPickerStyle] = useState<CSSProperties | null>(null)
   const [cleanupLoading, setCleanupLoading] = useState(false)
-  const [cleanupChanges, setCleanupChanges] = useState<CleanupChange[] | null>(null)
+  const [cleanupPlan, setCleanupPlan] = useState<{ uid: string; plan: GroceryCleanupPlan } | null>(null)
+  const cleanupChanges = cleanupPlan?.uid === user?.uid ? cleanupPlan?.plan.changes ?? null : null
+  const [cleanupMessage, setCleanupMessage] = useState('')
+  const cleanupOwner = useRef(user?.uid)
+  cleanupOwner.current = user?.uid
   const [rejectedChanges, setRejectedChanges] = useState<Set<number>>(new Set())
   const [applyingCleanup, setApplyingCleanup] = useState(false)
   const [showAddItem, setShowAddItem] = useState(false)
@@ -169,6 +152,10 @@ export default function GroceryPage() {
   }, [confirmClearAll])
 
   useEffect(() => {
+    setItems([])
+    setCleanupPlan(null)
+    setRejectedChanges(new Set())
+    setCleanupMessage('')
     if (!user) { setLoading(false); setSubscriptionError(''); return }
     setLoading(true)
     setSubscriptionError('')
@@ -381,85 +368,97 @@ export default function GroceryPage() {
     }
   }
 
+  const markCleanupComplete = () => {
+    const now = new Date()
+    setLastCleaned(now)
+    // Storage availability must not turn a successful save into a retryable failure.
+    try { localStorage.setItem('mea-grocery-last-cleaned', now.getTime().toString()) } catch { /* optional local history */ }
+  }
+
   const handleAICleanup = async () => {
-    if (!user || !items.length) return
-    setCleanupLoading(true)
+    if (!user || cleanupLoading) return
     setGroceryError('')
+    setCleanupMessage('')
+    if (!items.some(item => item.isChecked === false)) {
+      setCleanupMessage('No items need cleanup.')
+      return
+    }
+    const owner = user.uid
+    setCleanupLoading(true)
+    setRejectedChanges(new Set())
     try {
-      const token = await user.getIdToken()
-      const res = await fetch('/api/grocery-cleanup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ items: items.map((item, i) => ({ ...item, _index: i })) }),
+      const plan = await requestGroceryCleanup(items, async batch => {
+        if (cleanupOwner.current !== owner) throw new Error('Please sign in again to clean up your grocery list.')
+        let token: string
+        try { token = await user.getIdToken() } catch {
+          throw new Error('Please sign in again to clean up your grocery list.')
+        }
+        let res: Response
+        try {
+          res = await fetch('/api/grocery-cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ items: batch }),
+          })
+        } catch {
+          throw new Error('Cleanup is temporarily unavailable. Please try again later.')
+        }
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('Please sign in again to clean up your grocery list.')
+        }
+        if (res.status === 429) throw new Error('Cleanup has reached its usage limit. Please try again later.')
+        let data: unknown
+        try { data = await res.json() } catch {
+          throw new Error('Cleanup could not be completed safely. Please try again.')
+        }
+        if (!res.ok) {
+          if (res.status === 400 || res.status === 413) {
+            const oversized = data && typeof data === 'object' && 'code' in data && data.code === 'TOO_MANY_ITEMS'
+            throw new Error(oversized
+              ? 'Too many items for one cleanup request. Please refresh and try again.'
+              : 'Some grocery items could not be reviewed. Please check their names and quantities and try again.')
+          }
+          if (res.status === 502) throw new Error('Cleanup could not be completed safely. Please try again.')
+          throw new Error('Cleanup is temporarily unavailable. Please try again later.')
+        }
+        return data
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setCleanupChanges(Array.isArray(data) ? data : [])
-    } catch (e: any) {
-      console.error('Cleanup error:', e)
-      setGroceryError(e?.message || 'Couldn’t review the grocery list — try again.')
+      if (cleanupOwner.current !== owner) return
+      if (plan.changes.length) setCleanupPlan({ uid: owner, plan })
+      else {
+        setCleanupMessage('No items need cleanup.')
+        markCleanupComplete()
+      }
+    } catch (error) {
+      if (cleanupOwner.current === owner) {
+        setGroceryError(error instanceof Error ? error.message : 'Cleanup could not be completed safely. Please try again.')
+      }
     } finally {
       setCleanupLoading(false)
     }
   }
 
   const applyCleanup = async () => {
-    if (!user || !cleanupChanges) return
+    if (!user || !cleanupPlan || cleanupPlan.uid !== user.uid || applyingCleanup) return
+    const owner = user.uid
     setApplyingCleanup(true)
     setGroceryError('')
+    setCleanupMessage('')
     try {
-      const acceptedChanges = cleanupChanges.filter((_, i) => !rejectedChanges.has(i))
-      const operations: FirestoreBatchOperation[] = []
-      const toDelete = new Set<number>()
-      const mergeSurvivors = new Set(
-        acceptedChanges
-          .filter(change => change.action === 'merge' && change.mergedWith?.length)
-          .map(change => change.originalIndex),
-      )
-
-      acceptedChanges.forEach(change => {
-        if (change.action === 'remove') {
-          toDelete.add(change.originalIndex)
-          return
-        }
-        if (change.action === 'merge' && change.mergedWith?.length) {
-          change.mergedWith.forEach(i => {
-            // Last-line defense against malformed/reciprocal model output: a
-            // merge survivor can never delete itself or another survivor.
-            if (i !== change.originalIndex && !mergeSurvivors.has(i)) toDelete.add(i)
-          })
-        }
-        const item = items[change.originalIndex]
-        if (!item || item.id.includes('/')) return
-        const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
-        operations.push(batch => {
-          batch.update(ref, {
-            name: change.name,
-            quantity: change.quantity || '',
-            unit: change.unit || '',
-            manualSection: change.category,
-          })
-        })
-      })
-
-      // Delete removed/merged items
-      toDelete.forEach(i => {
-        const item = items[i]
-        if (item && !item.id.includes('/')) {
-          const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
-          operations.push(batch => batch.delete(ref))
-        }
-      })
-
-      await commitFirestoreBatches(db, operations)
-      localStorage.setItem('mea-grocery-last-cleaned', Date.now().toString())
-      setLastCleaned(new Date())
-      setCleanupChanges(null)
-      setRejectedChanges(new Set())
-    } catch (e) {
-      console.error('Apply cleanup error:', e)
-      setGroceryError('Couldn’t apply the cleanup changes — try again.')
+      await applyGroceryCleanup(owner, cleanupPlan.plan, rejectedChanges)
+      if (cleanupOwner.current !== owner) return
+      markCleanupComplete()
+      setCleanupMessage('Cleanup changes saved.')
+    } catch (error) {
+      if (cleanupOwner.current === owner) {
+        setGroceryError(error instanceof GroceryCleanupApplyError
+          ? error.message
+          : 'Cleanup changes could not be fully saved. Please review the list and run cleanup again.')
+      }
     } finally {
+      // A failed or partially saved plan must never be replayed against newer data.
+      setCleanupPlan(null)
+      setRejectedChanges(new Set())
       setApplyingCleanup(false)
     }
   }
@@ -678,9 +677,9 @@ export default function GroceryPage() {
         </div>
       </div>
 
-      {groceryError && (
-        <p role="alert" className="text-red-400 text-xs font-body mb-4 rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2">
-          {groceryError}
+      {(groceryError || cleanupMessage) && (
+        <p role={groceryError ? 'alert' : 'status'} className={`text-xs font-body mb-4 rounded-xl border px-3 py-2 ${groceryError ? 'text-red-400 border-red-400/20 bg-red-400/5' : 'text-cream border-border bg-surface'}`}>
+          {groceryError || cleanupMessage}
         </p>
       )}
 
@@ -897,14 +896,13 @@ export default function GroceryPage() {
                 {cleanupChanges.length - rejectedChanges.size} of {cleanupChanges.length} changes will apply
               </p>
             </div>
-            <button onClick={() => { setCleanupChanges(null); setRejectedChanges(new Set()) }} className="text-faint hover:text-cream">
+            <button onClick={() => { setCleanupPlan(null); setRejectedChanges(new Set()) }} className="text-faint hover:text-cream">
               <X size={16} />
             </button>
           </div>
           <div className="max-h-72 overflow-y-auto divide-y divide-border">
             {cleanupChanges.map((change, i) => {
-              const original = items[change.originalIndex]
-              const isChanged = change.action !== 'keep'
+              const original = cleanupPlan?.plan.items[change.originalIndex]
               const isRejected = rejectedChanges.has(i)
               return (
                 <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${isRejected ? 'opacity-40 line-through' : change.action === 'remove' ? 'opacity-50' : ''}`}>
@@ -917,7 +915,7 @@ export default function GroceryPage() {
                     {change.action}
                   </span>
                   <div className="flex-1 min-w-0">
-                    {isChanged && original && (
+                    {original && (
                       <p className="text-faint text-xs font-body line-through truncate">{original.name}</p>
                     )}
                     {change.action !== 'remove' && (
@@ -948,7 +946,7 @@ export default function GroceryPage() {
             })}
           </div>
           <div className="px-4 py-3 border-t border-border flex gap-2">
-            <button onClick={() => { setCleanupChanges(null); setRejectedChanges(new Set()) }} className="btn-ghost text-xs flex-1">Discard</button>
+            <button onClick={() => { setCleanupPlan(null); setRejectedChanges(new Set()) }} className="btn-ghost text-xs flex-1">Discard</button>
             <button
               onClick={applyCleanup}
               disabled={applyingCleanup || rejectedChanges.size === cleanupChanges.length}

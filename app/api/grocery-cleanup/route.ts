@@ -9,8 +9,9 @@ import { ALL_UNIT_WORDS, isKnownUnit } from '@/lib/ingredientParser'
 import { generateAIArray, generateAIObject } from '@/lib/ai'
 import { ApiRequestError, readBoundedJson, safeErrorLogDetails } from '@/lib/apiRequest'
 import {
-  sanitizeGroceryCleanupChanges,
-  type GroceryCleanupChange,
+  MAX_GROCERY_CLEANUP_ITEMS,
+  MAX_GROCERY_CLEANUP_QUANTITY_LENGTH,
+  validateGroceryCleanupResponse,
   type GroceryCleanupItem,
 } from '@/lib/groceryCleanup'
 import { z } from 'zod'
@@ -23,7 +24,7 @@ const CATEGORIES = GROCERY_CATEGORIES as readonly string[]
 const GROCERY_CHANGE_SCHEMA = z.object({
   originalIndex: z.number().int(),
   name: z.string().max(500),
-  quantity: z.string().max(100),
+  quantity: z.string().max(MAX_GROCERY_CLEANUP_QUANTITY_LENGTH),
   unit: z.string().max(100),
   category: z.string().max(100),
   action: z.enum(['merge', 'normalize', 'remove']),
@@ -37,13 +38,15 @@ const PARSED_LINE_SCHEMA = z.object({
 })
 
 const GROCERY_MAX_BODY_BYTES = 256_000
-const MAX_GROCERY_ITEMS = 100
+const MAX_GROCERY_ITEMS = MAX_GROCERY_CLEANUP_ITEMS
 const MAX_GROCERY_ITEM_TEXT = 500
 const GROCERY_ITEM_SCHEMA = z.object({
   name: z.string().max(MAX_GROCERY_ITEM_TEXT),
-  quantity: z.string().max(100).optional(),
+  quantity: z.string().max(MAX_GROCERY_CLEANUP_QUANTITY_LENGTH).optional(),
   unit: z.string().max(100).optional(),
   manualSection: z.string().max(100).optional(),
+  isManual: z.boolean().optional(),
+  isChecked: z.literal(false).optional(),
 }).passthrough()
 const REQUEST_SCHEMA = z.union([
   z.object({ mode: z.literal('parse-line'), line: z.string().max(1_000) }).passthrough(),
@@ -60,11 +63,18 @@ export async function POST(req: NextRequest) {
     const uid = await verifyAuthToken(req)
     if (!uid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const requestResult = REQUEST_SCHEMA.safeParse(
-      await readBoundedJson(req, GROCERY_MAX_BODY_BYTES),
-    )
+    const rawBody = await readBoundedJson(req, GROCERY_MAX_BODY_BYTES)
+    if (rawBody && typeof rawBody === 'object' &&
+        !('mode' in rawBody && rawBody.mode === 'parse-line') && 'items' in rawBody &&
+        Array.isArray(rawBody.items) && rawBody.items.length > MAX_GROCERY_ITEMS) {
+      return NextResponse.json({
+        error: 'Too many items for one cleanup request. The maximum is 100.',
+        code: 'TOO_MANY_ITEMS',
+      }, { status: 400 })
+    }
+    const requestResult = REQUEST_SCHEMA.safeParse(rawBody)
     if (!requestResult.success) {
-      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid cleanup request. Check the item names and quantities and try again.' }, { status: 400 })
     }
     const body = requestResult.data as {
       mode?: 'parse-line'
@@ -128,14 +138,15 @@ Rules:
 - If no items need modification, return an empty array []
 - Return ONLY the JSON array`
 
-    let parsedChanges: any[] = []
+    let parsedChanges: unknown
     try {
-      parsedChanges = (await generateAIArray({
+      parsedChanges = await generateAIArray({
         feature: 'grocery-cleanup',
         userId: uid,
+        maxRetries: 0,
         prompt,
         element: GROCERY_CHANGE_SCHEMA,
-      })).slice(0, MAX_GROCERY_ITEMS)
+      })
     } catch (err) {
       const limited = aiAbuseControlResponse(err)
       if (limited) return limited
@@ -143,16 +154,19 @@ Rules:
         error: safeErrorLogDetails(err),
         ...requestMetadata,
       })
-      return NextResponse.json({ error: 'AI request failed or could not parse response' }, { status: 500 })
+      // Classify SDK validation failures without importing runtime AI SDKs
+      // outside the application's centralized lib/ai.ts boundary.
+      if (err instanceof Error && ['AI_NoObjectGeneratedError', 'AI_NoOutputGeneratedError'].includes(err.name)) {
+        return NextResponse.json({ error: 'Cleanup could not be completed safely. Please try again.' }, { status: 502 })
+      }
+      return NextResponse.json({ error: 'Cleanup is temporarily unavailable. Please try again later.' }, { status: 503 })
     }
 
-    if (!Array.isArray(parsedChanges)) {
-      parsedChanges = []
+    try {
+      return NextResponse.json(validateGroceryCleanupResponse(items, parsedChanges))
+    } catch {
+      return NextResponse.json({ error: 'Cleanup could not be completed safely. Please try again.' }, { status: 502 })
     }
-
-    return NextResponse.json(
-      sanitizeGroceryCleanupChanges(items, parsedChanges as GroceryCleanupChange[]),
-    )
   } catch (err) {
     const limited = aiAbuseControlResponse(err)
     if (limited) return limited

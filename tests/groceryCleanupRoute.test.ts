@@ -15,6 +15,8 @@ vi.mock('@/lib/ai', () => ({
 
 import { POST } from '@/app/api/grocery-cleanup/route'
 import { GROCERY_CATEGORIES } from '@/lib/groceryCategories'
+import { requestGroceryCleanup } from '@/lib/groceryCleanup'
+import type { GroceryItem } from '@/lib/userdata'
 
 function request(body: unknown) {
   return new NextRequest('http://localhost/api/grocery-cleanup', {
@@ -33,6 +35,58 @@ describe('POST /api/grocery-cleanup', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('rejects direct oversized requests with actionable feedback before AI processing', async () => {
+    const items = Array.from({ length: 103 }, (_, index) => ({
+      name: `Ingredient ${index}`, quantity: '1', unit: '', isChecked: index >= 70,
+    }))
+    const response = await POST(request({ items }))
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Too many items for one cleanup request. The maximum is 100.', code: 'TOO_MANY_ITEMS',
+    })
+    expect(mocks.generateAIArray).not.toHaveBeenCalled()
+  })
+
+  it('reviews the reported 103-item fixture through the client/API boundary with only 70 eligible items', async () => {
+    const items: GroceryItem[] = Array.from({ length: 103 }, (_, index) => ({
+      id: `item-${index}`, name: `Tomato ${String.fromCharCode(65 + index)}`, quantity: '1', unit: '',
+      isChecked: index >= 70, isManual: true, sourceRecipeIDs: [],
+    }))
+    const original = structuredClone(items)
+    mocks.generateAIArray.mockResolvedValueOnce([])
+    const sizes: number[] = []
+    const plan = await requestGroceryCleanup(items, async batch => {
+      sizes.push(batch.length)
+      const response = await POST(request({ items: batch }))
+      expect(response.status).toBe(200)
+      return response.json()
+    })
+    expect(sizes).toEqual([70])
+    expect(plan.items.map(item => item.id)).toEqual(items.slice(0, 70).map(item => item.id))
+    expect(mocks.generateAIArray).toHaveBeenCalledOnce()
+    expect(items).toEqual(original)
+    const prompt = mocks.generateAIArray.mock.calls[0][0].prompt as string
+    expect(prompt).not.toContain('70:')
+  })
+
+  it('rejects malformed model output without returning a partial cleanup plan', async () => {
+    mocks.generateAIArray.mockResolvedValueOnce([{
+      originalIndex: 0, name: 'milk', quantity: '1', unit: 'cup', category: 'Dairy & Eggs',
+      action: 'merge', mergedWith: [103],
+    }])
+    const response = await POST(request({ items: [{ name: 'milk' }] }))
+    expect(response.status).toBe(502)
+    await expect(response.json()).resolves.toEqual({ error: 'Cleanup could not be completed safely. Please try again.' })
+  })
+
+  it('sanitizes provider outages into temporary-unavailability feedback', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.generateAIArray.mockRejectedValueOnce(new Error('private provider details'))
+    const response = await POST(request({ items: [{ name: 'milk' }] }))
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({ error: 'Cleanup is temporarily unavailable. Please try again later.' })
   })
 
   it('preserves authentication behavior', async () => {
@@ -73,6 +127,7 @@ describe('POST /api/grocery-cleanup', () => {
     expect(mocks.generateAIArray).toHaveBeenCalledWith(expect.objectContaining({
       feature: 'grocery-cleanup',
       userId: 'user-123',
+      maxRetries: 0,
     }))
     const prompt = mocks.generateAIArray.mock.calls[0][0].prompt as string
     expect(prompt).toContain(GROCERY_CATEGORIES.join(', '))

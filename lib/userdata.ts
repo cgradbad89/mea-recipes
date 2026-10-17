@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDocs,
+  getDocsFromServer,
   getDoc,
   setDoc,
   deleteDoc,
@@ -29,6 +30,11 @@ import {
   type FirestoreBatchOperation,
 } from './firestoreBatch'
 import { normalizeRecipeCategory } from './recipeCategories'
+import {
+  buildGroceryCleanupGroups,
+  type GroceryCleanupGroup,
+  type GroceryCleanupPlan,
+} from './groceryCleanup'
 export { weekIDFromDate } from './weekDates'
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
@@ -606,20 +612,180 @@ export function subscribeGroceryItems(
   onError?: (error: Error) => void,
 ): Unsubscribe {
   return onSnapshot(groceryPath(uid), snap => {
-    const items = snap.docs.map(d => {
-      const data = d.data() as Omit<GroceryItem, 'manualSection'> & { manualSection?: unknown }
-      if (data.manualSection == null) return data as GroceryItem
-      return {
-        ...data,
-        manualSection: normalizePersistedGroceryCategory(data.manualSection, data.name),
-      }
-    })
+    const items = snap.docs.map(d => readGroceryItem(d.id, d.data()))
     items.sort((a, b) => {
       if (a.isChecked !== b.isChecked) return a.isChecked ? 1 : -1
       return a.name.localeCompare(b.name)
     })
     cb(items)
   }, onError)
+}
+
+// Subscription and cleanup conflict checks must see the same compatibility
+// projection. The document ID always wins over a stale legacy stored `id`.
+function readGroceryItem(id: string, raw: DocumentData): GroceryItem {
+  const data = raw as Omit<GroceryItem, 'manualSection'> & { manualSection?: unknown }
+  return {
+    ...data,
+    id,
+    ...(data.manualSection == null ? {} : {
+      manualSection: normalizePersistedGroceryCategory(data.manualSection, data.name),
+    }),
+  } as GroceryItem
+}
+
+type GroceryCleanupApplyErrorCode =
+  | 'grocery-cleanup-conflict'
+  | 'grocery-cleanup-invalid-plan'
+  | 'grocery-cleanup-save-failed'
+
+/** A sanitized failure with an explicit count of confirmed committed chunks. */
+export class GroceryCleanupApplyError extends Error {
+  constructor(
+    readonly code: GroceryCleanupApplyErrorCode,
+    readonly committedBatches = 0,
+    readonly committedWrites = 0,
+  ) {
+    const reason = code === 'grocery-cleanup-conflict'
+      ? 'The grocery list changed while cleanup was being reviewed.'
+      : code === 'grocery-cleanup-invalid-plan'
+        ? 'Cleanup could not be completed safely.'
+        : 'Cleanup changes could not be fully saved.'
+    super(committedBatches > 0
+      ? `${reason} Some changes were saved before cleanup stopped. Review the current list and run cleanup again.`
+      : code === 'grocery-cleanup-save-failed'
+        ? `${reason} No completed save was confirmed. Review the current list and run cleanup again.`
+        : `${reason} No cleanup changes were saved. Run cleanup again on the current list.`)
+    this.name = 'GroceryCleanupApplyError'
+  }
+}
+
+function sameGrocerySnapshotValue(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true
+  if (left == null || right == null || typeof left !== 'object' || typeof right !== 'object') return false
+  if (left instanceof Date || right instanceof Date) {
+    return left instanceof Date && right instanceof Date && left.getTime() === right.getTime()
+  }
+  // Timestamp, GeoPoint, Bytes and DocumentReference retain their SDK equality
+  // semantics; timestamps must not be reduced to lossy millisecond strings.
+  if ('isEqual' in left && typeof left.isEqual === 'function') {
+    return left.isEqual(right) === true
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length &&
+      left.every((value, index) => sameGrocerySnapshotValue(value, right[index]))
+  }
+  const leftRecord = left as Record<string, unknown>
+  const rightRecord = right as Record<string, unknown>
+  const keys = Object.keys(leftRecord)
+  return keys.length === Object.keys(rightRecord).length && keys.every(key =>
+    Object.prototype.hasOwnProperty.call(rightRecord, key) &&
+      sameGrocerySnapshotValue(leftRecord[key], rightRecord[key]),
+  )
+}
+
+/**
+ * Apply an approved snapshot plan under users/{uid}/pantry/root/groceryItems.
+ * Every unchecked document is preflighted against the server before any write;
+ * each affected document is checked again inside its committing transaction.
+ * Merge groups are indivisible, including across the 450-write chunk boundary.
+ * A later chunk failure throws GroceryCleanupApplyError with committed counts;
+ * the caller must request a fresh plan, never replay the stale one automatically.
+ */
+export async function applyGroceryCleanup(
+  uid: string,
+  plan: GroceryCleanupPlan,
+  rejectedIndices?: ReadonlySet<number>,
+): Promise<void> {
+  let committedBatches = 0
+  let committedWrites = 0
+  try {
+    const originalByID = new Map(plan.items.map(item => [item.id, item]))
+    if (originalByID.size !== plan.items.length || plan.items.some(item =>
+      typeof item.id !== 'string' || !item.id || item.id.includes('/') || item.isChecked !== false,
+    )) throw new GroceryCleanupApplyError('grocery-cleanup-invalid-plan')
+
+    let groups: GroceryCleanupGroup[]
+    try {
+      groups = buildGroceryCleanupGroups(plan, rejectedIndices)
+    } catch {
+      throw new GroceryCleanupApplyError('grocery-cleanup-invalid-plan')
+    }
+    if (groups.length === 0) return
+    const chunks: GroceryCleanupGroup[][] = []
+    let chunk: GroceryCleanupGroup[] = []
+    let writes = 0
+    const affectedIDs = new Set<string>()
+    for (const group of groups) {
+      if (group.items.length < 1 || group.items.length > FIRESTORE_SAFE_BATCH_SIZE ||
+          group.items.some(item => affectedIDs.has(item.id) || !originalByID.has(item.id))) {
+        throw new GroceryCleanupApplyError('grocery-cleanup-invalid-plan')
+      }
+      for (const item of group.items) affectedIDs.add(item.id)
+      if (writes + group.items.length > FIRESTORE_SAFE_BATCH_SIZE) {
+        chunks.push(chunk)
+        chunk = []
+        writes = 0
+      }
+      chunk.push(group)
+      writes += group.items.length
+    }
+    if (chunk.length) chunks.push(chunk)
+
+    const current = await getDocsFromServer(groceryPath(uid))
+    const eligible = current.docs
+      .map(snapshot => readGroceryItem(snapshot.id, snapshot.data()))
+      .filter(item => item.isChecked === false)
+    if (eligible.length !== plan.items.length || eligible.some(item =>
+      !sameGrocerySnapshotValue(item, originalByID.get(item.id)),
+    )) throw new GroceryCleanupApplyError('grocery-cleanup-conflict')
+
+    for (const groupsInChunk of chunks) {
+      await runTransaction(db, async tx => {
+        // Firestore transactions require every read to precede every write.
+        const items = groupsInChunk.flatMap(group => group.items)
+        const refs = new Map(items.map(item => [item.id, doc(groceryPath(uid), item.id)]))
+        const snapshots = await Promise.all(items.map(item => tx.get(refs.get(item.id)!)))
+        for (let index = 0; index < items.length; index++) {
+          const snapshot = snapshots[index]
+          const original = originalByID.get(items[index].id)
+          if (!snapshot.exists() || !sameGrocerySnapshotValue(
+            readGroceryItem(snapshot.id, snapshot.data()), original,
+          )) throw new GroceryCleanupApplyError('grocery-cleanup-conflict')
+        }
+
+        for (const { items: members, change } of groupsInChunk) {
+          const survivor = members[0]
+          const survivorRef = refs.get(survivor.id)!
+          if (change.action === 'remove') {
+            tx.delete(survivorRef)
+            continue
+          }
+          const patch: DocumentData = {
+            name: change.name,
+            quantity: change.quantity,
+            unit: change.unit,
+            manualSection: change.category,
+            updatedAt: serverTimestamp(),
+          }
+          if (change.action === 'merge') {
+            patch.sourceRecipeIDs = [...new Set(members.flatMap(item => item.sourceRecipeIDs || []))]
+            if (members.some(item => item.needThisTrip === true)) patch.needThisTrip = true
+          }
+          tx.update(survivorRef, patch)
+          for (const peer of members.slice(1)) tx.delete(refs.get(peer.id)!)
+        }
+      })
+      committedBatches++
+      committedWrites += groupsInChunk.reduce((count, group) => count + group.items.length, 0)
+    }
+  } catch (error) {
+    throw new GroceryCleanupApplyError(
+      error instanceof GroceryCleanupApplyError ? error.code : 'grocery-cleanup-save-failed',
+      committedBatches,
+      committedWrites,
+    )
+  }
 }
 
 export async function addGroceryItem(uid: string, item: Omit<GroceryItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {

@@ -80,7 +80,7 @@ wrapped in a per-route `layout.tsx`.
 |---|---|---|---|
 | `/api/ai-ingest` | POST | Bearer token (required) | Parse a recipe from exactly one of URL/HTML/text, **or** generate a full recipe from a dish name (`generate` mode). HTML/browser-capture imports carry separate `sourceURL` attribution without re-fetching. Before script removal, one unambiguous Recipe JSON-LD entity supplies complete, ordered ingredient/method arrays that override AI output; image and complete publisher nutrition retain their existing precedence. Complete recipe-relevant model evidence is capped at 64,000 characters with explicit rejection, never prefix slicing. The route validates known fields, caps the raw JSON body at 2,000,000 bytes, applies per-mode text/metadata bounds, and returns sanitized failures. URL imports still use the shared SSRF-safe fetch boundary (public HTTP(S), per-hop DNS/IP validation, 3 redirects, 8s deadline, 2 MB fetched-content cap). Calls the centrally configured Vercel AI Gateway model only for recipe parsing. |
 | `/api/fetch-recipe` | GET | Bearer token (required) | Server-side fetch of a page's raw HTML + `<title>` (CORS workaround for URL import), restricted to authenticated users and the shared SSRF-safe public-URL boundary. |
-| `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; cleanup has ≤100 bounded items and `parse-line` is ≤1,000 characters; failures are sanitized. |
+| `/api/grocery-cleanup` | POST | Bearer token (required) | AI dedup/normalize/categorize a grocery list, plus the existing manual-add `parse-line` fallback. The raw body is capped at 256 KB; each cleanup request has ≤100 bounded items and `parse-line` is ≤1,000 characters. The client reviews only unchecked items in sequential requests, then reconciles duplicates globally before preview/apply; oversized requests and unsafe responses receive actionable sanitized errors. |
 | `/api/calendar/push` | POST | Bearer token (required) | **Google Calendar push executor (Batch 6).** Body carries a **client-obtained** Google OAuth access token (`calendar.events` scope), `weekID`, and explicit per-day `create`/`update`/`delete` operations. It is restricted to the user's **primary** calendar and one validated operation per in-week day (maximum seven), has no list/search capability, and never stores the token. New creates receive an opaque SHA-256 application ID derived server-side from verified uid + week + day; a 409 reconciles by PATCHing that exact ID. |
 | `/api/cooking-step-map` | POST | Bearer token (required) | Publish-time hybrid cooking-step mapping for exact final `{content}`. Auth and bounded parsing precede work; parsed source is capped at 64,000 content characters, 200 ingredients, 150 instructions, and 4,000 characters/line. Fully deterministic recipes make no AI call; eligible unresolved semantics make at most one centralized Gateway call. AI failure returns HTTP 200 with the valid deterministic map and sanitized status. |
 | `/api/new-recipe-suggestions` | POST | Bearer token (required) | AI suggests 6 new recipes from the validated `{topCuisines,topCategories,recentTitles}` taste profile. Raw JSON is capped at 256,000 bytes; each collection is capped at 500 strings and each string at 2,000 characters; internal failures are sanitized. |
@@ -651,17 +651,46 @@ retained as historical data and are not modified or deleted by this app.
    either retired value (`Staples`, `Canned / Jarred / Sauces`) or an invalid stored string from
    the item name. Grocery-item and saved-default readers use that boundary without a Firestore
    write or background migration. The deprecated iOS client is not a compatibility constraint.
-10. **AI grocery cleanup** — `POST /api/grocery-cleanup` sends the list through AI Gateway, which
-    returns per-item actions (`keep` / `merge` / `normalize` / `remove`) with `mergedWith`
-    indices and a category. The route imports `GROCERY_CATEGORIES` (no hand-duplicated list)
-    and validates each returned `category`; an off-list value falls back to the local
-    `categorizeIngredient` match. Retired category strings are therefore rejected as new AI
-    output, while legacy input context is normalized before entering the prompt. Model merge
-    suggestions are deletion-safe only when purchase
-    identity matches: normalized token sets must be equal except for a narrow count/container-unit
-    allowance, while freshness/state, form, meat cut, and fat-percentage terms must match exactly.
-    Apply operations are committed in sequential chunks of at most 450 writes. Last-run tracked in
-    `localStorage` `mea-grocery-last-cleaned`.
+10. **AI grocery cleanup** — The existing review/reject/apply interaction captures only items
+    with `isChecked === false`. Checked documents are excluded from AI input, duplicate matching,
+    and writes. Zero eligible items makes no request and displays “No items need cleanup.”
+    `requestGroceryCleanup` in `lib/groceryCleanup.ts` sends sequential `POST /api/grocery-cleanup`
+    requests of at most 100 items, with no automatic AI retries or unrestricted second AI pass.
+    Every response must validate before any preview or mutation plan is returned. Omitted items
+    mean keep; supported modification actions remain `merge` / `normalize` / `remove`.
+    Batch-local indices map to the captured eligible snapshot; Firestore document IDs, never
+    current display positions or stored legacy `id` values, identify mutations.
+
+    Global deterministic reconciliation considers original purchase identities across all batches,
+    reusing `areLikelySameGroceryItem`. Normalized tokens must match except for the established
+    narrow count/container-unit allowance; freshness/state, form, meat cut, percentages, and fat
+    ratios such as 80/20 remain distinct. Arbitrary parenthetical/comma qualifiers must agree;
+    only known preparation words can be ignored. Every member must be compatible with every peer.
+    Manual and recipe-derived items stay separate; conflicting categories or otherwise-unmergeable
+    metadata keep separate documents. The route imports `GROCERY_CATEGORIES`; off-list model
+    categories fall back to `categorizeIngredient`, and legacy input categories normalize at read
+    time without migration. Model-proposed quantities cannot erase or invent amounts: normalization
+    preserves stored measurements (or extracts embedded amounts with the existing high-confidence
+    ingredient parser), and merges use the shared `mergeQuantities` logic on originals, retaining
+    incompatible amounts side by side. Ambiguous embedded amounts retain their original names.
+    Merge survivors union `sourceRecipeIDs`, preserve `needThisTrip` when any peer needs it,
+    and retain unrelated metadata. Removal remains limited
+    to clearly non-grocery instruction/section lines. Rejected preview groups stay untouched.
+
+    `applyGroceryCleanup(uid, plan, rejectedIndices?)` in `lib/userdata.ts` validates the complete
+    unchecked snapshot against server state before saving, then rechecks affected documents in
+    Firestore transactions to reject concurrent edits, deletion, or checked-state changes.
+    Survivor updates and associated deletions form indivisible groups packed into at most 450
+    writes per transaction. Duplicate groups larger than that, or whose combined quantity would
+    exceed the existing 100-character request-field bound, remain split into safe subgroups.
+    Multiple commits are **not** globally atomic: a later failure reports partial saving with
+    committed counts and discards the stale preview, requiring a fresh review. A failed AI batch
+    or invalid response produces no writes. The existing inline feedback distinguishes no-op,
+    successful save, invalid requests/responses, expired authentication, usage limits, temporary
+    service failures, conflicts, and partial saves. Last-run is tracked in `localStorage`
+    `mea-grocery-last-cleaned` after successful apply or a successful review with no changes;
+    failed/partial saves do not advance it. `parse-line`, authentication, Gateway configuration,
+    ownership paths, and Firestore rules are unchanged.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) captures exact
     normalized identities of non-manual items whose temporary `needThisTrip` flag is true, then
     resolves every planned recipe and precomputes the complete parsed/merged replacement before any
@@ -750,10 +779,9 @@ retained as historical data and are not modified or deleted by this app.
     adds merge only into manual items and recipe adds only into recipe items (the pools stay
     separate to preserve the rebuild invariant in §5.11); both paths call the same
     `mergeQuantities`, so this upgrade applies identically to both. `SavedGroceryItem` has no
-    quantity/unit fields and does not participate in quantity merging. The whole-list "AI Clean Up
-    List" button (§5.10) computes its own free-text "combined quantity" via the AI prompt,
-    independent of `mergeQuantities`/`convertQuantity` — deterministic conversion is authoritative
-    only at the add-merge boundary described here; the AI cleanup path was not changed. Existing
+    quantity/unit fields and does not participate in quantity merging. "AI Clean Up List" (§5.10)
+    also uses this deterministic quantity logic when reconciling compatible original purchase
+    identities; model-proposed combined amounts are not authoritative. Existing
     Firestore grocery documents (including any historic `"1 cup + 8 tbsp"`-style compound
     quantities from before this change) are **not migrated or re-parsed** — this merge behavior
     only applies to future additions. As a final recipe-add defense, recognized shared subheaders,
@@ -1522,6 +1550,16 @@ retained as historical data and are not modified or deleted by this app.
 ---
 
 ## Section 6 — Known Sharp Edges
+
+- **Large grocery cleanup is bounded and snapshot-based (remediated 2026-10-17).** The former
+  page sent checked and unchecked items together, so 70 unchecked + 33 checked items exceeded the
+  API's 100-item limit before AI processing. Only unchecked items now enter sequential bounded
+  requests, with global deterministic duplicate reconciliation and document-ID-based application.
+  AI failures abort the entire proposal. Firestore changes beyond 450 writes require separate
+  transactions, each preserving complete merge groups; a later failure can leave earlier groups
+  committed and is explicitly reported. Concurrent edits invalidate affected proposals rather
+  than overwriting newer data. A fresh cleanup review is required after a save failure. No
+  production-data migration or recovery of previously lost quantities/associations is performed.
 
 - **Private metadata omission and explicit clears have distinct meanings (remediated
   2026-10-04).** Previously, ordinary detail/Plan note/rating patches deleted the entire
@@ -2387,7 +2425,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Existing recipe category data migration | High | Done | Applied the approved exact 2026-08-25 manifest in one transaction: 66 shared categories normalized; post-apply readback verified 236/236 shared documents canonical with the approved 12-category distribution. See `docs/audits/recipe-category-migration-apply-2026-08-25.md`. |
 | Legacy personal category override cleanup | Medium | Done | Removed only `overrides.category` from 24 exact redundant/legacy rows; post-apply readback found zero legacy/redundant category overrides and preserved the sole intentional Spicy Quinoa (`182`) → `Salads & Bowls` override. |
 | Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Done (V1 capture, 2026-10-04) | Authenticated-browser allowlisted recipe evidence → bounded nonce/opener/origin-validated postMessage → existing Queue → HTML + sourceURL attribution without re-fetch. Trusted complete structured rows override AI; oversized/insufficient capture fails without truncation or URL fallback. Recopy installed bookmarklets. Synthetic 13/7 capture/route/SDK-publication/parser regressions pass; actual authenticated NYT markup and historical import attribution remain unverified. |
-| AI grocery cleanup / dedup | High | Done | `/api/grocery-cleanup`; `mea-grocery-last-cleaned` tracks last run |
+| AI grocery cleanup / dedup | High | Done | Unchecked-only snapshots, ≤100-item AI requests, global conservative duplicate reconciliation, deterministic quantities/source preservation, guarded ≤450-write transactions, and explicit partial-save errors; `mea-grocery-last-cleaned` tracks successful completion. |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |
