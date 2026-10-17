@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, type CSSProperties } from 'react'
+import { useState, useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   doc, updateDoc, deleteDoc, setDoc, serverTimestamp
@@ -15,7 +15,7 @@ import {
 } from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil, House } from 'lucide-react'
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setGroceryItemNeedThisTrip, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, applyGroceryCleanup, GroceryCleanupApplyError, type GroceryItem, type SavedGroceryItem } from '@/lib/userdata'
-import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
+import { getRecipeById, parseRecipeContent, recipeUrl } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 import { prepareGroceryItem } from '@/lib/groceryItemPreparation'
 import {
@@ -28,6 +28,7 @@ import {
 } from '@/lib/groceryUsuallyOnHand'
 import { commitFirestoreBatches, type FirestoreBatchOperation } from '@/lib/firestoreBatch'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
+import GroceryRecipeSources from '@/components/GroceryRecipeSources'
 import { requestGroceryCleanup, type GroceryCleanupPlan } from '@/lib/groceryCleanup'
 
 const CATEGORY_EMOJI: Record<GroceryCategory, string> = {
@@ -69,7 +70,7 @@ function extractIngredientName(name: string): string {
 
 export default function GroceryPage() {
   const { user } = useAuth()
-  const { metas } = useAppData()
+  const { metas, recipes, recipesLoading, recipesError } = useAppData()
   const [items, setItems] = useState<GroceryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [subscriptionError, setSubscriptionError] = useState('')
@@ -110,6 +111,31 @@ export default function GroceryPage() {
   const [showCheckedItems, setShowCheckedItems] = useState(false)
   const [updatingUsuallyOnHand, setUpdatingUsuallyOnHand] = useState<Set<string>>(new Set())
   const [updatingNeedThisTrip, setUpdatingNeedThisTrip] = useState<Set<string>>(new Set())
+
+  // The provider already owns catalog/metadata reads. Resolve associations only
+  // in memory, using the actual document ID (legacy recipeID can differ).
+  const recipesByID = useMemo(() => new Map(recipes.map(recipe => [recipe.id, {
+    recipeID: recipe.id,
+    title: metas[recipe.id]?.overrides?.title || recipe.title,
+    href: recipeUrl(encodeURIComponent(recipe.id)),
+  }])), [recipes, metas])
+  const recipeSources = useMemo(() => {
+    type SourceProps = ComponentProps<typeof GroceryRecipeSources>
+    const displays = new Map<string, Pick<SourceProps, 'display' | 'sourceCount'>>()
+    for (const item of items) {
+      const ids = new Set(Array.isArray(item.sourceRecipeIDs) ? item.sourceRecipeIDs : [])
+      const references: SourceProps['display']['references'][number][] = []
+      let unresolvedCount = 0
+      for (const id of ids) {
+        const recipe = recipesByID.get(id)
+        if (recipe) references.push(recipe)
+        else unresolvedCount++
+      }
+      displays.set(item.id, { sourceCount: ids.size, display: { references, unresolvedCount } })
+    }
+    return displays
+  }, [items, recipesByID])
+  const recipeCatalogState = recipesLoading ? 'loading' : recipesError ? 'error' : 'ready'
 
   const startEditItem = (item: GroceryItem) => {
     setEditingItemId(item.id)
@@ -635,7 +661,7 @@ export default function GroceryPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-2xl lg:max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -982,6 +1008,12 @@ export default function GroceryPage() {
         </div>
       )}
 
+      {recipeCatalogState === 'error' && items.length > 0 && (
+        <p className="hidden lg:block mb-4 text-xs font-body text-muted">
+          Recipe links are temporarily unavailable. Your grocery list is still usable.
+        </p>
+      )}
+
       {/* Grouped items */}
       <div className="space-y-4">
         {[...GROCERY_CATEGORIES, USUALLY_ON_HAND_SECTION].map(section => {
@@ -1016,7 +1048,10 @@ export default function GroceryPage() {
                     </span>
                   )}
                 </div>
-                {isCollapsed ? <ChevronDown size={14} className="text-faint" /> : <ChevronUp size={14} className="text-faint" />}
+                <span className="flex items-center justify-end lg:justify-between lg:w-56 xl:w-72 shrink-0">
+                  <span aria-hidden="true" className="hidden lg:inline font-body text-xs text-muted">Used In</span>
+                  {isCollapsed ? <ChevronDown size={14} className="text-faint" /> : <ChevronUp size={14} className="text-faint" />}
+                </span>
               </button>
 
               {/* Items */}
@@ -1025,7 +1060,7 @@ export default function GroceryPage() {
                   {catItems.map(item => (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${item.isChecked ? 'opacity-60' : ''}`}
+                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${item.isChecked ? 'opacity-60 lg:opacity-100 lg:[&>*:not([data-recipe-sources])]:opacity-60' : ''}`}
                     >
                       {/* Checkbox */}
                       <button
@@ -1224,6 +1259,12 @@ export default function GroceryPage() {
                           document.body,
                         )}
                       </div>
+                      <GroceryRecipeSources
+                        ingredientName={item.name}
+                        isManual={item.isManual}
+                        {...recipeSources.get(item.id)!}
+                        catalogState={recipeCatalogState}
+                      />
                     </div>
                   ))}
                 </div>

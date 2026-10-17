@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-17",
+  "status": "DESIGN APPROVED — IMPLEMENTED AND VALIDATED",
+  "fileKey": "2tzBJXKAyecopz1R4QavwD",
+  "fileUrl": "https://www.figma.com/design/2tzBJXKAyecopz1R4QavwD",
+  "pageId": "0:1",
+  "pageName": "Desktop Grocery — design approval",
+  "recommendedOption": "A — Used In column",
+  "approvedOption": "A — Used In column",
+  "approvalReference": {
+    "date": "2026-10-17",
+    "answer": "Approve Option A and continue implementation",
+    "questionCallId": "call_7fffba8e08b44f22863e417e894f3862",
+    "questionItem": 0
+  },
+  "frames": [
+    {
+      "id": "2:114",
+      "name": "A · Used In · 1440",
+      "width": 1440,
+      "export": "preferred-1440.png"
+    },
+    {
+      "id": "2:115",
+      "name": "A · Used In · 1280",
+      "width": 1280,
+      "export": "preferred-1280.png"
+    },
+    {
+      "id": "2:116",
+      "name": "A · Used In · 1024",
+      "width": 1024,
+      "export": "preferred-1024.png"
+    },
+    {
+      "id": "2:117",
+      "name": "B · Secondary line · 1440",
+      "width": 1440,
+      "export": "alternative-1440.png"
+    },
+    {
+      "id": "2:118",
+      "name": "A · Interaction and status states · 1280",
+      "width": 1280,
+      "export": "interaction-states-1280.png"
+    },
+    {
+      "id": "2:119",
+      "name": "A · Editing and Usually On Hand · 1024",
+      "width": 1024,
+      "export": "editing-and-usually-on-hand-1024.png"
+    }
+  ],
+  "mobileReferenceWidths": [
+    375,
+    390
+  ],
+  "desktopBreakpoint": 1024,
+  "syntheticMockupData": true,
+  "interactivePrototype": false,
+  "productionImplementation": true,
+  "approvedFrameIds": [
+    "2:114",
+    "2:115",
+    "2:116",
+    "2:118",
+    "2:119"
+  ],
+  "implementationReport": "../../design/grocery-recipe-provenance-2026-10-17-implementation.md"
+}

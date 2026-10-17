@@ -64,7 +64,7 @@ wrapped in a per-route `layout.tsx`.
 | Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence; per-user **Want to Try** bookmark toggle + filter |
 | Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, per-user **Want to Try** action, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers** and validated persisted `cookingStepIngredientMap` → safe deterministic fallback) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
-| Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup, persistent Usually On Hand preferences, and per-list Need This Trip overrides |
+| Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup, persistent Usually On Hand preferences, per-list Need This Trip overrides, and desktop-only Used In recipe-source links with inline overflow disclosure |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
 | Queue | `/queue` (`app/queue/page.tsx`) | Done | Review queue for AI-parsed recipes before publishing; bookmarklet setup |
 | Mapping Review (queue) | `/mapping-review` (`app/mapping-review/page.tsx`) | Done | **Admin-only** (recipe-admin identity gate). Recipe-level queue for the Cooking Mode human mapping-review workflow — one card per recipe with a persisted mapping proposal, showing derived status (**Needs review / In progress / Ready for final approval / Approved / Stale / Blocked**) and `{resolved}/{total}` progress. Reads via `loadMappingReviewQueue` (`lib/cookingModeMappingReviewQueue.ts`, a bounded unfiltered Firestore collection-group scan over `mappingProposals` — no composite index) behind the admin-gated `GET /api/mapping-review/queue` route. Nav entry in `components/Navigation.tsx`'s "More" sheet/sidebar, filtered to `user?.email === ADMIN_EMAIL`. |
@@ -349,6 +349,12 @@ re-parsed — parsing is additive, on the add path only. New `manualSection` wri
 current 11-category grocery contract. Historical `Staples` and `Canned / Jarred / Sauces` values
 may remain in stored documents; they are deterministically reclassified from `name` at read time
 without writing the normalized category back.
+
+`sourceRecipeIDs[]` records all contributing recipe document IDs; one grocery can reference
+multiple recipes. It is an association list, not a per-recipe quantity allocation. Cleanup merges
+retain the unique union; historical duplicates, empty arrays, and absent arrays can still be read.
+Desktop provenance deduplicates only its display and does not backfill or migrate documents.
+An empty array does not establish manual origin; `isManual` remains authoritative for that fact.
 
 ### `users/{uid}/pantry/root/savedGroceryItems/{itemId}` — remembered grocery items (`SavedGroceryItem`)
 Fields: `id, name, defaultCategory, timesUsed, lastUsed, usuallyOnHand?`. Frequency-ranked memory of
@@ -691,6 +697,26 @@ retained as historical data and are not modified or deleted by this app.
     `mea-grocery-last-cleaned` after successful apply or a successful review with no changes;
     failed/partial saves do not advance it. `parse-line`, authentication, Gateway configuration,
     ownership paths, and Firestore rules are unchanged.
+
+    **Desktop recipe provenance:** At the existing `lg` breakpoint (1024px), Grocery widens to
+    `max-w-5xl` and adds a Used In column within the existing category cards. The page memoizes
+    one lookup from the existing AppData `recipes` and `metas`, keyed by authoritative `Recipe.id`
+    (legacy `recipeID` can differ), and resolves stored source IDs in deterministic first-seen order.
+    Personal title overrides use the existing effective-title fallback. `GroceryRecipeSources`
+    renders the first two valid recipe links and a native `+N more` / `Show less` inline disclosure
+    for remaining valid references. Links use `recipeUrl` with the document ID encoded as one path
+    segment, `target="_blank"`, and `rel="noopener noreferrer"`. Complete titles remain accessible
+    and wrap on hover/focus. Source controls do not mutate groceries or trigger row actions; checked
+    groceries retain legible desktop links. Below 1024px the new column/header/status is hidden,
+    preserving existing mobile spacing, opacity, and controls.
+
+    Manual items without sources say “Added manually”; recipe-derived items without sources say
+    “No recipe linked.” Unavailable catalog matches show neutral unavailable text/counts without
+    links or raw IDs; available matches remain linked. Unusual manual rows with sources show both
+    facts. Catalog loading/error never blocks grocery controls or triggers per-source reads; cached
+    matches remain usable. The display adds no Firestore reads/writes, AI calls, subscriptions,
+    dependencies, source inference, or quantity recalculation. All cleanup source-union, checked,
+    quantity, identity, conflict, pool-separation, and partial-commit safeguards remain unchanged.
 11. **Rebuild grocery from plan** — `rebuildGroceryFromPlan` (`lib/userdata.ts`) captures exact
     normalized identities of non-manual items whose temporary `needThisTrip` flag is true, then
     resolves every planned recipe and precomputes the complete parsed/merged replacement before any
@@ -1550,6 +1576,16 @@ retained as historical data and are not modified or deleted by this app.
 ---
 
 ## Section 6 — Known Sharp Edges
+
+- **Grocery recipe sources are associations, not quantity allocations.** Empty or absent legacy
+  source arrays cannot be reconstructed from ingredient names, and merged totals do not retain
+  exact per-recipe contributions. “Recipe unavailable” means missing from the successfully loaded
+  catalog, not confirmed deletion: the existing catalog cache has no TTL/realtime deletion feed,
+  excludes titleless records, and can temporarily retain a subsequently deleted recipe. No new
+  per-source fetch or migration is performed. `recipeUrl` uses the canonical production origin
+  even in local/preview builds. Desktop source columns appear from 1024px; long ingredient text
+  may wrap more at that width. Approved design and validation records are in
+  `docs/design/grocery-recipe-provenance-2026-10-17-*.md`.
 
 - **Large grocery cleanup is bounded and snapshot-based (remediated 2026-10-17).** The former
   page sent checked and unchecked items together, so 70 unchecked + 33 checked items exceeded the
@@ -2426,6 +2462,7 @@ Derived from in-code affordances and comments. No `TODO`/`FIXME` markers exist i
 | Legacy personal category override cleanup | Medium | Done | Removed only `overrides.category` from 24 exact redundant/legacy rows; post-apply readback found zero legacy/redundant category overrides and preserved the sole intentional Spicy Quinoa (`182`) → `Salads & Bowls` override. |
 | Bookmarklet for paywalled sites (NYT Cooking, etc.) | High | Done (V1 capture, 2026-10-04) | Authenticated-browser allowlisted recipe evidence → bounded nonce/opener/origin-validated postMessage → existing Queue → HTML + sourceURL attribution without re-fetch. Trusted complete structured rows override AI; oversized/insufficient capture fails without truncation or URL fallback. Recopy installed bookmarklets. Synthetic 13/7 capture/route/SDK-publication/parser regressions pass; actual authenticated NYT markup and historical import attribution remain unverified. |
 | AI grocery cleanup / dedup | High | Done | Unchecked-only snapshots, ≤100-item AI requests, global conservative duplicate reconciliation, deterministic quantities/source preservation, guarded ≤450-write transactions, and explicit partial-save errors; `mea-grocery-last-cleaned` tracks successful completion. |
+| Desktop grocery recipe provenance | Medium | Done | Approved Used In column from 1024px; existing catalog/metadata resolves authoritative source IDs in memory, with two links plus accessible inline overflow, neutral missing/manual states, canonical new-tab navigation, and unchanged mobile layout. Existing cleanup union/safety behavior retained; 24 focused regressions added and desktop/mobile synthetic browser checks passed. No new reads/writes/AI, schema migration, or per-recipe quantity allocation. See `docs/design/grocery-recipe-provenance-2026-10-17-implementation.md`. |
 | Grocery classifier collision remediation | High | Done | Phase 1: token/phrase boundaries + specific-identity precedence under the unchanged nine categories; manual overrides remain authoritative. |
 | Grocery 11-category store taxonomy | Medium | Done | Phase 2: exact 11-category store taxonomy, classifier mappings, all-category manual picker, UI order/emojis, centralized AI cleanup contract, and read-time compatibility for retired manual/saved strings; no Firestore migration. |
 | Grocery Usually On Hand preference | Medium | Done (Phase 1) | Persistent exact-identity preference on `SavedGroceryItem`; derived collapsed section; category, checked state, and quantities remain independent. |

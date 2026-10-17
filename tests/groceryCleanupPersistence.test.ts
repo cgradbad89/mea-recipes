@@ -260,6 +260,155 @@ describe('safe grocery cleanup persistence', () => {
     expect(sdk.committedSizes).toEqual([2])
   })
 
+  it('persists the complete deduplicated source union from three contributors on the original survivor', async () => {
+    const metadata = { shoppingNote: { aisle: 4, tags: ['baking'] } }
+    await seed([
+      item('a-survivor', { ...metadata, sourceRecipeIDs: ['recipe-a', 'recipe-a'] }),
+      item('b-peer', { ...metadata, quantity: '2', sourceRecipeIDs: ['recipe-b', 'recipe-a'] }),
+      item('c-peer', { ...metadata, quantity: '3', sourceRecipeIDs: ['recipe-c', 'recipe-b'], needThisTrip: true }),
+    ])
+    const before = await persisted()
+    const plan = await requestGroceryCleanup(await capture(), async () => [])
+    expect(plan.changes).toHaveLength(1)
+    expect(plan.items[plan.changes[0].originalIndex].id).toBe('a-survivor')
+
+    await applyGroceryCleanup(uid, plan)
+
+    const saved = await persisted()
+    expect([...saved.keys()]).toEqual(['a-survivor'])
+    expect(saved.get('a-survivor')).toMatchObject({
+      ...metadata, id: 'a-survivor', name: 'flour', quantity: '6', unit: 'cup',
+      sourceRecipeIDs: ['recipe-a', 'recipe-b', 'recipe-c'],
+      isManual: false, isChecked: false, needThisTrip: true,
+      createdAt: before.get('a-survivor')!.createdAt,
+    })
+    expect((await capture())[0].sourceRecipeIDs).toEqual(['recipe-a', 'recipe-b', 'recipe-c'])
+    expect(sdk.committedSizes).toEqual([3])
+  })
+
+  it.each(['absent', 'empty'] as const)(
+    'retains recorded sources when a peer has an %s source array and during later normalization', async sourceState => {
+      const peer = item('b-peer', { name: 'Flour', sourceRecipeIDs: [] })
+      if (sourceState === 'absent') delete (peer as Partial<GroceryItem>).sourceRecipeIDs
+      await seed([
+        item('a-survivor', { name: 'Flour', sourceRecipeIDs: ['recipe-a', 'recipe-b'] }),
+        peer,
+      ])
+      const snapshot = await capture()
+      expect(Object.hasOwn(snapshot.find(value => value.id === 'b-peer')!, 'sourceRecipeIDs'))
+        .toBe(sourceState !== 'absent')
+      const plan = await requestGroceryCleanup(snapshot, async () => [])
+
+      await applyGroceryCleanup(uid, plan)
+
+      // Refresh the client cache before observing the subscription's first event.
+      // A newly attached listener may otherwise deliver its older cached query.
+      expect((await persisted()).size).toBe(1)
+      const reloaded = await capture()
+      expect(reloaded).toHaveLength(1)
+      expect(reloaded[0]).toMatchObject({
+        id: 'a-survivor', quantity: '2', unit: 'cup', sourceRecipeIDs: ['recipe-a', 'recipe-b'],
+      })
+      await applyGroceryCleanup(uid, {
+        items: reloaded,
+        changes: [normalize(reloaded, 'a-survivor')],
+      })
+
+      const saved = await persisted()
+      expect(saved.size).toBe(1)
+      expect(saved.get('a-survivor')).toMatchObject({
+        id: 'a-survivor', name: 'flour', quantity: '2', unit: 'cup',
+        sourceRecipeIDs: ['recipe-a', 'recipe-b'],
+      })
+      expect(sdk.committedSizes).toEqual([2, 1])
+    },
+  )
+
+  it('retains prior and new sources across fresh cleanup after reload without doubling a subsequent no-op', async () => {
+    await seed([
+      item('a-survivor', { sourceRecipeIDs: ['recipe-a'] }),
+      item('b-peer', { quantity: '2', sourceRecipeIDs: ['recipe-b', 'recipe-a'] }),
+    ])
+    const firstPlan = await requestGroceryCleanup(await capture(), async () => [])
+    await applyGroceryCleanup(uid, firstPlan)
+    expect((await persisted()).size).toBe(1)
+    expect(await capture()).toMatchObject([{
+      id: 'a-survivor', quantity: '3', sourceRecipeIDs: ['recipe-a', 'recipe-b'],
+    }])
+
+    await seed([item('c-peer', { quantity: '4', sourceRecipeIDs: ['recipe-c', 'recipe-b'] })])
+    const secondPlan = await requestGroceryCleanup(await capture(), async () => [])
+    await applyGroceryCleanup(uid, secondPlan)
+    const beforeNoOp = await persisted()
+    const secondReload = await capture()
+    expect(secondReload).toMatchObject([{
+      id: 'a-survivor', quantity: '7', unit: 'cup', sourceRecipeIDs: ['recipe-a', 'recipe-b', 'recipe-c'],
+    }])
+    expect(secondReload).toHaveLength(1)
+
+    const noOpPlan = await requestGroceryCleanup(secondReload, async () => [])
+    expect(noOpPlan.changes).toEqual([])
+    await applyGroceryCleanup(uid, noOpPlan)
+
+    expect(await persisted()).toEqual(beforeNoOp)
+    expect(sdk.committedSizes).toEqual([2, 2])
+  })
+
+  it('persists and reloads every source from duplicates spanning three batches in a 250-item list', async () => {
+    const duplicateIndices = [0, 1, 100, 200]
+    const eligible = Array.from({ length: 250 }, (_, index) => item(`doc-${String(index).padStart(3, '0')}`, {
+      name: duplicateIndices.includes(index) ? 'milk' : `Fixture${index}`,
+      quantity: index === 0 ? '2' : '1',
+      sourceRecipeIDs: index === 0 ? ['recipe-0'] : [`recipe-${index}`, 'recipe-0'],
+      ...(index === 200 ? { needThisTrip: true } : {}),
+    }))
+    const checked = item('checked-milk', {
+      name: 'milk', quantity: '99', isChecked: true, sourceRecipeIDs: ['checked-recipe'],
+    })
+    await seed([...eligible, checked])
+    const before = await persisted()
+    // Exercise request boundaries independently of the subscription's name sort.
+    const snapshot = (await capture()).sort((left, right) => left.id.localeCompare(right.id))
+    const batchSizes: number[] = []
+    api.generateAIArray.mockResolvedValue([])
+    const plan = await requestGroceryCleanup(snapshot, async batch => {
+      batchSizes.push(batch.length)
+      const response = await POST(new NextRequest('http://localhost/api/grocery-cleanup', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer synthetic-test-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: batch }),
+      }))
+      expect(response.status).toBe(200)
+      return response.json()
+    })
+    expect(batchSizes).toEqual([100, 100, 50])
+    expect(api.generateAIArray).toHaveBeenCalledTimes(3)
+    expect(plan.items).toHaveLength(250)
+    expect(plan.changes).toEqual([expect.objectContaining({
+      originalIndex: 0, mergedWith: [1, 100, 200], action: 'merge', quantity: '5', unit: 'cup',
+    })])
+
+    await applyGroceryCleanup(uid, plan)
+
+    const saved = await persisted()
+    expect(saved.size).toBe(248)
+    expect(saved.get('doc-000')).toMatchObject({
+      id: 'doc-000', name: 'milk', quantity: '5', unit: 'cup', isChecked: false, isManual: false,
+      sourceRecipeIDs: ['recipe-0', 'recipe-1', 'recipe-100', 'recipe-200'], needThisTrip: true,
+      createdAt: before.get('doc-000')!.createdAt,
+    })
+    for (const index of duplicateIndices.slice(1)) expect(saved.has(eligible[index].id)).toBe(false)
+    for (const original of eligible.filter((_, index) => !duplicateIndices.includes(index))) {
+      expect(saved.get(original.id)).toEqual(before.get(original.id))
+    }
+    expect(saved.get(checked.id)).toEqual(before.get(checked.id))
+    const reloaded = await capture()
+    expect(reloaded.find(value => value.id === 'doc-000')!.sourceRecipeIDs)
+      .toEqual(['recipe-0', 'recipe-1', 'recipe-100', 'recipe-200'])
+    expect(reloaded.find(value => value.id === checked.id)!.sourceRecipeIDs).toEqual(['checked-recipe'])
+    expect(sdk.committedSizes).toEqual([4])
+  }, 20_000)
+
   it.each(['checked', 'deleted', 'edited', 'timestamp', 'added'] as const)(
     'rejects a %s snapshot conflict before the first write, including an untouched item', async conflict => {
       await seed([item('target', { name: ' FLOUR ' }), item('untouched', { name: 'sugar' })])
