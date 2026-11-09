@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, type ComponentProps, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import {
   doc, updateDoc, deleteDoc, setDoc, serverTimestamp
@@ -88,7 +88,7 @@ export default function GroceryPage() {
   const cleanupChanges = cleanupPlan?.uid === user?.uid ? cleanupPlan?.plan.changes ?? null : null
   const [cleanupMessage, setCleanupMessage] = useState('')
   const cleanupOwner = useRef(user?.uid)
-  cleanupOwner.current = user?.uid
+  useLayoutEffect(() => { cleanupOwner.current = user?.uid; }, [user?.uid])
   const [rejectedChanges, setRejectedChanges] = useState<Set<number>>(new Set())
   const [applyingCleanup, setApplyingCleanup] = useState(false)
   const [showAddItem, setShowAddItem] = useState(false)
