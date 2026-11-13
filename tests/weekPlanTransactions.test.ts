@@ -169,3 +169,21 @@ describe('week-plan writer transactions (concurrent-write races)', () => {
     expect(byID.get('recipe-b')).toBe('side')
   })
 })
+
+describe('atomic destination add and move', () => {
+  it('adds a day, reports conflicts, and rejects a stale move without duplicates', async () => {
+    const { addRecipeToDestination, getWeekPlan, assignRecipeToDay } = await import('@/lib/userdata')
+    const uid = `destination-${Math.random().toString(36).slice(2)}`
+    const week = '2026-11-09'
+    expect((await addRecipeToDestination(uid, week, 'recipe-a', '2026-11-10', 'side')).status).toBe('added')
+    expect((await addRecipeToDestination(uid, week, 'recipe-a', '2026-11-10', 'main')).status).toBe('already')
+    const conflict = await addRecipeToDestination(uid, week, 'recipe-a', '2026-11-11', 'main')
+    expect(conflict.status).toBe('conflict')
+    await assignRecipeToDay(uid, week, 'recipe-a', '2026-11-12', 'main')
+    expect((await addRecipeToDestination(uid, week, 'recipe-a', '2026-11-11', 'main', conflict.token)).status).toBe('conflict')
+    const fresh = await addRecipeToDestination(uid, week, 'recipe-a', '2026-11-11', 'main')
+    expect((await addRecipeToDestination(uid, week, 'recipe-a', '2026-11-11', 'main', fresh.token)).status).toBe('moved')
+    expect((await getWeekPlan(uid, week))?.plannedRecipeIDs).toEqual([{ recipeID: 'recipe-a', day: '2026-11-11', role: 'side' }])
+    await expect(addRecipeToDestination(uid, week, 'recipe-b', '2026-11-16', 'main')).rejects.toThrow('Invalid plan destination')
+  })
+})

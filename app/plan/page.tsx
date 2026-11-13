@@ -295,6 +295,14 @@ export default function PlanPage() {
     setWeekID(w => addWeeks(w, delta))
   }
 
+  useEffect(() => {
+    const week = new URLSearchParams(window.location.search).get('week')
+    if (week && normalizeRememberedWeekID(week) === week) {
+      manualNavigationRef.current = true
+      setWeekID(week)
+    }
+  }, [])
+
   // First-mount: restore last-viewed week from sessionStorage OR auto-default to next week if current is empty
   useEffect(() => {
     // Read once, so effect replay cannot mistake our own persistence for a
@@ -878,8 +886,8 @@ export default function PlanPage() {
     )
   }
 
-  const emptyDayAffordance = (
-    <Link href="/recipes" className="plan-add-meal" title="Browse recipes to add to a week">
+  const emptyDayAffordance = (day: string | null) => (
+    <Link href={`/recipes?week=${weekID}&day=${day ?? 'unscheduled'}`} aria-label={day ? `Add meal for ${new Date(day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}` : 'Add meal to Unscheduled'} className="plan-add-meal" title="Browse recipes to add to a week">
       <Plus size={18} /> Add meal
     </Link>
   )
@@ -1206,7 +1214,7 @@ export default function PlanPage() {
               </button>}
             </div>
             {uncookedEntries.length === 0 && <p className="plan-empty">No recipes planned this week</p>}
-            <p className="plan-add-help">Add meal opens Recipes. Choose a week there, then assign a day here.</p>
+            <p className="plan-add-help">Choose a day to add a recipe, or add one without a day.</p>
             <div className="plan-agenda">
               {dayBuckets.map(({ date, entries }) => {
                 const d = new Date(date + 'T12:00:00')
@@ -1219,10 +1227,11 @@ export default function PlanPage() {
                     <p>{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                     {date === today && <span>Today</span>}
                   </div>
-                  <div className="plan-day-meals">{entries.map(renderPlannedCard)}{emptyDayAffordance}</div>
+                  <div className="plan-day-meals">{entries.map(renderPlannedCard)}{emptyDayAffordance(date)}</div>
                 </div>
               })}
             </div>
+            <div className="plan-unscheduled-add">{emptyDayAffordance(null)} <span>for Unscheduled</span></div>
             {(unscheduledEntries.length > 0 || draggingId) && <div
               onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey('unscheduled') } }}
               onDragLeave={() => setDragOverKey(k => k === 'unscheduled' ? null : k)}

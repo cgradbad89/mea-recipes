@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   friends: [] as Subscription<SharedPlanEntry[]>[],
   getWeekPlan: vi.fn(),
   addRecipeToWeekPlan: vi.fn(),
+  addRecipeToDestination: vi.fn(),
   recipes: ['a', 'b'].map(id => ({
     id: `recipe-${id}`, recipeID: `recipe-${id}`, title: `Recipe ${id.toUpperCase()}`,
     content: 'INGREDIENTS\n1 onion\n\nINSTRUCTIONS\nCook.', category: 'Dinner',
@@ -45,6 +46,7 @@ vi.mock('@/lib/userdata', async importOriginal => ({
   ...await importOriginal<typeof import('@/lib/userdata')>(),
   getWeekPlan: mocks.getWeekPlan,
   addRecipeToWeekPlan: mocks.addRecipeToWeekPlan,
+  addRecipeToDestination: mocks.addRecipeToDestination,
   subscribeWeekPlan: (uid: string, weekID: string, data: Subscription<WeekPlan | null>['data'], error: Subscription<WeekPlan | null>['error']) => {
     const stop = vi.fn()
     mocks.plans.push({ uid, weekID, data, error, stop })
@@ -137,6 +139,7 @@ beforeEach(() => {
   mocks.plans.length = mocks.publications.length = mocks.friends.length = 0
   mocks.getWeekPlan.mockReset().mockResolvedValue(null)
   mocks.addRecipeToWeekPlan.mockReset().mockResolvedValue(undefined)
+  mocks.addRecipeToDestination.mockReset().mockResolvedValue({ status: 'added' })
 })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
@@ -411,4 +414,22 @@ describe('Warm Pantry planner navigation and actions', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(document.activeElement).toBe(opener)
   })
+})
+
+
+it('confirms the chosen destination and requires an explicit move for a conflict', async () => {
+  mocks.addRecipeToDestination.mockResolvedValueOnce({ status: 'conflict', existing: { recipeID: 'recipe-a', day: '2026-09-29', role: 'side' }, token: 'placement' }).mockResolvedValueOnce({ status: 'moved' })
+  render(<RecipeCard recipe={mocks.recipes[0]} destination={{ weekID: current, day: '2026-09-30' }} />)
+  const opener = screen.getByRole('button', { name: 'Add Recipe A to plan' })
+  fireEvent.click(opener)
+  expect(screen.getByRole('dialog', { name: 'Add Recipe A to plan' }).textContent).toContain('Wednesday, Sep 30, 2026')
+  fireEvent.click(screen.getByRole('button', { name: 'Add to this day' }))
+  await act(async () => {})
+  expect(screen.getByText(/Already planned: Tuesday, Sep 29, 2026/)).toBeTruthy()
+  expect(mocks.addRecipeToDestination).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Move recipe' }))
+  await act(async () => {})
+  expect(mocks.addRecipeToDestination).toHaveBeenLastCalledWith('owner-a', current, 'recipe-a', '2026-09-30', 'main', 'placement')
+  expect(screen.getByRole('status').textContent).toContain('Moved successfully')
+  expect(screen.getByRole('link', { name: 'Return to Meal Plan' }).getAttribute('href')).toBe(`/plan?week=${current}`)
 })

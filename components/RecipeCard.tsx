@@ -6,12 +6,13 @@ import { createPortal } from 'react-dom'
 import { Bookmark, BookmarkCheck, CalendarPlus, Check, X, Loader2, Clock } from 'lucide-react'
 import { getTotalTime, parseTimeToMinutes } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
-import { addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole } from '@/lib/userdata'
+import { addRecipeToWeekPlan, addRecipeToDestination, weekIDFromDate, resolveRecipeRole } from '@/lib/userdata'
 import { useAppData } from '@/components/AppDataProvider'
 import RecipeImage, { getCategoryIcon } from '@/components/RecipeImage'
 import type { Recipe } from '@/types/recipe'
 import type { RecipeMeta } from '@/lib/userdata'
 import { normalizeRecipeCategory } from '@/lib/recipeCategories'
+import { destinationLabel, parsePlanDestination, type PlanDestination } from '@/lib/planDestination'
 
 function getCuisineClass(cuisine: string): string {
   const c = cuisine.toLowerCase().replace(/\s+/g, '-')
@@ -57,6 +58,8 @@ interface RecipeCardProps {
   meta?: RecipeMeta
   compact?: boolean
   warm?: boolean
+  destination?: PlanDestination | null
+  invalidDestination?: boolean
 }
 
 function formatWeekLabel(weekID: string, offset: number): string {
@@ -77,7 +80,7 @@ function getWeekOptions(): { weekID: string; label: string; offset: number }[] {
   })
 }
 
-export default function RecipeCard({ recipe, meta, compact = false, warm = false }: RecipeCardProps) {
+export default function RecipeCard({ recipe, meta, compact = false, warm = false, destination = null, invalidDestination = false }: RecipeCardProps) {
   const { user } = useAuth()
   const { isWantToTry, toggleWantToTry } = useAppData()
   const displayImageURL = meta?.overrides?.imageURL || recipe.imageURL
@@ -87,6 +90,9 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
   const [selectedWeek, setSelectedWeek] = useState('')
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+  const [destinationResult, setDestinationResult] = useState('')
+  const [conflict, setConflict] = useState<{ label: string; token: string } | null>(null)
+  const [planError, setPlanError] = useState('')
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -96,6 +102,12 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
   // A missing or unparseable component is not evidence of zero minutes.
   const time = parseTimeToMinutes(prepTime) > 0 && parseTimeToMinutes(cookTime) > 0
     ? getTotalTime(prepTime, cookTime).display : ''
+
+  useEffect(() => {
+    if (!showPlanPicker) return
+    if (destinationResult) popoverRef.current?.querySelector<HTMLElement>('[data-plan-result]')?.focus()
+    else if (conflict) popoverRef.current?.querySelector<HTMLButtonElement>('[data-plan-move]')?.focus()
+  }, [showPlanPicker, destinationResult, conflict])
 
   // Close on outside click — exclude the button itself
   useEffect(() => {
@@ -140,6 +152,7 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
     e.preventDefault()
     e.stopPropagation()
     if (!user) return
+    setDestinationResult(''); setConflict(null); setPlanError('')
     const weeks = getWeekOptions()
     setSelectedWeek(weeks[1]?.weekID || weeks[0].weekID)
     const rect = buttonRef.current?.getBoundingClientRect()
@@ -176,6 +189,24 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
     }
   }
 
+  const handleDestination = async (expected?: string) => {
+    if (!user || !destination || adding) return
+    setAdding(true); setPlanError('')
+    try {
+      const result = await addRecipeToDestination(user.uid, destination.weekID, recipe.id, destination.day, resolveRecipeRole({ ...recipe, category: displayCategory }), expected)
+      if (result.status === 'conflict') {
+        if (!result.existing || !result.token) { setConflict(null); setPlanError('The plan changed. Review and try again.'); return }
+        const day = typeof result.existing === 'string' ? null : result.existing.day ?? null
+        setConflict({ label: day && parsePlanDestination(destination.weekID, day) ? destinationLabel({ weekID: destination.weekID, day }) : day || 'Unscheduled', token: result.token })
+        setPlanError(expected ? 'The placement changed. Review it before moving.' : '')
+      } else {
+        setConflict(null)
+        setDestinationResult(result.status === 'already' ? 'Already planned for this destination.' : result.status === 'moved' ? 'Moved successfully.' : 'Added successfully.')
+      }
+    } catch { setPlanError('Couldn’t update the plan. Try again.') }
+    finally { setAdding(false) }
+  }
+
   const handleToggleWantToTry = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -205,19 +236,20 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
       </button>
       <button ref={buttonRef} onClick={handleOpenPicker} title={user ? 'Add to plan' : 'Sign in to add to plan'}
         aria-label={user ? `Add ${recipe.title} to plan` : `Sign in to add ${recipe.title} to plan`}
-        aria-expanded={showPlanPicker} disabled={!user}
+        aria-expanded={showPlanPicker} disabled={!user || invalidDestination}
         className={warm ? 'warm-plan-button' : `absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-ink/60 text-muted ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}>
         {added ? <Check size={16} /> : <CalendarPlus size={16} />}{warm && <span>{added ? 'Added!' : 'Add to Plan'}</span>}
       </button>
       {typeof window !== 'undefined' && showPlanPicker && popoverPos && createPortal(
         <div
           ref={popoverRef}
+          role="dialog" aria-label={`Add ${recipe.title} to plan`}
           onClick={e => { e.preventDefault(); e.stopPropagation() }}
           style={{ position: 'fixed', top: popoverPos.top, left: popoverPos.left }}
           className="recipe-plan-picker z-[100] bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-cream text-xs font-body font-medium">Add to plan</p>
+            <p className="text-cream text-xs font-body font-medium">{destination ? recipe.title : 'Add to plan'}</p>
             <button
               onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false); buttonRef.current?.focus() }}
               aria-label="Close add to plan"
@@ -226,6 +258,15 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
               <X size={12} />
             </button>
           </div>
+          {destination ? <div className="space-y-3 text-sm text-cream">
+            <p>Destination: {destinationLabel(destination)}</p>
+            {planError && <p role="alert">{planError}</p>}
+            {destinationResult ? <><p role="status" data-plan-result tabIndex={-1}>{destinationResult}</p><Link className="underline block py-2" href={`/plan?week=${destination.weekID}`}>Return to Meal Plan</Link></> : conflict ? <>
+              <p>Already planned: {conflict.label}. Move it to {destinationLabel(destination)}?</p>
+              <button data-plan-move className="w-full bg-amber text-ink rounded-lg px-2 py-2" disabled={adding} onClick={() => void handleDestination(conflict.token)}>Move recipe</button>
+              <button className="w-full text-left" onClick={() => { setConflict(null); setShowPlanPicker(false); buttonRef.current?.focus() }}>Cancel</button>
+            </> : <button className="w-full bg-amber text-ink rounded-lg px-2 py-2" disabled={adding} onClick={() => void handleDestination()}>{adding ? 'Adding…' : destination.day ? 'Add to this day' : 'Add to Unscheduled'}</button>}
+          </div> : <>
           <div className="space-y-1 mb-2">
             {getWeekOptions().map(w => (
               <button
@@ -250,6 +291,7 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
             {adding ? <Loader2 size={11} className="animate-spin" /> : added ? <Check size={11} /> : <CalendarPlus size={11} />}
             {added ? 'Added!' : 'Add to Plan'}
           </button>
+          </>}
         </div>,
         document.body
       )}

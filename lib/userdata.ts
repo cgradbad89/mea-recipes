@@ -1,3 +1,4 @@
+import { parsePlanDestination } from './planDestination'
 import {
   collection,
   doc,
@@ -286,6 +287,34 @@ export async function addRecipeToWeekPlan(
       plannedRecipeIDs: [...planned, { recipeID, day: null, role }],
       updatedAt: serverTimestamp(),
     })
+  })
+}
+
+/** Atomically add, or explicitly move the exact placement the user reviewed. */
+export async function addRecipeToDestination(uid: string, weekID: string, recipeID: string, day: string | null, role: PlannedRole, expected?: string): Promise<{ status: 'added' | 'moved' | 'already' | 'conflict'; existing?: PlannedElement; token?: string }> {
+  if (!parsePlanDestination(weekID, day ?? 'unscheduled')) throw new Error('Invalid plan destination')
+  const ref = doc(weekPlansPath(uid), weekID)
+  return runTransaction(db, async tx => {
+    const snap = await tx.get(ref)
+    const plan = snap.exists() ? snap.data() as WeekPlan : null
+    const planned = plan?.plannedRecipeIDs || []
+    const existing = planned.find(el => elementRecipeID(el) === recipeID)
+    if (existing) {
+      const currentDay = typeof existing === 'string' ? null : existing.day ?? null
+      if (currentDay === day) return { status: 'already' as const }
+      const token = JSON.stringify(existing)
+      if (expected !== token) return { status: 'conflict' as const, existing, token }
+      const next = planned.map(el => elementRecipeID(el) === recipeID
+        ? { ...(typeof el === 'string' ? { recipeID, role } : el), day } : el)
+      tx.update(ref, { plannedRecipeIDs: next, updatedAt: serverTimestamp() })
+      return { status: 'moved' as const }
+    }
+    // A reviewed placement was removed concurrently: do not recreate it silently.
+    if (expected !== undefined) return { status: 'conflict' as const }
+    const entry = { recipeID, day, role }
+    if (plan) tx.update(ref, { plannedRecipeIDs: [...planned, entry], updatedAt: serverTimestamp() })
+    else tx.set(ref, { weekID, weekStartISO: weekID, plannedRecipeIDs: [entry], cookedRecipeIDs: [], updatedAt: serverTimestamp() })
+    return { status: 'added' as const }
   })
 }
 

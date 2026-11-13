@@ -15,6 +15,8 @@ import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 import { normalizeRecipeCategory } from '@/lib/recipeCategories'
 import { Bookmark } from 'lucide-react'
+import Link from 'next/link'
+import { parsePlanDestination, destinationLabel } from '@/lib/planDestination'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
 type TimeFilter = 0 | 30 | 45 | 60
@@ -58,6 +60,9 @@ export default function RecipesPage() {
 
 function RecipesContent() {
   const { user } = useAuth()
+  const [params, setParams] = useState(() => new URLSearchParams(window.location.search))
+  const hasDestination = params.has('week') || params.has('day')
+  const destination = parsePlanDestination(params.get('week'), params.get('day'))
   const {
     metas,
     recipes,
@@ -232,6 +237,10 @@ function RecipesContent() {
           <div><h1>Recipes</h1><p>Your shared recipe collection</p></div>
           <button ref={addButtonRef} type="button" className="listing-add" onClick={() => setShowAdd(true)}><Plus size={18} aria-hidden="true" /> Add Recipe</button>
         </header>
+        {hasDestination && <div className="listing-destination" role="status">
+          {destination ? <><strong>Adding to {destinationLabel(destination)}</strong><Link href={`/plan?week=${destination.weekID}`}>Return to Meal Plan or change day</Link></> : <strong>Invalid plan destination. Return to Meal Plan and choose a day.</strong>}
+          <button onClick={() => { window.history.replaceState(null, '', '/recipes'); setParams(new URLSearchParams()) }}>Cancel destination</button>
+        </div>}
         <RecipeListingControls
           search={search} setSearch={setSearch} cuisine={cuisine} setCuisine={setCuisine}
           category={category} setCategory={setCategory} minRating={minRating} setMinRating={setMinRating}
@@ -273,7 +282,7 @@ function RecipesContent() {
         ) : (
           <div className="listing-grid">
             {filtered.map(recipe => (
-              <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} warm />
+              <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} warm destination={destination} invalidDestination={hasDestination && !destination} />
             ))}
           </div>
         )}
