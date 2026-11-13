@@ -7,6 +7,7 @@ import { useAppData } from '@/components/AppDataProvider'
 import { useState, useEffect } from 'react'
 import { Flame, ChefHat, TrendingUp, Calendar, Loader2 } from 'lucide-react'
 import RecipeImage from '@/components/RecipeImage'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 
 function parseWeekStart(iso: string): Date {
@@ -39,7 +40,7 @@ function generateHeatmapWeeks(): string[] {
 
 export default function HistoryPage() {
   const { user } = useAuth()
-  const { cookingHistory: weeks, cookingHistoryLoading: loading, metas, recipes: allRecipes } = useAppData()
+  const { cookingHistory: weeks, cookingHistoryLoading: loading, cookingHistoryError, refetchCookingHistory, metas, metasError, refetchMetas, recipes: allRecipes, recipesError, refetchRecipes } = useAppData()
   
   const recipes = useMemo(() => {
     const map: Record<string, Recipe> = {}
@@ -103,6 +104,11 @@ export default function HistoryPage() {
     )
   }
 
+  if (cookingHistoryError || recipesError || metasError) {
+    return <div className="p-6 max-w-5xl mx-auto"><LoadingErrorRetry loading={false} error={cookingHistoryError || recipesError || metasError}
+      errorPrefix="Couldn’t load your cooking history." retry={() => { void Promise.allSettled([refetchCookingHistory(), refetchRecipes(), refetchMetas()]) }}>{null}</LoadingErrorRetry></div>
+  }
+
   const recentWeeks = [...weeks]
     .filter(w => w.cookedRecipeIDs?.length > 0)
     .slice(0, 12)
@@ -148,6 +154,7 @@ export default function HistoryPage() {
                 <div
                   key={week}
                   className={`w-3.5 h-3.5 rounded-sm ${opacity} border border-border/30 shrink-0`}
+                  role="img" aria-label={`${week}: ${count} recipe${count !== 1 ? 's' : ''} cooked`}
                   title={`${week}: ${count} recipe${count !== 1 ? 's' : ''} cooked`}
                 />
               )

@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import { X, Check, Loader2, Target } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 import { getGoals, saveGoals } from '@/lib/consumptionLog'
 import { NUTRIENTS } from '@/lib/nutrition'
 import type { NutritionGoals } from '@/types/nutrition'
@@ -17,8 +18,10 @@ const EMPTY: Record<string, string> = {
 
 export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; onSaved?: () => void }) {
   const { user } = useAuth()
+  const dialogRef = useDialogFocus(onClose)
   const [values, setValues] = useState<Record<string, string>>(EMPTY)
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedOk, setSavedOk] = useState(false)
   const [error, setError] = useState('')
@@ -39,7 +42,7 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
           })
         }
       })
-      .catch(() => {})
+      .catch(() => { setLoadFailed(true); setError("Couldn’t load your goals. Close and reopen to try again.") })
       .finally(() => setLoading(false))
   }, [user])
 
@@ -60,7 +63,7 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
   })()
 
   const handleSave = async () => {
-    if (!user || !parsed) return
+    if (!user || !parsed || loadFailed) return
     setSaving(true)
     setError('')
     try {
@@ -75,11 +78,11 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
   }
 
   return (
-    <div className="fixed inset-0 z-[95]">
+    <div className="nutrition-dialog fixed inset-0 z-[95]">
       <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface border border-border rounded-t-3xl max-h-[88vh] flex flex-col animate-fade-in md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:w-full">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="daily-goals-title" className="absolute bottom-0 left-0 right-0 max-w-lg mx-auto bg-surface border border-border rounded-t-3xl max-h-[88vh] flex flex-col animate-fade-in md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:w-full">
         <div className="shrink-0 px-5 pt-4 pb-3 flex items-center justify-between border-b border-border">
-          <h2 className="font-display text-2xl text-cream font-light flex items-center gap-2">
+          <h2 id="daily-goals-title" className="font-display text-2xl text-cream font-light flex items-center gap-2">
             <Target size={18} className="text-amber" /> Daily goals
           </h2>
           <button
@@ -141,10 +144,10 @@ export default function GoalsModal({ onClose, onSaved }: { onClose: () => void; 
         </div>
 
         <div className="shrink-0 px-5 py-4 border-t border-border">
-          {error && <p className="text-red-400 text-xs font-body mb-2">{error}</p>}
+          {error && <p role="alert" className="text-red-400 text-xs font-body mb-2">{error}</p>}
           <button
             onClick={handleSave}
-            disabled={!parsed || saving || loading}
+            disabled={!parsed || saving || loading || loadFailed}
             className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-40"
           >
             {savedOk ? (<><Check size={16} /> Saved!</>) :

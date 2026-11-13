@@ -621,7 +621,7 @@ export default function InsightsTab({ userId, goals }: { userId: string; goals: 
                   .
                 </p>
                 <div className="bg-surface border border-border rounded-2xl p-5">
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-y-5 gap-x-2">
+                  <div className="goal-ring-grid grid gap-y-5 gap-x-2">
                     {NUTRIENTS.map(n => {
                       const kindRing: RingKind = CEILING_KEYS.has(n.key) ? 'ceiling' : 'floor'
                       // Compounded, pro-rated target. elapsedFraction=1 because the

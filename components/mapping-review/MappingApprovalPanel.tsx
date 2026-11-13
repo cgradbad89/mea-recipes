@@ -42,6 +42,7 @@ export default function MappingApprovalPanel({
   return (
     <div className="bg-card border border-border rounded-2xl p-5 mt-6">
       <h2 className="font-display text-xl text-cream font-light mb-3">Approve Cooking Mode map</h2>
+      <p className="text-faint text-xs font-body mb-4">Approval records your review. A separate promotion is required before this map is used in Cooking Mode.</p>
       <dl className="grid grid-cols-2 gap-3 text-sm font-body mb-4">
         <div>
           <dt className="text-faint text-xs">Recipe</dt>

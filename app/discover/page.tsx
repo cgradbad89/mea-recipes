@@ -793,6 +793,7 @@ export default function DiscoverPage() {
             <div className="space-y-3 mb-4">
               <div className="flex flex-col md:flex-row gap-3 md:items-center">
                 <select
+                  aria-label="Week for plan suggestions"
                   value={planWeek}
                   onChange={e => setPlanWeek(e.target.value)}
                   className="input-field md:w-56"
@@ -810,6 +811,7 @@ export default function DiscoverPage() {
                     <button
                       key={opt.v}
                       onClick={() => setPlanMode(opt.v)}
+                      aria-pressed={planMode === opt.v}
                       className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border ${
                         planMode === opt.v
                           ? 'bg-amber text-ink border-amber'
@@ -956,6 +958,7 @@ export default function DiscoverPage() {
         {!generatedRecipe ? (
           <div className="space-y-3">
             <textarea
+              aria-label="Describe the recipe to generate"
               ref={generateTextareaRef}
               value={generateQuery}
               onChange={e => setGenerateQuery(e.target.value)}

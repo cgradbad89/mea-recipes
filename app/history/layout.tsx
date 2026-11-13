@@ -7,7 +7,7 @@ export default function HistoryLayout({ children }: { children: React.ReactNode 
       <Navigation />
       <main className="md:pl-56 pb-20 md:pb-0 min-h-screen flex flex-col">
         <SignInBanner />
-        <div className="flex-1">{children}</div>
+        <div className="warm-page flex-1">{children}</div>
       </main>
     </div>
   )

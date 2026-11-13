@@ -26,6 +26,15 @@ describe('Warm Pantry navigation', () => {
     expect(mobile.className).toContain('recipes-mobile-nav')
     expect(within(mobile).getByRole('link', { name: 'Recipes' }).getAttribute('aria-current')).toBe('page')
   })
+  it('keeps mobile navigation warm and identifies pages in More', () => {
+    state.pathname = '/history'
+    render(<Navigation />)
+    const mobile = screen.getByRole('navigation', { name: 'Mobile navigation' })
+    expect(mobile.className).toContain('recipes-mobile-nav')
+    expect(within(mobile).getByRole('button', { name: 'More' }).getAttribute('aria-current')).toBe('page')
+    fireEvent.click(within(mobile).getByRole('button', { name: 'More' }))
+    expect(within(screen.getByRole('dialog', { name: 'More navigation' })).getByRole('link', { name: 'History' }).getAttribute('aria-current')).toBe('page')
+  })
   it('updates the current destination and keeps the admin item restricted', () => {
     state.pathname = '/grocery'
     const { rerender } = render(<Navigation />)

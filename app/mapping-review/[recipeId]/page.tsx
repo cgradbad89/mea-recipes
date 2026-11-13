@@ -230,6 +230,7 @@ export default function MappingReviewRecipePage() {
                 <CheckCircle2 size={40} className="text-amber mx-auto mb-4" aria-hidden="true" />
                 <h1 className="font-display text-3xl text-cream font-light mb-2">{data.recipeTitle}</h1>
                 <p className="text-amber text-sm font-body mb-1">Cooking Mode map approved</p>
+                <p className="text-faint text-sm font-body mb-3">Approval does not activate this map in Cooking Mode; promotion is a separate step.</p>
                 <p className="text-faint text-sm font-body mb-6">
                   {relationshipCount} ingredient-step relationships
                   {approvalMode === 'HUMAN_ASSISTED' ? ' · reviewed by an admin' : ' · fully automatic'}

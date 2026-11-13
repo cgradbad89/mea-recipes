@@ -9,6 +9,7 @@ import {
 } from 'recharts'
 import { TrendingUp, Star, ChefHat, Globe, Download, Loader2 } from 'lucide-react'
 import RecipeImage from '@/components/RecipeImage'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 
 const CUISINE_COLORS = [
@@ -28,7 +29,7 @@ function exportCSV(rows: string[][], filename: string) {
 
 export default function InsightsPage() {
   const { user } = useAuth()
-  const { cookingHistory: weeks, cookingHistoryLoading: weeksLoading, metas, recipes, recipesLoading } = useAppData()
+  const { cookingHistory: weeks, cookingHistoryLoading: weeksLoading, cookingHistoryError, refetchCookingHistory, metas, metasError, refetchMetas, recipes, recipesLoading, recipesError, refetchRecipes } = useAppData()
 
   const recipeMap = useMemo(() => {
     const map: Record<string, Recipe> = {}
@@ -151,10 +152,15 @@ export default function InsightsPage() {
     )
   }
 
+  if (cookingHistoryError || recipesError || metasError) {
+    return <div className="p-6 max-w-5xl mx-auto"><LoadingErrorRetry loading={false} error={cookingHistoryError || recipesError || metasError}
+      errorPrefix="Couldn’t load your cooking insights." retry={() => { void Promise.allSettled([refetchCookingHistory(), refetchRecipes(), refetchMetas()]) }}>{null}</LoadingErrorRetry></div>
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-wrap gap-4 items-start justify-between mb-8">
         <div>
           <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Insights</h1>
           <p className="text-faint text-sm font-body">What your cooking says about you</p>
@@ -211,7 +217,7 @@ export default function InsightsPage() {
                   itemStyle={{ color: '#a0998f' }}
                 />
                 <Legend
-                  formatter={(value) => <span style={{ color: '#a0998f', fontSize: 11, textTransform: 'capitalize' }}>{value}</span>}
+                  formatter={(value) => <span style={{ color: '#61584c', fontSize: 11, textTransform: 'capitalize' }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -225,8 +231,8 @@ export default function InsightsPage() {
           <h2 className="font-display text-xl text-cream font-light mb-5">Rating distribution</h2>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={ratingData} barSize={32}>
-              <XAxis dataKey="rating" tick={{ fill: '#a0998f', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#a0998f', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <XAxis dataKey="rating" tick={{ fill: '#61584c', fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#61584c', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip
                 contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}
                 labelStyle={{ color: '#f5f0e8' }}
@@ -245,8 +251,8 @@ export default function InsightsPage() {
           <h2 className="font-display text-xl text-cream font-light mb-5">Recipes cooked per month</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={discoveryData} barSize={20}>
-              <XAxis dataKey="month" tick={{ fill: '#a0998f', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#a0998f', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <XAxis dataKey="month" tick={{ fill: '#61584c', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#61584c', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip
                 contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}
                 labelStyle={{ color: '#f5f0e8' }}

@@ -441,3 +441,80 @@
   .detail-content .detail-section { padding:18px; }
   .detail-content .detail-section-heading { flex-wrap:wrap; }
 }
+
+/* Remaining application pages. Fixed overlays retain their own established
+   theme; the page palette never reaches the contents of a modal or sheet. */
+.warm-page {
+  --pantry-bg:#f7f5ef; --pantry-surface:#fffefa; --pantry-ink:#202a24;
+  --pantry-green:#285c45; --pantry-border:#d3cbbd;
+  --goal-amber:#865009; --goal-red:#a2372e; --goal-green:#286448; --goal-track:#e8e0d4;
+  background:var(--pantry-bg); color:var(--pantry-ink); min-width:0;
+  font-family:var(--font-dm-sans),system-ui,sans-serif;
+}
+.warm-page :focus-visible { outline:3px solid #b76b0b; outline-offset:3px; }
+.warm-page :is(.text-cream):not(.fixed):not(.fixed *) { color:#202a24; }
+.warm-page :is(.text-faint,.text-muted):not(.fixed):not(.fixed *) { color:#61584c; }
+.warm-page :is(.text-amber):not(.fixed):not(.fixed *) { color:#865009; }
+.warm-page :is(.text-red-400):not(.fixed):not(.fixed *) { color:#9f3028; }
+.warm-page :is(.text-green-400):not(.fixed):not(.fixed *) { color:#286448; }
+.warm-page :is(.bg-surface,.bg-card):not(.fixed):not(.fixed *) { background-color:#fffefa; }
+.warm-page :is(.border-border):not(.fixed):not(.fixed *) { border-color:#d3cbbd; }
+.warm-page :is(.input-field):not(.fixed):not(.fixed *) { color:#202a24; background:#fffefa; border-color:#a89e90; min-width:0; }
+.warm-page :is(.input-field):not(.fixed):not(.fixed *)::placeholder { color:#756e65; }
+.warm-page :is(.btn-primary):not(.fixed):not(.fixed *) { background:#285c45; color:#fffefa; min-height:44px; }
+.warm-page :is(.btn-primary):not(.fixed):not(.fixed *):hover { background:#1d4432; }
+.warm-page :is(.btn-ghost):not(.fixed):not(.fixed *) { background:#fffefa; border-color:#bcb2a3; color:#285c45; min-height:44px; }
+.warm-page :is(.btn-ghost):not(.fixed):not(.fixed *):hover { background:#e8eee5; color:#1d4432; }
+.warm-page :is(.hover\:text-cream):not(.fixed):not(.fixed *):hover { color:#202a24; }
+.warm-page :is(.hover\:bg-card,.hover\:bg-surface):not(.fixed):not(.fixed *):hover { background:#e8eee5; }
+.warm-page :is(.bg-amber):not(.fixed):not(.fixed *) { background:#c58229; color:#202a24; }
+.warm-page [role=alert]:not(.fixed):not(.fixed *) { color:#8b3026; background:#fff2ed; border-color:#c99d8e; }
+.warm-page .recipe-card:not(.warm-recipe-card) { background:#fffefa; border-color:#e3ded4; }
+.warm-page .warm-recipe-card .bg-card { background:#e9e3d7; }
+.warm-page .warm-recipe-card .warm-bookmark { background:#fffefa; color:#214e3b; }
+.warm-page .warm-recipe-card .warm-bookmark.is-wanted { background:#285c45; color:#fffefa; }
+.warm-page .warm-recipe-card [class~="bg-ink/70"] .text-amber { color:#f5c36a; }
+.warm-page .warm-plan-button { background:#a65b10; color:#fffefa; }
+.warm-page h1 { overflow-wrap:anywhere; }
+.warm-page :is(button,a,input,select,textarea):not(.fixed):not(.fixed *) { touch-action:manipulation; }
+.warm-page button:not(.fixed):not(.fixed *) { min-height:44px; }
+.warm-page button:disabled:not(.fixed):not(.fixed *) { opacity:.65; }
+.warm-page .recharts-text { fill:#61584c; }
+@media (max-width:639px) {
+  .warm-page > .p-6 { padding:24px 16px 88px; }
+  .warm-page h1.text-5xl { font-size:2.75rem; line-height:1; }
+  .warm-page .grid { min-width:0; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .warm-page *, .warm-page *::before, .warm-page *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+}
+.warm-page .goal-ring-grid { grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); }
+@media (max-width:639px) {
+  .warm-page .favorites-toolbar { flex-wrap:wrap; }
+  .warm-page .favorites-sort { flex-basis:100%; }
+}
+.warm-page #bookmarklet .bg-ink\/60 { background:#e8e1d5; }
+.warm-page ::-webkit-scrollbar-track { background:#eee8dd; }
+.warm-page ::-webkit-scrollbar-thumb { background:#aaa092; border-radius:6px; }
+.recipes-mobile-nav button[aria-current="page"] { color:#ffc35a; }
+.warm-page .tag:not(.fixed *), .warm-page .tag-amber:not(.fixed *) { background:#f8ead0; color:#754500; border-color:#e7c892; }
+.warm-page [role=alert]:not(.fixed):not(.fixed *) :is(p,span,button) { color:#8b3026; }
+.warm-page :is(.text-amber\/40,.text-amber\/60,.text-amber\/70,.text-amber\/80):not(.fixed *),
+.warm-page #bookmarklet code { color:#865009; }
+/* The nutrition sheets are themed separately so scanner imagery and other
+   application overlays keep their own legible backgrounds. */
+.nutrition-dialog .bg-surface, .nutrition-dialog .bg-card { background:#fffefa; }
+.nutrition-dialog .text-cream { color:#202a24; }
+.nutrition-dialog .text-muted, .nutrition-dialog .text-faint { color:#61584c; }
+.nutrition-dialog .text-amber { color:#865009; }
+.nutrition-dialog .text-red-400 { color:#9f3028; }
+.nutrition-dialog .text-green-400 { color:#286448; }
+.nutrition-dialog .border-border { border-color:#d3cbbd; }
+.nutrition-dialog .input-field { background:#fffefa; color:#202a24; border-color:#a89e90; min-width:0; }
+.nutrition-dialog .input-field::placeholder { color:#756e65; }
+.nutrition-dialog .btn-primary { background:#285c45; color:#fffefa; min-height:44px; }
+.nutrition-dialog .btn-primary:hover { background:#1d4432; }
+.nutrition-dialog .btn-ghost { background:#fffefa; color:#285c45; border-color:#bcb2a3; min-height:44px; }
+.nutrition-dialog .bg-amber { background:#d5a257; color:#202a24; }
+.nutrition-dialog .hover\:text-cream:hover { color:#202a24; }
+.nutrition-dialog :focus-visible { outline:3px solid #b76b0b; outline-offset:2px; }

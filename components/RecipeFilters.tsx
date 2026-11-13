@@ -55,6 +55,7 @@ export default function RecipeFilters({
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint" />
           <input
             type="text"
+            aria-label="Search recipes and ingredients"
             placeholder="Search recipes, ingredients..."
             value={search}
             onChange={e => onSearchChange(e.target.value)}
@@ -63,6 +64,7 @@ export default function RecipeFilters({
           {search && (
             <button
               onClick={() => onSearchChange('')}
+              aria-label="Clear search"
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-faint hover:text-muted"
             >
               <X size={14} />
@@ -71,6 +73,7 @@ export default function RecipeFilters({
         </div>
         <button
           onClick={() => setShowFilters(f => !f)}
+          aria-label="Filters" aria-expanded={showFilters}
           className={`btn-ghost flex items-center gap-2 ${hasFilters ? 'border-amber/40 text-amber' : ''}`}
         >
           <SlidersHorizontal size={14} />
@@ -120,6 +123,7 @@ export default function RecipeFilters({
                     <button
                       key={star}
                       onClick={() => onMinRatingChange(minRating === star ? 0 : star)}
+                      aria-label={`Minimum ${star} ${star === 1 ? 'star' : 'stars'}`} aria-pressed={minRating === star}
                       className="transition-colors"
                     >
                       <Star

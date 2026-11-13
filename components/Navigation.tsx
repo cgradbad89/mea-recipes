@@ -113,7 +113,7 @@ export default function Navigation() {
 
       {/* Mobile bottom nav — five cells: four primary tabs + a "More" cell that
           opens the slide-up sheet. The rest of NAV_ITEMS (and Add) live there. */}
-      <nav aria-label="Mobile navigation" className={`${(pathname === '/recipes' || pathname.startsWith('/recipes/') || pathname === '/plan' || pathname === '/grocery') ? 'recipes-mobile-nav' : ''} md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]`}>
+      <nav aria-label="Mobile navigation" className={`recipes-mobile-nav md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]`}>
         {PRIMARY_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
@@ -134,6 +134,7 @@ export default function Navigation() {
           ref={moreButtonRef}
           onClick={() => setShowMore(true)}
           aria-label="More"
+          aria-current={moreActive ? 'page' : undefined}
           aria-haspopup="dialog"
           aria-expanded={showMore}
           className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[52px] rounded-xl transition-all ${
@@ -170,6 +171,7 @@ export default function Navigation() {
                   <Link
                     key={href}
                     href={href}
+                    aria-current={active ? 'page' : undefined}
                     onClick={() => setShowMore(false)}
                     className={`flex items-center gap-3 px-3 min-h-[48px] rounded-xl transition-all ${
                       active

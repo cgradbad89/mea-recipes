@@ -13,7 +13,7 @@ import type { NutritionMacros } from '@/types/recipe'
 
 export type RingKind = 'floor' | 'ceiling'
 
-const COLORS = { amber: '#E8A838', red: '#EF4444', green: '#10B981', track: '#2E2820' }
+const COLORS = { amber: 'var(--goal-amber, #E8A838)', red: 'var(--goal-red, #EF4444)', green: 'var(--goal-green, #10B981)', track: 'var(--goal-track, #2E2820)' }
 
 interface Props {
   nutrientKey: keyof NutritionMacros

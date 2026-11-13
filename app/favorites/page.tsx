@@ -11,6 +11,7 @@ import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
 import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
 import SignInOptions from '@/components/SignInOptions'
+import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 import { normalizeRecipeCategory } from '@/lib/recipeCategories'
 
@@ -31,7 +32,7 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
 
 export default function FavoritesPage() {
   const { user } = useAuth()
-  const { favorites, favoritesLoading, metas, recipes: allRecipes, recipesLoading } = useAppData()
+  const { favorites, favoritesLoading, favoritesError, refetchFavorites, metas, recipes: allRecipes, recipesLoading, recipesError, refetchRecipes } = useAppData()
   const loaded = !favoritesLoading
 
   const [search, setSearch] = useState(() => readLS('mea_favorites_search', ''))
@@ -57,8 +58,23 @@ export default function FavoritesPage() {
   const [filter, setFilter] = useState<FilterOption>(() => readLS<FilterOption>('mea_favorites_filter', 'none', v => (v as FilterOption)))
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(() => readLS<TimeFilter>('mea_favorites_timeFilter', 0, v => (parseInt(v, 10) || 0) as TimeFilter))
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
+  const timeFilterRef = useRef<HTMLDivElement>(null)
+  const timeFilterButtonRef = useRef<HTMLButtonElement>(null)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
+
+  useEffect(() => {
+    if (!timeDropdownOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setTimeDropdownOpen(false); timeFilterButtonRef.current?.focus() }
+    }
+    const onPointerDown = (event: MouseEvent) => {
+      if (!timeFilterRef.current?.contains(event.target as Node)) setTimeDropdownOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('mousedown', onPointerDown)
+    return () => { document.removeEventListener('keydown', onKeyDown); document.removeEventListener('mousedown', onPointerDown) }
+  }, [timeDropdownOpen])
 
   // Persist filters to localStorage
   useEffect(() => {
@@ -213,6 +229,9 @@ export default function FavoritesPage() {
         </p>
       </div>
 
+      <LoadingErrorRetry loading={false} error={favoritesError || recipesError}
+        retry={() => { void Promise.allSettled([refetchFavorites(), refetchRecipes()]) }}
+        errorPrefix="Couldn’t load your favorites.">
       {!loading && favoriteRecipes.length > 0 && (
         <>
           <div className="mb-6">
@@ -228,13 +247,14 @@ export default function FavoritesPage() {
           </div>
 
           {/* Sort & filter buttons */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1 min-w-0">
+          <div className="favorites-toolbar flex items-center gap-2 mb-4">
+            <div className="favorites-sort flex items-center gap-2 overflow-x-auto pb-1 flex-1 min-w-0">
               <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Sort</span>
               {SORT_OPTIONS.map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => setSort(opt.value)}
+                  aria-pressed={sort === opt.value}
                   className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
                     sort === opt.value
                       ? 'bg-amber/10 text-amber border-amber/30'
@@ -247,9 +267,11 @@ export default function FavoritesPage() {
             </div>
 
             {/* Time filter dropdown */}
-            <div className="relative ml-1 shrink-0">
+            <div ref={timeFilterRef} className="relative ml-1 shrink-0">
               <button
+                ref={timeFilterButtonRef}
                 onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
+                aria-expanded={timeDropdownOpen}
                 className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border flex items-center gap-1 ${
                   timeFilter > 0
                     ? 'bg-amber/10 text-amber border-amber/30'
@@ -264,7 +286,7 @@ export default function FavoritesPage() {
                   {TIME_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => { setTimeFilter(opt.value); setTimeDropdownOpen(false) }}
+                      onClick={() => { setTimeFilter(opt.value); setTimeDropdownOpen(false); timeFilterButtonRef.current?.focus() }}
                       className={`w-full text-left px-3 py-2 text-xs font-body transition-colors ${
                         timeFilter === opt.value ? 'text-amber bg-amber/5' : 'text-muted hover:text-cream hover:bg-surface'
                       }`}
@@ -283,6 +305,7 @@ export default function FavoritesPage() {
               <button
                 key={opt.value}
                 onClick={() => setFilter(filter === opt.value ? 'none' : opt.value)}
+                aria-pressed={filter === opt.value}
                 className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
                   filter === opt.value
                     ? 'bg-amber/10 text-amber border-amber/30'
@@ -318,10 +341,11 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-fade-in">
           {filtered.map(recipe => (
-            <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} />
+            <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} warm />
           ))}
         </div>
       )}
+      </LoadingErrorRetry>
     </div>
   )
 }

@@ -22,6 +22,7 @@ import {
   Flashlight, ZoomIn, ZoomOut,
 } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 import {
   addLogEntry, saveFavorite, getSavedFoods, getRecents, autoMealForTime, scaleMacros,
 } from '@/lib/consumptionLog'
@@ -213,6 +214,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
   onLogged?: () => void
 }) {
   const { user } = useAuth()
+  const dialogRef = useDialogFocus(onClose)
   const [mode, setMode] = useState<Mode>('saved')
 
   // shared entry fields — servings is the canonical multiplier; grams is an
@@ -957,12 +959,12 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
   }, [history, savedQuery])
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center p-4">
+    <div className="nutrition-dialog fixed inset-0 z-[95] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className="relative w-full max-w-2xl bg-surface border border-border rounded-3xl max-h-[88vh] flex flex-col overflow-hidden animate-fade-in">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="log-food-title" className="relative w-full max-w-2xl bg-surface border border-border rounded-3xl max-h-[88vh] flex flex-col overflow-hidden animate-fade-in">
         {/* header */}
         <div className="shrink-0 px-5 pt-4 pb-3 flex items-center justify-between border-b border-border">
-          <h2 className="font-display text-2xl text-cream font-light">Log food</h2>
+          <h2 id="log-food-title" className="font-display text-2xl text-cream font-light">Log food</h2>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -986,6 +988,7 @@ export default function LogFoodSheet({ logDate, onClose, onLogged }: {
               <button
                 key={m}
                 onClick={() => { setMode(m); setSaveError('') }}
+                aria-pressed={mode === m}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-xl text-[10px] font-body font-medium transition-all ${
                   mode === m ? 'bg-amber text-ink' : 'bg-card border border-border text-muted hover:text-cream'
                 }`}

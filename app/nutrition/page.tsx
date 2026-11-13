@@ -299,6 +299,7 @@ export default function NutritionPage() {
             <button
               key={t}
               onClick={() => setTab(t)}
+              aria-pressed={tab === t}
               className={`px-4 py-2.5 text-sm font-body font-medium -mb-px border-b-2 transition-colors ${
                 tab === t ? 'border-amber text-amber' : 'border-transparent text-muted hover:text-cream'
               }`}
@@ -320,7 +321,7 @@ export default function NutritionPage() {
             <button
               onClick={() => setViewedDate(d => addDays(d, -1))}
               aria-label="Previous day"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-faint hover:text-cream hover:bg-card transition-all"
+              className="w-11 h-11 rounded-lg flex items-center justify-center text-faint hover:text-cream hover:bg-card transition-all"
             >
               <ChevronLeft size={16} />
             </button>
@@ -330,7 +331,7 @@ export default function NutritionPage() {
             <button
               onClick={() => setViewedDate(d => addDays(d, 1))}
               aria-label="Next day"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-faint hover:text-cream hover:bg-card transition-all"
+              className="w-11 h-11 rounded-lg flex items-center justify-center text-faint hover:text-cream hover:bg-card transition-all"
             >
               <ChevronRight size={16} />
             </button>
@@ -408,7 +409,7 @@ function TodayTab({
       {/* Goal rings — or a gentle prompt when no goals are set yet */}
       {goalsSet ? (
         <div className="bg-surface border border-border rounded-2xl p-5 mb-8">
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-y-5 gap-x-2">
+          <div className="goal-ring-grid grid gap-y-5 gap-x-2">
             {NUTRIENTS.map(n => {
               const kind: RingKind = CEILING_KEYS.has(n.key) ? 'ceiling' : 'floor'
               const consumedValue = n.key === 'calories' ? Math.max(0, totals.calories - burnedCalories) : totals[n.key]
