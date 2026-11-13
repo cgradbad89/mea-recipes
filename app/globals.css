@@ -244,11 +244,6 @@
 .plan-week-nav button { min-height: 44px; min-width: 44px; border: 1px solid #285c45; color: #1d382b; border-radius: 10px; display: grid; place-items: center; }
 .plan-week-nav strong { font-family: var(--font-cormorant), Georgia, serif; font-size: clamp(1.3rem, 2.5vw, 1.8rem); line-height: 1; flex: 1; text-align: center; }
 .plan-week-nav .plan-today { padding: 0 14px; font-size: 13px; font-weight: 700; }
-.plan-day-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 24px; }
-.plan-day-strip button { min-width: 0; min-height: 62px; border-radius: 10px; background: #eee9df; color: #244632; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
-.plan-day-strip small { font-size: 12px; font-weight: 400; }
-.plan-day-strip [aria-pressed=true] { background: #1d382b; color: #fffefa; }
-.plan-today-label { font-size: 9px; text-transform: uppercase; letter-spacing: .02em; }
 .plan-agenda-section { margin: 28px 0 40px; }
 .plan-agenda-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .plan-agenda-heading h2 { font-family: var(--font-cormorant), Georgia, serif; font-size: 27px; font-weight: 700; }
@@ -287,7 +282,7 @@
 .plan-page .btn-ghost { color: #285c45; }
 .plan-page .btn-primary { color: white; }
 .plan-page [role=alert] { color: #8b3026; background: #fff2ed; }
-.plan-page button:not(.plan-day-strip button) { touch-action: manipulation; }
+.plan-page button { touch-action: manipulation; }
 .plan-sheet { color: #202a24; }
 .plan-sheet-title { font: 700 25px/1.05 var(--font-cormorant), Georgia, serif; overflow-wrap: anywhere; }
 .plan-sheet-subtitle { margin-top: 5px; color: #61584c; font-size: 13px; }

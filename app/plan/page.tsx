@@ -213,7 +213,6 @@ export default function PlanPage() {
   const [sheetFor, setSheetFor] = useState<string | null>(null)
   const sheetRef = useRef<HTMLDivElement>(null)
   const sheetOpenerRef = useRef<HTMLElement | null>(null)
-  const [focusedDay, setFocusedDay] = useState<string | null>(null)
   useEffect(() => {
     if (!sheetFor) return
     const sheet = sheetRef.current
@@ -291,7 +290,6 @@ export default function PlanPage() {
 
   const navigateWeek = (delta: number) => {
     manualNavigationRef.current = true
-    setFocusedDay(null)
     setWeekID(w => addWeeks(w, delta))
   }
 
@@ -433,7 +431,6 @@ export default function PlanPage() {
   const weekDateSet = new Set(weekDates)
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const selectedDay = focusedDay && weekDateSet.has(focusedDay) ? focusedDay : weekDateSet.has(today) ? today : weekDates[0]
   // Read-time adapter: legacy string entries normalize to Unscheduled + a role
   // derived from the recipe's category; object entries keep their stored day/role.
   const plannedEntries = normalizePlanned(
@@ -1160,19 +1157,9 @@ export default function PlanPage() {
       <div className="plan-week-nav">
         <button onClick={() => navigateWeek(-1)} aria-label="Previous week"><ChevronLeft size={21} /></button>
         <strong>{formatWeekLabel(weekID)}</strong>
-        <button className="plan-today" onClick={() => { manualNavigationRef.current = true; setFocusedDay(null); setWeekID(weekIDFromDate(new Date())) }}>This week</button>
+        <button className="plan-today" onClick={() => { manualNavigationRef.current = true; setWeekID(weekIDFromDate(new Date())) }}>This week</button>
         <button onClick={() => navigateWeek(1)} aria-label="Next week"><ChevronRight size={21} /></button>
       </div>
-      <nav className="plan-day-strip" aria-label="Days in this week">
-        {weekDates.map(date => {
-          const d = new Date(date + 'T12:00:00')
-          return <button key={date} aria-pressed={selectedDay === date} aria-label={`${d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}${date === today ? ', today' : ''}`}
-            onClick={() => { setFocusedDay(date); document.getElementById(`plan-day-${date}`)?.scrollIntoView?.({ block: 'nearest', behavior: 'auto' }) }}>
-            <span>{d.toLocaleDateString('en-US', { weekday: 'short' })}</span><small>{d.getDate()}</small>{date === today && <span className="plan-today-label">Today</span>}
-          </button>
-        })}
-      </nav>
-
       {planActionError && !ratingPromptFor && !sheetFor && (
         <p role="alert" className="mb-4 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
           {planActionError}

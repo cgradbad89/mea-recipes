@@ -380,17 +380,29 @@ describe('actual Add-to-Plan pickers keep canonical keys and next-week defaults'
 })
 
 describe('Warm Pantry planner navigation and actions', () => {
-  it('returns to the current week and selects a day without writing plan data', () => {
+  it('returns to the current week without writing plan data', () => {
     render(<PlanPage />)
     emit(current, plan(current))
+    expect(screen.queryByRole('navigation', { name: 'Days in this week' })).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 3, name: /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/ })).toHaveLength(7)
+    expect(screen.getByRole('link', { name: 'Add meal for Monday, Sep 28' }).getAttribute('href'))
+      .toBe(`/recipes?week=${current}&day=2026-09-28`)
     fireEvent.click(screen.getByRole('button', { name: 'Next week' }))
+    expectWeek(next)
     emit(next, null)
+    expect(screen.getAllByRole('heading', { level: 3, name: /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/ })).toHaveLength(7)
+    expect(screen.getByRole('link', { name: 'Add meal for Sunday, Oct 11' }).getAttribute('href'))
+      .toBe(`/recipes?week=${next}&day=2026-10-11`)
+    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }))
+    expectWeek(current)
+    emit(current, plan(current))
+    fireEvent.click(screen.getByRole('button', { name: 'Previous week' }))
+    expectWeek(previous)
+    emit(previous, null)
     fireEvent.click(screen.getByRole('button', { name: 'This week' }))
     expectWeek(current)
     emit(current, plan(current))
-    const monday = screen.getByRole('button', { name: 'Monday, Sep 28' })
-    fireEvent.click(monday)
-    expect(monday.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getAllByRole('heading', { level: 3, name: /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/ })).toHaveLength(7)
     expect(mocks.addRecipeToWeekPlan).not.toHaveBeenCalled()
   })
 
