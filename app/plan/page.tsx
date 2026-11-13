@@ -211,6 +211,24 @@ export default function PlanPage() {
   // Batch 5.2: tapping a tile opens this action sheet (replaces the inline action row
   // + the per-tile day/week dropdowns).
   const [sheetFor, setSheetFor] = useState<string | null>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const sheetOpenerRef = useRef<HTMLElement | null>(null)
+  const [focusedDay, setFocusedDay] = useState<string | null>(null)
+  useEffect(() => {
+    if (!sheetFor) return
+    const sheet = sheetRef.current
+    sheet?.querySelector<HTMLButtonElement>('[data-sheet-close]')?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); setSheetFor(null); return }
+      if (event.key !== 'Tab' || !sheet) return
+      const items = Array.from(sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled])'))
+      if (!items.length) return
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus() }
+      else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown); sheetOpenerRef.current?.focus() }
+  }, [sheetFor])
   const [ratingPromptFor, setRatingPromptFor] = useState<string | null>(null)
   const [ratingReadbackPending, setRatingReadbackPending] = useState<string | null>(null)
   const [savingRating, setSavingRating] = useState(false)
@@ -273,6 +291,7 @@ export default function PlanPage() {
 
   const navigateWeek = (delta: number) => {
     manualNavigationRef.current = true
+    setFocusedDay(null)
     setWeekID(w => addWeeks(w, delta))
   }
 
@@ -404,6 +423,9 @@ export default function PlanPage() {
   // ─── Derived plan state (day + role aware) ────────────────────────────────
   const weekDates = getWeekDates(weekID)
   const weekDateSet = new Set(weekDates)
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const selectedDay = focusedDay && weekDateSet.has(focusedDay) ? focusedDay : weekDateSet.has(today) ? today : weekDates[0]
   // Read-time adapter: legacy string entries normalize to Unscheduled + a role
   // derived from the recipe's category; object entries keep their stored day/role.
   const plannedEntries = normalizePlanned(
@@ -664,6 +686,7 @@ export default function PlanPage() {
       return
     }
     setAddingToGrocery(recipeID)
+    setPlanActionError('')
     try {
       const effectiveContent = metas[recipeID]?.overrides?.content || recipe.content
       const { ingredients } = parseRecipeContent(effectiveContent)
@@ -675,6 +698,7 @@ export default function PlanPage() {
       setTimeout(() => setAddedToGrocery(null), 2000)
     } catch (e) {
       console.error('Failed to add ingredients to grocery:', e)
+      setPlanActionError('Couldn’t add those ingredients to grocery — try again.')
     } finally {
       setAddingToGrocery(null)
     }
@@ -702,8 +726,9 @@ export default function PlanPage() {
     if (!user) return
     setBulkAddingGrocery(true)
     setBulkAddResult(null)
+    setPlanActionError('')
+    let addedCount = 0
     try {
-      let addedCount = 0
       for (const entry of uncookedEntries) {
         const recipe = recipes[entry.recipeID]
         if (!recipe) continue
@@ -717,6 +742,7 @@ export default function PlanPage() {
     } catch (e) {
       console.error('Bulk add to grocery error:', e)
       setBulkAddResult(null)
+      setPlanActionError(`Couldn’t finish adding ingredients. ${addedCount} ${addedCount === 1 ? 'recipe was' : 'recipes were'} added before the error; check your grocery list before retrying.`)
     } finally {
       setBulkAddingGrocery(false)
     }
@@ -825,80 +851,36 @@ export default function PlanPage() {
     }
   }
 
-  // ─── A single planned recipe card (reused: day grid, mobile stack, Unscheduled) ──
+  // The same card and drop handlers are used in the agenda and week overview.
   const renderPlannedCard = (entry: PlannedEntry) => {
     const id = entry.recipeID
     const recipe = recipes[id]
-    if (!recipe) return null
-    // Task 3 — subtle left-edge color accent (inset shadow respects rounded corners):
-    // amber (#E8A838) = main, muted (#A89880) = side. Theme tokens, paired with the
-    // existing Main/Side text label below, so color is never the sole signal.
-    const roleAccent = entry.role === 'main'
-      ? 'shadow-[inset_3px_0_0_0_#E8A838]'
-      : 'shadow-[inset_3px_0_0_0_#A89880]'
+    if (!recipe) return <div key={id} className="plan-missing">Recipe unavailable</div>
+    const open = (element: HTMLElement) => { sheetOpenerRef.current = element; setPlanActionError(''); setSheetFor(id) }
     return (
-      <div
-        key={id}
-        draggable
-        onDragStart={e => {
-          setDraggingId(id)
-          e.dataTransfer.effectAllowed = 'move'
-          try { e.dataTransfer.setData('text/plain', id) } catch {}
-        }}
+      <div key={id} draggable
+        onDragStart={e => { setDraggingId(id); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', id) } catch {} }}
         onDragEnd={() => { setDraggingId(null); setDragOverKey(null) }}
-        onClick={() => setSheetFor(id)}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSheetFor(id) } }}
-        role="button"
-        tabIndex={0}
-        aria-label={`${recipe.title} — open actions`}
-        className={`bg-surface border border-border rounded-xl overflow-hidden cursor-pointer transition-opacity ${roleAccent} ${draggingId === id ? 'opacity-50' : ''}`}
-      >
-        {/* Image gets the room now; the name moves below it (fully readable). */}
-        <div className="relative">
-          <RecipeImage
-            src={metas[id]?.overrides?.imageURL || recipe.imageURL}
-            alt=""
-            category={metas[id]?.overrides?.category ?? recipe.category}
-            recipeID={recipe.id}
-            className="w-full aspect-[4/3]"
-            emojiClassName="text-3xl"
-          />
-          {/* Desktop drag affordance — the whole tile is draggable; this is the hint. */}
-          <span className="hidden lg:flex absolute top-1 left-1 items-center justify-center rounded bg-ink/40 text-cream/60 p-0.5" aria-hidden="true">
-            <GripVertical size={12} />
-          </span>
+        onClick={e => open(e.currentTarget)}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e.currentTarget) } }}
+        role="button" tabIndex={0} aria-label={`${recipe.title} — open actions`}
+        className={`plan-meal ${draggingId === id ? 'opacity-50' : ''}`}>
+        <RecipeImage src={metas[id]?.overrides?.imageURL || recipe.imageURL} alt=""
+          category={metas[id]?.overrides?.category ?? recipe.category} recipeID={recipe.id}
+          className="plan-meal-image" emojiClassName="text-2xl" />
+        <div className="plan-meal-copy">
+          <p className="plan-meal-title">{recipe.title}</p>
+          <p className="plan-meal-meta">{entry.role === 'main' ? 'Main' : 'Side'}{recipe.cuisine ? ` · ${recipe.cuisine}` : ''}</p>
         </div>
-        <div className="p-2">
-          <p className="text-cream text-xs font-body font-medium leading-snug line-clamp-2" title={recipe.title}>
-            {recipe.title}
-          </p>
-          <div className="flex items-center gap-1.5 mt-1">
-            {/* Role label (color + text, kept from 5.1) — toggling moved into the sheet. */}
-            <span
-              className={`text-[10px] font-body px-1.5 py-0.5 rounded-md border ${
-                entry.role === 'main'
-                  ? 'border-amber/30 text-amber bg-amber/10'
-                  : 'border-border text-faint'
-              }`}
-            >
-              {entry.role === 'main' ? 'Main' : 'Side'}
-            </span>
-            {recipe.cuisine && (
-              <span className="text-faint text-[10px] font-body capitalize truncate">{recipe.cuisine}</span>
-            )}
-          </div>
-        </div>
+        <GripVertical size={15} className="plan-drag-hint" aria-hidden="true" />
+        <ChevronRight size={19} aria-hidden="true" />
       </div>
     )
   }
 
   const emptyDayAffordance = (
-    <Link
-      href="/recipes"
-      className="flex items-center justify-center border border-dashed border-border rounded-xl py-5 text-faint/40 hover:text-amber hover:border-amber/30 transition-all"
-      title="Browse recipes to add"
-    >
-      <Plus size={16} />
+    <Link href="/recipes" className="plan-add-meal" title="Browse recipes to add to a week">
+      <Plus size={18} /> Add meal
     </Link>
   )
 
@@ -922,7 +904,7 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="plan-page"><div className="plan-page-inner">
       {/* Remove from plan confirmation modal */}
       {confirmRemoveFor && (
         <div
@@ -954,9 +936,9 @@ export default function PlanPage() {
           desktop. Mirrors the LogFoodSheet shell. Every action calls an EXISTING plan
           writer (no plan logic reimplemented). */}
       {sheetEntry && sheetRecipe && (
-        <div className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="plan-sheet-title">
           <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={() => setSheetFor(null)} />
-          <div className="relative w-full sm:max-w-md bg-surface border border-border rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
+          <div ref={sheetRef} className="plan-sheet relative w-full sm:max-w-md bg-surface border border-border rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
             {/* Header — thumbnail + name so it's clear which tile you're acting on */}
             <div className="flex items-center gap-3 p-4 border-b border-border shrink-0">
               <RecipeImage
@@ -968,15 +950,16 @@ export default function PlanPage() {
                 emojiClassName="text-xl"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-cream text-sm font-body font-medium leading-snug line-clamp-2">{sheetRecipe.title}</p>
-                <p className="text-faint text-xs font-body capitalize">{sheetEntry.role} · {sheetRecipe.cuisine}</p>
+                <h2 id="plan-sheet-title" className="plan-sheet-title">{sheetRecipe.title}</h2>
+                <p className="plan-sheet-subtitle">{sheetEntry.day && weekDateSet.has(sheetEntry.day) ? new Date(sheetEntry.day + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : 'Unscheduled'} · {sheetEntry.role === 'main' ? 'Main' : 'Side'}</p>
               </div>
-              <button onClick={() => setSheetFor(null)} aria-label="Close" className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream transition-all shrink-0">
+              <button data-sheet-close onClick={() => setSheetFor(null)} aria-label="Close" className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream transition-all shrink-0">
                 <X size={16} />
               </button>
             </div>
 
             <div className="overflow-y-auto p-4 space-y-4">
+              {planActionError && <p role="alert" className="rounded-xl px-3 py-2 text-sm">{planActionError}</p>}
               {/* 1. View recipe — first, since tapping the tile no longer navigates */}
               <Link
                 href={`/recipes/${sheetEntry.recipeID}`}
@@ -996,6 +979,8 @@ export default function PlanPage() {
                       <button
                         key={date}
                         onClick={() => handleAssignDay(sheetEntry, date)}
+                        aria-pressed={active}
+                        aria-label={d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                         className={`px-1 py-2 rounded-lg text-xs font-body transition-colors ${active ? 'bg-amber/15 text-amber border border-amber/30' : 'bg-card border border-border text-muted hover:text-cream'}`}
                       >
                         <span className="block">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
@@ -1005,9 +990,10 @@ export default function PlanPage() {
                   })}
                   <button
                     onClick={() => handleAssignDay(sheetEntry, null)}
+                    aria-pressed={!sheetEntry.day || !weekDateSet.has(sheetEntry.day)}
                     className={`px-1 py-2 rounded-lg text-xs font-body transition-colors ${(!sheetEntry.day || !weekDateSet.has(sheetEntry.day)) ? 'bg-amber/15 text-amber border border-amber/30' : 'bg-card border border-border text-muted hover:text-cream'}`}
                   >
-                    Unsch.
+                    Unscheduled
                   </button>
                 </div>
               </div>
@@ -1159,31 +1145,27 @@ export default function PlanPage() {
         </CenteredOverlay>
       )}
 
-      {/* Header + week picker */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="font-display text-4xl text-cream font-light">Meal Plan</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigateWeek(-1)}
-            aria-label="Previous week"
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-cream hover:border-amber/30 transition-all"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <span className="text-sm font-body text-muted w-36 text-center">
-            {formatWeekLabel(weekID)}
-          </span>
-          <button
-            onClick={() => navigateWeek(1)}
-            aria-label="Next week"
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-faint hover:text-cream hover:border-amber/30 transition-all"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
+      <header className="plan-header">
+        <h1>Meal Plan</h1>
+        <p>Plan meals for your week</p>
+      </header>
+      <div className="plan-week-nav">
+        <button onClick={() => navigateWeek(-1)} aria-label="Previous week"><ChevronLeft size={21} /></button>
+        <strong>{formatWeekLabel(weekID)}</strong>
+        <button className="plan-today" onClick={() => { manualNavigationRef.current = true; setFocusedDay(null); setWeekID(weekIDFromDate(new Date())) }}>This week</button>
+        <button onClick={() => navigateWeek(1)} aria-label="Next week"><ChevronRight size={21} /></button>
       </div>
+      <nav className="plan-day-strip" aria-label="Days in this week">
+        {weekDates.map(date => {
+          const d = new Date(date + 'T12:00:00')
+          return <button key={date} aria-pressed={selectedDay === date} aria-label={`${d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}${date === today ? ', today' : ''}`}
+            onClick={() => { setFocusedDay(date); document.getElementById(`plan-day-${date}`)?.scrollIntoView?.({ block: 'nearest', behavior: 'auto' }) }}>
+            <span>{d.toLocaleDateString('en-US', { weekday: 'short' })}</span><small>{d.getDate()}</small>{date === today && <span className="plan-today-label">Today</span>}
+          </button>
+        })}
+      </nav>
 
-      {planActionError && !ratingPromptFor && (
+      {planActionError && !ratingPromptFor && !sheetFor && (
         <p role="alert" className="mb-4 rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-3 text-red-400 text-sm font-body">
           {planActionError}
         </p>
@@ -1204,76 +1186,6 @@ export default function PlanPage() {
           {null}
         </LoadingErrorRetry>
       )}
-      {/* Sharing is explicit: private edits never mutate the persisted public snapshot. */}
-      {plannedIDList.length > 0 || publishedPlan ? (
-        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface/50 px-4 py-3">
-          <span role="status" className="text-sm font-body text-muted">
-            Shared plan: {publishedPlan
-              ? sharedPlanChanged ? 'Published — private changes not shared' : 'Published'
-              : 'Private'}
-          </span>
-          {plannedIDList.length > 0 && (
-            <button
-              onClick={handlePublishSharedPlan}
-              disabled={sharingPlan}
-              className="text-sm font-body text-faint hover:text-amber transition-colors disabled:opacity-40"
-            >
-              {sharingPlan && !publishedPlan ? 'Publishing…' : publishedPlan ? 'Update shared plan' : 'Publish plan'}
-            </button>
-          )}
-          {publishedPlan && (
-            <button
-              onClick={handleUnpublishSharedPlan}
-              disabled={sharingPlan}
-              className="text-sm font-body text-faint hover:text-red-400 transition-colors disabled:opacity-40"
-            >
-              {sharingPlan ? 'Working…' : 'Unpublish'}
-            </button>
-          )}
-        </div>
-      ) : null}
-
-      {/* Plan controls — rebuild grocery (existing) + add this week to calendar (Batch 6) */}
-      {(plannedIDList.length > 0 || hasCalendarWork) && (
-        <div className="mb-8 space-y-3">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            {plannedIDList.length > 0 && !showRebuildConfirm && (
-              <button
-                onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
-                disabled={rebuilding}
-                className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
-              >
-                {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
-                {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
-              </button>
-            )}
-            {hasCalendarWork && (
-              <button
-                onClick={() => { setPushError(null); setPushTime('18:30'); setShowCalendarPush(true) }}
-                disabled={pushing}
-                className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
-              >
-                {pushing ? <Loader2 size={14} className="animate-spin" /> : pushResult ? <Check size={14} className="text-green-400" /> : <CalendarPlus size={14} />}
-                {pushing ? 'Adding…' : 'Add this week to Calendar'}
-              </button>
-            )}
-            {pushResult && <span className="text-xs font-body text-muted">{pushResult}</span>}
-          </div>
-
-          {showRebuildConfirm && (
-            <div className="bg-surface border border-amber/20 rounded-xl p-4 animate-fade-in">
-              <p className="text-cream text-sm font-body mb-3">
-                This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
-              </p>
-              <div className="flex gap-2">
-                <button onClick={handleRebuildGrocery} className="btn-primary text-xs px-3 py-1.5">Rebuild</button>
-                <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <LoadingErrorRetry
         loading={loadingRecipes || planLoading}
         loadingLabel={planLoading ? 'Loading meal plan…' : 'Loading…'}
@@ -1285,118 +1197,41 @@ export default function PlanPage() {
         errorPrefix="Couldn’t load your meal plan data."
       >
         <>
-          {/* Planned section — day view */}
-          <section className="mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl text-cream font-light">
-                Planned
-                {uncookedEntries.length > 0 && (
-                  <span className="ml-2 text-faint text-sm font-body">{uncookedEntries.length}</span>
-                )}
-              </h2>
-              {uncookedEntries.length > 0 && (
-                <button
-                  onClick={handleBulkAddToGrocery}
-                  disabled={bulkAddingGrocery}
-                  className="btn-ghost flex items-center gap-1.5 text-xs"
-                >
-                  {bulkAddingGrocery ? <Loader2 size={13} className="animate-spin" /> : <ShoppingCart size={13} />}
-                  {bulkAddResult || (bulkAddingGrocery ? 'Adding...' : 'Add all to grocery')}
-                </button>
-              )}
+          <section className="plan-agenda-section" aria-label="Planned meals">
+            <div className="plan-agenda-heading">
+              <h2>Planned <span>{uncookedEntries.length} {uncookedEntries.length === 1 ? 'meal' : 'meals'}</span></h2>
+              {uncookedEntries.length > 0 && <button onClick={handleBulkAddToGrocery} disabled={bulkAddingGrocery} className="plan-bulk">
+                {bulkAddingGrocery ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
+                {bulkAddResult || (bulkAddingGrocery ? 'Adding...' : 'Add all to grocery')}
+              </button>}
             </div>
-
-            {uncookedEntries.length === 0 ? (
-              <div className="bg-surface border border-border rounded-2xl p-6 text-center">
-                <p className="text-faint text-sm font-body mb-3">No recipes planned this week</p>
-                <Link href="/recipes" className="btn-ghost text-xs">Browse recipes →</Link>
-              </div>
-            ) : (
-              <>
-                {/* DESKTOP: 7-column week grid */}
-                <div className="hidden lg:grid grid-cols-7 gap-2">
-                  {dayBuckets.map(({ date, entries }) => {
-                    const d = new Date(date + 'T12:00:00')
-                    return (
-                      <div
-                        key={date}
-                        onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey(date) } }}
-                        onDragLeave={() => setDragOverKey(k => (k === date ? null : k))}
-                        onDrop={e => { e.preventDefault(); handleDropOnDay(date) }}
-                        className={`min-w-0 rounded-xl p-1 -m-1 transition-colors ${dragOverKey === date ? 'bg-amber/5 ring-1 ring-amber/40' : ''}`}
-                      >
-                        <div className="text-center mb-2">
-                          <p className="text-faint text-[10px] font-body uppercase tracking-wider">
-                            {d.toLocaleDateString('en-US', { weekday: 'short' })}
-                          </p>
-                          <p className="text-muted text-sm font-body">{d.getDate()}</p>
-                        </div>
-                        <div className="space-y-2">
-                          {entries.length > 0
-                            ? entries.map(renderPlannedCard)
-                            : emptyDayAffordance}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* MOBILE: stacked day sections */}
-                <div className="lg:hidden space-y-5">
-                  {dayBuckets.map(({ date, entries }) => {
-                    const d = new Date(date + 'T12:00:00')
-                    return (
-                      <div key={date}>
-                        <div className="flex items-baseline gap-2 mb-2">
-                          <span className="text-cream text-sm font-body font-medium">
-                            {d.toLocaleDateString('en-US', { weekday: 'long' })}
-                          </span>
-                          <span className="text-faint text-xs font-body">
-                            {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                          {entries.length > 0 && (
-                            <span className="text-faint text-xs font-body ml-auto">{entries.length}</span>
-                          )}
-                        </div>
-                        <div className={entries.length > 0 ? 'grid grid-cols-2 gap-2' : ''}>
-                          {entries.length > 0
-                            ? entries.map(renderPlannedCard)
-                            : emptyDayAffordance}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Unscheduled (shared by both layouts) + drop target. Shown when it
-                    has items, or — empty — while a drag is in progress so a scheduled
-                    tile can be dragged back to Unscheduled (desktop). */}
-                {(unscheduledEntries.length > 0 || draggingId) && (
-                  <div
-                    onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey('unscheduled') } }}
-                    onDragLeave={() => setDragOverKey(k => (k === 'unscheduled' ? null : k))}
-                    onDrop={e => { e.preventDefault(); handleDropOnDay(null) }}
-                    className={`mt-8 rounded-xl p-2 -m-2 transition-colors ${dragOverKey === 'unscheduled' ? 'bg-amber/5 ring-1 ring-amber/40' : ''}`}
-                  >
-                    <div className="flex items-baseline gap-2 mb-3">
-                      <h3 className="text-cream text-sm font-body font-medium uppercase tracking-wider">Unscheduled</h3>
-                      {unscheduledEntries.length > 0 && (
-                        <span className="text-faint text-xs font-body">{unscheduledEntries.length}</span>
-                      )}
-                    </div>
-                    {unscheduledEntries.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                        {unscheduledEntries.map(renderPlannedCard)}
-                      </div>
-                    ) : (
-                      <div className="border border-dashed border-border rounded-xl py-6 text-center text-faint/40 text-xs font-body">
-                        Drop here to unschedule
-                      </div>
-                    )}
+            {uncookedEntries.length === 0 && <p className="plan-empty">No recipes planned this week</p>}
+            <p className="plan-add-help">Add meal opens Recipes. Choose a week there, then assign a day here.</p>
+            <div className="plan-agenda">
+              {dayBuckets.map(({ date, entries }) => {
+                const d = new Date(date + 'T12:00:00')
+                return <div id={`plan-day-${date}`} key={date}
+                  onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey(date) } }}
+                  onDragLeave={() => setDragOverKey(k => k === date ? null : k)}
+                  onDrop={e => { e.preventDefault(); handleDropOnDay(date) }}
+                  className={`plan-day ${date === today ? 'is-today' : ''} ${dragOverKey === date ? 'is-drag-over' : ''}`}>
+                  <div className="plan-day-heading"><h3>{d.toLocaleDateString('en-US', { weekday: 'long' })}</h3>
+                    <p>{d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                    {date === today && <span>Today</span>}
                   </div>
-                )}
-              </>
-            )}
+                  <div className="plan-day-meals">{entries.map(renderPlannedCard)}{emptyDayAffordance}</div>
+                </div>
+              })}
+            </div>
+            {(unscheduledEntries.length > 0 || draggingId) && <div
+              onDragOver={e => { if (draggingId) { e.preventDefault(); setDragOverKey('unscheduled') } }}
+              onDragLeave={() => setDragOverKey(k => k === 'unscheduled' ? null : k)}
+              onDrop={e => { e.preventDefault(); handleDropOnDay(null) }}
+              className={`plan-unscheduled ${dragOverKey === 'unscheduled' ? 'is-drag-over' : ''}`}>
+              <h3>Unscheduled <span>{unscheduledEntries.length}</span></h3>
+              <p>Open a meal to assign it to a day.</p>
+              {unscheduledEntries.length > 0 ? <div className="plan-unscheduled-meals">{unscheduledEntries.map(renderPlannedCard)}</div> : <p>Drop here to unschedule</p>}
+            </div>}
           </section>
 
           <div className="max-w-3xl mx-auto">
@@ -1450,6 +1285,9 @@ export default function PlanPage() {
               >
                 {null}
               </LoadingErrorRetry>
+
+
+
             )}
             {friendPlans.filter(fp => fp.plannedRecipeIDs.length > 0).length > 0 && (
               <section className="mt-10">
@@ -1531,6 +1369,77 @@ export default function PlanPage() {
           </div>
         </>
       </LoadingErrorRetry>
-    </div>
+
+      {/* Sharing is explicit: private edits never mutate the persisted public snapshot. */}
+      {plannedIDList.length > 0 || publishedPlan ? (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface/50 px-4 py-3">
+          <span role="status" className="text-sm font-body text-muted">
+            Shared plan: {publishedPlan
+              ? sharedPlanChanged ? 'Published — private changes not shared' : 'Published'
+              : 'Private'}
+          </span>
+          {plannedIDList.length > 0 && (
+            <button
+              onClick={handlePublishSharedPlan}
+              disabled={sharingPlan}
+              className="text-sm font-body text-faint hover:text-amber transition-colors disabled:opacity-40"
+            >
+              {sharingPlan && !publishedPlan ? 'Publishing…' : publishedPlan ? 'Update shared plan' : 'Publish plan'}
+            </button>
+          )}
+          {publishedPlan && (
+            <button
+              onClick={handleUnpublishSharedPlan}
+              disabled={sharingPlan}
+              className="text-sm font-body text-faint hover:text-red-400 transition-colors disabled:opacity-40"
+            >
+              {sharingPlan ? 'Working…' : 'Unpublish'}
+            </button>
+          )}
+        </div>
+      ) : null}
+
+      {/* Plan controls — rebuild grocery (existing) + add this week to calendar (Batch 6) */}
+      {(plannedIDList.length > 0 || hasCalendarWork) && (
+        <div className="mb-8 space-y-3">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {plannedIDList.length > 0 && !showRebuildConfirm && (
+              <button
+                onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
+                disabled={rebuilding}
+                className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
+              >
+                {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
+                {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
+              </button>
+            )}
+            {hasCalendarWork && (
+              <button
+                onClick={() => { setPushError(null); setPushTime('18:30'); setShowCalendarPush(true) }}
+                disabled={pushing}
+                className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors"
+              >
+                {pushing ? <Loader2 size={14} className="animate-spin" /> : pushResult ? <Check size={14} className="text-green-400" /> : <CalendarPlus size={14} />}
+                {pushing ? 'Adding…' : 'Add this week to Calendar'}
+              </button>
+            )}
+            {pushResult && <span className="text-xs font-body text-muted">{pushResult}</span>}
+          </div>
+
+          {showRebuildConfirm && (
+            <div className="bg-surface border border-amber/20 rounded-xl p-4 animate-fade-in">
+              <p className="text-cream text-sm font-body mb-3">
+                This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={handleRebuildGrocery} className="btn-primary text-xs px-3 py-1.5">Rebuild</button>
+                <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+    </div></div>
   )
 }

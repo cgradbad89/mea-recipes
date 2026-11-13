@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 
 const mocks = vi.hoisted(() => {
   const user = {
@@ -38,6 +38,8 @@ const mocks = vi.hoisted(() => {
     unpublishSharedPlan: vi.fn().mockResolvedValue(undefined),
     rebuildGroceryFromPlan: vi.fn().mockResolvedValue(undefined),
     setPlannedRecipeRole: vi.fn(),
+    assignRecipeToDay: vi.fn(),
+    addRecipeIngredientsToGrocery: vi.fn(),
     refetchRecipes: vi.fn().mockResolvedValue(undefined),
     refetchMetas: vi.fn().mockResolvedValue(undefined),
     refetchCookingHistory: vi.fn().mockResolvedValue(undefined),
@@ -92,13 +94,13 @@ vi.mock('@/lib/userdata', () => ({
   setPlannedRecipeRole: mocks.setPlannedRecipeRole,
   removeRecipeFromWeekPlan: vi.fn(),
   markRecipeCooked: vi.fn(),
-  addRecipeIngredientsToGrocery: vi.fn(),
+  addRecipeIngredientsToGrocery: mocks.addRecipeIngredientsToGrocery,
   moveRecipeToWeek: vi.fn(),
   saveRecipeMeta: vi.fn(),
   getRecipeMeta: vi.fn(),
   rebuildGroceryFromPlan: mocks.rebuildGroceryFromPlan,
   addRecipeToWeekPlan: vi.fn(),
-  assignRecipeToDay: vi.fn(),
+  assignRecipeToDay: mocks.assignRecipeToDay,
   saveCalendarEventIds: vi.fn(),
 }))
 
@@ -124,7 +126,9 @@ beforeEach(() => {
   mocks.publishSharedPlan.mockReset().mockResolvedValue(undefined)
   mocks.unpublishSharedPlan.mockReset().mockResolvedValue(undefined)
   mocks.rebuildGroceryFromPlan.mockReset().mockResolvedValue(undefined)
-  mocks.setPlannedRecipeRole.mockReset()
+  mocks.setPlannedRecipeRole.mockReset().mockResolvedValue(undefined)
+  mocks.assignRecipeToDay.mockReset().mockResolvedValue(undefined)
+  mocks.addRecipeIngredientsToGrocery.mockReset().mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -197,5 +201,33 @@ describe('plan write errors', () => {
 
     expect((await screen.findByRole('alert')).textContent).toContain('grocery list was not changed')
     expect(screen.getByRole('button', { name: 'Rebuild grocery list' }).getAttribute('disabled')).toBeNull()
+  })
+})
+
+
+describe('planner movement and grocery feedback', () => {
+  it('assigns an unscheduled meal through the sheet with its current role', async () => {
+    render(<PlanPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Test Recipe — open actions' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Test Recipe' })).getByRole('button', { name: 'Monday, Aug 17' }))
+    await waitFor(() => expect(mocks.assignRecipeToDay).toHaveBeenCalledWith('user-1', '2026-08-17', 'recipe-1', '2026-08-17', 'main'))
+  })
+
+  it('uses the same assignment writer for a desktop drop', async () => {
+    const view = render(<PlanPage />)
+    const meal = await screen.findByRole('button', { name: 'Test Recipe — open actions' })
+    fireEvent.dragStart(meal, { dataTransfer: { effectAllowed: '', setData: vi.fn() } })
+    const target = view.container.querySelector('#plan-day-2026-08-18')!
+    fireEvent.dragOver(target)
+    fireEvent.drop(target)
+    await waitFor(() => expect(mocks.assignRecipeToDay).toHaveBeenCalledWith('user-1', '2026-08-17', 'recipe-1', '2026-08-18', 'main'))
+  })
+
+  it('reports a grocery failure inside the open sheet', async () => {
+    mocks.addRecipeIngredientsToGrocery.mockRejectedValueOnce(new Error('offline'))
+    render(<PlanPage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Test Recipe — open actions' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add ingredients to grocery' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Couldn’t add those ingredients')
   })
 })

@@ -375,3 +375,40 @@ describe('actual Add-to-Plan pickers keep canonical keys and next-week defaults'
     expect(mocks.addRecipeToWeekPlan).toHaveBeenCalledWith('owner-a', choice === 'explicit current week' ? current : next, 'recipe-a', 'main')
   })
 })
+
+describe('Warm Pantry planner navigation and actions', () => {
+  it('returns to the current week and selects a day without writing plan data', () => {
+    render(<PlanPage />)
+    emit(current, plan(current))
+    fireEvent.click(screen.getByRole('button', { name: 'Next week' }))
+    emit(next, null)
+    fireEvent.click(screen.getByRole('button', { name: 'This week' }))
+    expectWeek(current)
+    emit(current, plan(current))
+    const monday = screen.getByRole('button', { name: 'Monday, Sep 28' })
+    fireEvent.click(monday)
+    expect(monday.getAttribute('aria-pressed')).toBe('true')
+    expect(mocks.addRecipeToWeekPlan).not.toHaveBeenCalled()
+  })
+
+  it('shows multiple roles on a day and names, traps and dismisses the meal sheet', () => {
+    render(<PlanPage />)
+    emit(current, { weekID: current, weekStartISO: current, plannedRecipeIDs: [
+      { recipeID: 'recipe-a', day: '2026-09-30', role: 'main' },
+      { recipeID: 'recipe-b', day: '2026-09-30', role: 'side' },
+    ], cookedRecipeIDs: [] })
+    const opener = screen.getByRole('button', { name: 'Recipe A — open actions' })
+    expect(screen.getByText(/Main · test/)).toBeTruthy()
+    expect(screen.getByText(/Side · test/)).toBeTruthy()
+    opener.focus()
+    fireEvent.click(opener)
+    const dialog = screen.getByRole('dialog', { name: 'Recipe A' })
+    expect(dialog.textContent).toContain('Wednesday, Sep 30 · Main')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Remove from plan' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+  })
+})

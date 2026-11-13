@@ -224,3 +224,110 @@
 .recipe-plan-picker button { min-height: 44px; }
 .recipe-plan-picker .text-faint { color: #c6b9a8; }
 .recipe-plan-picker :focus-visible { outline: 3px solid #f5c060; outline-offset: 2px; }
+
+/* Warm Pantry meal planner. The agenda switches to columns when the content area,
+   rather than the viewport, has enough room beside the navigation. */
+.plan-page {
+  --pantry-bg: #f7f5ef;
+  --pantry-surface: #fffefa;
+  --pantry-ink: #202a24;
+  --pantry-green: #285c45;
+  --pantry-border: #d3cbbd;
+  min-height: 100%; background: var(--pantry-bg); color: var(--pantry-ink);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+.plan-page-inner { max-width: 1400px; margin: auto; padding: 36px 28px 110px; container-type: inline-size; }
+.plan-page :focus-visible { outline: 3px solid #b76b0b; outline-offset: 3px; }
+.plan-header h1 { font-family: var(--font-cormorant), Georgia, serif; font-size: clamp(3.4rem, 6vw, 4.8rem); font-weight: 600; letter-spacing: -.035em; line-height: .95; color: #1d382b; }
+.plan-header p { margin-top: 8px; color: #554f45; }
+.plan-week-nav { display: flex; align-items: center; gap: 12px; margin: 26px 0 18px; }
+.plan-week-nav button { min-height: 44px; min-width: 44px; border: 1px solid #285c45; color: #1d382b; border-radius: 10px; display: grid; place-items: center; }
+.plan-week-nav strong { font-family: var(--font-cormorant), Georgia, serif; font-size: clamp(1.3rem, 2.5vw, 1.8rem); line-height: 1; flex: 1; text-align: center; }
+.plan-week-nav .plan-today { padding: 0 14px; font-size: 13px; font-weight: 700; }
+.plan-day-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 24px; }
+.plan-day-strip button { min-width: 0; min-height: 62px; border-radius: 10px; background: #eee9df; color: #244632; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.plan-day-strip small { font-size: 12px; font-weight: 400; }
+.plan-day-strip [aria-pressed=true] { background: #1d382b; color: #fffefa; }
+.plan-today-label { font-size: 9px; text-transform: uppercase; letter-spacing: .02em; }
+.plan-agenda-section { margin: 28px 0 40px; }
+.plan-agenda-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.plan-agenda-heading h2 { font-family: var(--font-cormorant), Georgia, serif; font-size: 27px; font-weight: 700; }
+.plan-agenda-heading h2 span { font: 400 14px var(--font-dm-sans), system-ui, sans-serif; color: #554f45; }
+.plan-bulk { min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 9px; background: #285c45; color: white; font-size: 13px; font-weight: 700; }
+.plan-add-help, .plan-empty { color: #61584c; font-size: 13px; margin: 8px 0 14px; }
+.plan-empty { font-weight: 700; margin-bottom: 0; }
+.plan-agenda { display: grid; gap: 9px; }
+.plan-day { min-width: 0; display: grid; grid-template-columns: minmax(78px, 24%) 1fr; gap: 12px; padding: 12px; border: 1px solid #ddd5c8; border-radius: 14px; background: #fbf9f4; scroll-margin-block: 16px; }
+.plan-day.is-today { background: #eeeee0; }
+.plan-day.is-drag-over, .plan-unscheduled.is-drag-over { outline: 3px solid #b76b0b; }
+.plan-day-heading { border-right: 1px solid #d3cbbd; padding-right: 8px; }
+.plan-day-heading h3, .plan-unscheduled h3 { font: 700 21px/1 var(--font-cormorant), Georgia, serif; overflow-wrap: anywhere; }
+.plan-day-heading p { font-size: 13px; color: #554f45; margin-top: 4px; }
+.plan-day-heading span { display: inline-block; background: #ffe4a6; color: #844900; border-radius: 20px; font-size: 11px; font-weight: 700; margin-top: 6px; padding: 2px 7px; }
+.plan-day-meals, .plan-unscheduled-meals { display: grid; gap: 8px; min-width: 0; }
+.plan-meal { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 70px; border-radius: 10px; cursor: pointer; color: #202a24; }
+.plan-meal:hover { background: #f1ece2; }
+.plan-meal-image { width: 76px; height: 68px; border-radius: 9px; flex: none; object-fit: cover; background: #e9e3d7; }
+.plan-meal-copy { min-width: 0; flex: 1; }
+.plan-meal-title { font: 700 21px/1.03 var(--font-cormorant), Georgia, serif; overflow-wrap: anywhere; }
+.plan-meal-meta { font-size: 12px; color: #61584c; margin-top: 5px; text-transform: capitalize; }
+.plan-drag-hint { display: none; color: #756e65; }
+.plan-add-meal { min-height: 44px; border: 1px dashed #b88a55; color: #a45100; border-radius: 9px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 700; }
+.plan-day-meals .plan-meal + .plan-add-meal { min-height: 44px; }
+.plan-unscheduled { margin-top: 20px; padding: 15px; border: 1px solid #ddd5c8; border-radius: 14px; background: #fffefa; }
+.plan-unscheduled h3 span { font: 400 13px var(--font-dm-sans), system-ui, sans-serif; }
+.plan-unscheduled > p { color: #61584c; font-size: 13px; margin: 6px 0 12px; }
+.plan-missing { color: #61584c; padding: 12px; }
+.plan-page .text-cream { color: #202a24; }
+.plan-page .text-muted, .plan-page .text-faint { color: #61584c; }
+.plan-page .text-amber { color: #945000; }
+.plan-page .bg-surface, .plan-page .bg-card { background-color: #fffefa; }
+.plan-page .border-border { border-color: #d3cbbd; }
+.plan-page .bg-surface\/50 { background-color: #fffefa; }
+.plan-page .btn-ghost { color: #285c45; }
+.plan-page .btn-primary { color: white; }
+.plan-page [role=alert] { color: #8b3026; background: #fff2ed; }
+.plan-page button:not(.plan-day-strip button) { touch-action: manipulation; }
+.plan-sheet { color: #202a24; }
+.plan-sheet-title { font: 700 25px/1.05 var(--font-cormorant), Georgia, serif; overflow-wrap: anywhere; }
+.plan-sheet-subtitle { margin-top: 5px; color: #61584c; font-size: 13px; }
+.plan-sheet button, .plan-sheet a { min-height: 44px; }
+.plan-sheet [aria-pressed=true] { background: #285c45; color: #fffefa; border-color: #285c45; }
+.plan-sheet [aria-pressed=true] span { color: inherit; }
+.plan-sheet .text-red-400 { color: #a42f25; }
+@container (min-width: 980px) {
+  .plan-agenda { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .plan-day { display: block; padding: 10px; }
+  .plan-day-heading { border-right: 0; border-bottom: 1px solid #d3cbbd; min-height: 58px; margin-bottom: 10px; padding-bottom: 8px; }
+  .plan-meal { display: block; padding-bottom: 6px; }
+  .plan-meal-image { width: 100%; height: auto; aspect-ratio: 4 / 3; }
+  .plan-meal-copy { margin-top: 6px; }
+  .plan-meal > svg:not(.plan-drag-hint) { display: none; }
+  .plan-drag-hint { display: block; }
+  .plan-unscheduled-meals { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (max-width: 430px) {
+  .plan-page-inner { padding: 24px 14px calc(90px + env(safe-area-inset-bottom)); }
+  .plan-header h1 { font-size: 3.5rem; }
+  .plan-week-nav { gap: 7px; }
+  .plan-week-nav strong { font-size: 1.3rem; }
+  .plan-week-nav .plan-today { padding: 0 8px; font-size: 12px; }
+  .plan-day { gap: 9px; padding: 10px; }
+  .plan-meal-image { width: 64px; height: 64px; }
+  .plan-meal-title { font-size: 19px; }
+}
+@media (prefers-reduced-motion: reduce) { .plan-page *, .plan-page *::before, .plan-page *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+.plan-meal-image span { opacity: .7; }
+@media (max-width: 360px) {
+  .plan-day { grid-template-columns: 70px minmax(0, 1fr); }
+  .plan-day-heading h3 { font-size: 17px; }
+  .plan-meal { gap: 7px; }
+  .plan-meal-image { width: 50px; height: 58px; }
+  .plan-meal > svg:not(.plan-drag-hint) { display: none; }
+  .plan-meal-title { font-size: 18px; }
+}
+@media (max-width: 430px) {
+  .plan-day { grid-template-columns: 78px minmax(0, 1fr); }
+  .plan-day-heading h3 { font-size: 16px; overflow-wrap: normal; }
+}
+@media (max-width: 360px) { .plan-week-nav strong { font-size: 1.1rem; } }
