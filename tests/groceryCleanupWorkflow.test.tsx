@@ -66,7 +66,7 @@ vi.mock('@/lib/userdata', () => ({
 }))
 
 import GroceryPage from '@/app/grocery/page'
-import { recipeUrl } from '@/lib/recipes'
+const recipeUrl = (id: string) => `/recipes/${id}`
 
 const lastCleanedKey = 'mea-grocery-last-cleaned'
 

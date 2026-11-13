@@ -433,3 +433,13 @@ it('confirms the chosen destination and requires an explicit move for a conflict
   expect(screen.getByRole('status').textContent).toContain('Moved successfully')
   expect(screen.getByRole('link', { name: 'Return to Meal Plan' }).getAttribute('href')).toBe(`/plan?week=${current}`)
 })
+
+it('reports a destination write failure without claiming success', async () => {
+  mocks.addRecipeToDestination.mockRejectedValueOnce(new Error('offline'))
+  render(<RecipeCard recipe={mocks.recipes[0]} destination={{ weekID: current, day: '2026-09-30' }} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Add Recipe A to plan' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Add to this day' }))
+  await act(async () => {})
+  expect(screen.getByRole('alert').textContent).toContain('Couldn’t update the plan')
+  expect(screen.queryByText('Added successfully.')).toBeNull()
+})

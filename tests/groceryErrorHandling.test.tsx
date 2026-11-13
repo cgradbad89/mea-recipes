@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 const mocks = vi.hoisted(() => ({
   updateDoc: vi.fn(),
+  rebuild: vi.fn(),
+  delaySnapshot: false,
+  onData: null as null | ((items: unknown[]) => void),
   user: { uid: 'user-1' },
 }))
 
@@ -24,7 +27,8 @@ vi.mock('firebase/firestore', () => ({
 
 vi.mock('@/lib/userdata', () => ({
   subscribeGroceryItems: (_uid: string, onData: (items: unknown[]) => void) => {
-    onData([{
+    mocks.onData = onData
+    if (!mocks.delaySnapshot) onData([{
       id: 'milk',
       name: 'Milk',
       quantity: '',
@@ -38,7 +42,7 @@ vi.mock('@/lib/userdata', () => ({
   },
   weekIDFromDate: () => '2026-08-17',
   getWeekPlan: vi.fn().mockResolvedValue(null),
-  rebuildGroceryFromPlan: vi.fn(),
+  rebuildGroceryFromPlan: mocks.rebuild,
   getSavedGroceryItems: vi.fn().mockResolvedValue([]),
   upsertSavedGroceryItem: vi.fn().mockResolvedValue(undefined),
   setGroceryItemNeedThisTrip: vi.fn().mockResolvedValue(undefined),
@@ -58,6 +62,8 @@ vi.mock('@/lib/firestoreBatch', () => ({
 import GroceryPage from '@/app/grocery/page'
 
 beforeEach(() => {
+  mocks.delaySnapshot = false
+  mocks.onData = null
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
     value: { getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn(), clear: vi.fn() },
@@ -79,4 +85,24 @@ describe('grocery write errors', () => {
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Couldn’t update “Milk”')
   })
+})
+
+
+it('reports a failed rebuild and re-enables the control', async () => {
+  mocks.rebuild.mockRejectedValueOnce(new Error('Rebuild stopped; grocery list was not changed.'))
+  render(<GroceryPage />)
+  fireEvent.click(await screen.findByRole('button', { name: 'Rebuild grocery list' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Rebuild' }))
+  expect((await screen.findByRole('alert')).textContent).toContain('grocery list was not changed')
+  expect(screen.getByRole('button', { name: 'Rebuild grocery list' }).hasAttribute('disabled')).toBe(false)
+})
+
+
+it('shows loading until the first owner snapshot instead of an empty list', () => {
+  mocks.delaySnapshot = true
+  render(<GroceryPage />)
+  expect(screen.getByText('Loading grocery list…')).toBeTruthy()
+  expect(screen.queryByText('List is empty')).toBeNull()
+  act(() => mocks.onData?.([]))
+  expect(screen.getByText('List is empty')).toBeTruthy()
 })

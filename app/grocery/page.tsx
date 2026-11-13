@@ -15,7 +15,7 @@ import {
 } from '@/lib/groceryCategories'
 import { ShoppingCart, Check, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, X, CheckCheck, Plus, Minus, RefreshCw, Tag, Pencil, House } from 'lucide-react'
 import { weekIDFromDate, getWeekPlan, rebuildGroceryFromPlan, getSavedGroceryItems, upsertSavedGroceryItem, deleteSavedGroceryItem, setGroceryItemNeedThisTrip, setSavedGroceryItemUsuallyOnHand, subscribeGroceryItems, applyGroceryCleanup, GroceryCleanupApplyError, type GroceryItem, type SavedGroceryItem } from '@/lib/userdata'
-import { getRecipeById, parseRecipeContent, recipeUrl } from '@/lib/recipes'
+import { getRecipeById, parseRecipeContent } from '@/lib/recipes'
 import { parseIngredient, normalizeNoun, mergeQuantities, MEASUREMENT_WORDS_RE } from '@/lib/ingredientParser'
 import { prepareGroceryItem } from '@/lib/groceryItemPreparation'
 import {
@@ -73,6 +73,7 @@ export default function GroceryPage() {
   const { metas, recipes, recipesLoading, recipesError } = useAppData()
   const [items, setItems] = useState<GroceryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [snapshotOwner, setSnapshotOwner] = useState<string | null>(null)
   const [subscriptionError, setSubscriptionError] = useState('')
   const [subscriptionAttempt, setSubscriptionAttempt] = useState(0)
   const [groceryError, setGroceryError] = useState('')
@@ -121,7 +122,7 @@ export default function GroceryPage() {
   const recipesByID = useMemo(() => new Map(recipes.map(recipe => [recipe.id, {
     recipeID: recipe.id,
     title: metas[recipe.id]?.overrides?.title || recipe.title,
-    href: recipeUrl(encodeURIComponent(recipe.id)),
+    href: `/recipes/${encodeURIComponent(recipe.id)}`,
   }])), [recipes, metas])
   const recipeSources = useMemo(() => {
     type SourceProps = ComponentProps<typeof GroceryRecipeSources>
@@ -183,6 +184,7 @@ export default function GroceryPage() {
 
   useEffect(() => {
     setItems([])
+    setSnapshotOwner(null)
     setRecentlyChecked(new Set())
     setCleanupPlan(null)
     setRejectedChanges(new Set())
@@ -190,15 +192,21 @@ export default function GroceryPage() {
     if (!user) { setLoading(false); setSubscriptionError(''); return }
     setLoading(true)
     setSubscriptionError('')
-    const unsub = subscribeGroceryItems(user.uid, data => {
+    let active = true
+    const owner = user.uid
+    const unsub = subscribeGroceryItems(owner, data => {
+      if (!active) return
+      setSnapshotOwner(owner)
       setItems(data)
       setLoading(false)
       setSubscriptionError('')
     }, error => {
+      if (!active) return
+      setSnapshotOwner(owner)
       setSubscriptionError(error.message || 'The grocery list stopped updating')
       setLoading(false)
     })
-    return unsub
+    return () => { active = false; unsub() }
   }, [user, subscriptionAttempt])
 
   useEffect(() => {
@@ -636,13 +644,19 @@ export default function GroceryPage() {
     if (!user) return
     setRebuilding(true)
     setShowRebuildConfirm(false)
-    const currentWeekID = weekIDFromDate(new Date())
-    const plan = await getWeekPlan(user.uid, currentWeekID)
-    const recipeIDs = plan?.plannedRecipeIDs || []
-    await rebuildGroceryFromPlan(user.uid, recipeIDs, getRecipeById, parseRecipeContent, metas)
-    setRebuilding(false)
-    setRebuildDone(true)
-    setTimeout(() => setRebuildDone(false), 2000)
+    setGroceryError('')
+    try {
+      const currentWeekID = weekIDFromDate(new Date())
+      const plan = await getWeekPlan(user.uid, currentWeekID)
+      const recipeIDs = plan?.plannedRecipeIDs || []
+      await rebuildGroceryFromPlan(user.uid, recipeIDs, getRecipeById, parseRecipeContent, metas)
+      setRebuildDone(true)
+      setTimeout(() => setRebuildDone(false), 2000)
+    } catch (error) {
+      setGroceryError(error instanceof Error ? error.message : 'Couldn’t rebuild the grocery list. Try again.')
+    } finally {
+      setRebuilding(false)
+    }
   }
 
   if (!user) {
@@ -654,10 +668,10 @@ export default function GroceryPage() {
     )
   }
 
-  if (loading || subscriptionError) {
+  if (loading || snapshotOwner !== user.uid || subscriptionError) {
     return (
       <LoadingErrorRetry
-        loading={loading}
+        loading={loading || snapshotOwner !== user.uid}
         error={subscriptionError}
         retry={() => setSubscriptionAttempt(attempt => attempt + 1)}
         loadingLabel="Loading grocery list…"
