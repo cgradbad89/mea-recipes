@@ -125,6 +125,11 @@
   .app-loading .skeleton { animation: none; }
 }
 
+.site-switcher { scrollbar-color: #b6aa98 #f7f5ef; scrollbar-width: thin; }
+.site-switcher::-webkit-scrollbar { height: 6px; }
+.site-switcher::-webkit-scrollbar-track { background: #f7f5ef; }
+.site-switcher::-webkit-scrollbar-thumb { background: #b6aa98; border-radius: 6px; }
+
 /* Smooth touch scrolling for horizontal scroll containers */
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
