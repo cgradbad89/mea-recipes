@@ -412,7 +412,7 @@ export default function CookingMode({
   const goNext = () => setCurrentStep(s => Math.min(instructions.length - 1, s + 1))
 
   return (
-    <div className="fixed inset-0 z-[100] bg-ink flex flex-col animate-fade-in">
+    <div className="cooking-mode fixed inset-0 z-[100] bg-ink flex flex-col animate-fade-in">
       {/* Header */}
       <header className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-border">
         <div className="min-w-0">
@@ -756,6 +756,7 @@ export default function CookingMode({
               </div>
               <button
                 onClick={() => setShowAllIngredients(false)}
+                aria-label="Close ingredients"
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-card text-faint hover:text-cream transition-colors"
               >
                 <X size={18} />

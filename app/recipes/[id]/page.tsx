@@ -525,12 +525,20 @@ export default function RecipeDetailPage() {
             </div>
           )}
           <button onClick={() => toggle(displayRecipe.id)}
-            aria-label={fav ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label={fav ? 'Remove from favorites' : 'Add to favorites'} aria-pressed={fav}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
               fav ? 'bg-amber text-ink' : 'bg-card border border-border text-faint hover:text-cream'
             }`}
           >
             <Heart size={16} fill={fav ? 'currentColor' : 'none'} />
+          </button>
+          <button onClick={() => void toggleWantToTry(displayRecipe.id)}
+            aria-label={wanted ? 'Remove from Want to Try' : 'Add to Want to Try'} aria-pressed={wanted}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+              wanted ? 'bg-amber text-ink' : 'bg-card border border-border text-faint hover:text-cream'
+            }`}
+          >
+            {wanted ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
           </button>
         </div>
       </div>
@@ -659,14 +667,6 @@ export default function RecipeDetailPage() {
             )}
           </div>
         )}
-        <button
-          onClick={() => void toggleWantToTry(displayRecipe.id)}
-          aria-pressed={wanted}
-          className={`btn-ghost w-full sm:w-auto justify-center flex items-center gap-2 ${wanted ? 'border-amber/40 text-amber bg-amber/10' : ''}`}
-        >
-          {wanted ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-          {wanted ? 'Want to Try ✓' : 'Want to Try'}
-        </button>
         {(ingredients.length > 0 || instructions.length > 0) && (
           <button onClick={() => setShowCookingMode(true)} className="btn-primary flex items-center gap-2">
             <ChefHat size={15} /> Cooking Mode

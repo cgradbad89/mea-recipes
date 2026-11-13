@@ -20,7 +20,8 @@ import { parsePlanDestination, destinationLabel } from '@/lib/planDestination'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
 type TimeFilter = 0 | 30 | 45 | 60
-type FilterOption = 'none' | 'cookedRecently' | 'wantToTry'
+type FilterOption = 'none' | 'favorites' | 'wantToTry'
+type HistoryFilter = 'none' | 'cookedRecently'
 
 function SkeletonCard() {
   return (
@@ -69,6 +70,7 @@ function RecipesContent() {
     recipesLoading: loading,
     recipesError,
     metasError,
+    favorites, favoritesLoading, favoritesError, refetchFavorites,
     wantToTry,
     wantToTryLoading,
     wantToTryError,
@@ -97,11 +99,13 @@ function RecipesContent() {
   const [minRating, setMinRating] = useState(() => readLS<number>('mea_recipes_minRating', 0, v => parseInt(v, 10) || 0))
   const [source, setSource] = useState<SourceFilter>(() => readLS<SourceFilter>('mea_recipes_source', 'all', v => (v as SourceFilter)))
   const [sort, setSort] = useState<SortOption>(() => readLS<SortOption>('mea_recipes_sort', 'default', v => (v as SortOption)))
-  const [filter, setFilter] = useState<FilterOption>(() => readLS<FilterOption>('mea_recipes_filter', 'none', v => (v as FilterOption)))
+  const [filter, setFilter] = useState<FilterOption>(() => readLS<FilterOption>('mea_recipes_filter', 'none', v => v === 'favorites' || v === 'wantToTry' ? v : 'none'))
+  const [history, setHistory] = useState<HistoryFilter>(() => readLS<HistoryFilter>('mea_recipes_history', readLS<string>('mea_recipes_filter', 'none') === 'cookedRecently' ? 'cookedRecently' : 'none', v => v === 'cookedRecently' ? v : 'none'))
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(() => readLS<TimeFilter>('mea_recipes_timeFilter', 0, v => (parseInt(v, 10) || 0) as TimeFilter))
   const [showAdd, setShowAdd] = useState(false)
   const addButtonRef = useRef<HTMLButtonElement>(null)
-  const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
+  const [cookedHistoryCache, setCookedHistoryCache] = useState<{ uid: string; ids: Set<string> } | null>(null)
+  const cookedRecentlyIDs = user && cookedHistoryCache?.uid === user.uid ? cookedHistoryCache.ids : null
   const [loadingCooked, setLoadingCooked] = useState(false)
   const [cookedRecentlyError, setCookedRecentlyError] = useState('')
   const [cookedLoadAttempt, setCookedLoadAttempt] = useState(0)
@@ -116,9 +120,10 @@ function RecipesContent() {
       localStorage.setItem('mea_recipes_source', source)
       localStorage.setItem('mea_recipes_sort', sort)
       localStorage.setItem('mea_recipes_filter', filter)
+      localStorage.setItem('mea_recipes_history', history)
       localStorage.setItem('mea_recipes_timeFilter', String(timeFilter))
     } catch {}
-  }, [search, cuisine, category, minRating, source, sort, filter, timeFilter])
+  }, [search, cuisine, category, minRating, source, sort, filter, history, timeFilter])
 
   useEffect(() => {
     if (!search.trim()) {
@@ -136,7 +141,7 @@ function RecipesContent() {
 
   // Lazy load cooked recently IDs when that filter is selected
   useEffect(() => {
-    if (filter !== 'cookedRecently' || !user || cookedRecentlyIDs !== null) return
+    if (history !== 'cookedRecently' || !user || cookedRecentlyIDs !== null) return
     let active = true
     setLoadingCooked(true)
     setCookedRecentlyError('')
@@ -150,14 +155,14 @@ function RecipesContent() {
         plans
           .filter(p => p.weekStartISO >= cutoff)
           .forEach(p => p.cookedRecipeIDs.forEach(id => ids.add(id)))
-        setCookedRecentlyIDs(ids)
+        setCookedHistoryCache({ uid: user.uid, ids })
       })
       .catch(error => {
         if (active) setCookedRecentlyError(error instanceof Error ? error.message : 'Failed to load cooking history')
       })
       .finally(() => { if (active) setLoadingCooked(false) })
     return () => { active = false }
-  }, [filter, user, cookedRecentlyIDs, cookedLoadAttempt])
+  }, [history, user, cookedRecentlyIDs, cookedLoadAttempt])
 
   const fuse = useMemo(() => new Fuse(recipes, {
     keys: [
@@ -194,11 +199,12 @@ function RecipesContent() {
         const total = getTotalTime(prepTime, cookTime).minutes
         if (total === 0 || total >= timeFilter) return false
       }
-      if (filter === 'cookedRecently') {
+      if (history === 'cookedRecently' && user) {
         // Until the history request succeeds there is no valid filtered result.
         // Never fall through to the full recipe list and mislabel it as filtered.
         if (!cookedRecentlyIDs || !cookedRecentlyIDs.has(r.id)) return false
       }
+      if (filter === 'favorites' && !favorites.has(r.id)) return false
       if (filter === 'wantToTry' && !wantToTry.has(r.id)) return false
 
       return matchCuisine && matchCategory && matchRating && matchSource
@@ -228,7 +234,7 @@ function RecipesContent() {
       })
     }
     return sorted
-  }, [recipes, debouncedSearch, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, wantToTry, fuse])
+  }, [recipes, debouncedSearch, cuisine, category, minRating, source, metas, user, sort, filter, history, timeFilter, cookedRecentlyIDs, favorites, wantToTry, fuse])
 
   return (
     <div className="recipes-listing">
@@ -245,14 +251,15 @@ function RecipesContent() {
           search={search} setSearch={setSearch} cuisine={cuisine} setCuisine={setCuisine}
           category={category} setCategory={setCategory} minRating={minRating} setMinRating={setMinRating}
           source={source} setSource={setSource} sort={sort} setSort={setSort}
-          timeFilter={timeFilter} setTimeFilter={setTimeFilter} filter={filter} setFilter={setFilter}
+          timeFilter={timeFilter} setTimeFilter={setTimeFilter} filter={filter} setFilter={setFilter} history={history} setHistory={setHistory}
           signedIn={!!user} count={filtered.length} total={recipes.length} loading={loading}
         />
       <LoadingErrorRetry
-        loading={loading || (filter === 'cookedRecently' && loadingCooked) || (filter === 'wantToTry' && wantToTryLoading)}
-        error={recipesError || metasError || (filter === 'cookedRecently' ? cookedRecentlyError : '') || (filter === 'wantToTry' ? wantToTryError : '')}
+        loading={loading || (history === 'cookedRecently' && loadingCooked) || (filter === 'wantToTry' && wantToTryLoading) || (filter === 'favorites' && favoritesLoading)}
+        error={recipesError || metasError || (history === 'cookedRecently' ? cookedRecentlyError : '') || (filter === 'wantToTry' ? wantToTryError : '') || (filter === 'favorites' ? favoritesError : '')}
         retry={() => {
-          if (cookedRecentlyError) setCookedLoadAttempt(attempt => attempt + 1)
+          if (history === 'cookedRecently' && cookedRecentlyError) setCookedLoadAttempt(attempt => attempt + 1)
+          else if (filter === 'favorites' && favoritesError) void refetchFavorites()
           else if (wantToTryError) void refetchWantToTry()
           else void Promise.allSettled([refetchRecipes(), refetchMetas(), refetchWantToTry()])
         }}

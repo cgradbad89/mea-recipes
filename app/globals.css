@@ -530,3 +530,33 @@
 .nutrition-dialog .bg-amber { background:#d5a257; color:#202a24; }
 .nutrition-dialog .hover\:text-cream:hover { color:#202a24; }
 .nutrition-dialog :focus-visible { outline:3px solid #b76b0b; outline-offset:2px; }
+
+/* Recipe metadata and Cooking Mode share the Warm Pantry palette. */
+.recipe-card-rating { display:flex; justify-content:flex-end; margin-top:4px; min-width:0; }
+.recipe-card:not(.warm-recipe-card) .recipe-card-rating { padding-right:38px; }
+.warm-recipe-card .recipe-card-rating .text-amber { color:#865009; }
+.warm-recipe-card .recipe-card-rating .text-faint\/30 { color:#b4aa99; }
+@media (max-width: 639px) { .recipe-card .recipe-bookmark { display:none; } }
+.cooking-mode { background:#f7f5ef; color:#202a24; font-family:var(--font-dm-sans),system-ui,sans-serif; }
+.cooking-mode :focus-visible { outline:3px solid #b76b0b; outline-offset:3px; }
+.cooking-mode .text-cream { color:#202a24; }
+.cooking-mode .text-muted, .cooking-mode .text-faint { color:#61584c; }
+.cooking-mode .text-amber, .cooking-mode .text-amber\/40, .cooking-mode .text-amber\/80 { color:#865009; }
+.cooking-mode .text-red-400 { color:#a2362e; }
+.cooking-mode .bg-card, .cooking-mode .bg-surface { background-color:#fffefa; }
+.cooking-mode .bg-card\/40, .cooking-mode .bg-card\/50 { background-color:#fffefa; }
+.cooking-mode .bg-amber\/10 { background-color:#f8ead0; }
+.cooking-mode .bg-amber\/20 { background-color:#f3dfb8; }
+.cooking-mode .bg-ink\/40 { background-color:#f7f5ef; }
+.cooking-mode .bg-surface\/60 { background-color:#f2eee6; }
+.cooking-mode .border-border, .cooking-mode .border-border\/50 { border-color:#d3cbbd; }
+.cooking-mode .border-amber\/30, .cooking-mode .border-amber\/40, .cooking-mode .border-amber { border-color:#bd8a3e; }
+.cooking-mode .bg-amber { background-color:#285c45; border-color:#285c45; color:#fffefa; }
+.cooking-mode .btn-primary { background:#285c45; color:#fffefa; min-height:44px; }
+.cooking-mode .btn-ghost { background:#fffefa; border-color:#bcb2a3; color:#285c45; min-height:44px; }
+.cooking-mode .input-field { background:#fffefa; border-color:#a89e90; color:#202a24; }
+.cooking-mode footer { background:#f7f5ef; padding-bottom:max(12px, env(safe-area-inset-bottom)); }
+.cooking-mode button { min-height:44px; touch-action:manipulation; }
+.cooking-mode button[aria-label$="timer"] { min-width:44px; }
+.cooking-mode [class~="bg-ink/85"] { background-color:rgb(32 42 36 / .72); }
+@media (max-width: 430px) { .cooking-mode header { padding-left:12px; padding-right:12px; } .cooking-mode header h1 { font-size:1.15rem; } }

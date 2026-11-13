@@ -61,8 +61,8 @@ wrapped in a per-route `layout.tsx`.
 | Page | Route | Status | Summary |
 |---|---|---|---|
 | Home (redirect) | `/` (`app/page.tsx`) | Done | Redirects to `/recipes`; no landing page |
-| Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence; per-user **Want to Try** bookmark toggle + filter |
-| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, per-user **Want to Try** action, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers** and validated persisted `cookingStepIngredientMap` → safe deterministic fallback) |
+| Recipe list | `/recipes` (`app/recipes/page.tsx`) | Done | Searchable/filterable grid; live count; filter persistence; mutually exclusive All/Favorites/Want to Try scopes combined with other filters; per-user **Want to Try** bookmark toggle |
+| Recipe detail | `/recipes/[id]` (`app/recipes/[id]/page.tsx`) | Done | Full recipe, parsed ingredients/instructions, notes + rating, edit, icon-only **Favorites** and **Want to Try** actions, **meal-plan default main/side control**, **bulk "Add all to grocery"** (reuses `addRecipeIngredientsToGrocery`, same path as plan rebuild), full-screen Cooking Mode (`components/CookingMode.tsx`, with **tap-to-start step timers** and validated persisted `cookingStepIngredientMap` → safe deterministic fallback) |
 | Discover | `/discover` (`app/discover/page.tsx`) | Done | AI recipe generator (free-text), recommendations, new-recipe suggestions |
 | Grocery | `/grocery` (`app/grocery/page.tsx`) | Done | Live grocery list, category grouping, AI cleanup, persistent Usually On Hand preferences, per-list Need This Trip overrides, and desktop-only Used In recipe-source links with inline overflow disclosure |
 | Plan | `/plan` (`app/plan/page.tsx`) | Done | Day-specific Add meal opens Recipes with a validated week/day destination; explicit add atomically inserts the recipe or offers a preconditioned move of an existing placement. Unscheduled is also supported. Weekly meal planner (Mon-start weeks), **day-based grid (7-col desktop / stacked mobile + Unscheduled bucket)** with auto-defaulted **main/side** role per recipe (**color-accented tiles, name below image; tap a tile → action sheet with all actions**), **desktop drag-and-drop day assignment + in-sheet day picker**, cooked tracking, AI plan suggestions, shared plans, **push week to Google Calendar (one idempotent event per planned day)** |
@@ -2505,6 +2505,17 @@ Web. Active calories are summed only from records that contain a numeric
 The existing `stravaActivities` data remains documented for historical context but is
 not part of nutrition calculations. No Firestore rules or indexes were changed; the
 existing owner-scoped `healthMetrics` rule is the required access path.
+
+---
+
+### Cooking-history count limitation
+
+Week-plan `cookedRecipeIDs` records at most one membership per recipe per week,
+while newer `is_cook_event` nutrition records use recipe-and-day identity and may
+overlap those week records. Historical week membership cannot be decomposed into
+individual cooking events or reliably reconciled with those logs. A per-event
+“Most cooked” ranking therefore requires an explicit data contract before it can
+be accurate; the current Insights/Discover count measures cooked weeks instead.
 
 ---
 

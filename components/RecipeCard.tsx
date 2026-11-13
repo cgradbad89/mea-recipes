@@ -219,19 +219,19 @@ export default function RecipeCard({ recipe, meta, compact = false, warm = false
         <div className="relative aspect-[4/3] overflow-hidden bg-card">
           <RecipeImage src={displayImageURL} alt="" category={displayCategory} recipeID={recipe.id}
             className="w-full h-full transition-transform duration-500 group-hover:scale-105" emojiClassName="text-4xl" />
-          {meta?.rating && meta.rating > 0 ? <div className="absolute top-3 left-3 flex items-center gap-1 bg-ink/70 backdrop-blur-sm rounded-lg px-2 py-1" aria-label={`Rating ${meta.rating} out of 5`}><HalfStarDisplay rating={meta.rating} /></div> : null}
           {!warm && recipe.cuisine && <div className={`absolute bottom-3 left-3 text-xs font-body font-medium px-2 py-0.5 rounded-md border ${getCuisineClass(recipe.cuisine)}`}>{recipe.cuisine}</div>}
         </div>
         <div className="recipe-card-copy p-4">
           <h3 className={`font-display text-lg text-cream leading-tight mb-1 ${warm ? '' : 'line-clamp-2 group-hover:text-amber'}`}>{recipe.title}</h3>
           {warm && time && <p className="warm-recipe-time"><Clock size={16} aria-hidden="true" /> {time}</p>}
           {!compact && displayCategory && <p className="recipe-card-category text-faint text-xs font-body">{!warm && <span>{getCategoryIcon(displayCategory, recipe.id)} </span>}{displayCategory}</p>}
+          {meta?.rating && meta.rating > 0 ? <div className="recipe-card-rating" aria-label={`Rating ${meta.rating} out of 5`}><HalfStarDisplay rating={meta.rating} /></div> : null}
         </div>
       </Link>
       <button onClick={handleToggleWantToTry}
         aria-label={wanted ? `Remove ${recipe.title} from Want to Try` : `Mark ${recipe.title} as Want to Try`}
         aria-pressed={wanted} title={wanted ? 'Remove from Want to Try' : 'Want to Try'}
-        className={`recipe-bookmark absolute z-10 rounded-full flex items-center justify-center ${warm ? 'warm-bookmark' : 'bottom-3 right-3 w-10 h-10 sm:w-8 sm:h-8 bg-ink/60 text-muted hover:bg-amber hover:text-ink'} ${wanted ? (warm ? 'is-wanted' : 'bg-amber text-ink') : ''}`}>
+        className={`recipe-bookmark hidden sm:flex absolute z-10 rounded-full flex items-center justify-center ${warm ? 'warm-bookmark' : 'bottom-3 right-3 w-10 h-10 sm:w-8 sm:h-8 bg-ink/60 text-muted hover:bg-amber hover:text-ink'} ${wanted ? (warm ? 'is-wanted' : 'bg-amber text-ink') : ''}`}>
         {wanted ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
       </button>
       <button ref={buttonRef} onClick={handleOpenPicker} title={user ? 'Add to plan' : 'Sign in to add to plan'}
