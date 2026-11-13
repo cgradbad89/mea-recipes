@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Link2, FileText, Loader2, Check, Plus, Minus } from 'lucide-react'
 import { addToQueue } from '@/lib/queue'
 import { useAuth } from '@/lib/AuthContext'
@@ -17,6 +17,24 @@ interface AddRecipeModalProps {
 export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
   const { user } = useAuth()
   const router = useRouter()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    const dialog = dialogRef.current
+    dialog?.querySelector<HTMLButtonElement>('button')?.focus()
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onCloseRef.current(); return }
+      if (event.key !== 'Tab' || !dialog) return
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href]'))
+      if (!controls.length) return
+      if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls[controls.length - 1].focus() }
+      else if (!event.shiftKey && document.activeElement === controls[controls.length - 1]) { event.preventDefault(); controls[0].focus() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown); if (previous && previous !== document.body && previous.isConnected) previous.focus() }
+  }, [])
   const [tab, setTab] = useState<Tab>('url')
   const [url, setUrl] = useState('')
   const [pasteText, setPasteText] = useState('')
@@ -116,11 +134,11 @@ export default function AddRecipeModal({ onClose }: AddRecipeModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-ink/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-slide-up">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="add-recipe-title" className="add-recipe-dialog bg-surface border border-border rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto animate-slide-up">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-surface z-10">
-          <h2 className="font-display text-2xl text-cream font-light">Add Recipe</h2>
-          <button onClick={onClose} className="text-faint hover:text-cream transition-colors">
+          <h2 id="add-recipe-title" className="font-display text-2xl text-cream font-light">Add Recipe</h2>
+          <button onClick={onClose} aria-label="Close add recipe" className="min-w-11 min-h-11 flex items-center justify-center text-faint hover:text-cream transition-colors">
             <X size={20} />
           </button>
         </div>

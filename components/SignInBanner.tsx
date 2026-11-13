@@ -25,6 +25,7 @@ export default function SignInBanner() {
       </button>
       <button
         onClick={() => setDismissed(true)}
+        aria-label="Dismiss sign-in banner"
         className="text-amber/60 hover:text-amber transition-colors shrink-0"
       >
         <X size={14} />

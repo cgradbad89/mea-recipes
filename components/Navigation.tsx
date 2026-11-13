@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UtensilsCrossed, Calendar, ShoppingCart, Heart, Plus, Clock, BarChart2, Inbox, Sparkles, Apple, MoreHorizontal, X, ClipboardCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AddRecipeModal from './AddRecipeModal'
 import AuthButton from './AuthButton'
 import { useAuth } from '@/lib/AuthContext'
@@ -36,6 +36,24 @@ export default function Navigation() {
   const { user } = useAuth()
   const [showAdd, setShowAdd] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const moreButtonRef = useRef<HTMLButtonElement>(null)
+  const desktopAddRef = useRef<HTMLButtonElement>(null)
+  const moreSheetRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!showMore) return
+    const sheet = moreSheetRef.current
+    sheet?.querySelector<HTMLButtonElement>('button')?.focus()
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setShowMore(false); moreButtonRef.current?.focus(); return }
+      if (event.key !== 'Tab' || !sheet) return
+      const items = Array.from(sheet.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'))
+      if (!items.length) return
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items[items.length - 1].focus() }
+      else if (!event.shiftKey && document.activeElement === items[items.length - 1]) { event.preventDefault(); items[0].focus() }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [showMore])
 
   const isAdmin = user?.email === ADMIN_EMAIL
   const desktopNavItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS
@@ -78,6 +96,7 @@ export default function Navigation() {
 
         {/* Add recipe button */}
         <button
+          ref={desktopAddRef}
           onClick={() => setShowAdd(true)}
           className="btn-primary flex items-center justify-center gap-2 w-full mb-4"
         >
@@ -93,13 +112,14 @@ export default function Navigation() {
 
       {/* Mobile bottom nav — five cells: four primary tabs + a "More" cell that
           opens the slide-up sheet. The rest of NAV_ITEMS (and Add) live there. */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+      <nav className={`${pathname === '/recipes' ? 'recipes-mobile-nav' : ''} md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]`}>
         {PRIMARY_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
             <Link
               key={href}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[52px] rounded-xl transition-all ${
                 active ? 'text-amber' : 'text-faint'
               }`}
@@ -110,6 +130,7 @@ export default function Navigation() {
           )
         })}
         <button
+          ref={moreButtonRef}
           onClick={() => setShowMore(true)}
           aria-label="More"
           aria-haspopup="dialog"
@@ -127,13 +148,13 @@ export default function Navigation() {
           action. Mirrors the LogFoodSheet / plan action-sheet shell. */}
       {showMore && (
         <div className="md:hidden fixed inset-0 z-[95] flex items-end justify-center" role="dialog" aria-modal="true" aria-label="More navigation">
-          <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={() => setShowMore(false)} />
-          <div className="relative w-full bg-surface border-t border-border rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
+          <div className="absolute inset-0 bg-ink/80 backdrop-blur-sm animate-fade-in" onClick={() => { setShowMore(false); moreButtonRef.current?.focus() }} />
+          <div ref={moreSheetRef} className="relative w-full bg-surface border-t border-border rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
               <h2 className="font-display text-xl text-cream font-light">More</h2>
               <button
-                onClick={() => setShowMore(false)}
+                onClick={() => { setShowMore(false); moreButtonRef.current?.focus() }}
                 aria-label="Close"
                 className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-faint hover:text-cream transition-all"
               >
@@ -177,7 +198,7 @@ export default function Navigation() {
         </div>
       )}
 
-      {showAdd && <AddRecipeModal onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddRecipeModal onClose={() => { setShowAdd(false); (window.matchMedia('(min-width: 768px)').matches ? desktopAddRef : moreButtonRef).current?.focus() }} />}
     </>
   )
 }

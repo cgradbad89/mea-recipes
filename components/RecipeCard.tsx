@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Bookmark, BookmarkCheck, CalendarPlus, Check, X, Loader2 } from 'lucide-react'
+import { Bookmark, BookmarkCheck, CalendarPlus, Check, X, Loader2, Clock } from 'lucide-react'
+import { getTotalTime, parseTimeToMinutes } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
 import { addRecipeToWeekPlan, weekIDFromDate, resolveRecipeRole } from '@/lib/userdata'
 import { useAppData } from '@/components/AppDataProvider'
@@ -55,6 +56,7 @@ interface RecipeCardProps {
   recipe: Recipe
   meta?: RecipeMeta
   compact?: boolean
+  warm?: boolean
 }
 
 function formatWeekLabel(weekID: string, offset: number): string {
@@ -75,7 +77,7 @@ function getWeekOptions(): { weekID: string; label: string; offset: number }[] {
   })
 }
 
-export default function RecipeCard({ recipe, meta, compact = false }: RecipeCardProps) {
+export default function RecipeCard({ recipe, meta, compact = false, warm = false }: RecipeCardProps) {
   const { user } = useAuth()
   const { isWantToTry, toggleWantToTry } = useAppData()
   const displayImageURL = meta?.overrides?.imageURL || recipe.imageURL
@@ -89,6 +91,11 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   const popoverRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const wanted = isWantToTry(recipe.id)
+  const prepTime = meta?.overrides?.prepTime || recipe.prepTime
+  const cookTime = meta?.overrides?.cookTime || recipe.cookTime
+  // A missing or unparseable component is not evidence of zero minutes.
+  const time = parseTimeToMinutes(prepTime) > 0 && parseTimeToMinutes(cookTime) > 0
+    ? getTotalTime(prepTime, cookTime).display : ''
 
   // Close on outside click — exclude the button itself
   useEffect(() => {
@@ -104,10 +111,23 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
     return () => document.removeEventListener('mousedown', handler)
   }, [showPlanPicker])
 
+  useEffect(() => {
+    if (!showPlanPicker) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setShowPlanPicker(false); buttonRef.current?.focus() }
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    popoverRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [showPlanPicker])
+
   // Close on scroll/resize while open
   useEffect(() => {
     if (!showPlanPicker) return
-    const close = () => setShowPlanPicker(false)
+    const close = (event: Event) => {
+      if (event.type === 'scroll' && event.target instanceof Node && popoverRef.current?.contains(event.target)) return
+      setShowPlanPicker(false)
+    }
     window.addEventListener('scroll', close, true)
     window.addEventListener('resize', close)
     return () => {
@@ -126,7 +146,7 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
     if (rect) {
       // w-48 = 192px. Clamp left so popover stays in viewport on small screens
       const left = Math.max(8, Math.min(window.innerWidth - 200, rect.right - 192))
-      setPopoverPos({ top: rect.bottom + 8, left })
+      setPopoverPos({ top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 375)), left })
     }
     setShowPlanPicker(true)
   }
@@ -146,6 +166,7 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
       setAdded(true)
       setTimeout(() => {
         setAdded(false)
+        if (popoverRef.current?.contains(document.activeElement)) buttonRef.current?.focus()
         setShowPlanPicker(false)
       }, 1500)
     } catch (err) {
@@ -162,74 +183,44 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
   }
 
   return (
-    <Link href={`/recipes/${recipe.id}`} className="recipe-card group block relative">
-      <div className="relative aspect-[4/3] overflow-hidden bg-card">
-        <RecipeImage
-          src={displayImageURL}
-          alt={recipe.title}
-          category={displayCategory}
-          recipeID={recipe.id}
-          className="w-full h-full transition-transform duration-500 group-hover:scale-105"
-          emojiClassName="text-4xl"
-        />
-        {meta?.rating && meta.rating > 0 && (
-          <div className="absolute top-3 left-3 flex items-center gap-1 bg-ink/70 backdrop-blur-sm rounded-lg px-2 py-1">
-            <HalfStarDisplay rating={meta.rating} />
-          </div>
-        )}
-        {recipe.cuisine && (
-          <div className={`absolute bottom-3 left-3 text-xs font-body font-medium px-2 py-0.5 rounded-md border ${getCuisineClass(recipe.cuisine)}`}>
-            {recipe.cuisine}
-          </div>
-        )}
-      </div>
-
-      {/* Add-to-Plan button — popover renders via portal below */}
-      <div className="absolute top-3 right-3 z-10">
-        <button
-          ref={buttonRef}
-          onClick={handleOpenPicker}
-          title={user ? 'Add to plan' : 'Sign in to add to plan'}
-          disabled={!user}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-            added
-              ? 'bg-green-500 text-white'
-              : 'bg-ink/60 text-muted hover:bg-amber hover:text-ink'
-          } ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {added ? <Check size={14} /> : <CalendarPlus size={14} />}
-        </button>
-      </div>
-
-      <div className="absolute bottom-3 right-3 z-10">
-        <button
-          onClick={handleToggleWantToTry}
-          aria-label={wanted
-            ? `Remove ${recipe.title} from Want to Try`
-            : `Mark ${recipe.title} as Want to Try`}
-          aria-pressed={wanted}
-          title={wanted ? 'Remove from Want to Try' : 'Want to Try'}
-          className={`w-10 h-10 sm:w-8 sm:h-8 rounded-full flex items-center justify-center transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-ink ${
-            wanted
-              ? 'bg-amber text-ink'
-              : 'bg-ink/60 text-muted hover:bg-amber hover:text-ink'
-          }`}
-        >
-          {wanted ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
-        </button>
-      </div>
-
+    <article className={`recipe-card group relative ${warm ? 'warm-recipe-card' : ''}`}>
+      <Link href={`/recipes/${recipe.id}`} className="block recipe-card-link">
+        <div className="relative aspect-[4/3] overflow-hidden bg-card">
+          <RecipeImage src={displayImageURL} alt="" category={displayCategory} recipeID={recipe.id}
+            className="w-full h-full transition-transform duration-500 group-hover:scale-105" emojiClassName="text-4xl" />
+          {meta?.rating && meta.rating > 0 ? <div className="absolute top-3 left-3 flex items-center gap-1 bg-ink/70 backdrop-blur-sm rounded-lg px-2 py-1" aria-label={`Rating ${meta.rating} out of 5`}><HalfStarDisplay rating={meta.rating} /></div> : null}
+          {!warm && recipe.cuisine && <div className={`absolute bottom-3 left-3 text-xs font-body font-medium px-2 py-0.5 rounded-md border ${getCuisineClass(recipe.cuisine)}`}>{recipe.cuisine}</div>}
+        </div>
+        <div className="recipe-card-copy p-4">
+          <h3 className={`font-display text-lg text-cream leading-tight mb-1 ${warm ? '' : 'line-clamp-2 group-hover:text-amber'}`}>{recipe.title}</h3>
+          {warm && time && <p className="warm-recipe-time"><Clock size={16} aria-hidden="true" /> {time}</p>}
+          {!compact && displayCategory && <p className="recipe-card-category text-faint text-xs font-body">{!warm && <span>{getCategoryIcon(displayCategory, recipe.id)} </span>}{displayCategory}</p>}
+        </div>
+      </Link>
+      <button onClick={handleToggleWantToTry}
+        aria-label={wanted ? `Remove ${recipe.title} from Want to Try` : `Mark ${recipe.title} as Want to Try`}
+        aria-pressed={wanted} title={wanted ? 'Remove from Want to Try' : 'Want to Try'}
+        className={`recipe-bookmark absolute z-10 rounded-full flex items-center justify-center ${warm ? 'warm-bookmark' : 'bottom-3 right-3 w-10 h-10 sm:w-8 sm:h-8 bg-ink/60 text-muted hover:bg-amber hover:text-ink'} ${wanted ? (warm ? 'is-wanted' : 'bg-amber text-ink') : ''}`}>
+        {wanted ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
+      </button>
+      <button ref={buttonRef} onClick={handleOpenPicker} title={user ? 'Add to plan' : 'Sign in to add to plan'}
+        aria-label={user ? `Add ${recipe.title} to plan` : `Sign in to add ${recipe.title} to plan`}
+        aria-expanded={showPlanPicker} disabled={!user}
+        className={warm ? 'warm-plan-button' : `absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center bg-ink/60 text-muted ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}>
+        {added ? <Check size={16} /> : <CalendarPlus size={16} />}{warm && <span>{added ? 'Added!' : 'Add to Plan'}</span>}
+      </button>
       {typeof window !== 'undefined' && showPlanPicker && popoverPos && createPortal(
         <div
           ref={popoverRef}
           onClick={e => { e.preventDefault(); e.stopPropagation() }}
           style={{ position: 'fixed', top: popoverPos.top, left: popoverPos.left }}
-          className="z-[100] bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
+          className="recipe-plan-picker z-[100] bg-surface border border-border rounded-xl shadow-lg p-3 w-48 animate-fade-in"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-cream text-xs font-body font-medium">Add to plan</p>
             <button
-              onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false) }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setShowPlanPicker(false); buttonRef.current?.focus() }}
+              aria-label="Close add to plan"
               className="text-faint hover:text-cream"
             >
               <X size={12} />
@@ -239,6 +230,7 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
             {getWeekOptions().map(w => (
               <button
                 key={w.weekID}
+                aria-pressed={selectedWeek === w.weekID}
                 onClick={e => { e.preventDefault(); e.stopPropagation(); setSelectedWeek(w.weekID) }}
                 className={`w-full text-left px-2 py-1.5 rounded-lg text-xs font-body transition-colors ${
                   selectedWeek === w.weekID
@@ -261,17 +253,6 @@ export default function RecipeCard({ recipe, meta, compact = false }: RecipeCard
         </div>,
         document.body
       )}
-      <div className="p-4">
-        <h3 className="font-display text-lg text-cream leading-tight mb-1 line-clamp-2 group-hover:text-amber transition-colors duration-200">
-          {recipe.title}
-        </h3>
-        {!compact && displayCategory && (
-          <p className="text-faint text-xs font-body flex items-center gap-1.5">
-            <span>{getCategoryIcon(displayCategory, recipe.id)}</span>
-            {displayCategory}
-          </p>
-        )}
-      </div>
-    </Link>
+    </article>
   )
 }

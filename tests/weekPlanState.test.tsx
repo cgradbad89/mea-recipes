@@ -357,7 +357,7 @@ describe('actual Add-to-Plan pickers keep canonical keys and next-week defaults'
     render(<RecipeCard recipe={mocks.recipes[0]} />)
     fireEvent.click(screen.getByTitle('Add to plan'))
     expect(screen.getByRole('button', { name: 'This week (Sep 28)' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Next week (Oct 5)' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Next week (Oct 5)' }).getAttribute('aria-pressed')).toBe('true')
     if (choice === 'explicit current week') fireEvent.click(screen.getByRole('button', { name: 'This week (Sep 28)' }))
     fireEvent.click(screen.getByRole('button', { name: 'Add to Plan' }))
     await act(async () => {})

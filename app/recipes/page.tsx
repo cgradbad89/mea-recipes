@@ -1,49 +1,24 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import Fuse from 'fuse.js'
 import { getTotalTime } from '@/lib/recipes'
 import { useAuth } from '@/lib/AuthContext'
 import { useAppData } from '@/components/AppDataProvider'
 import { getAllWeekPlans } from '@/lib/userdata'
 import RecipeCard from '@/components/RecipeCard'
-import RecipeFilters, { SourceFilter } from '@/components/RecipeFilters'
+import type { SourceFilter } from '@/components/RecipeFilters'
+import RecipeListingControls from '@/components/RecipeListingControls'
+import AddRecipeModal from '@/components/AddRecipeModal'
+import { Plus } from 'lucide-react'
 import LoadingErrorRetry from '@/components/LoadingErrorRetry'
 import type { Recipe } from '@/types/recipe'
 import { normalizeRecipeCategory } from '@/lib/recipeCategories'
-import { Bookmark, BookmarkCheck } from 'lucide-react'
+import { Bookmark } from 'lucide-react'
 
 type SortOption = 'default' | 'rating' | 'mine' | 'az' | 'recent'
 type TimeFilter = 0 | 30 | 45 | 60
 type FilterOption = 'none' | 'cookedRecently' | 'wantToTry'
-
-/** Parse a time string like "30 min", "1h 30min", "PT1H30M" into minutes. Returns Infinity if unparseable. */
-function parseMinutes(s?: string): number {
-  if (!s || !s.trim()) return Infinity
-  const t = s.trim()
-
-  // ISO 8601 duration: PT30M, PT1H30M, PT1H
-  const iso = t.match(/^PT(?:(\d+)H)?(?:(\d+)M)?$/i)
-  if (iso) {
-    const h = parseInt(iso[1] || '0', 10)
-    const m = parseInt(iso[2] || '0', 10)
-    return h * 60 + m
-  }
-
-  // "1 hr 30 min", "1h 30min", "1 hour 30 minutes", "1h30min"
-  const compound = t.match(/(\d+)\s*(?:hr|hour|h)\s*(?:(\d+)\s*(?:min(?:ute)?s?)?)?/i)
-  if (compound) {
-    const h = parseInt(compound[1], 10)
-    const m = parseInt(compound[2] || '0', 10)
-    return h * 60 + m
-  }
-
-  // "30 min", "30 minutes", "30min"
-  const mins = t.match(/^(\d+)\s*(?:min(?:ute)?s?)$/i)
-  if (mins) return parseInt(mins[1], 10)
-
-  return Infinity
-}
 
 function SkeletonCard() {
   return (
@@ -68,7 +43,20 @@ function readLS<T>(key: string, fallback: T, parser: (v: string) => T = (v: any)
   }
 }
 
+// Defer reading persisted browser preferences until hydration has completed. A
+// different server/client selection can otherwise leave stale ARIA attributes.
+const subscribeHydration = () => () => {}
+const clientSnapshot = () => true
+const serverSnapshot = () => false
+
 export default function RecipesPage() {
+  const hydrated = useSyncExternalStore(subscribeHydration, clientSnapshot, serverSnapshot)
+  return hydrated ? <RecipesContent /> : (
+    <div className="recipes-listing"><div className="recipes-listing-inner" role="status">Loading recipes…</div></div>
+  )
+}
+
+function RecipesContent() {
   const { user } = useAuth()
   const {
     metas,
@@ -106,7 +94,8 @@ export default function RecipesPage() {
   const [sort, setSort] = useState<SortOption>(() => readLS<SortOption>('mea_recipes_sort', 'default', v => (v as SortOption)))
   const [filter, setFilter] = useState<FilterOption>(() => readLS<FilterOption>('mea_recipes_filter', 'none', v => (v as FilterOption)))
   const [timeFilter, setTimeFilter] = useState<TimeFilter>(() => readLS<TimeFilter>('mea_recipes_timeFilter', 0, v => (parseInt(v, 10) || 0) as TimeFilter))
-  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+  const addButtonRef = useRef<HTMLButtonElement>(null)
   const [cookedRecentlyIDs, setCookedRecentlyIDs] = useState<Set<string> | null>(null)
   const [loadingCooked, setLoadingCooked] = useState(false)
   const [cookedRecentlyError, setCookedRecentlyError] = useState('')
@@ -236,121 +225,20 @@ export default function RecipesPage() {
     return sorted
   }, [recipes, debouncedSearch, cuisine, category, minRating, source, metas, user, sort, filter, timeFilter, cookedRecentlyIDs, wantToTry, fuse])
 
-  const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-    { value: 'default', label: 'Default' },
-    { value: 'rating', label: 'Top rated' },
-    { value: 'mine', label: 'Mine first' },
-    { value: 'az', label: 'A → Z' },
-    { value: 'recent', label: 'Added recently' },
-  ]
-
-  const TIME_OPTIONS: { value: TimeFilter; label: string }[] = [
-    { value: 0, label: 'Any total time' },
-    { value: 30, label: 'Total under 30 min' },
-    { value: 45, label: 'Total under 45 min' },
-    { value: 60, label: 'Total under 1 hour' },
-  ]
-
-  const FILTER_OPTIONS: { value: FilterOption; label: string; requiresAuth?: boolean }[] = [
-    { value: 'none', label: 'All' },
-    { value: 'cookedRecently', label: 'Cooked recently', requiresAuth: true },
-    { value: 'wantToTry', label: 'Want to Try' },
-  ]
-
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-5xl text-cream font-light tracking-tight mb-1">Recipes</h1>
-          <p className="text-faint text-sm font-body">Your shared recipe collection</p>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <RecipeFilters
-          search={search} cuisine={cuisine} category={category}
-          minRating={minRating} source={source}
-          onSearchChange={setSearch} onCuisineChange={setCuisine}
-          onCategoryChange={setCategory} onMinRatingChange={setMinRating}
-          onSourceChange={setSource}
-          totalCount={recipes.length} filteredCount={filtered.length}
-          isSignedIn={!!user}
+    <div className="recipes-listing">
+      <div className="recipes-listing-inner">
+        <header className="listing-heading">
+          <div><h1>Recipes</h1><p>Your shared recipe collection</p></div>
+          <button ref={addButtonRef} type="button" className="listing-add" onClick={() => setShowAdd(true)}><Plus size={18} aria-hidden="true" /> Add Recipe</button>
+        </header>
+        <RecipeListingControls
+          search={search} setSearch={setSearch} cuisine={cuisine} setCuisine={setCuisine}
+          category={category} setCategory={setCategory} minRating={minRating} setMinRating={setMinRating}
+          source={source} setSource={setSource} sort={sort} setSort={setSort}
+          timeFilter={timeFilter} setTimeFilter={setTimeFilter} filter={filter} setFilter={setFilter}
+          signedIn={!!user} count={filtered.length} total={recipes.length} loading={loading}
         />
-      </div>
-
-      {/* Sort & filter buttons */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1 min-w-0">
-          <span className="text-faint text-xs font-body uppercase tracking-widest shrink-0">Sort</span>
-          {SORT_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setSort(opt.value)}
-              className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
-                sort === opt.value
-                  ? 'bg-amber/10 text-amber border-amber/30'
-                  : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Time filter dropdown */}
-        <div className="relative ml-1 shrink-0">
-          <button
-            onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
-            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border flex items-center gap-1 ${
-              timeFilter > 0
-                ? 'bg-amber/10 text-amber border-amber/30'
-                : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
-            }`}
-          >
-            {timeFilter === 0 ? 'Total time' : TIME_OPTIONS.find(o => o.value === timeFilter)?.label}
-            <svg width="10" height="10" viewBox="0 0 10 10" className="opacity-60"><path d="M2 4l3 3 3-3" stroke="currentColor" fill="none" strokeWidth="1.5" /></svg>
-          </button>
-          {timeDropdownOpen && (
-            <div className="absolute left-0 top-9 z-50 bg-card border border-border rounded-xl shadow-lg py-1 w-40 animate-fade-in">
-              {TIME_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => { setTimeFilter(opt.value); setTimeDropdownOpen(false) }}
-                  className={`w-full text-left px-3 py-2 text-xs font-body transition-colors ${
-                    timeFilter === opt.value ? 'text-amber bg-amber/5' : 'text-muted hover:text-cream hover:bg-surface'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Personal recipe-state filters */}
-        {FILTER_OPTIONS
-          .filter(opt => opt.value !== 'none' && (!opt.requiresAuth || !!user))
-          .map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setFilter(filter === opt.value ? 'none' : opt.value)}
-            className={`text-xs px-3 py-1.5 rounded-lg font-body font-medium transition-all border shrink-0 ${
-              filter === opt.value
-                ? 'bg-amber/10 text-amber border-amber/30'
-                : 'bg-card text-faint border-border hover:border-amber/20 hover:text-muted'
-            }`}
-          >
-            {opt.value === 'wantToTry' && (
-              filter === 'wantToTry'
-                ? <BookmarkCheck size={12} />
-                : <Bookmark size={12} />
-            )}
-            {opt.label}
-            {opt.value === 'cookedRecently' && loadingCooked && filter === 'cookedRecently' ? '…' : ''}
-          </button>
-        ))}
-      </div>
-
       <LoadingErrorRetry
         loading={loading || (filter === 'cookedRecently' && loadingCooked) || (filter === 'wantToTry' && wantToTryLoading)}
         error={recipesError || metasError || (filter === 'cookedRecently' ? cookedRecentlyError : '') || (filter === 'wantToTry' ? wantToTryError : '')}
@@ -365,31 +253,33 @@ export default function RecipesPage() {
             ? 'Couldn’t apply the Want to Try filter.'
             : 'Couldn’t load your recipes.'}
         loadingFallback={(
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="listing-grid">
             {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         )}
       >
         {filtered.length === 0 && filter === 'wantToTry' && wantToTry.size === 0 ? (
-          <div className="text-center py-24">
-            <Bookmark size={40} className="text-faint mx-auto mb-4" />
-            <p className="font-display text-3xl text-faint font-light mb-2">No recipes to try yet</p>
-            <p className="text-faint text-sm font-body mb-6">Tap the bookmark on any recipe to keep it in your Want to Try list</p>
-            <button onClick={() => setFilter('none')} className="btn-ghost text-xs">Clear Want to Try filter</button>
+          <div className="listing-empty">
+            <Bookmark size={40} className="mx-auto mb-4" />
+            <p className="font-display text-3xl mb-2">No recipes to try yet</p>
+            <p className="text-sm font-body mb-6">Tap the bookmark on any recipe to keep it in your Want to Try list</p>
+            <button onClick={() => setFilter('none')} className="listing-filter-toggle">Clear Want to Try filter</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="font-display text-3xl text-faint font-light mb-2">No recipes found</p>
-            <p className="text-faint text-sm font-body">Try adjusting your filters</p>
+          <div className="listing-empty">
+            <p className="font-display text-3xl mb-2">No recipes found</p>
+            <p className="text-sm font-body">Try adjusting your filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 animate-fade-in">
+          <div className="listing-grid">
             {filtered.map(recipe => (
-              <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} />
+              <RecipeCard key={recipe.id} recipe={recipe} meta={metas[recipe.id]} warm />
             ))}
           </div>
         )}
       </LoadingErrorRetry>
+      {showAdd && <AddRecipeModal onClose={() => { setShowAdd(false); addButtonRef.current?.focus() }} />}
+      </div>
     </div>
   )
 }

@@ -58,6 +58,15 @@ afterEach(() => {
 })
 
 describe('AddRecipeModal category review', () => {
+  it('moves focus into the dialog and dismisses with Escape', () => {
+    const onClose = vi.fn()
+    render(<AddRecipeModal onClose={onClose} />)
+    expect(screen.getByRole('dialog', { name: 'Add Recipe' })).toBeTruthy()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close add recipe' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
   it('keeps missing or invalid AI categories unresolved instead of defaulting to Chicken', async () => {
     const select = await openPreview('Chicken')
 

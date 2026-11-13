@@ -128,3 +128,99 @@
 .cuisine-middle-eastern { background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.2); }
 .cuisine-greek { background: rgba(14, 165, 233, 0.12); color: #38bdf8; border-color: rgba(14, 165, 233, 0.2); }
 .cuisine-default { background: rgba(248, 240, 232, 0.06); color: #a89880; border-color: rgba(248, 240, 232, 0.1); }
+
+/* Warm Pantry: scoped to the Recipes listing during the gradual redesign. */
+.recipes-listing {
+  --pantry-bg: #f7f5ef;
+  --pantry-surface: #fffefa;
+  --pantry-ink: #202a24;
+  --pantry-green: #285c45;
+  --pantry-border: #d3cbbd;
+  background: var(--pantry-bg);
+  color: var(--pantry-ink);
+  min-height: 100%;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+.recipes-listing-inner { max-width: 1280px; margin: auto; padding: 36px 28px 100px; container-type: inline-size; }
+.recipes-listing :focus-visible { outline: 3px solid #b76b0b; outline-offset: 3px; }
+.listing-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+.listing-heading h1 { font-family: var(--font-cormorant), Georgia, serif; font-size: clamp(3rem, 6vw, 4.5rem); font-weight: 600; line-height: .95; letter-spacing: -.035em; }
+.listing-heading p { color: #554f45; margin-top: 8px; font-size: 15px; }
+.listing-add, .listing-filter-toggle { min-height: 44px; border: 1px solid var(--pantry-green); border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-size: 14px; font-weight: 600; padding: 0 14px; }
+.listing-add { background: var(--pantry-green); color: white; white-space: nowrap; }
+.listing-controls { margin-bottom: 20px; }
+.listing-search { height: 54px; border: 1px solid #a89e90; border-radius: 12px; background: var(--pantry-surface); display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+.listing-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--pantry-ink); font-size: 16px; }
+.listing-search input::placeholder { color: #756e65; }
+.listing-search button { width: 44px; height: 44px; display: grid; place-items: center; }
+.listing-collections { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--pantry-border); border-radius: 11px; margin-top: 18px; overflow: hidden; }
+.listing-collections button, .listing-collections a { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 6px; font-size: 14px; font-weight: 600; }
+.listing-collections [aria-pressed=true] { background: var(--pantry-green); color: white; }
+.listing-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+.listing-toolbar p { color: #554f45; font-size: 14px; }
+.listing-toolbar-actions { display: flex; gap: 8px; align-items: center; }
+.listing-filter-toggle { background: transparent; color: var(--pantry-green); white-space: nowrap; }
+.listing-sort { min-height: 44px; border: 1px solid var(--pantry-green); color: var(--pantry-green); border-radius: 10px; padding: 0 8px 0 12px; display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; }
+.listing-sort select { max-width: 130px; min-height: 42px; background: transparent; color: inherit; font-size: 13px; }
+.listing-filter-panel { margin-top: 14px; background: var(--pantry-surface); border: 1px solid var(--pantry-border); border-radius: 14px; padding: 18px; }
+.listing-filter-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.listing-filter-head h2 { font-size: 18px; font-weight: 700; }
+.listing-filter-head button, .listing-reset { color: #285c45; text-decoration: underline; min-height: 44px; font-size: 13px; }
+.listing-filter-head button:disabled { color: #777; text-decoration: none; }
+.listing-filter-selects { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.listing-filter-selects label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; }
+.listing-filter-selects select { min-width: 0; min-height: 44px; background: white; color: var(--pantry-ink); border: 1px solid var(--pantry-border); border-radius: 8px; padding: 0 8px; }
+.listing-filter-panel fieldset { margin-top: 18px; }
+.listing-filter-panel legend { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.listing-cuisines { display: flex; flex-wrap: wrap; gap: 6px; }
+.listing-cuisines button { min-height: 44px; border: 1px solid var(--pantry-border); border-radius: 8px; padding: 7px 10px; font-size: 13px; text-transform: capitalize; }
+.listing-cuisines [aria-pressed=true] { background: var(--pantry-green); color: white; border-color: var(--pantry-green); }
+.listing-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.warm-recipe-card { display: flex; flex-direction: column; background: var(--pantry-surface); border: 1px solid #e3ded4; border-radius: 14px; box-shadow: 0 3px 8px #382d1b12; }
+.warm-recipe-card:hover { border-color: #bcb3a4; box-shadow: 0 5px 14px #382d1b1a; }
+.warm-recipe-card .recipe-card-link { flex: 1; }
+.warm-recipe-card .recipe-card-copy { padding: 13px 14px 8px; }
+.warm-recipe-card h3 { color: var(--pantry-ink); font-size: 23px; line-height: 1.03; font-weight: 700; overflow-wrap: anywhere; }
+.warm-recipe-time { display: flex; align-items: center; gap: 6px; margin-top: 9px; font-size: 14px; font-weight: 600; }
+.warm-recipe-card .recipe-card-category { color: #655b4e; font-size: 12px; margin-top: 6px; }
+.warm-bookmark { top: 10px; right: 10px; width: 44px; height: 44px; background: #fffefa; color: #214e3b; box-shadow: 0 2px 5px #0002; }
+.warm-bookmark.is-wanted { background: #285c45; color: white; }
+.warm-plan-button { min-height: 44px; margin: 8px 12px 12px; border-radius: 9px; background: #a95a05; color: white; font-size: 13px; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 7px; }
+.warm-plan-button:disabled { background: #e7dfd2; color: #62594d; cursor: not-allowed; }
+.listing-empty { text-align: center; padding: 70px 15px; color: #514c43; }
+@container (min-width: 600px) { .listing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 900px) { .listing-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 430px) {
+  .recipes-listing-inner { padding: 24px 14px calc(90px + env(safe-area-inset-bottom)); }
+  .listing-heading { align-items: center; }
+  .listing-heading h1 { font-size: 3.3rem; }
+  .listing-heading p { font-size: 13px; }
+  .listing-add { padding: 0 10px; font-size: 12px; }
+  .listing-grid { gap: 10px; }
+  .warm-recipe-card h3 { font-size: 20px; }
+  .warm-recipe-card .recipe-card-copy { padding: 11px 10px 6px; }
+  .warm-plan-button { margin: 8px; font-size: 12px; }
+  .listing-collections button, .listing-collections a { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .recipes-listing *, .recipes-listing *::before, .recipes-listing *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+.recipes-mobile-nav { background: #1d382b; border-color: #1d382b; }
+.recipes-mobile-nav a, .recipes-mobile-nav button { color: #fffefa; }
+.recipes-mobile-nav a[aria-current="page"] { color: #ffc35a; }
+.recipes-mobile-nav :focus-visible { outline: 3px solid #ffc35a; outline-offset: -3px; }
+
+.warm-recipe-card .bg-card { background-color: #e9e3d7; }
+.warm-recipe-card .bg-card span { opacity: .65; }
+
+.recipes-listing .skeleton { background: linear-gradient(90deg, #e8e2d7 25%, #f2eee6 50%, #e8e2d7 75%); background-size: 200% 100%; }
+.add-recipe-dialog .text-faint { color: #bdb0a0; }
+.add-recipe-dialog :focus-visible { outline: 3px solid #f5c060; outline-offset: 2px; }
+.recipes-listing .recipe-card:not(.warm-recipe-card) { background: #fffefa; border-color: #e3ded4; }
+.recipes-listing [role="alert"] { background: #fff2ed; border-color: #c99d8e; }
+.recipes-listing [role="alert"] p, .recipes-listing [role="alert"] span, .recipes-listing [role="alert"] button { color: #8b3026; }
+.recipes-listing [role="alert"] button { min-height: 44px; border-color: #b76d60; }
+
+/* The plan picker is rendered in a portal, outside the listing theme. */
+.recipe-plan-picker { max-height: calc(100dvh - 16px); overflow-y: auto; }
+.recipe-plan-picker button { min-height: 44px; }
+.recipe-plan-picker .text-faint { color: #c6b9a8; }
+.recipe-plan-picker :focus-visible { outline: 3px solid #f5c060; outline-offset: 2px; }
