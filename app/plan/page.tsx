@@ -445,7 +445,6 @@ export default function PlanPage() {
     plannedIDList.some((id, index) => id !== publishedIDList[index])
   )
   const uncookedEntries = plannedEntries.filter(e => !cookedSet.has(e.recipeID))
-  const cooked = plannedIDList.filter(id => cookedSet.has(id))
 
   const handlePublishSharedPlan = async () => {
     if (!user || !plan || plannedIDList.length === 0) return
@@ -486,10 +485,10 @@ export default function PlanPage() {
     (a.role === 'main' ? 0 : 1) - (b.role === 'main' ? 0 : 1)
   const dayBuckets = weekDates.map(date => ({
     date,
-    entries: uncookedEntries.filter(e => e.day === date).sort(sortByRole),
+    entries: plannedEntries.filter(e => e.day === date).sort(sortByRole),
   }))
   // Anything without a day (or a stale day outside this week) → Unscheduled.
-  const unscheduledEntries = uncookedEntries
+  const unscheduledEntries = plannedEntries
     .filter(e => !e.day || !weekDateSet.has(e.day))
     .sort(sortByRole)
 
@@ -860,6 +859,7 @@ export default function PlanPage() {
   const renderPlannedCard = (entry: PlannedEntry) => {
     const id = entry.recipeID
     const recipe = recipes[id]
+    const isCooked = cookedSet.has(id)
     if (!recipe) return <div key={id} className="plan-missing">Recipe unavailable</div>
     const open = (element: HTMLElement) => { sheetOpenerRef.current = element; setPlanActionError(''); setSheetFor(id) }
     return (
@@ -868,14 +868,15 @@ export default function PlanPage() {
         onDragEnd={() => { setDraggingId(null); setDragOverKey(null) }}
         onClick={e => open(e.currentTarget)}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e.currentTarget) } }}
-        role="button" tabIndex={0} aria-label={`${recipe.title} — open actions`}
-        className={`plan-meal ${draggingId === id ? 'opacity-50' : ''}`}>
+        role="button" tabIndex={0} aria-label={`${recipe.title}${isCooked ? ' — Cooked' : ''} — open actions`}
+        className={`plan-meal ${isCooked ? 'is-cooked' : ''} ${draggingId === id ? 'opacity-50' : ''}`}>
         <RecipeImage src={metas[id]?.overrides?.imageURL || recipe.imageURL} alt=""
           category={metas[id]?.overrides?.category ?? recipe.category} recipeID={recipe.id}
           className="plan-meal-image" emojiClassName="text-2xl" />
         <div className="plan-meal-copy">
           <p className="plan-meal-title">{recipe.title}</p>
           <p className="plan-meal-meta">{entry.role === 'main' ? 'Main' : 'Side'}{recipe.cuisine ? ` · ${recipe.cuisine}` : ''}</p>
+          {isCooked && <p className="plan-meal-cooked"><Check size={15} aria-hidden="true" /> Cooked</p>}
         </div>
         <GripVertical size={15} className="plan-drag-hint" aria-hidden="true" />
         <ChevronRight size={19} aria-hidden="true" />
@@ -1036,10 +1037,10 @@ export default function PlanPage() {
 
               {/* 5. Mark cooked (closes the sheet; the servings/rating flow takes over) */}
               <button
-                onClick={() => { const rid = sheetEntry.recipeID; setSheetFor(null); handleMarkCooked(rid, true) }}
+                onClick={() => { const rid = sheetEntry.recipeID; setSheetFor(null); handleMarkCooked(rid, !cookedSet.has(rid)) }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-card border border-border text-cream text-sm font-body hover:border-green-400/30 transition-all"
               >
-                <Check size={16} className="text-green-400 shrink-0" /> Mark cooked
+                <Check size={16} className="text-green-400 shrink-0" /> {cookedSet.has(sheetEntry.recipeID) ? 'Undo cooked' : 'Mark cooked'}
               </button>
 
               {/* 6. Move to another week (closes the sheet) */}
@@ -1194,13 +1195,13 @@ export default function PlanPage() {
         <>
           <section className="plan-agenda-section" aria-label="Planned meals">
             <div className="plan-agenda-heading">
-              <h2>Planned <span>{uncookedEntries.length} {uncookedEntries.length === 1 ? 'meal' : 'meals'}</span></h2>
+              <h2>Planned <span>{plannedEntries.length} {plannedEntries.length === 1 ? 'meal' : 'meals'}</span></h2>
               {uncookedEntries.length > 0 && <button onClick={handleBulkAddToGrocery} disabled={bulkAddingGrocery} className="plan-bulk">
                 {bulkAddingGrocery ? <Loader2 size={16} className="animate-spin" /> : <ShoppingCart size={16} />}
                 {bulkAddResult || (bulkAddingGrocery ? 'Adding...' : 'Add all to grocery')}
               </button>}
             </div>
-            {uncookedEntries.length === 0 && <p className="plan-empty">No recipes planned this week</p>}
+            {plannedEntries.length === 0 && <p className="plan-empty">No recipes planned this week</p>}
             <p className="plan-add-help">Choose a day to add a recipe, or add one without a day.</p>
             <div className="plan-agenda">
               {dayBuckets.map(({ date, entries }) => {
@@ -1231,45 +1232,6 @@ export default function PlanPage() {
           </section>
 
           <div className="max-w-3xl mx-auto">
-            {/* Cooked section */}
-            {cooked.length > 0 && (
-              <section>
-                <h2 className="font-display text-xl text-cream font-light mb-4">
-                  Cooked
-                  <span className="ml-2 text-faint text-sm font-body">{cooked.length}</span>
-                </h2>
-                <div className="space-y-2">
-                  {cooked.map(id => {
-                    const recipe = recipes[id]
-                    if (!recipe) return null
-                    return (
-                      <div
-                        key={id}
-                        className="bg-surface border border-border rounded-xl p-3 flex items-center gap-3 opacity-60"
-                      >
-                        <div className="w-12 h-12 rounded-lg bg-card flex items-center justify-center shrink-0">
-                          <Check size={16} className="text-green-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Link href={`/recipes/${id}`}>
-                            <p className="text-muted text-sm font-body font-medium truncate line-through">
-                              {recipe.title}
-                            </p>
-                          </Link>
-                        </div>
-                        <button
-                          onClick={() => handleMarkCooked(id, false)}
-                          className="text-faint text-xs font-body hover:text-muted transition-colors px-2"
-                        >
-                          Undo
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
-
             {/* Friends' plans section */}
             {friendPlansSubscriptionError && (
               <LoadingErrorRetry

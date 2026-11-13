@@ -278,6 +278,9 @@
 .plan-day-heading span { display: inline-block; background: #ffe4a6; color: #844900; border-radius: 20px; font-size: 11px; font-weight: 700; margin-top: 6px; padding: 2px 7px; }
 .plan-day-meals, .plan-unscheduled-meals { display: grid; gap: 8px; min-width: 0; }
 .plan-meal { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 70px; border-radius: 10px; cursor: pointer; color: #202a24; }
+.plan-meal.is-cooked { background: #f0eee7; }
+.plan-meal.is-cooked .plan-meal-image { opacity: .62; filter: saturate(.55); }
+.plan-meal-cooked { display:flex; align-items:center; gap:4px; color:#285c45; font-size:12px; font-weight:700; margin-top:5px; }
 .plan-meal:hover { background: #f1ece2; }
 .plan-meal-image { width: 76px; height: 68px; border-radius: 9px; flex: none; object-fit: cover; background: #e9e3d7; }
 .plan-meal-copy { min-width: 0; flex: 1; }

@@ -2,7 +2,7 @@
 
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { Recipe } from '@/types/recipe'
 import type { SharedPlanEntry, WeekPlan } from '@/lib/userdata'
 
@@ -419,6 +419,42 @@ describe('Warm Pantry planner navigation and actions', () => {
     emit(current, plan(current))
     expect(screen.getAllByRole('heading', { level: 3, name: /^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/ })).toHaveLength(7)
     expect(mocks.addRecipeToWeekPlan).not.toHaveBeenCalled()
+  })
+
+  it('keeps cooked and uncooked meals in their assigned day after a snapshot and reload', () => {
+    const saved: WeekPlan = { weekID: current, weekStartISO: current, plannedRecipeIDs: [
+      { recipeID: 'recipe-a', day: '2026-09-30', role: 'main' },
+      { recipeID: 'recipe-b', day: '2026-09-30', role: 'side' },
+    ], cookedRecipeIDs: [] }
+    const view = render(<PlanPage />)
+    emit(current, saved)
+    const day = document.getElementById('plan-day-2026-09-30')!
+    expect(within(day).getByRole('button', { name: 'Recipe A — open actions' }).className).not.toContain('is-cooked')
+    emit(current, { ...saved, cookedRecipeIDs: ['recipe-a'] })
+    const cooked = within(day).getByRole('button', { name: 'Recipe A — Cooked — open actions' })
+    expect(cooked.className).toContain('is-cooked')
+    expect(within(cooked).getByText('Cooked')).toBeTruthy()
+    expect(within(cooked).getByText(/Main · test/)).toBeTruthy()
+    expect(within(day).getByText(/Side · test/)).toBeTruthy()
+    fireEvent.keyDown(cooked, { key: 'Enter' })
+    const dialog = screen.getByRole('dialog', { name: 'Recipe A' })
+    expect(within(dialog).getByRole('link', { name: 'View recipe' })).toBeTruthy()
+    expect(within(dialog).getByRole('button', { name: 'Undo cooked' })).toBeTruthy()
+    expect(within(dialog).queryByRole('button', { name: 'Mark cooked' })).toBeNull()
+    expect(within(dialog).getByRole('button', { name: 'Add ingredients to grocery' })).toBeTruthy()
+    view.unmount()
+    render(<PlanPage />)
+    emit(current, { ...saved, cookedRecipeIDs: ['recipe-a'] })
+    expect(within(document.getElementById('plan-day-2026-09-30')!).getByRole('button', { name: 'Recipe A — Cooked — open actions' })).toBeTruthy()
+  })
+
+  it('keeps cooked legacy entries in Unscheduled without assigning a day', () => {
+    render(<PlanPage />)
+    emit(current, { weekID: current, weekStartISO: current, plannedRecipeIDs: ['recipe-a'], cookedRecipeIDs: ['recipe-a'] })
+    const tile = screen.getByRole('button', { name: 'Recipe A — Cooked — open actions' })
+    expect(tile.closest('.plan-unscheduled')).toBeTruthy()
+    fireEvent.click(tile)
+    expect(screen.getByRole('dialog', { name: 'Recipe A' }).textContent).toContain('Unscheduled · Main')
   })
 
   it('shows multiple roles on a day and names, traps and dismisses the meal sheet', () => {
