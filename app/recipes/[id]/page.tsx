@@ -325,6 +325,7 @@ export default function RecipeDetailPage() {
 
   if (loading) {
     return (
+      <div className="app-loading" role="status" aria-busy="true" aria-label="Loading recipe">
       <div className="max-w-3xl mx-auto px-4 py-6 animate-fade-in">
         {/* Back placeholder */}
         <div className="h-4 w-16 skeleton rounded mb-6" />
@@ -345,6 +346,7 @@ export default function RecipeDetailPage() {
             <div key={i} className="h-4 skeleton rounded" style={{ width: `${w}%` }} />
           ))}
         </div>
+      </div>
       </div>
     )
   }

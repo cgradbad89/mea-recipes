@@ -113,6 +113,18 @@
 .animate-fade-in { animation: fade-in 0.2s ease-out; }
 .animate-slide-up { animation: slide-up 0.25s ease-out; }
 
+/* Full-page loading states use the same canvas as the Warm Pantry pages. */
+.grocery-page.grocery-loading { min-height: 100vh; }
+.app-loading { min-height: 100vh; background: #f7f5ef; color: #202a24; }
+.app-loading .skeleton {
+  background: linear-gradient(90deg, #e8e2d7 25%, #f2eee6 50%, #e8e2d7 75%);
+  background-size: 200% 100%;
+}
+.app-loading .recipe-card { background: #fffefa; border-color: #d3cbbd; }
+@media (prefers-reduced-motion: reduce) {
+  .app-loading .skeleton { animation: none; }
+}
+
 /* Smooth touch scrolling for horizontal scroll containers */
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;

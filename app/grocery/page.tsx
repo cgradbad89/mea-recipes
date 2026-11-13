@@ -670,6 +670,7 @@ export default function GroceryPage() {
 
   if (loading || snapshotOwner !== user.uid || subscriptionError) {
     return (
+      <div className="grocery-page grocery-loading">
       <LoadingErrorRetry
         loading={loading || snapshotOwner !== user.uid}
         error={subscriptionError}
@@ -680,6 +681,7 @@ export default function GroceryPage() {
       >
         {null}
       </LoadingErrorRetry>
+      </div>
     )
   }
 

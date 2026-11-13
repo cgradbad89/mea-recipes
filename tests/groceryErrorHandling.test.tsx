@@ -101,8 +101,9 @@ it('reports a failed rebuild and re-enables the control', async () => {
 it('shows loading until the first owner snapshot instead of an empty list', () => {
   mocks.delaySnapshot = true
   render(<GroceryPage />)
-  expect(screen.getByText('Loading grocery list…')).toBeTruthy()
+  expect(screen.getByText('Loading grocery list…').closest('.grocery-page.grocery-loading')).toBeTruthy()
   expect(screen.queryByText('List is empty')).toBeNull()
   act(() => mocks.onData?.([]))
   expect(screen.getByText('List is empty')).toBeTruthy()
+  expect(document.querySelector('.grocery-loading')).toBeNull()
 })

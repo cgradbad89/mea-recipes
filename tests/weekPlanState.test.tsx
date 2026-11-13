@@ -84,6 +84,7 @@ vi.mock('@/components/SignInOptions', () => ({ default: () => <div>Sign-in optio
 import PlanPage from '@/app/plan/page'
 import DetailPage from '@/app/recipes/[id]/page'
 import RecipeCard from '@/components/RecipeCard'
+import { getRecipeById } from '@/lib/recipes'
 
 const current = '2026-09-28'
 const next = '2026-10-05'
@@ -376,6 +377,20 @@ describe('actual Add-to-Plan pickers keep canonical keys and next-week defaults'
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
     await act(async () => {})
     expect(mocks.addRecipeToWeekPlan).toHaveBeenCalledWith('owner-a', choice === 'explicit current week' ? current : next, 'recipe-a', 'main')
+  })
+})
+
+describe('recipe detail loading', () => {
+  it('announces the warm loading state until the recipe is available', async () => {
+    const pending = deferred<Recipe | null>()
+    vi.mocked(getRecipeById).mockReturnValueOnce(pending.promise)
+    render(<DetailPage />)
+    const status = screen.getByRole('status', { name: 'Loading recipe' })
+    expect(status.getAttribute('aria-busy')).toBe('true')
+    expect(status.className).toContain('app-loading')
+    await act(async () => { pending.resolve(mocks.recipes[0]) })
+    expect(screen.queryByRole('status', { name: 'Loading recipe' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Recipe A' })).toBeTruthy()
   })
 })
 
