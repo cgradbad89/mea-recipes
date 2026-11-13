@@ -57,7 +57,7 @@ function GroceryRecipeSources({ ingredientName, isManual, sourceCount, display, 
       data-recipe-sources
       role="group"
       aria-label={`Used in recipes for ${ingredientName}`}
-      className="hidden lg:flex lg:w-56 xl:w-72 shrink-0 min-w-0 flex-col gap-0.5 font-body text-xs leading-[18px] text-muted"
+      className="grocery-sources flex lg:w-56 xl:w-72 shrink-0 min-w-0 flex-col gap-0.5 font-body text-xs leading-[18px] text-muted"
       onClick={event => event.stopPropagation()}
       onKeyDown={event => {
         if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()

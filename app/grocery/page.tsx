@@ -83,6 +83,8 @@ export default function GroceryPage() {
   // Viewport-fixed coords for the category menu — it's portaled to <body> so the
   // category tile's overflow-hidden can't clip it (small tiles cut it off before).
   const [pickerStyle, setPickerStyle] = useState<CSSProperties | null>(null)
+  const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const categoryMenuRef = useRef<HTMLDivElement | null>(null)
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupPlan, setCleanupPlan] = useState<{ uid: string; plan: GroceryCleanupPlan } | null>(null)
   const cleanupChanges = cleanupPlan?.uid === user?.uid ? cleanupPlan?.plan.changes ?? null : null
@@ -109,6 +111,8 @@ export default function GroceryPage() {
   const [editingItemQuantity, setEditingItemQuantity] = useState('')
   const [editingItemUnit, setEditingItemUnit] = useState('')
   const [showCheckedItems, setShowCheckedItems] = useState(false)
+  const [actionsFor, setActionsFor] = useState<string | null>(null)
+  const [recentlyChecked, setRecentlyChecked] = useState<Set<string>>(new Set())
   const [updatingUsuallyOnHand, setUpdatingUsuallyOnHand] = useState<Set<string>>(new Set())
   const [updatingNeedThisTrip, setUpdatingNeedThisTrip] = useState<Set<string>>(new Set())
 
@@ -179,6 +183,7 @@ export default function GroceryPage() {
 
   useEffect(() => {
     setItems([])
+    setRecentlyChecked(new Set())
     setCleanupPlan(null)
     setRejectedChanges(new Set())
     setCleanupMessage('')
@@ -215,7 +220,8 @@ export default function GroceryPage() {
   )
 
   const { categories: grouped, usuallyOnHand: usuallyOnHandItems } = useMemo(() => {
-    const sections = deriveGrocerySections(items, savedItems, showCheckedItems)
+    const visible = items.filter(item => showCheckedItems || !item.isChecked || recentlyChecked.has(item.id))
+    const sections = deriveGrocerySections(visible, savedItems, true)
     const allSections = [...Object.values(sections.categories), sections.usuallyOnHand]
     allSections.forEach(sectionItems => {
       sectionItems.sort((a, b) => {
@@ -223,19 +229,21 @@ export default function GroceryPage() {
       })
     })
     return sections
-  }, [items, savedItems, showCheckedItems])
+  }, [items, savedItems, showCheckedItems, recentlyChecked])
 
   const uncheckedCount = items.filter(i => !i.isChecked).length
   const checkedCount = items.filter(i => i.isChecked).length
-  const visibleItemCount = showCheckedItems ? items.length : uncheckedCount
+  const visibleItemCount = items.filter(item => showCheckedItems || !item.isChecked || recentlyChecked.has(item.id)).length
 
   const toggleItem = async (item: GroceryItem) => {
     if (!user) return
     setGroceryError('')
+    setRecentlyChecked(previous => { const next = new Set(previous); if (item.isChecked) next.delete(item.id); else next.add(item.id); return next })
     try {
       const ref = doc(db, 'users', user.uid, 'pantry', 'root', 'groceryItems', item.id)
       await updateDoc(ref, { isChecked: !item.isChecked })
     } catch {
+      setRecentlyChecked(previous => { const next = new Set(previous); if (item.isChecked) next.add(item.id); else next.delete(item.id); return next })
       setGroceryError(`Couldn’t update “${item.name}” — try again.`)
     }
   }
@@ -337,7 +345,8 @@ export default function GroceryPage() {
   useEffect(() => {
     if (!categoryPickerFor) return
     const close = () => setCategoryPickerFor(null)
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    categoryMenuRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close(); categoryTriggerRef.current?.focus() } }
     const onPointer = (e: Event) => {
       if (!(e.target as HTMLElement).closest?.('[data-cat-picker]')) close()
     }
@@ -661,7 +670,7 @@ export default function GroceryPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl lg:max-w-5xl mx-auto">
+    <div className="grocery-page"><div className="grocery-inner">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -671,36 +680,7 @@ export default function GroceryPage() {
             {checkedCount > 0 && ` · ${checkedCount} checked`}
           </p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          {checkedCount > 0 && (
-            <button
-              onClick={() => setShowCheckedItems(prev => !prev)}
-              className="btn-ghost flex items-center gap-1.5 text-xs"
-            >
-              {showCheckedItems ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-              {showCheckedItems ? 'Hide checked' : `Show checked (${checkedCount})`}
-            </button>
-          )}
-          {checkedCount > 0 && (
-            <button onClick={clearChecked} className="btn-ghost flex items-center gap-1.5 text-xs">
-              <CheckCheck size={13} />Clear checked
-            </button>
-          )}
-          {items.length > 0 && !confirmClearAll && (
-            <button onClick={() => setConfirmClearAll(true)} className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400">
-              <Trash2 size={13} />Clear all
-            </button>
-          )}
-          {confirmClearAll && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
-              <span className="text-red-400 text-xs font-body">Are you sure? This cannot be undone.</span>
-              <button onClick={() => { void clearAll() }} className="text-red-400 text-xs font-body font-semibold hover:text-red-300">
-                Yes, clear all
-              </button>
-              <button onClick={() => setConfirmClearAll(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
-            </div>
-          )}
-        </div>
+
       </div>
 
       {(groceryError || cleanupMessage) && (
@@ -709,60 +689,21 @@ export default function GroceryPage() {
         </p>
       )}
 
-      {/* Rebuild grocery from plan */}
-      {showRebuildConfirm ? (
-        <div className="bg-surface border border-amber/20 rounded-xl p-4 mb-6 animate-fade-in">
-          <p className="text-cream text-sm font-body mb-3">
-            This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
-          </p>
-          <div className="flex gap-2">
-            <button onClick={handleRebuildGrocery} className="btn-primary text-xs px-3 py-1.5">Rebuild</button>
-            <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
-          disabled={rebuilding}
-          className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors mb-6"
-        >
-          {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
-          {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
-        </button>
-      )}
-
-      {/* AI Cleanup button */}
-      {items.length > 0 && !cleanupChanges && (
-        <div className="mb-6 space-y-1">
-          <button
-            onClick={handleAICleanup}
-            disabled={cleanupLoading}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber/20 bg-amber/5 text-amber text-sm font-body hover:bg-amber/10 transition-colors"
-          >
-            {cleanupLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {cleanupLoading ? 'AI is reviewing your list...' : 'AI Clean Up List'}
-          </button>
-          {lastCleaned && (
-            <p className="text-faint text-xs font-body">
-              Last cleaned {lastCleaned.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {lastCleaned.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Add Item button + form */}
       <div className="mb-4">
         {showAddItem ? (
           <div className="bg-surface border border-border rounded-2xl p-4 space-y-3">
             <p className="text-faint text-xs font-body uppercase tracking-widest">Add Item</p>
-            <div className="flex gap-2">
+            <div className="grocery-entry-fields flex gap-2">
               <input
+                aria-label="Quantity"
                 value={newItemQty}
                 onChange={e => setNewItemQty(e.target.value)}
                 placeholder="Qty"
                 className="input-field w-20 shrink-0"
               />
               <input
+                aria-label="Unit"
                 value={newItemUnit}
                 onChange={e => setNewItemUnit(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddItem()}
@@ -771,6 +712,7 @@ export default function GroceryPage() {
               />
               <div className="relative flex-1">
                 <input
+                  aria-label="Item name"
                   value={newItemName}
                   onChange={e => {
                     setNewItemName(e.target.value)
@@ -811,6 +753,7 @@ export default function GroceryPage() {
               </div>
             </div>
             <select
+              aria-label="Item category"
               value={newItemCategory}
               onChange={e => setNewItemCategory(e.target.value as GroceryCategory)}
               className="input-field w-full"
@@ -874,7 +817,7 @@ export default function GroceryPage() {
                             })
                         }}
                         className="text-amber hover:text-amber/80 transition-colors shrink-0 p-1"
-                        title="Add to list"
+                        title="Add to list" aria-label={`Add ${s.name} to list`}
                       >
                         <Plus size={14} />
                       </button>
@@ -891,7 +834,7 @@ export default function GroceryPage() {
                           }
                         }}
                         className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
-                        title="Remove from saved"
+                        title="Remove from saved" aria-label={`Remove ${s.name} from saved items`}
                       >
                         <Trash2 size={12} />
                       </button>
@@ -904,86 +847,18 @@ export default function GroceryPage() {
         ) : (
           <button
             onClick={() => setShowAddItem(true)}
-            className="flex items-center gap-2 text-sm font-body text-faint hover:text-cream transition-colors"
+            className="grocery-add"
           >
-            <Plus size={15} className="text-amber" />
+            <Plus size={18} />
             Add item manually
           </button>
         )}
       </div>
 
-      {/* Cleanup diff view */}
-      {cleanupChanges && (
-        <div className="mb-6 bg-surface border border-amber/20 rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <div>
-              <p className="text-cream text-sm font-body font-medium">AI Suggestions</p>
-              <p className="text-faint text-xs font-body mt-0.5">
-                {cleanupChanges.length - rejectedChanges.size} of {cleanupChanges.length} changes will apply
-              </p>
-            </div>
-            <button onClick={() => { setCleanupPlan(null); setRejectedChanges(new Set()) }} className="text-faint hover:text-cream">
-              <X size={16} />
-            </button>
-          </div>
-          <div className="max-h-72 overflow-y-auto divide-y divide-border">
-            {cleanupChanges.map((change, i) => {
-              const original = cleanupPlan?.plan.items[change.originalIndex]
-              const isRejected = rejectedChanges.has(i)
-              return (
-                <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${isRejected ? 'opacity-40 line-through' : change.action === 'remove' ? 'opacity-50' : ''}`}>
-                  <span className={`text-xs font-body px-1.5 py-0.5 rounded font-medium shrink-0 ${
-                    change.action === 'remove' ? 'bg-red-500/10 text-red-400' :
-                    change.action === 'merge' ? 'bg-violet-500/10 text-violet-400' :
-                    change.action === 'normalize' ? 'bg-amber/10 text-amber' :
-                    'bg-card text-faint'
-                  }`}>
-                    {change.action}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    {original && (
-                      <p className="text-faint text-xs font-body line-through truncate">{original.name}</p>
-                    )}
-                    {change.action !== 'remove' && (
-                      <p className="text-cream text-xs font-body truncate">{change.name}</p>
-                    )}
-                  </div>
-                  {change.action !== 'remove' && (
-                    <span className="text-faint text-xs font-body shrink-0">{change.category}</span>
-                  )}
-                  <button
-                    onClick={() => {
-                      setRejectedChanges(prev => {
-                        const next = new Set(prev)
-                        if (next.has(i)) next.delete(i)
-                        else next.add(i)
-                        return next
-                      })
-                    }}
-                    className={`shrink-0 p-1 rounded transition-colors ${
-                      isRejected ? 'text-amber hover:text-amber-glow' : 'text-faint hover:text-red-400'
-                    }`}
-                    title={isRejected ? 'Restore this change' : 'Reject this change'}
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-          <div className="px-4 py-3 border-t border-border flex gap-2">
-            <button onClick={() => { setCleanupPlan(null); setRejectedChanges(new Set()) }} className="btn-ghost text-xs flex-1">Discard</button>
-            <button
-              onClick={applyCleanup}
-              disabled={applyingCleanup || rejectedChanges.size === cleanupChanges.length}
-              className="btn-primary text-xs flex-1 flex items-center justify-center gap-1.5"
-            >
-              {applyingCleanup ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-              Apply changes
-            </button>
-          </div>
-        </div>
-      )}
+      <div className="grocery-view-controls">
+        <button onClick={() => { setRecentlyChecked(new Set()); setShowCheckedItems(false) }} aria-pressed={!showCheckedItems}>Remaining</button>
+        <button onClick={() => { setRecentlyChecked(new Set()); setShowCheckedItems(true) }} aria-pressed={showCheckedItems}>All ({items.length})</button>
+      </div>
 
       {/* Empty state */}
       {items.length === 0 && (
@@ -1031,7 +906,7 @@ export default function GroceryPage() {
               <button
                 onClick={() => toggleCollapse(section)}
                 aria-expanded={!isCollapsed}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-card/50 transition-colors"
+                className="grocery-category-header w-full flex items-center justify-between px-4 py-3 hover:bg-card/50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   {isUsuallyOnHandSection
@@ -1060,13 +935,14 @@ export default function GroceryPage() {
                   {catItems.map(item => (
                     <div
                       key={item.id}
-                      className={`flex items-center gap-3 px-4 py-3 transition-colors ${item.isChecked ? 'opacity-60 lg:opacity-100 lg:[&>*:not([data-recipe-sources])]:opacity-60' : ''}`}
+                      className="grocery-row flex items-center gap-3 px-4 py-3 transition-colors"
                     >
                       {/* Checkbox */}
                       <button
                         onClick={() => toggleItem(item)}
                         aria-label={item.isChecked ? `Mark ${item.name} unchecked` : `Mark ${item.name} checked`}
-                        className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
+                        aria-pressed={item.isChecked}
+                        className={`grocery-check rounded-full border flex items-center justify-center shrink-0 transition-all ${
                           item.isChecked
                             ? 'bg-amber border-amber'
                             : 'border-border hover:border-amber/50'
@@ -1126,7 +1002,7 @@ export default function GroceryPage() {
                         </div>
                       ) : (
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-body ${item.isChecked ? 'text-faint' : 'text-cream'}`}>
+                          <p className={`text-sm font-body ${item.isChecked ? 'text-faint line-through' : 'text-cream'}`}>
                             {item.quantity && item.unit
                               ? `${item.quantity} ${item.unit} ${item.name}`
                               : item.quantity
@@ -1136,6 +1012,12 @@ export default function GroceryPage() {
                         </div>
                       )}
 
+                      <button className="grocery-more" aria-label={`More actions for ${item.name}`} aria-expanded={actionsFor === item.id}
+                        onClick={() => setActionsFor(actionsFor === item.id ? null : item.id)}
+                        onKeyDown={e => { if (e.key === 'Escape') { setActionsFor(null); e.currentTarget.focus() } }}>•••</button>
+                      <div className={`grocery-row-actions ${actionsFor === item.id ? 'is-open' : ''}`} onKeyDown={e => {
+                        if (e.key === 'Escape') { setActionsFor(null); (e.currentTarget.previousElementSibling as HTMLElement | null)?.focus() }
+                      }}>
                       {/* Persistent ingredient preference */}
                       {editingItemId !== item.id && (
                         <button
@@ -1187,7 +1069,7 @@ export default function GroceryPage() {
                         <button
                           onClick={() => startEditItem(item)}
                           className="text-faint hover:text-amber transition-colors shrink-0 p-1"
-                          title="Edit name"
+                          title="Edit name" aria-label={`Edit ${item.name}`}
                         >
                           <Pencil size={12} />
                         </button>
@@ -1197,6 +1079,7 @@ export default function GroceryPage() {
                       {editingItemId !== item.id && !item.id.includes('/') && (
                         <button
                           onClick={() => deleteItem(item)}
+                          aria-label={`Remove ${item.name}`}
                           className="text-faint hover:text-red-400 transition-colors shrink-0 p-1"
                         >
                           <Minus size={12} />
@@ -1210,18 +1093,19 @@ export default function GroceryPage() {
                             if (categoryPickerFor === item.id) {
                               setCategoryPickerFor(null)
                             } else {
+                              categoryTriggerRef.current = e.currentTarget
                               const rect = e.currentTarget.getBoundingClientRect()
                               const right = Math.max(8, window.innerWidth - rect.right)
                               setPickerStyle(
                                 rect.top > window.innerHeight / 2
-                                  ? { right, bottom: window.innerHeight - rect.top + 6 }
-                                  : { right, top: rect.bottom + 6 },
+                                  ? { right, bottom: window.innerHeight - rect.top + 6, maxHeight: Math.max(120, rect.top - 12) }
+                                  : { right, top: rect.bottom + 6, maxHeight: Math.max(120, window.innerHeight - rect.bottom - 12) },
                               )
                               setCategoryPickerFor(item.id)
                             }
                           }}
                           className="text-faint hover:text-muted transition-colors text-xs font-body flex items-center gap-1"
-                          title="Change category"
+                          title="Change category" aria-label={`Change category for ${item.name}`} aria-expanded={categoryPickerFor === item.id}
                         >
                           <Tag size={11} />
                         </button>
@@ -1231,14 +1115,17 @@ export default function GroceryPage() {
                         {categoryPickerFor === item.id && pickerStyle && createPortal(
                           <div
                             data-cat-picker
+                            ref={categoryMenuRef}
+                            onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setCategoryPickerFor(null); categoryTriggerRef.current?.focus() } }}
                             style={pickerStyle}
-                            className="fixed z-[80] bg-surface border border-border rounded-xl shadow-lg w-52 max-w-[calc(100vw-2rem)] overflow-hidden"
+                            className="grocery-category-menu fixed z-[80] bg-surface border border-border rounded-xl shadow-lg w-52 max-w-[calc(100vw-2rem)] overflow-y-auto max-h-[75vh]"
                           >
                             <p className="text-faint text-xs font-body px-3 py-2 border-b border-border uppercase tracking-widest">Category</p>
                             {MANUAL_CATEGORIES.map(cat => (
                               <button
                                 key={cat}
-                                onClick={() => setManualCategory(item.id, cat)}
+                                onClick={() => { void setManualCategory(item.id, cat); categoryTriggerRef.current?.focus() }}
+                                aria-pressed={getCategory(item) === cat}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-body hover:bg-card transition-colors ${
                                   getCategory(item) === cat ? 'text-amber' : 'text-muted'
                                 }`}
@@ -1249,7 +1136,7 @@ export default function GroceryPage() {
                             ))}
                             {item.manualSection && (
                               <button
-                                onClick={() => setManualCategory(item.id, null)}
+                                onClick={() => { void setManualCategory(item.id, null); categoryTriggerRef.current?.focus() }}
                                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-body text-faint hover:text-red-400 hover:bg-card transition-colors border-t border-border"
                               >
                                 <X size={11} /> Reset to auto
@@ -1265,6 +1152,7 @@ export default function GroceryPage() {
                         {...recipeSources.get(item.id)!}
                         catalogState={recipeCatalogState}
                       />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1273,6 +1161,146 @@ export default function GroceryPage() {
           )
         })}
       </div>
-    </div>
+      <section className="grocery-maintenance" aria-label="List options">
+        <h2>List options</h2>
+        <div className="grocery-maintenance-buttons">
+          {checkedCount > 0 && (
+            <button onClick={clearChecked} className="btn-ghost flex items-center gap-1.5 text-xs">
+              <CheckCheck size={13} />Clear checked
+            </button>
+          )}
+          {items.length > 0 && !confirmClearAll && (
+            <button onClick={() => setConfirmClearAll(true)} className="btn-ghost flex items-center gap-1.5 text-xs text-faint hover:text-red-400">
+              <Trash2 size={13} />Clear all
+            </button>
+          )}
+          {confirmClearAll && (
+            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+              <span className="text-red-400 text-xs font-body">Are you sure? This cannot be undone.</span>
+              <button onClick={() => { void clearAll() }} className="text-red-400 text-xs font-body font-semibold hover:text-red-300">
+                Yes, clear all
+              </button>
+              <button onClick={() => setConfirmClearAll(false)} className="text-faint text-xs font-body hover:text-cream">Cancel</button>
+            </div>
+          )}
+        </div>
+      {/* Rebuild grocery from plan */}
+      {showRebuildConfirm ? (
+        <div className="bg-surface border border-amber/20 rounded-xl p-4 mb-6 animate-fade-in">
+          <p className="text-cream text-sm font-body mb-3">
+            This will remove recipe-sourced items and re-add fresh ingredients from this week&apos;s planned recipes. Your manually added items will be kept.
+          </p>
+          <div className="flex gap-2">
+            <button onClick={handleRebuildGrocery} className="btn-primary text-xs px-3 py-1.5">Rebuild</button>
+            <button onClick={() => setShowRebuildConfirm(false)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => rebuildDone ? null : setShowRebuildConfirm(true)}
+          disabled={rebuilding}
+          className="flex items-center gap-2 text-sm font-body text-faint hover:text-amber transition-colors mb-6"
+        >
+          {rebuilding ? <Loader2 size={14} className="animate-spin" /> : rebuildDone ? <Check size={14} className="text-green-400" /> : <RefreshCw size={14} />}
+          {rebuilding ? 'Rebuilding…' : rebuildDone ? 'Done!' : 'Rebuild grocery list'}
+        </button>
+      )}
+
+      {/* AI Cleanup button */}
+      {items.length > 0 && !cleanupChanges && (
+        <div className="mb-6 space-y-1">
+          <button
+            onClick={handleAICleanup}
+            disabled={cleanupLoading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-amber/20 bg-amber/5 text-amber text-sm font-body hover:bg-amber/10 transition-colors"
+          >
+            {cleanupLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {cleanupLoading ? 'AI is reviewing your list...' : 'AI Clean Up List'}
+          </button>
+          {lastCleaned && (
+            <p className="text-faint text-xs font-body">
+              Last cleaned {lastCleaned.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {lastCleaned.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Cleanup diff view */}
+      {cleanupChanges && (
+        <div className="mb-6 bg-surface border border-amber/20 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <div>
+              <p className="text-cream text-sm font-body font-medium">AI Suggestions</p>
+              <p className="text-faint text-xs font-body mt-0.5">
+                {cleanupChanges.length - rejectedChanges.size} of {cleanupChanges.length} changes will apply
+              </p>
+            </div>
+            <button onClick={() => { setCleanupPlan(null); setRejectedChanges(new Set()) }} className="text-faint hover:text-cream">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="max-h-72 overflow-y-auto divide-y divide-border">
+            {cleanupChanges.map((change, i) => {
+              const original = cleanupPlan?.plan.items[change.originalIndex]
+              const isRejected = rejectedChanges.has(i)
+              return (
+                <div key={i} className={`px-4 py-2.5 flex items-center gap-3 ${isRejected ? 'opacity-40 line-through' : change.action === 'remove' ? 'opacity-50' : ''}`}>
+                  <span className={`text-xs font-body px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                    change.action === 'remove' ? 'bg-red-500/10 text-red-400' :
+                    change.action === 'merge' ? 'bg-violet-500/10 text-violet-400' :
+                    change.action === 'normalize' ? 'bg-amber/10 text-amber' :
+                    'bg-card text-faint'
+                  }`}>
+                    {change.action}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    {original && (
+                      <p className="text-faint text-xs font-body line-through truncate">{original.name}</p>
+                    )}
+                    {change.action !== 'remove' && (
+                      <p className="text-cream text-xs font-body truncate">{change.name}</p>
+                    )}
+                  </div>
+                  {change.action !== 'remove' && (
+                    <span className="text-faint text-xs font-body shrink-0">{change.category}</span>
+                  )}
+                  <button
+                    onClick={() => {
+                      setRejectedChanges(prev => {
+                        const next = new Set(prev)
+                        if (next.has(i)) next.delete(i)
+                        else next.add(i)
+                        return next
+                      })
+                    }}
+                    className={`shrink-0 p-1 rounded transition-colors ${
+                      isRejected ? 'text-amber hover:text-amber-glow' : 'text-faint hover:text-red-400'
+                    }`}
+                    title={isRejected ? 'Restore this change' : 'Reject this change'}
+                    aria-label={`${isRejected ? 'Restore' : 'Reject'} change for ${original?.name || change.name}`}
+                    aria-pressed={isRejected}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          <div className="px-4 py-3 border-t border-border flex gap-2">
+            <button onClick={() => { setCleanupPlan(null); setRejectedChanges(new Set()) }} className="btn-ghost text-xs flex-1">Discard</button>
+            <button
+              onClick={applyCleanup}
+              disabled={applyingCleanup || rejectedChanges.size === cleanupChanges.length}
+              className="btn-primary text-xs flex-1 flex items-center justify-center gap-1.5"
+            >
+              {applyingCleanup ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Apply changes
+            </button>
+          </div>
+        </div>
+      )}
+
+      </section>
+    </div></div>
   )
 }

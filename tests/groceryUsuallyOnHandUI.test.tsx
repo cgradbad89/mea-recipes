@@ -243,3 +243,31 @@ describe('Usually On Hand section UI', () => {
     expect(mocks.setPreference).toHaveBeenCalledWith('user-1', 'oat milk', 'Dairy & Eggs', false)
   })
 })
+
+describe('grocery display controls', () => {
+  it('exposes checked state and the item actions disclosure', async () => {
+    mocks.items = [activeItem()]
+    render(<GroceryPage />)
+    const check = await screen.findByRole('button', { name: 'Mark olive oil checked' })
+    expect(check.getAttribute('aria-pressed')).toBe('false')
+    const more = screen.getByRole('button', { name: 'More actions for olive oil' })
+    fireEvent.click(more)
+    expect(more.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.keyDown(more, { key: 'Escape' })
+    expect(more.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(more)
+    fireEvent.click(screen.getByRole('button', { name: /All \(1\)/ }))
+    expect(screen.getByRole('button', { name: /All \(1\)/ }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('focuses the category menu and restores the trigger on Escape', async () => {
+    mocks.items = [activeItem()]
+    render(<GroceryPage />)
+    const trigger = await screen.findByRole('button', { name: 'Change category for olive oil' })
+    fireEvent.click(trigger)
+    expect(document.activeElement?.textContent).toContain('Produce')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(trigger)
+  })
+})

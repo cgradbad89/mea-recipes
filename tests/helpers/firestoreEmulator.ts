@@ -107,12 +107,22 @@ export async function startFirestoreEmulator(projectID: string) {
       rememberJava()
       if (spawnError || emulator.exitCode !== null || emulator.signalCode !== null) break
       try {
-        const response = await fetch(`http://${host}:${port}`, { signal: AbortSignal.timeout(1000) })
-        if (response.ok) return { port, hubPort, loggingPort, websocketPort, directory, stop }
+        const [response, hubResponse] = await Promise.all([
+          fetch(`http://${host}:${port}`, { signal: AbortSignal.timeout(1000) }),
+          fetch(`http://${host}:${hubPort}/emulators`, { signal: AbortSignal.timeout(1000) }),
+        ])
+        const services = await hubResponse.json() as Record<string, { host?: string; port?: number; webSocketPort?: number }>
+        if (response.ok && hubResponse.ok && services.firestore?.host === host &&
+            services.firestore.port === port && services.firestore.webSocketPort === websocketPort &&
+            services.logging?.host === host && services.logging.port === loggingPort) {
+          return { port, hubPort, loggingPort, websocketPort, directory, stop }
+        }
       } catch { /* startup is still in progress */ }
       await delay(250)
     }
-    throw new Error(`Firestore emulator failed (${spawnError?.message ?? emulator.exitCode ?? 'readiness timeout'})\n${readFileSync(log, 'utf8').slice(-6000)}`)
+    let owners = ''
+    try { owners = execFileSync('lsof', ['-nP', '-iTCP', '-sTCP:LISTEN'], { encoding: 'utf8' }).split('\n').filter(row => [port, hubPort, loggingPort, websocketPort].some(p => row.includes(`:${p} `))).join('\n') } catch { /* diagnostics are best-effort */ }
+    throw new Error(`Firestore emulator failed (${spawnError?.message ?? emulator.exitCode ?? 'readiness timeout'}); ports: ${[port, hubPort, loggingPort, websocketPort].join(', ')}\n${owners}\n${readFileSync(log, 'utf8').slice(-6000)}`)
   } catch (error) {
     await stop()
     throw error
