@@ -66,7 +66,7 @@ export default function Navigation() {
   return (
     <>
       {/* Desktop sidebar */}
-      <nav className="hidden md:flex flex-col fixed left-0 top-0 h-full w-56 bg-surface border-r border-border z-40 py-8 px-5">
+      <nav aria-label="Main navigation" className="warm-sidebar hidden md:flex flex-col fixed left-0 top-0 h-full w-56 bg-surface border-r border-border z-40 py-8 px-5 overflow-y-auto">
         {/* Logo */}
         <div className="mb-10">
           <h1 className="font-display text-2xl text-cream font-light tracking-wide">MEA</h1>
@@ -81,6 +81,7 @@ export default function Navigation() {
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                   active
                     ? 'bg-amber/10 text-amber border border-amber/20'
@@ -112,7 +113,7 @@ export default function Navigation() {
 
       {/* Mobile bottom nav — five cells: four primary tabs + a "More" cell that
           opens the slide-up sheet. The rest of NAV_ITEMS (and Add) live there. */}
-      <nav className={`${(pathname === '/recipes' || pathname === '/plan' || pathname === '/grocery') ? 'recipes-mobile-nav' : ''} md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]`}>
+      <nav aria-label="Mobile navigation" className={`${(pathname === '/recipes' || pathname.startsWith('/recipes/') || pathname === '/plan' || pathname === '/grocery') ? 'recipes-mobile-nav' : ''} md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-40 flex items-center px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]`}>
         {PRIMARY_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (

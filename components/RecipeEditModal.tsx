@@ -58,6 +58,12 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
   const [saveError, setSaveError] = useState('')
   const [privateSaved, setPrivateSaved] = useState(false)
   const [resetSaved, setResetSaved] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    return () => previous?.focus()
+  }, [])
   const latestMetaRef = useRef(meta)
   const savedIntentRef = useRef<NonNullable<RecipeMeta['overrides']>>({})
   useEffect(() => { latestMetaRef.current = meta }, [meta])
@@ -198,15 +204,22 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-ink/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-recipe-title" onKeyDown={e => {
+        if (e.key === 'Escape') { e.preventDefault(); handleClose(); return }
+        if (e.key !== 'Tab') return
+        const controls = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), a[href]'))
+        if (!controls.length) return
+        if (e.shiftKey && document.activeElement === controls[0]) { e.preventDefault(); controls[controls.length - 1].focus() }
+        else if (!e.shiftKey && document.activeElement === controls[controls.length - 1]) { e.preventDefault(); controls[0].focus() }
+      }} className="bg-surface border border-border rounded-2xl w-full max-w-2xl max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto animate-slide-up">
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h2 className="font-display text-2xl text-cream font-light">Edit Recipe</h2>
+            <h2 id="edit-recipe-title" className="font-display text-2xl text-cream font-light">Edit Recipe</h2>
             <p className="text-faint text-xs font-body mt-0.5">
               Changes are personal — the shared recipe stays the same for other users
             </p>
           </div>
-          <button onClick={handleClose} disabled={saving || resetting} className="text-faint hover:text-cream transition-colors">
+          <button aria-label="Close edit recipe" onClick={handleClose} disabled={saving || resetting} className="text-faint hover:text-cream transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -269,7 +282,7 @@ export default function RecipeEditModal({ recipe, meta, onClose, onSaved, onNutr
               </label>
               <p className="text-faint/80 text-[11px] font-body mb-2 -mt-0.5">
                 Corrects the recipe&apos;s real default for everyone. To change just your
-                own per-serving view, use “Your serving size” on the recipe page.
+                own per-serving view, use “Your nutrition yield” on the recipe page.
               </p>
               <div className="flex items-center gap-3">
                 <input

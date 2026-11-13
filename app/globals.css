@@ -387,3 +387,57 @@
 .listing-destination a,.listing-destination button { min-height:44px; display:inline-flex; align-items:center; text-decoration:underline; font-size:14px; }
 .plan-unscheduled-add { display:flex; align-items:center; gap:10px; margin-top:16px; color:#61584c; font-size:13px; }
 .plan-unscheduled-add a { padding:0 16px; }
+
+/* Warm Pantry navigation and recipe details. Overlay components remain outside
+   the detail-content scope so their existing dark theme is preserved. */
+.warm-sidebar { background:#f7f5ef; border-color:#d3cbbd; color:#202a24; }
+.warm-sidebar .text-cream { color:#202a24; }
+.warm-sidebar .text-muted, .warm-sidebar .text-faint { color:#61584c; }
+.warm-sidebar .text-amber { color:#285c45; }
+.warm-sidebar .border-border { border-color:#d3cbbd; }
+.warm-sidebar .bg-card { background:#fffefa; }
+.warm-sidebar a[aria-current="page"] { background:#dfeade; border-color:#b9cbb8; color:#1d5139; }
+.warm-sidebar a:hover, .warm-sidebar button:hover { color:#1d5139; background-color:#e8eee5; }
+.warm-sidebar .btn-primary { background:#285c45; color:#fffefa; min-height:44px; }
+.warm-sidebar .btn-primary:hover { background:#1d4432; color:#fffefa; }
+.warm-sidebar .input-field { color:#202a24; background:#fffefa; border-color:#a89e90; }
+.warm-sidebar :focus-visible { outline:3px solid #b76b0b; outline-offset:2px; }
+
+.recipe-detail-page { min-height:100%; background:#f7f5ef; color:#202a24; }
+.detail-content { padding-top:32px; padding-bottom:80px; font-family:var(--font-dm-sans),system-ui,sans-serif; overflow-wrap:anywhere; }
+.detail-content :focus-visible { outline:3px solid #b76b0b; outline-offset:3px; }
+.detail-content .text-cream { color:#202a24; }
+.detail-content .text-faint, .detail-content .text-muted { color:#61584c; }
+.detail-content .text-amber, .detail-content .text-amber\/60, .detail-content .text-amber\/70, .detail-content .text-amber\/80 { color:#865009; }
+.detail-content .text-green-400 { color:#286448; }
+.detail-content .text-red-400 { color:#a2362e; }
+.detail-content .bg-surface, .detail-content .bg-card { background-color:#fffefa; }
+.detail-content .border-border { border-color:#d3cbbd; }
+.detail-content .tag { background:#fffefa; color:#61584c; border-color:#ddd5c7; }
+.detail-content .tag-amber { background:#f8ead0; color:#754500; border-color:#e7c892; }
+.detail-content .btn-primary { background:#285c45; color:#fffefa; min-height:44px; }
+.detail-content .btn-primary:hover { background:#1d4432; }
+.detail-content .btn-ghost { background:#fffefa; border-color:#c5bbac; color:#285c45; min-height:44px; }
+.detail-content .btn-ghost:hover { background:#edf2e9; color:#1d4432; }
+.detail-content .input-field { background:#fffefa; color:#202a24; border-color:#a89e90; min-width:0; }
+.detail-content .hover\:text-cream:hover { color:#202a24; }
+.detail-content .hover\:bg-card:hover { background:#edf2e9; }
+.detail-content .bg-amber { background-color:#e2b65e; color:#202a24; }
+.detail-content .detail-image { background:#eae5d9; }
+.detail-content .detail-image .bg-card { background:#eae5d9; }
+.detail-content .detail-heading h1 { overflow-wrap:anywhere; }
+.detail-jumps { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 22px; }
+.detail-jumps a { display:inline-flex; align-items:center; min-height:44px; padding:0 14px; border:1px solid #c5bbac; border-radius:999px; background:#fffefa; color:#285c45; font-size:13px; font-weight:600; }
+.detail-jumps a:hover { background:#e8eee5; }
+.detail-content section[id] { scroll-margin-top:16px; }
+.detail-content .detail-section { background:#fffefa; border:1px solid #e1d9cc; border-radius:18px; padding:22px; }
+.detail-content .detail-section li { line-height:1.65; }
+.detail-content .detail-section li p { font-size:15px; }
+.detail-content textarea { resize:vertical; }
+@media (max-width:639px) {
+  .detail-content { padding:20px 16px 84px; }
+  .detail-content .detail-heading { flex-wrap:wrap; }
+  .detail-content .detail-heading h1 { flex-basis:100%; }
+  .detail-content .detail-section { padding:18px; }
+  .detail-content .detail-section-heading { flex-wrap:wrap; }
+}

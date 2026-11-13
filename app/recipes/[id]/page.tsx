@@ -68,6 +68,7 @@ export default function RecipeDetailPage() {
   const [rating, setRating] = useState(0)
   const [savingNote, setSavingNote] = useState(false)
   const [showPlanPicker, setShowPlanPicker] = useState(false)
+  const planButtonRef = useRef<HTMLButtonElement>(null)
   const [selectedWeek, setSelectedWeek] = useState('')
   const [addingToPlan, setAddingToPlan] = useState(false)
   const [planAddedLabel, setPlanAddedLabel] = useState('')
@@ -375,7 +376,7 @@ export default function RecipeDetailPage() {
   const fav = isFavorite(displayRecipe.id)
   const wanted = isWantToTry(displayRecipe.id)
   // "edited" badge reflects content edits only — a personal servings override has
-  // its own "Your serving size" UI and shouldn't read as the recipe being edited.
+  // its own nutrition-yield UI and shouldn't read as the recipe being edited.
   const hasOverrides = !!meta?.overrides &&
     Object.keys(meta.overrides).some(k => k !== 'servings')
   // Bulk "Add all to grocery" (Batch 9). REUSES addRecipeIngredientsToGrocery — the
@@ -453,7 +454,8 @@ export default function RecipeDetailPage() {
       errorPrefix="Couldn’t load your recipe details."
       className="max-w-3xl mx-auto mt-6"
     >
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="recipe-detail-page">
+    <div className="detail-content max-w-3xl mx-auto px-4 py-6">
       <LoadingErrorRetry loading={false} error={metasError}
         retry={() => { void refetchMetas().catch(() => {}) }}
         errorPrefix="Couldn’t refresh your recipe details." className="mb-4">
@@ -475,7 +477,7 @@ export default function RecipeDetailPage() {
       </button>
 
       {displayRecipe.imageURL && (
-        <div className="rounded-2xl overflow-hidden aspect-video mb-6 bg-card">
+      <div className="detail-image rounded-2xl overflow-hidden aspect-video mb-6 bg-card">
           <RecipeImage
             src={displayRecipe.imageURL}
             alt={displayRecipe.title}
@@ -485,10 +487,10 @@ export default function RecipeDetailPage() {
             emojiClassName="text-6xl"
             loading="eager"
           />
-        </div>
+      </div>
       )}
 
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="detail-heading flex items-start justify-between gap-3 mb-4">
         <h1 className="font-display text-3xl md:text-5xl text-cream font-light leading-tight min-w-0 flex-1">
           {displayRecipe.title}
         </h1>
@@ -554,13 +556,21 @@ export default function RecipeDetailPage() {
         {meta?.rating ? <StarRating value={meta.rating} /> : null}
       </div>
 
+      {(ingredients.length > 0 || instructions.length > 0 || user) && (
+        <nav className="detail-jumps" aria-label="On this recipe">
+          {ingredients.length > 0 && <a href="#recipe-ingredients">Ingredients</a>}
+          {instructions.length > 0 && <a href="#recipe-instructions">Instructions</a>}
+          {user && <a href="#recipe-notes">Notes</a>}
+        </nav>
+      )}
+
       {/* Meal-plan default role (shared recipe property; distinct from the per-week
           toggle on the plan page). Shows the effective default; "from category" hints
           when not yet explicitly set. */}
       {user && (
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           <span className="text-faint text-xs font-body">Meal-plan default:</span>
-          <div className="inline-flex rounded-lg border border-border overflow-hidden">
+          <div className="inline-flex shrink-0 rounded-lg border border-border overflow-hidden">
             {(['main', 'side'] as const).map(r => {
               const active = resolveRecipeRole({ ...recipe, category: displayRecipe.category }) === r
               return (
@@ -568,7 +578,7 @@ export default function RecipeDetailPage() {
                   key={r}
                   onClick={() => handleSetDefaultRole(r)}
                   disabled={savingDefaultRole}
-                  className={`px-3 py-1 text-xs font-body capitalize transition-colors disabled:opacity-50 ${
+                  className={`px-3 min-h-[44px] text-xs font-body capitalize transition-colors disabled:opacity-50 ${
                     active ? 'bg-amber/15 text-amber' : 'text-faint hover:text-cream'
                   }`}
                   aria-pressed={active}
@@ -587,8 +597,9 @@ export default function RecipeDetailPage() {
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3 mb-8 relative">
         {user && (
-          <div className="relative">
-            <button onClick={handleOpenPlanPicker}
+          <div className="relative" onKeyDown={e => { if (e.key === 'Escape' && showPlanPicker) { setShowPlanPicker(false); planButtonRef.current?.focus() } }}>
+            <button ref={planButtonRef} onClick={handleOpenPlanPicker}
+              aria-expanded={showPlanPicker}
               className="btn-primary flex items-center gap-2"
             >
               <Calendar size={15} />
@@ -611,6 +622,7 @@ export default function RecipeDetailPage() {
                         <button
                           key={w.weekID}
                           onClick={() => setSelectedWeek(w.weekID)}
+                          aria-pressed={selectedWeek === w.weekID}
                           className={`w-full text-left px-3 py-2 rounded-lg text-sm font-body transition-colors flex items-center gap-2 ${
                             selectedWeek === w.weekID
                               ? 'bg-amber/10 text-amber'
@@ -629,7 +641,7 @@ export default function RecipeDetailPage() {
                       <p className="text-red-400 text-[11px] font-body px-4 pb-1">{planAddError}</p>
                     )}
                     <div className="flex gap-2 px-4 pb-3">
-                      <button onClick={() => setShowPlanPicker(false)} className="btn-ghost text-xs flex-1">Cancel</button>
+                      <button onClick={() => { setShowPlanPicker(false); planButtonRef.current?.focus() }} className="btn-ghost text-xs flex-1">Cancel</button>
                       <button
                         onClick={handleConfirmAddToPlan}
                         disabled={addingToPlan}
@@ -684,8 +696,8 @@ export default function RecipeDetailPage() {
       {servingsError && <p role="alert" className="text-red-400 text-xs font-body mb-4">{servingsError}</p>}
 
       {ingredients.length > 0 && (
-        <section className="mb-8">
-          <div className="flex items-start justify-between gap-3 mb-4">
+        <section id="recipe-ingredients" className="detail-section mb-8">
+          <div className="detail-section-heading flex items-start justify-between gap-3 mb-4">
             <h2 className="font-display text-2xl text-cream font-light flex items-center gap-2">
               <ChefHat size={20} className="text-amber" /> Ingredients
             </h2>
@@ -719,7 +731,7 @@ export default function RecipeDetailPage() {
               const header = detectIngredientHeader(ing)
               if (header.isHeader) {
                 return (
-                  <li key={i} className="list-none -ml-5 pt-3 first:pt-0">
+                  <li key={i} className="list-none pt-3 first:pt-0">
                     <h4 className="font-display text-lg text-cream font-medium tracking-wide">
                       {header.text}
                     </h4>
@@ -738,7 +750,7 @@ export default function RecipeDetailPage() {
       )}
 
       {instructions.length > 0 && (
-        <section className="mb-8">
+        <section id="recipe-instructions" className="detail-section mb-8">
           <h2 className="font-display text-2xl text-cream font-light mb-4 flex items-center gap-2">
             <BookOpen size={20} className="text-amber" /> Instructions
           </h2>
@@ -818,6 +830,7 @@ export default function RecipeDetailPage() {
         <div className="flex gap-2">
           <input
             type="text"
+            aria-label="Ask the recipe assistant"
             value={assistantInput}
             onChange={e => setAssistantInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); sendAssistantMessage(assistantInput) } }}
@@ -836,7 +849,7 @@ export default function RecipeDetailPage() {
       </section>
 
       {user && (
-        <section className="bg-surface border border-border rounded-2xl p-5">
+        <section id="recipe-notes" className="bg-surface border border-border rounded-2xl p-5">
           <h2 className="font-display text-xl text-cream font-light mb-4">My Notes</h2>
           <div className="mb-4">
             <p className="text-faint text-xs font-body uppercase tracking-widest mb-2">Rating</p>
@@ -844,7 +857,7 @@ export default function RecipeDetailPage() {
             {rating > 0 && <p className="text-amber text-xs font-body mt-1">{rating} star{rating !== 1 ? 's' : ''}</p>}
           </div>
           <div className="mb-4">
-            <textarea value={note} onChange={e => setNote(e.target.value)}
+            <textarea aria-label="Recipe notes" value={note} onChange={e => setNote(e.target.value)}
               placeholder="Add your notes, modifications, tips..." rows={4} className="input-field resize-none" />
           </div>
           <button onClick={handleSaveNote} disabled={savingNote} className="btn-primary flex items-center gap-2">
@@ -857,6 +870,8 @@ export default function RecipeDetailPage() {
             className="btn-ghost mt-2 text-xs">Retry refresh</button>}
         </section>
       )}
+
+    </div>
 
       {showCookingMode && (
         <CookingMode

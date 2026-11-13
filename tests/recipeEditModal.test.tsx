@@ -450,3 +450,18 @@ describe('RecipeEditModal async completion and retry', () => {
     expect(onSaved).not.toHaveBeenCalled()
   })
 })
+
+describe('RecipeEditModal keyboard access', () => {
+  it('focuses the close control, wraps focus, and asks before discarding edits on Escape', () => {
+    const props = renderModal('Seafood')
+    const dialog = screen.getByRole('dialog', { name: 'Edit Recipe' })
+    const close = screen.getByRole('button', { name: 'Close edit recipe' })
+    expect(document.activeElement).toBe(close)
+    fireEvent.keyDown(close, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Save changes' }))
+    fireEvent.change(titleControl(), { target: { value: 'Changed title' } })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(props.onClose).not.toHaveBeenCalled()
+    expect(screen.getByText(/unsaved changes/i)).toBeTruthy()
+  })
+})

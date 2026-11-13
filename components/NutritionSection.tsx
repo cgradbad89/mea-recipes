@@ -179,9 +179,9 @@ export default function NutritionSection({
             recipe. Only shown when a whole-recipe total exists to divide. */}
         {hasTotal && (
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-faint text-[11px] font-body uppercase tracking-wide">
-                Your serving size
+                Your nutrition yield (servings)
               </span>
               <div className="inline-flex items-center rounded-lg border border-border bg-card overflow-hidden">
                 <button
@@ -189,7 +189,7 @@ export default function NutritionSection({
                   onClick={() => step(-1)}
                   disabled={(liveServings ?? 1) <= 1}
                   aria-label="Decrease servings"
-                  className="px-2 py-1.5 text-faint hover:text-cream disabled:opacity-40 transition-colors"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-faint hover:text-cream disabled:opacity-40 transition-colors"
                 >
                   <Minus size={13} />
                 </button>
@@ -202,14 +202,14 @@ export default function NutritionSection({
                   onChange={e => setServingsInput(e.target.value)}
                   onBlur={commitInput}
                   onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-                  aria-label="Your serving size"
+                  aria-label="Your nutrition yield in servings"
                   className="w-12 bg-transparent text-center text-cream font-body text-sm focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   type="button"
                   onClick={() => step(1)}
                   aria-label="Increase servings"
-                  className="px-2 py-1.5 text-faint hover:text-cream transition-colors"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center text-faint hover:text-cream transition-colors"
                 >
                   <Plus size={13} />
                 </button>
@@ -235,6 +235,8 @@ export default function NutritionSection({
             )}
           </div>
         )}
+
+        {hasTotal && <p className="detail-yield-help text-faint text-xs font-body mb-4">Changing the yield updates per-serving nutrition; ingredient quantities stay the same.</p>}
 
         {/* Macro grid — dimmed when this is a low-confidence estimate (Task B). */}
         <div className={`grid grid-cols-3 sm:grid-cols-6 gap-3 transition-opacity ${dimMacros ? 'opacity-50' : ''}`}>
