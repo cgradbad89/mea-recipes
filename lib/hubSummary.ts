@@ -19,16 +19,24 @@ export interface OmissionCounts {
   missingTitle: number
 }
 
+/** Grocery items still to buy: the Grocery page's `items.filter(i => !i.isChecked).length`. */
+export function countGroceryToBuy(items: readonly { isChecked?: unknown }[]): number {
+  return items.filter(item => !item.isChecked).length
+}
+
 /** Counts are per omitted entry; outside-week entries are counted first. No I/O. */
-export function buildRecipesSummary({ weekPlan, recipesById, now }: {
+export function buildRecipesSummary({ weekPlan, recipesById, now, groceryToBuy = null }: {
   weekPlan: HubWeekPlan | null
   recipesById: ReadonlyMap<string, HubRecipe>
   now: Date
+  /** From countGroceryToBuy; null/absent when the grocery list was not read. */
+  groceryToBuy?: number | null
 }): [HubSummary<RecipesData>, OmissionCounts] {
   const { monday } = newYorkWeek(now)
   const data: RecipesData = {
     days: Array.from({ length: 7 }, (_, i) => ({ date: addCivilDays(monday, i), meals: [] })),
     unscheduled: [],
+    grocery: groceryToBuy === null ? null : { toBuy: groceryToBuy },
   }
   const counts: OmissionCounts = { outsideWeek: 0, missingRecipe: 0, missingTitle: 0 }
   const cooked = new Set(weekPlan?.cookedRecipeIDs || [])

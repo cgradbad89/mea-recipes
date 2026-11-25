@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const mocks = vi.hoisted(() => ({ verifyAuthToken: vi.fn(), getAdminDb: vi.fn(), get: vi.fn(), getAll: vi.fn(), doc: vi.fn(), collection: vi.fn() }))
+const mocks = vi.hoisted(() => ({ verifyAuthToken: vi.fn(), getAdminDb: vi.fn(), get: vi.fn(), getAll: vi.fn(), doc: vi.fn(), collection: vi.fn(), select: vi.fn(), groceryGet: vi.fn() }))
 vi.mock('@/lib/firebaseAdmin', () => ({ verifyAuthToken: mocks.verifyAuthToken, getAdminDb: mocks.getAdminDb }))
 import { GET } from '@/app/api/hub/summary/route'
 
@@ -21,7 +21,9 @@ describe('GET /api/hub/summary', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-11-09T04:00:00Z')) // Sunday 11pm in New York
     mocks.verifyAuthToken.mockResolvedValue('caller-uid')
-    const db = { collection: mocks.collection, doc: mocks.doc, get: mocks.get, getAll: mocks.getAll }
+    const db = { collection: mocks.collection, doc: mocks.doc, get: mocks.get, getAll: mocks.getAll, select: mocks.select }
+    mocks.select.mockReturnValue({ get: mocks.groceryGet })
+    mocks.groceryGet.mockResolvedValue({ docs: [] })
     mocks.collection.mockReturnValue(db)
     mocks.doc.mockReturnValue(db)
     mocks.getAdminDb.mockReturnValue(db)
@@ -49,14 +51,15 @@ describe('GET /api/hub/summary', () => {
     expect(response.status).toBe(200)
     expectHeaders(response)
     expect(mocks.verifyAuthToken).toHaveBeenCalledWith(req)
-    expect(mocks.collection.mock.calls).toEqual([['users'], ['pantry'], ['weekPlans']])
-    expect(mocks.doc.mock.calls).toEqual([['caller-uid'], ['root'], ['2026-11-02']])
+    expect(mocks.collection.mock.calls).toEqual([['users'], ['pantry'], ['weekPlans'], ['users'], ['pantry'], ['groceryItems']])
+    expect(mocks.doc.mock.calls).toEqual([['caller-uid'], ['root'], ['2026-11-02'], ['caller-uid'], ['root']])
     expect(mocks.getAll).not.toHaveBeenCalled()
     const body = await response.json()
     expect(body.status).toBe('ok')
     expect(body.data.days).toHaveLength(7)
     expect(body.data.days.every((day: { meals: unknown[] }) => day.meals.length === 0)).toBe(true)
     expect(body.data.unscheduled).toEqual([])
+    expect(body.data.grocery).toEqual({ toBuy: 0 })
   })
   it('batches distinct recipe document IDs and logs only omission counts', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -72,11 +75,28 @@ describe('GET /api/hub/summary', () => {
     expectHeaders(response)
     expect(mocks.getAll).toHaveBeenCalledTimes(1)
     expect(mocks.getAll.mock.calls[0]).toHaveLength(2)
-    expect(mocks.doc.mock.calls.slice(3)).toEqual([['real-id'], ['missing']])
+    expect(mocks.doc.mock.calls.slice(5)).toEqual([['real-id'], ['missing']])
     const body = await response.json()
     expect(body.data.days[0].meals[0]).toEqual({ name: 'Actual title', url: 'https://mea-recipes.vercel.app/recipes/real-id', role: 'main', cooked: true })
     expect(body).not.toHaveProperty('counts')
     expect(warn).toHaveBeenCalledExactlyOnceWith('Hub summary omitted entries', { outsideWeek: 0, missingRecipe: 1, missingTitle: 0 })
+  })
+  it('counts unchecked grocery items for the verified uid, selecting only isChecked', async () => {
+    mocks.groceryGet.mockResolvedValue({ docs: [true, false, undefined, false].map(isChecked => ({ data: () => (isChecked === undefined ? {} : { isChecked }) })) })
+    const response = await GET(request('Bearer token'))
+    expect(response.status).toBe(200)
+    expect(mocks.select).toHaveBeenCalledExactlyOnceWith('isChecked')
+    expect((await response.json()).data.grocery).toEqual({ toBuy: 3 })
+  })
+  it('a failed grocery read yields grocery: null and leaves the rest of the summary intact', async () => {
+    mocks.groceryGet.mockRejectedValue(new Error('private error details'))
+    const response = await GET(request('Bearer token'))
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.status).toBe('ok')
+    expect(body.data.days).toHaveLength(7)
+    expect(body.data.grocery).toBeNull()
+    expect(JSON.stringify(body)).not.toContain('private error details')
   })
   it.each(['week read', 'recipe read'])('sanitizes unexpected %s errors', async stage => {
     if (stage === 'week read') mocks.get.mockRejectedValue(new Error('private error details'))

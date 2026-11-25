@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addCivilDays, newYorkWeek } from '@/lib/hubDates'
-import { buildRecipesSummary, type HubWeekPlan } from '@/lib/hubSummary'
+import { buildRecipesSummary, countGroceryToBuy, type HubWeekPlan } from '@/lib/hubSummary'
 import { normalizePlanned, normalizePlannedEntry, type PlannedElement } from '@/lib/weekPlanNormalize'
 
 const now = new Date('2026-11-05T15:00:00Z')
@@ -38,13 +38,26 @@ describe('New York hub dates', () => {
   })
 })
 
+describe('grocery count (Hub Glance)', () => {
+  it('counts unchecked items exactly like the Grocery page', () => {
+    expect(countGroceryToBuy([{ isChecked: false }, { isChecked: true }, {}, { isChecked: false }])).toBe(3)
+    expect(countGroceryToBuy([])).toBe(0)
+  })
+  it('emits grocery.toBuy when supplied, including zero, and null otherwise', () => {
+    const [withCount] = buildRecipesSummary({ weekPlan: null, recipesById: new Map(), now, groceryToBuy: 0 })
+    expect(withCount.status === 'ok' && withCount.data.grocery).toEqual({ toBuy: 0 })
+    const [without] = buildRecipesSummary({ weekPlan: null, recipesById: new Map(), now })
+    expect(without.status === 'ok' && without.data.grocery).toBeNull()
+  })
+})
+
 describe('buildRecipesSummary', () => {
   it('returns seven empty Monday–Sunday days for an absent week', () => {
     const result = build(null)
     expect(result.data).toEqual({ days: [
       '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05',
       '2026-11-06', '2026-11-07', '2026-11-08',
-    ].map(date => ({ date, meals: [] })), unscheduled: [] })
+    ].map(date => ({ date, meals: [] })), unscheduled: [], grocery: null })
     expect(result.generatedAt).toBe(now.toISOString())
     expect(result.app).toBe('recipes')
     expect(result.appUrl).toBe('https://mea-recipes.vercel.app/plan')
