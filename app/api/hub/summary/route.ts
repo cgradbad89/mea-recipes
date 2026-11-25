@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminDb, verifyAuthToken } from '@/lib/firebaseAdmin'
 import { newYorkWeek } from '@/lib/hubDates'
-import { buildRecipesSummary, type HubRecipe, type HubWeekPlan } from '@/lib/hubSummary'
+import { buildRecipesSummary, countGroceryToBuy, type HubRecipe, type HubWeekPlan } from '@/lib/hubSummary'
 import { normalizePlanned } from '@/lib/weekPlanNormalize'
 
 export const runtime = 'nodejs'
@@ -19,8 +19,15 @@ export async function GET(req: NextRequest) {
     const now = new Date()
     const { monday } = newYorkWeek(now)
     const db = getAdminDb()
-    const snapshot = await db.collection('users').doc(uid)
+    const weekPlanRead = db.collection('users').doc(uid)
       .collection('pantry').doc('root').collection('weekPlans').doc(monday).get()
+    // Grocery count is best-effort: a failed read yields `grocery: null`, never a failed summary.
+    const groceryRead = (async () => {
+      const items = await db.collection('users').doc(uid)
+        .collection('pantry').doc('root').collection('groceryItems').select('isChecked').get()
+      return countGroceryToBuy(items.docs.map(item => item.data()))
+    })().catch(() => null)
+    const snapshot = await weekPlanRead
     const weekPlan = snapshot.exists ? snapshot.data() as HubWeekPlan : null
     const ids = [...new Set(normalizePlanned(weekPlan?.plannedRecipeIDs).map(entry => entry.recipeID))]
     const recipesById = new Map<string, HubRecipe>()
@@ -30,7 +37,8 @@ export async function GET(req: NextRequest) {
         if (recipe.exists) recipesById.set(recipe.id, recipe.data() as HubRecipe)
       }
     }
-    const [summary, counts] = buildRecipesSummary({ weekPlan, recipesById, now })
+    const groceryToBuy = await groceryRead
+    const [summary, counts] = buildRecipesSummary({ weekPlan, recipesById, now, groceryToBuy })
     if (Object.values(counts).some(count => count > 0)) {
       console.warn('Hub summary omitted entries', counts)
     }
